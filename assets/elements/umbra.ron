@@ -1,0 +1,16 @@
+ElementDef(
+    name: "Umbra",
+    symbol: "Umbra",
+    atomic_number: 0,
+    frequency_hz: 20.0,
+    freq_band: (10.0, 30.0),
+    bond_energy: 1000.0,
+    conductivity: 0.5,
+    visibility: 0.1,
+    matter_state: Solid,
+    electronegativity: 0.0,
+    ionization_ev: 0.0,
+    color: (0.15, 0.0, 0.3),
+    is_compound: false,
+)
+

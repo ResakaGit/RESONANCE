@@ -1,0 +1,25 @@
+(
+  season_duration_ticks: 6000,
+  transition_window: 0.2,
+  enabled: true,
+  spring: (
+    temperature_offset: 0.0,
+    precipitation_factor: 1.0,
+    wind_intensity: 1.0,
+  ),
+  summer: (
+    temperature_offset: 20.0,
+    precipitation_factor: 0.5,
+    wind_intensity: 0.8,
+  ),
+  autumn: (
+    temperature_offset: -5.0,
+    precipitation_factor: 1.2,
+    wind_intensity: 1.0,
+  ),
+  winter: (
+    temperature_offset: -20.0,
+    precipitation_factor: 1.5,
+    wind_intensity: 1.2,
+  ),
+)

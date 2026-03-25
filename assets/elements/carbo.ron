@@ -1,0 +1,15 @@
+ElementDef(
+    name: "Carbo",
+    symbol: "Carbo",
+    atomic_number: 0,
+    frequency_hz: 1900.0,
+    freq_band: (1841.0, 1960.0),
+    bond_energy: 700.0,
+    conductivity: 0.18,
+    visibility: 0.4,
+    matter_state: Solid,
+    electronegativity: 2.5,
+    ionization_ev: 2.6,
+    color: (0.35, 0.32, 0.28),
+    is_compound: true,
+)

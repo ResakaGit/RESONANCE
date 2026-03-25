@@ -1,0 +1,15 @@
+ElementDef(
+    name: "Phosph",
+    symbol: "Phosph",
+    atomic_number: 0,
+    frequency_hz: 2020.0,
+    freq_band: (1961.0, 2080.0),
+    bond_energy: 880.0,
+    conductivity: 0.22,
+    visibility: 0.38,
+    matter_state: Solid,
+    electronegativity: 2.1,
+    ionization_ev: 2.4,
+    color: (0.95, 0.82, 0.55),
+    is_compound: true,
+)

@@ -1,0 +1,15 @@
+ElementDef(
+    name: "Aeros",
+    symbol: "Aeros",
+    atomic_number: 0,
+    frequency_hz: 1415.0,
+    freq_band: (1351.0, 1480.0),
+    bond_energy: 600.0,
+    conductivity: 0.25,
+    visibility: 0.25,
+    matter_state: Solid,
+    electronegativity: 1.6,
+    ionization_ev: 0.8,
+    color: (0.82, 0.84, 0.78),
+    is_compound: true,
+)

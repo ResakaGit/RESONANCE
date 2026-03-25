@@ -1,0 +1,17 @@
+pub mod camera_controller_3d;
+pub mod click_to_move;
+pub mod collision_backend_3d;
+pub mod compat_2d3d;
+pub mod contracts;
+pub mod core_math_agnostic;
+pub mod debug_observability;
+pub mod fog_overlay;
+pub mod hud;
+pub mod input_capture;
+pub mod intent_projection_3d;
+pub mod kinematics_3d_adapter;
+pub mod parry_nav_collider;
+pub mod render_bridge_3d;
+pub mod scenario_isolation;
+pub mod simulation_tick;
+pub mod spatial_index_backend;

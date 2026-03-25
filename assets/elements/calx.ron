@@ -1,0 +1,15 @@
+ElementDef(
+    name: "Calx",
+    symbol: "Calx",
+    atomic_number: 0,
+    frequency_hz: 1540.0,
+    freq_band: (1481.0, 1600.0),
+    bond_energy: 1050.0,
+    conductivity: 0.4,
+    visibility: 0.5,
+    matter_state: Solid,
+    electronegativity: 1.8,
+    ionization_ev: 1.5,
+    color: (0.94, 0.93, 0.88),
+    is_compound: true,
+)

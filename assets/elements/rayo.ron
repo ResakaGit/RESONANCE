@@ -1,0 +1,16 @@
+ElementDef(
+    name: "Rayo",
+    symbol: "Rayo",
+    atomic_number: 0,
+    frequency_hz: 550.0,
+    freq_band: (500.0, 600.0),
+    bond_energy: 1000.0,
+    conductivity: 0.5,
+    visibility: 0.95,
+    matter_state: Solid,
+    electronegativity: 0.0,
+    ionization_ev: 0.0,
+    color: (0.85, 0.63, 0.35),
+    is_compound: false,
+)
+

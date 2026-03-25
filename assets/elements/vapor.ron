@@ -1,0 +1,16 @@
+ElementDef(
+    name: "Vapor",
+    symbol: "Vapor",
+    atomic_number: 0,
+    frequency_hz: 350.0,
+    freq_band: (300.0, 400.0),
+    bond_energy: 1000.0,
+    conductivity: 0.5,
+    visibility: 0.2,
+    matter_state: Solid,
+    electronegativity: 0.0,
+    ionization_ev: 0.0,
+    color: (0.5, 0.35, 0.45),
+    is_compound: true,
+)
+

@@ -1,0 +1,16 @@
+ElementDef(
+    name: "Terra",
+    symbol: "Terra",
+    atomic_number: 0,
+    frequency_hz: 75.0,
+    freq_band: (50.0, 84.0),
+    bond_energy: 1000.0,
+    conductivity: 0.5,
+    visibility: 0.3,
+    matter_state: Solid,
+    electronegativity: 0.0,
+    ionization_ev: 0.0,
+    color: (0.55, 0.35, 0.1),
+    is_compound: false,
+)
+

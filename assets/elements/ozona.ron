@@ -1,0 +1,15 @@
+ElementDef(
+    name: "Ozona",
+    symbol: "Ozona",
+    atomic_number: 0,
+    frequency_hz: 2260.0,
+    freq_band: (2201.0, 2320.0),
+    bond_energy: 720.0,
+    conductivity: 0.3,
+    visibility: 0.65,
+    matter_state: Solid,
+    electronegativity: 2.7,
+    ionization_ev: 2.8,
+    color: (0.55, 0.75, 0.92),
+    is_compound: true,
+)

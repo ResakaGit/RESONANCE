@@ -1,0 +1,15 @@
+ElementDef(
+    name: "Ionos",
+    symbol: "Ionos",
+    atomic_number: 0,
+    frequency_hz: 2385.0,
+    freq_band: (2321.0, 2450.0),
+    bond_energy: 550.0,
+    conductivity: 0.92,
+    visibility: 0.9,
+    matter_state: Plasma,
+    electronegativity: 1.4,
+    ionization_ev: 1.8,
+    color: (0.65, 0.45, 0.95),
+    is_compound: true,
+)

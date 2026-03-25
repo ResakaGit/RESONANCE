@@ -1,0 +1,92 @@
+#![enable(implicit_some)]
+// Bridge Optimizer — tuning data-driven (`blueprint_layer_bridge_optimizer.md` §12–13).
+// `implicit_some`: campos `Option` pueden omitir `Some(...)`.
+
+(
+  bridges: {
+    "density": (
+      preset: moderate,
+      hysteresis_margin: 2.0,
+      cache_capacity: 100,
+      cache_policy: context_fill,
+      enabled: true,
+      rigidity: moderate,
+    ),
+    "temperature": (
+      preset: moderate,
+      hysteresis_margin: 1.0,
+      cache_capacity: 20,
+      cache_policy: context_fill,
+      enabled: true,
+    ),
+    "phase_transition": (
+      preset: rigid,
+      hysteresis_margin: 5.0,
+      cache_capacity: 70,
+      cache_policy: context_fill,
+      enabled: true,
+      rigidity: rigid,
+    ),
+    "dissipation": (
+      preset: moderate,
+      hysteresis_margin: 0.5,
+      cache_capacity: 80,
+      cache_policy: context_fill,
+      enabled: true,
+    ),
+    "drag": (
+      preset: moderate,
+      hysteresis_margin: 0.3,
+      cache_capacity: 800,
+      cache_policy: context_fill,
+      enabled: true,
+    ),
+    "engine": (
+      preset: moderate,
+      hysteresis_margin: 1.0,
+      cache_capacity: 200,
+      cache_policy: context_fill,
+      enabled: true,
+    ),
+    "interference": (
+      preset: flexible,
+      hysteresis_margin: 0.05,
+      cache_capacity: 500,
+      cache_policy: context_fill,
+      enabled: true,
+      rigidity: flexible,
+    ),
+    "will": (
+      preset: rigid,
+      hysteresis_margin: 0.0,
+      cache_capacity: 80,
+      cache_policy: context_fill,
+      enabled: true,
+      rigidity: rigid,
+    ),
+    "catalysis": (
+      preset: flexible,
+      hysteresis_margin: 0.01,
+      cache_capacity: 1000,
+      cache_policy: context_fill,
+      enabled: true,
+      rigidity: flexible,
+    ),
+    "collision_transfer": (
+      preset: flexible,
+      hysteresis_margin: 0.5,
+      cache_capacity: 1000,
+      cache_policy: context_fill,
+      enabled: true,
+      rigidity: flexible,
+    ),
+    "osmosis": (
+      preset: moderate,
+      hysteresis_margin: 0.5,
+      cache_capacity: 512,
+      cache_policy: context_fill,
+      enabled: true,
+      rigidity: moderate,
+    ),
+  },
+)

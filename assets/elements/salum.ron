@@ -1,0 +1,15 @@
+ElementDef(
+    name: "Salum",
+    symbol: "Salum",
+    atomic_number: 0,
+    frequency_hz: 1300.0,
+    freq_band: (1251.0, 1350.0),
+    bond_energy: 900.0,
+    conductivity: 0.65,
+    visibility: 0.35,
+    matter_state: Solid,
+    electronegativity: 2.4,
+    ionization_ev: 1.2,
+    color: (0.92, 0.94, 0.96),
+    is_compound: true,
+)

@@ -1,0 +1,16 @@
+ElementDef(
+    name: "Ignis",
+    symbol: "Ignis",
+    atomic_number: 0,
+    frequency_hz: 450.0,
+    freq_band: (400.0, 500.0),
+    bond_energy: 1000.0,
+    conductivity: 0.5,
+    visibility: 0.7,
+    matter_state: Solid,
+    electronegativity: 0.0,
+    ionization_ev: 0.0,
+    color: (1.0, 0.3, 0.0),
+    is_compound: false,
+)
+

@@ -1,0 +1,15 @@
+ElementDef(
+    name: "Origo",
+    symbol: "Origo",
+    atomic_number: 0,
+    frequency_hz: 0.25,
+    freq_band: (0.02, 0.49),
+    bond_energy: 2000.0,
+    conductivity: 0.01,
+    visibility: 0.01,
+    matter_state: Solid,
+    electronegativity: 0.0,
+    ionization_ev: 0.0,
+    color: (0.04, 0.05, 0.08),
+    is_compound: false,
+)

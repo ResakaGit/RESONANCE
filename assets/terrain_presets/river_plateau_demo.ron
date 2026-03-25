@@ -1,0 +1,42 @@
+(
+  // Preset para ver Riverbed / valles en mapas ~48×48. Uso:
+  //   RESONANCE_TERRAIN_CONFIG=terrain_presets/river_plateau_demo.ron cargo run
+  // (sustituye la carga de terrain_config.ron por este asset).
+  seed: 9001,
+  noise: (
+    octaves: 6,
+    frequency: 0.022,
+    amplitude: 95.0,
+    lacunarity: 2.05,
+    persistence: 0.5,
+    min_height: -40.0,
+    max_height: 120.0,
+  ),
+  erosion: (
+    cycles: 45,
+    strength: 0.38,
+    deposition_rate: 0.5,
+    evaporation: 0.1,
+  ),
+  classification: (
+    peak_altitude: 95.0,
+    ridge_altitude: 72.0,
+    plateau_altitude: 82.0,
+    cliff_slope: 58.0,
+    slope_threshold: 9.0,
+    // Más bajo que default → más celdas clasifican como cauce (Riverbed).
+    river_accumulation: 48.0,
+    basin_max_slope: 4.0,
+    basin_max_altitude: 30.0,
+    valley_max_altitude: 50.0,
+  ),
+  modulation: (
+    altitude_emission_scale: 0.005,
+    slope_diffusion_scale: 0.3,
+    reference_altitude: 45.0,
+    decay_peak_factor: 1.5,
+    decay_valley_factor: 0.72,
+    decay_riverbed_factor: 0.82,
+  ),
+  enabled: true,
+)

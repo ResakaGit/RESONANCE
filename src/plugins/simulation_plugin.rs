@@ -1,0 +1,55 @@
+use bevy::prelude::*;
+
+use crate::blueprint::init_almanac_elements_system;
+use crate::eco::climate::init_climate_config_system;
+use crate::runtime_platform::compat_2d3d::{RenderCompatProfile, SimWorldTransformParams};
+use crate::runtime_platform::fog_overlay::spawn_fog_world_overlay_startup_system;
+use crate::simulation::{init_simulation_bootstrap, pipeline};
+use crate::topology::config::init_terrain_config_system;
+use crate::world::fog_of_war::init_fog_of_war_from_energy_field_system;
+use crate::worldgen::systems::startup::{
+    enter_game_state_playing_system, load_map_config_startup_system, mark_play_state_active_system,
+    spawn_nuclei_from_map_config_system, worldgen_warmup_system,
+};
+use crate::worldgen::systems::terrain::insert_terrain_field_startup_system;
+
+/// Plugin principal que registra todos los sistemas de simulación
+/// con el ordenamiento correcto.
+pub struct SimulationPlugin;
+
+impl Plugin for SimulationPlugin {
+    fn build(&self, app: &mut App) {
+        if !app.world().contains_resource::<SimWorldTransformParams>() {
+            let profile = app
+                .world()
+                .get_resource::<RenderCompatProfile>()
+                .copied()
+                .unwrap_or_default();
+            app.insert_resource(SimWorldTransformParams::from_profile(profile));
+        }
+
+        init_simulation_bootstrap(app);
+        pipeline::register_simulation_pipeline(app, FixedUpdate);
+        #[cfg(not(feature = "v7_worldgen"))]
+        pipeline::register_visual_derivation_pipeline(app);
+
+        app.add_systems(
+            Startup,
+            (
+                init_almanac_elements_system,
+                init_climate_config_system,
+                init_terrain_config_system,
+                load_map_config_startup_system,
+                init_fog_of_war_from_energy_field_system,
+                insert_terrain_field_startup_system,
+                spawn_nuclei_from_map_config_system,
+                crate::worldgen::seed_nutrient_field_from_nuclei_system,
+                enter_game_state_playing_system,
+                worldgen_warmup_system,
+                mark_play_state_active_system,
+                spawn_fog_world_overlay_startup_system,
+            )
+                .chain(),
+        );
+    }
+}

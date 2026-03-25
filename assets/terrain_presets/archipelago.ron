@@ -1,0 +1,38 @@
+(
+  seed: 3003,
+  noise: (
+    octaves: 5,
+    frequency: 0.038,
+    amplitude: 42.0,
+    lacunarity: 2.0,
+    persistence: 0.48,
+    min_height: -55.0,
+    max_height: 45.0,
+  ),
+  erosion: (
+    cycles: 18,
+    strength: 0.22,
+    deposition_rate: 0.48,
+    evaporation: 0.11,
+  ),
+  classification: (
+    peak_altitude: 40.0,
+    ridge_altitude: 32.0,
+    plateau_altitude: 36.0,
+    cliff_slope: 55.0,
+    slope_threshold: 9.0,
+    river_accumulation: 100.0,
+    basin_max_slope: 4.5,
+    basin_max_altitude: 8.0,
+    valley_max_altitude: 18.0,
+  ),
+  modulation: (
+    altitude_emission_scale: 0.005,
+    slope_diffusion_scale: 0.32,
+    reference_altitude: 0.0,
+    decay_peak_factor: 1.45,
+    decay_valley_factor: 0.72,
+    decay_riverbed_factor: 0.82,
+  ),
+  enabled: true,
+)

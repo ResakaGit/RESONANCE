@@ -1,0 +1,15 @@
+ElementDef(
+    name: "Magna",
+    symbol: "Magna",
+    atomic_number: 0,
+    frequency_hz: 2140.0,
+    freq_band: (2081.0, 2200.0),
+    bond_energy: 400.0,
+    conductivity: 0.85,
+    visibility: 0.85,
+    matter_state: Solid,
+    electronegativity: 0.9,
+    ionization_ev: 0.4,
+    color: (0.95, 0.35, 0.12),
+    is_compound: true,
+)

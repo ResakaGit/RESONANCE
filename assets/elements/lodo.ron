@@ -1,0 +1,16 @@
+ElementDef(
+    name: "Lodo",
+    symbol: "Lodo",
+    atomic_number: 0,
+    frequency_hz: 150.0,
+    freq_band: (100.0, 200.0),
+    bond_energy: 1000.0,
+    conductivity: 0.5,
+    visibility: 0.4,
+    matter_state: Solid,
+    electronegativity: 0.0,
+    ionization_ev: 0.0,
+    color: (0.28, 0.38, 0.5),
+    is_compound: true,
+)
+

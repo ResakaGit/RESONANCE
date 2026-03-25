@@ -1,0 +1,15 @@
+ElementDef(
+    name: "Glacies",
+    symbol: "Glacies",
+    atomic_number: 0,
+    frequency_hz: 1175.0,
+    freq_band: (1101.0, 1250.0),
+    bond_energy: 1100.0,
+    conductivity: 0.35,
+    visibility: 0.55,
+    matter_state: Solid,
+    electronegativity: 1.2,
+    ionization_ev: 0.5,
+    color: (0.75, 0.88, 0.95),
+    is_compound: false,
+)

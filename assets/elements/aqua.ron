@@ -1,0 +1,16 @@
+ElementDef(
+    name: "Aqua",
+    symbol: "Aqua",
+    atomic_number: 0,
+    frequency_hz: 250.0,
+    freq_band: (200.0, 300.0),
+    bond_energy: 1000.0,
+    conductivity: 0.5,
+    visibility: 0.5,
+    matter_state: Solid,
+    electronegativity: 0.0,
+    ionization_ev: 0.0,
+    color: (0.0, 0.4, 0.9),
+    is_compound: false,
+)
+

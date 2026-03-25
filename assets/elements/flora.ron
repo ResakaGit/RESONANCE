@@ -1,0 +1,22 @@
+ElementDef(
+    name: "Flora",
+    symbol: "Fl",
+    atomic_number: 0,
+    frequency_hz: 85.0,
+    freq_band: (85.0, 110.0),
+    bond_energy: 800.0,
+    conductivity: 0.05,
+    visibility: 0.6,
+    matter_state: Solid,
+    electronegativity: 2.8,
+    ionization_ev: 3.0,
+    color: (0.18, 0.55, 0.12),
+    is_compound: false,
+    phenology: Some(ElementPhenologyDef(
+        young_rgb: (0.52, 0.14, 0.20),
+        mature_rgb: (0.18, 0.55, 0.12),
+        w_growth: 0.45,
+        w_qe: 0.35,
+        w_purity: 0.20,
+    )),
+)

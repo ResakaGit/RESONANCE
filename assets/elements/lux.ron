@@ -1,0 +1,16 @@
+ElementDef(
+    name: "Lux",
+    symbol: "Lux",
+    atomic_number: 0,
+    frequency_hz: 1000.0,
+    freq_band: (900.0, 1100.0),
+    bond_energy: 1000.0,
+    conductivity: 0.5,
+    visibility: 1.0,
+    matter_state: Solid,
+    electronegativity: 0.0,
+    ionization_ev: 0.0,
+    color: (1.0, 1.0, 0.8),
+    is_compound: false,
+)
+

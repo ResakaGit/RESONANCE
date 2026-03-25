@@ -1,0 +1,16 @@
+ElementDef(
+    name: "Ventus",
+    symbol: "Ventus",
+    atomic_number: 0,
+    frequency_hz: 700.0,
+    freq_band: (600.0, 800.0),
+    bond_energy: 1000.0,
+    conductivity: 0.5,
+    visibility: 0.8,
+    matter_state: Solid,
+    electronegativity: 0.0,
+    ionization_ev: 0.0,
+    color: (0.7, 0.95, 0.7),
+    is_compound: false,
+)
+

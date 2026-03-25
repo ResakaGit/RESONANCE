@@ -1,0 +1,15 @@
+ElementDef(
+    name: "Humus",
+    symbol: "Humus",
+    atomic_number: 0,
+    frequency_hz: 155.0,
+    freq_band: (110.1, 199.9),
+    bond_energy: 750.0,
+    conductivity: 0.15,
+    visibility: 0.45,
+    matter_state: Solid,
+    electronegativity: 2.2,
+    ionization_ev: 2.0,
+    color: (0.22, 0.14, 0.08),
+    is_compound: true,
+)
