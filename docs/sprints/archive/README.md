@@ -1,5 +1,32 @@
-# Sprints archivados
+# Archived Sprints
 
-Tracks completados con código en `src/`. Cada carpeta conserva su README original como referencia histórica.
+Completed tracks with code in `src/`. Each folder keeps its original README as historical reference.
 
-Contratos vivos: `docs/design/` (especificaciones) y `docs/arquitectura/` (blueprints runtime por módulo).
+Live contracts: `docs/design/` (specs) and `docs/arquitectura/` (runtime blueprints per module).
+
+## Index
+
+| Track | Description | Closed |
+|-------|-------------|--------|
+| **CODE_QUALITY** | Q2 (named constants), Q3 (encapsulation), Q5 (plugin split), Q8 (color isolation) | 2026-03-25 |
+| **STRUCTURE_MIGRATION** | SM-1–SM-7: worldgen split, sim subdirs, bridge split, archetypes split, bridge macro, constants consolidation, docs cleanup | 2026-03-25 |
+| **SIMULATION_RELIABILITY** | R1–R9: units+conservation, determinism+replay, benchmarks, calibration, sensitivity, observability, morph robustness, surrogate error, CI gates | 2026-03-25 |
+| **MACRO_STEPPING** | M1–M6: analytics equations, ECS routing, normalization, LOD observer, benchmark, BridgeCache audit | 2026-03-25 |
+| **GAMEDEV_PATTERNS** | G5 (pathfinding), G8 (change detection), G9 (event ordering), G11 (strong IDs) | 2026-03-25 |
+| **BLUEPRINT_V7** | V7-06 (materialization incremental), V7-07 (WorldgenPlugin), V7-14 (quantized color GPU) | 2026-03-25 |
+| **ENERGY_COMPETITION** | EC-1–EC-8: pool equations → pool components → extraction registry → distribution → competition dynamics → conservation ledger → scale composition → integration demo | 2026-03-25 |
+| **CODEBASE_AUDIT** | CA-1/2/3: build fix, DOD violations (Vec→bitmask, String→Cow, expect→let-else), 40 core_physics tests | 2026-03-25 |
+| **ECOSYSTEM_AUTOPOIESIS** | EA1–EA8: spawn, stress, reproduction, phenology | — |
+| **LIVING_ORGAN_INFERENCE** | LI + EET1: organ manifest, 12 roles, lifecycle cache | — |
+| **EMERGENT_FLORA** | FL1–FL6: photosynthesis, nutrients, GF1 branching | — |
+| **FLORA_ROSA** | RS1–RS2: rosa lifecycle demo | — |
+| **ENERGY_PARTS_INFERENCE** | EPI1–EPI4: field → vertex pipeline | — |
+| **ELEMENT_ALMANAC_CANON** | EAC1–EAC4: element tables, `find_stable_band*`, hz_identity_weight | — |
+| **ECO_BOUNDARIES** | E1–E6: zone classification, climate biomes | — |
+| **TOPOLOGY** | T1–T10: terrain generation (noise, slope, drainage, hydraulics, classifier, mutations) | — |
+| **MIGRATION** | M1–M5: folder structure reorganization | — |
+| **CHEMICAL_REFACTOR** | C1–C4: MatterLense, catalytic pipeline | — |
+| **BRIDGE_OPTIMIZER** | B1–B10: BridgeCache<B>, 11 equation kinds | — |
+| **BLUEPRINT_V6** | 2D/3D platform (runtime_platform/, 17 sub-modules) | — |
+| **BLUEPRINT_V5** | Determinism + BridgeCache | — |
+| **BLUEPRINT_V4** | Layers L11–L13 (TensionField, Homeostasis, StructuralLink) | — |
