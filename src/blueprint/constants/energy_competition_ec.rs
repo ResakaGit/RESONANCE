@@ -18,3 +18,7 @@ pub const DAMAGE_RATE_DEFAULT: f32 = 0.1;
 
 // --- Energy Competition: Conservation ---
 pub const POOL_CONSERVATION_EPSILON: f32 = 1e-3;
+
+// --- Energy Competition: Composition ---
+/// Número máximo de modificadores en un ExtractionProfile (DOD: max 4).
+pub const MAX_EXTRACTION_MODIFIERS: usize = 4;

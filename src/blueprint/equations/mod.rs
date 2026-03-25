@@ -32,6 +32,7 @@ mod sensory;
 mod morpho_adaptation;
 mod social_communication;
 mod ecology_dynamics;
+mod energy_competition;
 
 pub use ability_runtime::*;
 pub use abiogenesis::*;
@@ -62,6 +63,7 @@ pub use spatial::*;
 pub use morpho_adaptation::*;
 pub use morphogenesis_shape::*;
 pub use ecology_dynamics::*;
+pub use energy_competition::*;
 
 // MG-1 — re-export morphogenesis (descubrimiento vía `equations::`)
 pub use crate::blueprint::morphogenesis::{

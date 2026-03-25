@@ -13,8 +13,7 @@ pub use demo_clouds::{
 };
 pub use demo_level::{
     enforce_rosa_focus_system, pin_rosa_lod_focus_system, spawn_demo_flora,
-    spawn_demo_level_startup_system, stabilize_rosa_energy_system,
-    stabilize_rosa_growth_system,
+    spawn_demo_level_startup_system, stabilize_rosa_growth_system,
 };
 pub use demos::{
     ROUND_WORLD_ROSA_SLUG, enforce_round_world_rosa_focus_system,

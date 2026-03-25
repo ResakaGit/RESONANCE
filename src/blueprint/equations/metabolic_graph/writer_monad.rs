@@ -227,7 +227,7 @@ fn build_outgoing_adjacency(
     node_count: usize,
 ) -> (
     [u8; METABOLIC_GRAPH_MAX_EDGES],
-    [u8; { METABOLIC_GRAPH_MAX_NODES + 1 }],
+    [u8; METABOLIC_GRAPH_MAX_NODES + 1],
     [bool; METABOLIC_GRAPH_MAX_NODES],
 ) {
     let mut counts = [0u8; METABOLIC_GRAPH_MAX_NODES];
@@ -268,7 +268,7 @@ fn build_outgoing_adjacency(
 fn kahn_topological_order(
     in_degree: &[u8; METABOLIC_GRAPH_MAX_NODES],
     adj_indices: &[u8; METABOLIC_GRAPH_MAX_EDGES],
-    adj_starts: &[u8; { METABOLIC_GRAPH_MAX_NODES + 1 }],
+    adj_starts: &[u8; METABOLIC_GRAPH_MAX_NODES + 1],
     edges: &[crate::layers::metabolic_graph::ExergyEdge],
     node_count: usize,
 ) -> [u8; METABOLIC_GRAPH_MAX_NODES] {

@@ -6,7 +6,7 @@ use crate::blueprint::constants::{
 use crate::blueprint::equations;
 use crate::layers::behavior::{BehaviorCooldown, BehaviorIntent, BehaviorMode, BehavioralAgent};
 use crate::layers::{
-    AlchemicalEngine, BaseEnergy, EnergyOps, FlowVector, MatterCoherence, MatterState,
+    AlchemicalEngine, EnergyOps, FlowVector, MatterCoherence, MatterState,
     WillActuator,
 };
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
