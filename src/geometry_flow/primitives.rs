@@ -5,7 +5,11 @@ use bevy::prelude::Mesh;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
 
-use crate::blueprint::equations::BranchRole;
+use crate::blueprint::constants::{
+    BULB_RADIUS_SCALE, FLAT_SURFACE_LENGTH_RATIO, FLAT_SURFACE_WIDTH_RATIO,
+    PETAL_FAN_LENGTH_RATIO, PETAL_FAN_WIDTH_RATIO, TUBE_LENGTH_RATIO, TUBE_RADIUS_SCALE,
+};
+use crate::blueprint::equations::{BranchRole, organ_inferred_scale};
 use crate::geometry_flow::{
     GeometryInfluence, SpineNode, build_flow_mesh, vertex_along_flow_color,
 };
@@ -45,6 +49,7 @@ pub struct OrganPrimitiveParams {
     pub tint_rgb: [f32; 3],
     pub qe_norm: f32,
     pub detail: f32,
+    pub biomass: f32,
 }
 
 fn empty_mesh() -> Mesh {
@@ -340,17 +345,19 @@ pub fn build_bulb(
 }
 
 /// Construye una primitiva en función del `OrganSpec`.
+/// Construye una primitiva con escala inferida desde energía: `organ_inferred_scale(biomass, qe_norm, scale_factor)`.
 pub fn build_organ_primitive(spec: &OrganSpec, params: &OrganPrimitiveParams) -> Mesh {
-    let scale = spec.scale_factor().max(0.1);
+    let es = organ_inferred_scale(params.biomass, params.qe_norm, spec.scale_factor().max(0.1));
     let detail = params.detail.clamp(0.0, 1.0);
     let subdivisions = detail_to_steps(detail, PRIM_MIN_SUBDIVISIONS, PRIM_MAX_SUBDIVISIONS);
     let rings = detail_to_steps(detail, BULB_MIN_RINGS, BULB_MAX_RINGS);
     let sectors = detail_to_steps(detail, BULB_MIN_SECTORS, BULB_MAX_SECTORS);
+    let r = params.base_radius.max(0.01);
 
     match spec.primitive() {
         GeometryPrimitive::Tube => {
             let dir = normalize_or(params.direction, Vec3::Y);
-            let length = params.base_radius.max(0.01) * 2.2 * scale;
+            let length = r * TUBE_LENGTH_RATIO * es;
             let tube_max_segments = detail_to_steps(detail, 4, 12);
             let spine = vec![
                 SpineNode {
@@ -374,7 +381,7 @@ pub fn build_organ_primitive(spec: &OrganSpec, params: &OrganPrimitiveParams) ->
                 least_resistance_direction: dir,
                 length_budget: length,
                 max_segments: tube_max_segments,
-                radius_base: params.base_radius.max(0.01) * 0.35 * scale,
+                radius_base: r * TUBE_RADIUS_SCALE * es,
                 start_position: params.origin,
                 qe_norm: params.qe_norm.clamp(0.0, 1.0),
                 tint_rgb: params.tint_rgb,
@@ -386,8 +393,8 @@ pub fn build_organ_primitive(spec: &OrganSpec, params: &OrganPrimitiveParams) ->
             params.origin,
             params.direction,
             params.tangent,
-            params.base_radius.max(0.01) * 3.5 * scale,
-            params.base_radius.max(0.01) * 2.0 * scale,
+            r * FLAT_SURFACE_LENGTH_RATIO * es,
+            r * FLAT_SURFACE_WIDTH_RATIO * es,
             subdivisions,
             params.tint_rgb,
             params.qe_norm,
@@ -396,8 +403,8 @@ pub fn build_organ_primitive(spec: &OrganSpec, params: &OrganPrimitiveParams) ->
             params.origin,
             params.direction,
             spec.count().clamp(1, MAX_PETAL_COUNT),
-            params.base_radius.max(0.01) * 6.0 * scale,
-            params.base_radius.max(0.01) * 3.5 * scale,
+            r * PETAL_FAN_LENGTH_RATIO * es,
+            r * PETAL_FAN_WIDTH_RATIO * es,
             PETAL_DEFAULT_OPENING,
             subdivisions,
             params.tint_rgb,
@@ -406,7 +413,7 @@ pub fn build_organ_primitive(spec: &OrganSpec, params: &OrganPrimitiveParams) ->
         GeometryPrimitive::Bulb => build_bulb(
             params.origin,
             params.direction,
-            params.base_radius.max(0.01) * 0.9 * scale,
+            r * BULB_RADIUS_SCALE * es,
             BULB_DEFAULT_ELONGATION,
             rings,
             sectors,
@@ -477,6 +484,7 @@ mod tests {
             tint_rgb: [0.8, 0.3, 0.4],
             qe_norm: 0.7,
             detail,
+            biomass: 2.0,
         }
     }
 

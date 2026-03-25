@@ -268,4 +268,62 @@ pub fn organ_manifest_inputs_from_state(qe_norm: f32, growth_efficiency: f32, bi
     (growth_progress, viability)
 }
 
+/// Escala de órgano inferida desde estado energético.
+/// `biomass` amplifica con curva sqrt (rendimientos decrecientes).
+/// `qe_norm` modula vitalidad sin anular a cero (floor 30%).
+/// `role_base_scale` es el `OrganSpec.scale_factor` (ya derivado de biomasa+sesgo).
+#[inline]
+pub fn organ_inferred_scale(biomass: f32, qe_norm: f32, role_base_scale: f32) -> f32 {
+    let bio = finite_non_negative(biomass);
+    let qe = finite_unit(qe_norm);
+    let base = finite_non_negative(role_base_scale);
+    let bio_factor = (bio * ORGAN_ENERGY_BIOMASS_SCALE).sqrt().min(ORGAN_ENERGY_SCALE_MAX);
+    let energy_blend = ORGAN_ENERGY_QE_FLOOR + qe * (1.0 - ORGAN_ENERGY_QE_FLOOR);
+    (base * bio_factor * energy_blend).max(ORGAN_ENERGY_SCALE_MIN)
+}
+
 const _: () = assert!(MAX_ORGAN_INSTANCE_COUNT as usize == crate::layers::MAX_ORGANS_PER_ENTITY);
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn organ_inferred_scale_zero_biomass_returns_floor() {
+        let s = organ_inferred_scale(0.0, 1.0, 1.0);
+        assert_eq!(s, ORGAN_ENERGY_SCALE_MIN);
+    }
+
+    #[test]
+    fn organ_inferred_scale_monotonic_with_biomass() {
+        let lo = organ_inferred_scale(1.0, 0.5, 1.0);
+        let hi = organ_inferred_scale(4.0, 0.5, 1.0);
+        assert!(hi > lo, "hi={hi} lo={lo}");
+    }
+
+    #[test]
+    fn organ_inferred_scale_monotonic_with_qe_norm() {
+        let lo = organ_inferred_scale(2.0, 0.0, 1.0);
+        let hi = organ_inferred_scale(2.0, 1.0, 1.0);
+        assert!(hi > lo, "hi={hi} lo={lo}");
+    }
+
+    #[test]
+    fn organ_inferred_scale_nan_biomass_returns_floor() {
+        let s = organ_inferred_scale(f32::NAN, 0.5, 1.0);
+        assert_eq!(s, ORGAN_ENERGY_SCALE_MIN);
+    }
+
+    #[test]
+    fn organ_inferred_scale_capped_by_max() {
+        let s = organ_inferred_scale(10000.0, 1.0, 1.0);
+        assert!(s <= ORGAN_ENERGY_SCALE_MAX + 1e-6, "s={s}");
+    }
+
+    #[test]
+    fn organ_inferred_scale_typical_rosa_produces_visible_petals() {
+        // biomass=3.0, qe_norm=0.13, scale_factor=0.47
+        let s = organ_inferred_scale(3.0, 0.13, 0.47);
+        assert!(s > 0.3, "rosa petal scale should be visible: {s}");
+    }
+}

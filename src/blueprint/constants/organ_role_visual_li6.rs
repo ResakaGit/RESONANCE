@@ -41,7 +41,7 @@ pub const ORGAN_ROLE_VISUAL_PROFILES: [OrganRoleVisualProfile; 12] = [
     OrganRoleVisualProfile {
         accent_lin: [0.92, 0.35, 0.45], // Petal
         blend: 0.80,
-        scale: 2.0,
+        scale: 1.4,
         opacity: 0.95,
     },
     OrganRoleVisualProfile {
@@ -125,8 +125,8 @@ pub const ORGAN_ROLE_SCALE: [f32; 12] = [
     1.0,  // Stem
     0.6,  // Root
     1.2,  // Core
-    1.0,  // Leaf
-    2.0,  // Petal
+    0.8,  // Leaf
+    1.4,  // Petal
     0.15, // Sensory
     0.2,  // Thorn
     0.8,  // Shell

@@ -58,6 +58,7 @@ mod social_communication_d6;
 mod morpho_adaptation_d8;
 mod ecology_dynamics_d9;
 mod energy_competition_ec;
+mod organ_primitive_geometry;
 mod visual_quantization_phenology;
 
 pub use almanac_coherence::*;
@@ -114,6 +115,7 @@ pub use social_communication_d6::*;
 pub use morpho_adaptation_d8::*;
 pub use ecology_dynamics_d9::*;
 pub use energy_competition_ec::*;
+pub use organ_primitive_geometry::*;
 pub use visual_quantization_phenology::*;
 
 pub use morphogenesis_track::morphogenesis;

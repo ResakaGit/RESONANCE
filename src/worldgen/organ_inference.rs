@@ -219,6 +219,7 @@ pub fn build_organ_mesh(
             let (raw_rgb, qe_norm) = sample_field(attachment.position);
             let tint_rgb = organ_role_modulated_rgb(raw_rgb, role);
             let (normal_out, tangent_out) = organ_orientation(role, &attachment, influence.energy_direction);
+            let biomass = growth.map(|g| g.biomass_available).unwrap_or(0.0);
             let params = OrganPrimitiveParams {
                 origin: attachment.position,
                 direction: normal_out,
@@ -227,6 +228,7 @@ pub fn build_organ_mesh(
                 tint_rgb,
                 qe_norm,
                 detail: influence.detail,
+                biomass,
             };
 
             // El primitive viene inferido por LI1 en OrganSpec.
