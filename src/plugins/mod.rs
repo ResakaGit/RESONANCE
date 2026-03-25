@@ -1,6 +1,12 @@
+pub mod atomic_plugin;
+pub mod chemical_plugin;
 pub mod debug_plugin;
+pub mod input_plugin;
 pub mod layers_plugin;
+pub mod metabolic_plugin;
+pub mod morphological_plugin;
 pub mod simulation_plugin;
+pub mod thermodynamic_plugin;
 #[cfg(feature = "v7_worldgen")]
 pub mod worldgen_plugin;
 
@@ -11,8 +17,14 @@ pub use crate::runtime_platform::input_capture::InputCapturePlugin;
 pub use crate::runtime_platform::render_bridge_3d::RenderBridge3dPlugin;
 pub use crate::runtime_platform::scenario_isolation::ScenarioIsolationPlugin;
 pub use crate::runtime_platform::simulation_tick::SimulationTickPlugin;
+pub use atomic_plugin::AtomicPlugin;
+pub use chemical_plugin::ChemicalPlugin;
 pub use debug_plugin::DebugPlugin;
+pub use input_plugin::InputPlugin;
 pub use layers_plugin::LayersPlugin;
+pub use metabolic_plugin::MetabolicPlugin;
+pub use morphological_plugin::MorphologicalPlugin;
 pub use simulation_plugin::SimulationPlugin;
+pub use thermodynamic_plugin::ThermodynamicPlugin;
 #[cfg(feature = "v7_worldgen")]
 pub use worldgen_plugin::WorldgenPlugin;

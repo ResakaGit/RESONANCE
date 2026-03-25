@@ -1,17 +1,17 @@
-# Sprints — Code Quality (pendiente)
+# Sprints — Code Quality (track completo)
 
 Índice maestro: [`../README.md`](../README.md).
 
 **Cerrados:** Q1, Q4, Q6, Q7 — sus `SPRINT_*.md` se eliminaron; el criterio quedó aplicado en `src/`.
 
-## Backlog
+## Cerrados
 
-| Sprint | Archivo | Tema |
-|--------|---------|------|
-| **Q2** | `SPRINT_Q2_MAGIC_NUMBERS.md` | Constantes nombradas |
-| **Q3** | `SPRINT_Q3_PUB_FIELD_PROTECTION.md` | Accesores / encapsulación |
-| **Q5** | `SPRINT_Q5_PLUGIN_SPLIT.md` | Partir `SimulationPlugin` |
-| **Q8** | `SPRINT_Q8_GEOMETRY_COLOR_ISOLATION.md` | Color fuera de generadores de mesh |
+| Sprint | Implementación | Estado |
+|--------|---------------|--------|
+| **Q2** | 11 constantes nombradas en `energy_competition_ec.rs` + `organ_inference_li3.rs`; `dynamics.rs`/`scale.rs` wired | ✅ |
+| **Q3** | `PoolConservationLedger` fields privados + `new()` + getters; todos los call sites actualizados | ✅ |
+| **Q5** | `SimulationPlugin` → 6 domain plugins: `ThermodynamicPlugin`, `AtomicPlugin`, `ChemicalPlugin`, `InputPlugin`, `MetabolicPlugin`, `MorphologicalPlugin`; `pipeline.rs` 554→126 LOC | ✅ |
+| **Q8** | `vertex_along_flow_color` → `blueprint/equations/field_color/`; inline shading en `build_petal_fan` extraído | ✅ |
 
 ## Cerrados (referencia)
 

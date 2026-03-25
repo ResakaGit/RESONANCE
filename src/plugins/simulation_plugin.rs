@@ -2,6 +2,12 @@ use bevy::prelude::*;
 
 use crate::blueprint::init_almanac_elements_system;
 use crate::eco::climate::init_climate_config_system;
+use crate::plugins::atomic_plugin::AtomicPlugin;
+use crate::plugins::chemical_plugin::ChemicalPlugin;
+use crate::plugins::input_plugin::InputPlugin;
+use crate::plugins::metabolic_plugin::MetabolicPlugin;
+use crate::plugins::morphological_plugin::MorphologicalPlugin;
+use crate::plugins::thermodynamic_plugin::ThermodynamicPlugin;
 use crate::runtime_platform::compat_2d3d::{RenderCompatProfile, SimWorldTransformParams};
 use crate::runtime_platform::fog_overlay::spawn_fog_world_overlay_startup_system;
 use crate::simulation::{init_simulation_bootstrap, pipeline};
@@ -29,7 +35,20 @@ impl Plugin for SimulationPlugin {
         }
 
         init_simulation_bootstrap(app);
+
+        // Phase ordering + clock + worldgen delegation (schedule-generic).
         pipeline::register_simulation_pipeline(app, FixedUpdate);
+
+        // Domain plugins — each owns one Phase of the pipeline.
+        app.add_plugins((
+            InputPlugin,
+            ThermodynamicPlugin,
+            AtomicPlugin,
+            ChemicalPlugin,
+            MetabolicPlugin,
+            MorphologicalPlugin,
+        ));
+
         #[cfg(not(feature = "v7_worldgen"))]
         pipeline::register_visual_derivation_pipeline(app);
 

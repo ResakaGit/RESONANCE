@@ -67,13 +67,13 @@ SM-7 (Docs: rename + archive + limpiar)  ── Onda C (independiente de código
 
 | Sprint | Archivo | Módulo principal | Onda | Estado |
 |--------|---------|-----------------|------|--------|
-| [SM-1](SPRINT_SM1_SPLIT_WORLDGEN.md) | Split worldgen/materialization | `src/worldgen/` | 0 | ⏳ |
-| [SM-2](SPRINT_SM2_SIMULATION_SUBDIRS.md) | Subdirectorios simulation | `src/simulation/` | 0 | ⏳ |
-| [SM-3](SPRINT_SM3_SPLIT_BRIDGE.md) | Split bridge presets+ops | `src/bridge/` | A | ⏳ |
-| [SM-4](SPRINT_SM4_SPLIT_ARCHETYPES.md) | Split entities/archetypes | `src/entities/` | A | ⏳ |
-| [SM-5](SPRINT_SM5_BRIDGE_MACRO.md) | Macro impl_bridgeable! | `src/bridge/` | B | ⏳ |
-| [SM-6](SPRINT_SM6_CONSOLIDATE_CONSTANTS.md) | Consolidar constants 1-línea | `src/blueprint/constants/` | B | ⏳ |
-| [SM-7](SPRINT_SM7_DOCS_CLEANUP.md) | Docs rename + archive | `docs/` | C | ⏳ |
+| [SM-1](SPRINT_SM1_SPLIT_WORLDGEN.md) | Split worldgen/materialization | `src/worldgen/` | 0 | ✅ Cerrado (2026-03-25) — `worldgen/materialization/` subdirectorio ya existe |
+| [SM-2](SPRINT_SM2_SIMULATION_SUBDIRS.md) | Subdirectorios simulation | `src/simulation/` | 0 | ✅ Cerrado (2026-03-25) |
+| [SM-3](SPRINT_SM3_SPLIT_BRIDGE.md) | Split bridge presets+ops | `src/bridge/` | A | ✅ Cerrado (2026-03-25) |
+| [SM-4](SPRINT_SM4_SPLIT_ARCHETYPES.md) | Split entities/archetypes | `src/entities/` | A | ✅ Cerrado (2026-03-25) |
+| [SM-5](SPRINT_SM5_BRIDGE_MACRO.md) | Macro impl_bridgeable! | `src/bridge/` | B | ✅ Cerrado (2026-03-25) — `macros.rs` + `impls/` ya implementados; `CompetitionNormBridge` wired manualmente |
+| [SM-6](SPRINT_SM6_CONSOLIDATE_CONSTANTS.md) | Consolidar constants 1-línea | `src/blueprint/constants/` | B | ✅ Cerrado (2026-03-25) — constantes ya registradas en shards originales; micro-archivos eliminados |
+| [SM-7](SPRINT_SM7_DOCS_CLEANUP.md) | Docs rename + archive | `docs/` | C | ✅ Cerrado (2026-03-25) |
 
 ## Invariantes del track
 

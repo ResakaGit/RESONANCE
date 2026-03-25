@@ -12,17 +12,10 @@ Para diseño de alto nivel ver [`docs/design/INDEX.md`](../design/INDEX.md). Par
 |------|-----------|-----|
 | **BLUEPRINT_V7** | Sprint **06** (materialización incremental), **07** (`worldgen_plugin`), **14** (color cuantizado GPU/WGSL) | [BLUEPRINT_V7/](BLUEPRINT_V7/) |
 
-## Migración estructural
+## Tracks cerrados recientes
 
-| Track | Pendiente | Doc |
-|------|-----------|-----|
-| **STRUCTURE_MIGRATION** | **SM-1–SM-7** (split worldgen/simulation/bridge/archetypes, macro bridge, constants, docs) | [STRUCTURE_MIGRATION/](STRUCTURE_MIGRATION/) |
-
-## Calidad de código
-
-| Track | Pendiente | Doc |
-|------|-----------|-----|
-| **CODE_QUALITY** | **Q2** (magic numbers), **Q3** (pub fields), **Q5** (plugin split — grueso hecho), **Q8** (geometry/color isolation) | [CODE_QUALITY/](CODE_QUALITY/) |
+- **STRUCTURE_MIGRATION** — SM-1–SM-7: todos cerrados (2026-03-25). Ver [STRUCTURE_MIGRATION/](STRUCTURE_MIGRATION/)
+- **CODE_QUALITY** — Q2, Q3, Q5, Q8: todos cerrados (2026-03-25). Ver [CODE_QUALITY/](CODE_QUALITY/)
 
 ## Patrones MOBA
 
@@ -36,17 +29,17 @@ Para diseño de alto nivel ver [`docs/design/INDEX.md`](../design/INDEX.md). Par
 |------|-----------|-----|
 | **SIMULATION_RELIABILITY** | **R1–R9** (unidades, determinismo, benchmarks, calibración, sensibilidad, observabilidad, morfología, surrogate, CI) | [SIMULATION_RELIABILITY/](SIMULATION_RELIABILITY/) |
 
+## Fundamentos de simulación
+
+| Track | Pendiente | Doc |
+|------|-----------|-----|
+| **SIMULATION_FOUNDATIONS** | **SF-1–SF-7**: observabilidad externa (CSV/JSON), serialización/checkpoint/replay, latencia de señal (propagación multi-tick). SF-1/2/3 paralelos → SF-4/5/6 paralelos → SF-7 integración | [SIMULATION_FOUNDATIONS/](SIMULATION_FOUNDATIONS/) |
+
 ## Morfogénesis inferida
 
 | Track | Pendiente | Doc |
 |------|-----------|-----|
-| **MORPHOGENESIS_INFERENCE** | **MG-1–MG-8** (ecuaciones termo → DAG metabólico → shape/albedo/rugosity → integración demo). MG-1 a MG-7 implementados; MG-8 pendiente | [MORPHOGENESIS_INFERENCE/](MORPHOGENESIS_INFERENCE/) |
-
-## Competencia energética
-
-| Track | Pendiente | Doc |
-|------|-----------|-----|
-| **ENERGY_COMPETITION** | **EC-1–EC-8** (pool equations → pool components → extraction registry → distribution system → competition dynamics → conservation ledger → scale composition → integration demo) | [ENERGY_COMPETITION/](ENERGY_COMPETITION/) |
+| **MORPHOGENESIS_INFERENCE** | **MG-8** pendiente; MG-1–MG-7 cerrados | [MORPHOGENESIS_INFERENCE/](MORPHOGENESIS_INFERENCE/) |
 
 ## Escalera termodinámica / temporal LOD / geometría
 
@@ -62,6 +55,9 @@ Para diseño de alto nivel ver [`docs/design/INDEX.md`](../design/INDEX.md). Par
 
 Implementación en `src/`, contratos en `docs/design/` y `docs/arquitectura/`. READMEs residuales en [`archive/`](archive/):
 
+- **CODE_QUALITY** — Q2, Q3, Q5, Q8: constantes nombradas, encapsulación, plugin split, color isolation (2026-03-25)
+- **STRUCTURE_MIGRATION** — SM-1–SM-7: split worldgen/sim/bridge/archetypes, macro bridge, constants, docs (2026-03-25)
+- **ENERGY_COMPETITION** — EC-1–EC-8: pools jerárquicos, extracción competitiva, conservación, escala-invariante (2026-03-25)
 - **BLUEPRINT_V4** — Capas L11–L13 (TensionField, Homeostasis, StructuralLink)
 - **BLUEPRINT_V5** — Determinismo y cache (BridgeCache)
 - **BLUEPRINT_V6** — Plataforma 2D/3D (runtime_platform/)

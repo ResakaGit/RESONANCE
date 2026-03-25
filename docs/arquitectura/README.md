@@ -33,13 +33,14 @@ Blueprints detallados en `docs/design/`.
 - [Bridge optimizer](./blueprint_layer_bridge_optimizer.md) — Cache cuantizado por ecuación (11 tipos)
 - [Topología](./blueprint_topology.md) — Terreno: heightmap, drenaje, erosión, clasificador
 - [Inferencia campo → muestra / partes (EPI)](./blueprint_energy_field_inference.md) — `CellFieldSnapshotCache`, `field_visual_sample`, GF1 pintado; GPU opcional (`gpu_cell_field_snapshot`)
+- [Sensory LOD](./blueprint_sensory_lod.md) — atención sensorial, distancia de percepción, LOD por entidad
 
 ### Contratos de datos (implementados, enlazados a sprints)
 
 - [Almanaque canónico (EAC)](./blueprint_blueprint_math.md#9-element-almanac-contract-eac) — `find_stable_band*`, `hz_identity_weight`, coherencia RON ↔ `blueprint/constants`; sprint `docs/sprints/ELEMENT_ALMANAC_CANON/`
 - [Ecosistema autopoietico (EA)](./blueprint_ecosystem_autopoiesis.md) — abiogénesis, reproducción, competencia, estrés metabólico, fenología visual; sprint `docs/sprints/ECOSYSTEM_AUTOPOIESIS/`
 
-### Motor de Inferencia (diseño, pre-implementación)
+### Motor de Inferencia (MG-1–MG-7 implementados; MG-8 pendiente)
 
 - [Morfogénesis inferida](./blueprint_morphogenesis_inference.md) — MetabolicGraph (DAG de exergía), Carnot/entropía, shape optimization, albedo inference; blueprint teórico `docs/design/MORPHOGENESIS.md`
 
@@ -49,7 +50,7 @@ Blueprints detallados en `docs/design/`.
 
 ### Tracks en sprints (mayormente diseño / no cableados al índice anterior)
 
-- [Ecosystem Mario64](../sprints/ECOSYSTEM_MARIO64/README.md) — taxonomía por rangos, biomas, render estilo N64: **pendiente** frente al árbol actual `src/` (sin `EntityCategory` inferida global todavía).
+- Ecosystem Mario64 — taxonomía por rangos, biomas, render estilo N64: **propuesta**, sin sprint ni código todavía (sin `EntityCategory` inferida global).
 
 ## Mapa global
 

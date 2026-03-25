@@ -81,13 +81,13 @@ MG-1 (Ecuaciones Termodinámicas)  ── Onda 0 — bloqueante para todos
 
 | Sprint | Archivo | Módulo principal | Onda | Dependencias | Estado |
 |--------|---------|-----------------|------|--------------|--------|
-| [MG-1](SPRINT_MG1_THERMODYNAMIC_EQUATIONS.md) | Ecuaciones Termodinámicas | `src/blueprint/equations.rs` | 0 | — | ⏳ |
-| [MG-2](SPRINT_MG2_METABOLIC_GRAPH_TYPES.md) | MetabolicGraph Types | `src/layers/metabolic_graph.rs` | A | MG-1 | ⏳ |
-| [MG-3](SPRINT_MG3_DAG_TEMPORAL_STEP.md) | Paso Temporal DAG | `src/simulation/morphogenesis.rs` | B | MG-2 | ⏳ |
-| [MG-4](SPRINT_MG4_SHAPE_OPTIMIZATION.md) | Shape Optimization | `src/simulation/morphogenesis.rs` | C | MG-3 | ⏳ |
-| [MG-5](SPRINT_MG5_ALBEDO_INFERENCE.md) | Albedo Inference | `src/simulation/morphogenesis.rs` | C | MG-3; **orden runtime:** después de MG-7 (`surface_rugosity`) — ver nota staging abajo | ⏳ |
-| [MG-6](SPRINT_MG6_WRITER_MONAD_LEDGER.md) | Writer Monad + EntropyLedger | `src/blueprint/equations.rs`, `src/layers/metabolic_graph.rs` | C | MG-2 | ⏳ |
-| [MG-7](SPRINT_MG7_SURFACE_RUGOSITY.md) | Surface Rugosity | `src/simulation/morphogenesis.rs`, `src/geometry_flow/` | D | MG-6 | ⏳ |
+| [MG-1](SPRINT_MG1_THERMODYNAMIC_EQUATIONS.md) | Ecuaciones Termodinámicas | `src/blueprint/equations.rs` | 0 | — | ✅ |
+| [MG-2](SPRINT_MG2_METABOLIC_GRAPH_TYPES.md) | MetabolicGraph Types | `src/layers/metabolic_graph.rs` | A | MG-1 | ✅ |
+| [MG-3](SPRINT_MG3_DAG_TEMPORAL_STEP.md) | Paso Temporal DAG | `src/simulation/morphogenesis.rs` | B | MG-2 | ✅ |
+| [MG-4](SPRINT_MG4_SHAPE_OPTIMIZATION.md) | Shape Optimization | `src/simulation/morphogenesis.rs` | C | MG-3 | ✅ |
+| [MG-5](SPRINT_MG5_ALBEDO_INFERENCE.md) | Albedo Inference | `src/simulation/morphogenesis.rs` | C | MG-3; **orden runtime:** después de MG-7 (`surface_rugosity`) — ver nota staging abajo | ✅ |
+| [MG-6](SPRINT_MG6_WRITER_MONAD_LEDGER.md) | Writer Monad + EntropyLedger | `src/blueprint/equations.rs`, `src/layers/metabolic_graph.rs` | C | MG-2 | ✅ |
+| [MG-7](SPRINT_MG7_SURFACE_RUGOSITY.md) | Surface Rugosity | `src/simulation/morphogenesis.rs`, `src/geometry_flow/` | D | MG-6 | ✅ |
 | [MG-8](SPRINT_MG8_INTEGRATION_DEMO.md) | Integración + Demo | `src/entities/`, `assets/maps/` | E | Todos | ⏳ |
 
 ---
