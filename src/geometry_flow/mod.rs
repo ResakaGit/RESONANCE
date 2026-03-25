@@ -155,7 +155,7 @@ pub fn vertex_along_flow_color(
 ) -> [f32; 4] {
     let q = qe_norm.clamp(0.0, 1.0);
     let edge = (1.0 - azimuth_along_ring.clamp(0.0, 1.0)) * 0.15;
-    let g = (0.75 + 0.25 * s_along.clamp(0.0, 1.0)) * (0.5 + 0.5 * q);
+    let g = (0.75 + 0.25 * s_along.clamp(0.0, 1.0)) * (0.7 + 0.3 * q);
     [
         (tint_rgb[0] * g - edge).clamp(0.0, 1.0),
         (tint_rgb[1] * g - edge).clamp(0.0, 1.0),

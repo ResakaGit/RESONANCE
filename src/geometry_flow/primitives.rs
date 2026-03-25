@@ -217,8 +217,8 @@ pub fn build_petal_fan(
         let ring_t = p as f32 / denom;
 
         let petal_open = opening_angle * (0.25 + 0.75 * ring_t);
-        let petal_len = petal_length * (0.45 + 0.55 * ring_t);
-        let petal_w = petal_width * (0.40 + 0.60 * ring_t);
+        let petal_len = petal_length * (0.60 + 0.40 * ring_t);
+        let petal_w = petal_width * (0.55 + 0.45 * ring_t);
         let base_lift = (1.0 - ring_t) * petal_length * 0.25;
 
         let radial = normalize_or(x_axis * theta.cos() + z_axis * theta.sin(), x_axis);
@@ -386,8 +386,8 @@ pub fn build_organ_primitive(spec: &OrganSpec, params: &OrganPrimitiveParams) ->
             params.origin,
             params.direction,
             params.tangent,
-            params.base_radius.max(0.01) * 2.4 * scale,
-            params.base_radius.max(0.01) * 1.4 * scale,
+            params.base_radius.max(0.01) * 3.5 * scale,
+            params.base_radius.max(0.01) * 2.0 * scale,
             subdivisions,
             params.tint_rgb,
             params.qe_norm,
@@ -396,8 +396,8 @@ pub fn build_organ_primitive(spec: &OrganSpec, params: &OrganPrimitiveParams) ->
             params.origin,
             params.direction,
             spec.count().clamp(1, MAX_PETAL_COUNT),
-            params.base_radius.max(0.01) * 3.0 * scale,
-            params.base_radius.max(0.01) * 1.6 * scale,
+            params.base_radius.max(0.01) * 6.0 * scale,
+            params.base_radius.max(0.01) * 3.5 * scale,
             PETAL_DEFAULT_OPENING,
             subdivisions,
             params.tint_rgb,
