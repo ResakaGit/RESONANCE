@@ -61,6 +61,10 @@ impl BridgeKind for OsmosisBridge {}
 pub struct EvolutionSurrogateBridge;
 impl BridgeKind for EvolutionSurrogateBridge {}
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct CompetitionNormBridge;
+impl BridgeKind for CompetitionNormBridge {}
+
 /// Definición de una banda de normalización: rango half-open salvo la última (cerrada en `max`).
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct BandDef {

@@ -88,5 +88,12 @@
       enabled: true,
       rigidity: moderate,
     ),
+    "competition_norm": (
+      preset: moderate,
+      hysteresis_margin: 0.1,
+      cache_capacity: 128,
+      cache_policy: context_fill,
+      enabled: true,
+    ),
   },
 )

@@ -1,8 +1,11 @@
 pub mod materialization;
+pub mod materialization_delta;
 pub mod performance;
 pub mod phenology_visual;
 pub mod prephysics;
 pub mod propagation;
 pub mod startup;
 pub mod terrain;
+pub mod terrain_visual_mesh;
 pub mod visual;
+pub mod water_surface;
