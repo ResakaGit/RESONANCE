@@ -67,7 +67,7 @@ SM-7 (Docs: rename + archive + limpiar)  ── Onda C (independiente de código
 
 | Sprint | Archivo | Módulo principal | Onda | Estado |
 |--------|---------|-----------------|------|--------|
-| [SM-1](SPRINT_SM1_SPLIT_WORLDGEN.md) | Split worldgen/materialization | `src/worldgen/` | 0 | ✅ Cerrado (2026-03-25) — `worldgen/materialization/` subdirectorio ya existe |
+| [SM-1](SPRINT_SM1_SPLIT_WORLDGEN.md) | Split worldgen/materialization | `src/worldgen/` | 0 | ✅ Cerrado (2026-03-25) — `materialization.rs` 1851 LOC → `spawn.rs` + `season.rs` + `mod.rs` |
 | [SM-2](SPRINT_SM2_SIMULATION_SUBDIRS.md) | Subdirectorios simulation | `src/simulation/` | 0 | ✅ Cerrado (2026-03-25) |
 | [SM-3](SPRINT_SM3_SPLIT_BRIDGE.md) | Split bridge presets+ops | `src/bridge/` | A | ✅ Cerrado (2026-03-25) |
 | [SM-4](SPRINT_SM4_SPLIT_ARCHETYPES.md) | Split entities/archetypes | `src/entities/` | A | ✅ Cerrado (2026-03-25) |
