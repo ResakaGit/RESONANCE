@@ -13,7 +13,7 @@ fn count_to_u8_floor(value: f32) -> u8 {
 #[inline]
 fn nearest_fibonacci(value: u8) -> u8 {
     // Serie corta y estable para conteos orgánicos en runtime.
-    const FIB: [u8; 7] = [0, 1, 2, 3, 5, 8, 13];
+    const FIB: [u8; 8] = [0, 1, 2, 3, 5, 8, 13, 21];
     let max = MAX_ORGAN_INSTANCE_COUNT;
     let target = value.min(max);
     let mut prev = 0u8;

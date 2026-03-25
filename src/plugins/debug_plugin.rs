@@ -18,11 +18,11 @@ use crate::simulation::states::{GameState, PlayState};
 use crate::worldgen::shape_color_inference_system;
 
 use crate::world::{
-    DemoCloudSpawnerState, Scoreboard, ROUND_WORLD_ROSA_SLUG,
+    COMPETITION_ARENA_SLUG, DemoCloudSpawnerState, Scoreboard, ROUND_WORLD_ROSA_SLUG,
     demo_cloud_context_spawn_system, demo_cloud_motion_system, spawn_demo_clouds_startup_system,
     enforce_rosa_focus_system, enforce_round_world_rosa_focus_system,
     pin_rosa_lod_focus_system, round_world_rosa_pin_lod_focus_for_inference_system,
-    spawn_demo_level_startup_system,
+    spawn_competition_demo_startup_system, spawn_demo_level_startup_system,
     spawn_round_world_rosa_startup_system,
     stabilize_rosa_growth_system, stabilize_round_world_rosa_energy_system,
 };
@@ -37,8 +37,14 @@ fn active_map_is_round_world_rosa(active: Option<Res<ActiveMapName>>) -> bool {
     active.is_some_and(|a| a.0 == ROUND_WORLD_ROSA_SLUG)
 }
 
+fn active_map_is_competition_arena(active: Option<Res<ActiveMapName>>) -> bool {
+    active.is_some_and(|a| a.0 == COMPETITION_ARENA_SLUG)
+}
+
 fn active_map_is_default_flora_demo(active: Option<Res<ActiveMapName>>) -> bool {
-    active.map(|a| a.0 != ROUND_WORLD_ROSA_SLUG).unwrap_or(true)
+    active
+        .map(|a| a.0 != ROUND_WORLD_ROSA_SLUG && a.0 != COMPETITION_ARENA_SLUG)
+        .unwrap_or(true)
 }
 
 /// Plugin de demo: startup de rosa + sistemas runtime mínimos.
@@ -65,6 +71,9 @@ impl Plugin for DebugPlugin {
                 spawn_demo_clouds_startup_system
                     .after(spawn_demo_level_startup_system)
                     .run_if(active_map_is_default_flora_demo),
+                spawn_competition_demo_startup_system
+                    .after(mark_play_state_active_system)
+                    .run_if(active_map_is_competition_arena),
             ),
         );
 
@@ -109,7 +118,8 @@ impl Plugin for DebugPlugin {
         app.add_systems(
             FixedUpdate,
             stabilize_rosa_growth_system
-                .after(Phase::MorphologicalLayer)
+                .after(Phase::MetabolicLayer)
+                .before(Phase::MorphologicalLayer)
                 .run_if(active_map_is_default_flora_demo)
                 .run_if(in_state(GameState::Playing).and(in_state(PlayState::Active))),
         );

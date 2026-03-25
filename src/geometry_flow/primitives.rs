@@ -16,8 +16,10 @@ use bevy::render::mesh::VertexAttributeValues;
 
 /// Curvatura cóncava por defecto para pétalos.
 pub const PETAL_CURVATURE: f32 = 0.3;
-/// Apertura por defecto de pétalo (~57°).
+/// Apertura máxima de pétalo externo (~57°); internas se cierran proporcionalmente.
 pub const PETAL_DEFAULT_OPENING: f32 = 1.0;
+/// Vértices transversales por fila de pétalo (curvatura cóncava requiere ≥ 4).
+pub const PETAL_CROSS_VERTS: u32 = 4;
 /// Curvatura sinusoidal por defecto para hojas.
 pub const LEAF_CURVATURE: f32 = 0.15;
 /// Elongación por defecto para bulbo.
@@ -177,7 +179,11 @@ pub fn build_flat_surface(
     buffers.into_mesh()
 }
 
-/// Construye un abanico radial de pétalos en espiral áurea.
+/// Construye un abanico radial de pétalos en espiral áurea con curvatura cóncava y capas concéntricas.
+///
+/// Pétalos internos (índice bajo): más cerrados, cortos y saturados.
+/// Pétalos externos (índice alto): más abiertos, largos y claros.
+/// Cada pétalo tiene [`PETAL_CROSS_VERTS`] vértices transversales para curvatura 3D.
 pub fn build_petal_fan(
     center: Vec3,
     up: Vec3,
@@ -196,59 +202,77 @@ pub fn build_petal_fan(
     let sub = subdivisions.clamp(PRIM_MIN_SUBDIVISIONS, PRIM_MAX_SUBDIVISIONS);
     let up_axis = normalize_or(up, Vec3::Y);
     let (x_axis, _, z_axis) = orthonormal_basis(up_axis, Vec3::X);
+    let cv = PETAL_CROSS_VERTS;
 
-    let per_petal_verts = ((sub + 1) * 2) as usize;
+    let per_petal_verts = ((sub + 1) * cv) as usize;
+    let per_petal_quads = sub as usize * (cv as usize - 1);
     let mut buffers = MeshBuffers::with_capacity(
         per_petal_verts * petal_count as usize,
-        (petal_count as usize) * (sub as usize) * 6,
+        petal_count as usize * per_petal_quads * 6,
     );
 
+    let denom = petal_count.max(2) as f32;
     for p in 0..petal_count as u32 {
         let theta = p as f32 * GOLDEN_ANGLE;
+        let ring_t = p as f32 / denom;
+
+        let petal_open = opening_angle * (0.25 + 0.75 * ring_t);
+        let petal_len = petal_length * (0.45 + 0.55 * ring_t);
+        let petal_w = petal_width * (0.40 + 0.60 * ring_t);
+        let base_lift = (1.0 - ring_t) * petal_length * 0.25;
+
         let radial = normalize_or(x_axis * theta.cos() + z_axis * theta.sin(), x_axis);
         let tangent = normalize_or(
-            radial * opening_angle.sin() + up_axis * opening_angle.cos(),
+            radial * petal_open.sin() + up_axis * petal_open.cos(),
             up_axis,
         );
         let width_axis = normalize_or(up_axis.cross(tangent), radial);
-        let base = buffers.positions.len() as u32;
+        let base_idx = buffers.positions.len() as u32;
 
         for i in 0..=sub {
             let u = i as f32 / sub as f32;
-            let along = tangent * (u * petal_length);
-            for side in 0..=1u32 {
-                let v = side as f32;
+            let along = tangent * (u * petal_len);
+
+            for j in 0..cv {
+                let v = j as f32 / (cv - 1) as f32;
                 let signed = v * 2.0 - 1.0;
-                let lateral = width_axis * (signed * petal_width * 0.5);
-                // Con 2 vértices transversales no existe centro real: sólo aplicamos caída de borde.
-                let edge_drop = signed.abs() * (u * PI).sin() * PETAL_CURVATURE * 0.5;
-                let lift = up_axis * (-edge_drop * petal_length * 0.15);
+                let lateral = width_axis * (signed * petal_w * 0.5);
+
+                let cross_lift = (1.0 - signed * signed) * PETAL_CURVATURE * petal_len * 0.4
+                    * (u * PI).sin();
+                let curl = u * u * u * petal_len * (0.08 + 0.12 * ring_t);
+                let edge_droop = signed.abs() * u * PETAL_CURVATURE * petal_len * 0.12;
+                let lift = up_axis * (base_lift + cross_lift - edge_droop - curl);
                 let pos = center + along + lateral + lift;
+
                 buffers.positions.push(pos.to_array());
-                buffers
-                    .normals
-                    .push(normalize_or(tangent.cross(width_axis), up_axis).to_array());
+                buffers.normals.push(
+                    normalize_or(tangent.cross(width_axis), up_axis).to_array(),
+                );
                 buffers.uvs.push([u, v]);
-                let shade = 0.65 + 0.35 * u;
+
+                let ring_shade = 0.70 + 0.30 * ring_t;
+                let along_shade = 0.75 + 0.25 * u;
+                let shade = ring_shade * along_shade;
                 let tinted = [
                     (tint_rgb[0] * shade).clamp(0.0, 1.0),
                     (tint_rgb[1] * shade).clamp(0.0, 1.0),
                     (tint_rgb[2] * shade).clamp(0.0, 1.0),
                 ];
-                buffers
-                    .colors
-                    .push(vertex_along_flow_color(qe_norm, tinted, u, v));
+                buffers.colors.push(vertex_along_flow_color(qe_norm, tinted, u, v));
             }
         }
 
         for i in 0..sub {
-            let row = base + i * 2;
-            let next = base + (i + 1) * 2;
-            let a = row;
-            let b = row + 1;
-            let c = next;
-            let d = next + 1;
-            buffers.indices.extend_from_slice(&[a, c, b, b, c, d]);
+            for j in 0..cv - 1 {
+                let row = base_idx + i * cv + j;
+                let next = base_idx + (i + 1) * cv + j;
+                let a = row;
+                let b = row + 1;
+                let c = next;
+                let d = next + 1;
+                buffers.indices.extend_from_slice(&[a, c, b, b, c, d]);
+            }
         }
     }
 
@@ -372,8 +396,8 @@ pub fn build_organ_primitive(spec: &OrganSpec, params: &OrganPrimitiveParams) ->
             params.origin,
             params.direction,
             spec.count().clamp(1, MAX_PETAL_COUNT),
-            params.base_radius.max(0.01) * 1.8 * scale,
-            params.base_radius.max(0.01) * 0.8 * scale,
+            params.base_radius.max(0.01) * 3.0 * scale,
+            params.base_radius.max(0.01) * 1.6 * scale,
             PETAL_DEFAULT_OPENING,
             subdivisions,
             params.tint_rgb,
@@ -502,13 +526,17 @@ mod tests {
             0.8,
         );
         let p = pos(&mesh);
-        let per_petal = ((2 + 1) * 2) as usize;
+        let cv = PETAL_CROSS_VERTS as usize;
+        let per_petal = (2 + 1) * cv;
         let mut centroids = Vec::new();
         for i in 0..5usize {
             let start = i * per_petal;
-            let tip_left = Vec3::from_array(p[start + per_petal - 2]);
-            let tip_right = Vec3::from_array(p[start + per_petal - 1]);
-            let tip = (tip_left + tip_right) * 0.5;
+            let tip_start = start + per_petal - cv;
+            let mut tip = Vec3::ZERO;
+            for k in 0..cv {
+                tip += Vec3::from_array(p[tip_start + k]);
+            }
+            tip /= cv as f32;
             centroids.push(tip);
         }
         for i in 1..centroids.len() {

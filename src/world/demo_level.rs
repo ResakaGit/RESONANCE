@@ -5,7 +5,7 @@ use crate::blueprint::IdGenerator;
 use crate::entities::archetypes::spawn_rosa;
 use crate::layers::{
     BaseEnergy, CapabilitySet, GrowthBudget, InferenceProfile, LifecycleStage,
-    LifecycleStageCache, MatterCoherence, SpatialVolume,
+    LifecycleStageCache, SpatialVolume,
 };
 use crate::rendering::quantized_color::QuantizedPrecision;
 use crate::runtime_platform::camera_controller_3d::{
@@ -28,8 +28,8 @@ use crate::worldgen::{
 /// Mes de 30 días en segundos.
 const SECONDS_PER_MONTH: f32 = 30.0 * 24.0 * 60.0 * 60.0;
 
-/// 1 hora biológica por segundo de simulación.
-const DEMO_BIO_SECS_PER_SIM_SEC: f32 = 60.0 * 60.0;
+/// 3 meses biológicos por segundo de simulación (mismo que round_world_rosa).
+const DEMO_BIO_SECS_PER_SIM_SEC: f32 = 3.0 * SECONDS_PER_MONTH;
 
 /// Multiplicador allométrico por tick (bio_secs / 60 Hz).
 const DEMO_ALLOMETRIC_GROWTH_MULTIPLIER: f32 = DEMO_BIO_SECS_PER_SIM_SEC / 60.0;
@@ -68,7 +68,7 @@ fn attach_rosa_to_field(
             | CapabilitySet::PHOTOSYNTH | CapabilitySet::REPRODUCE,
         ),
         LifecycleStageCache {
-            stage: LifecycleStage::Dormant,
+            stage: LifecycleStage::Growing,
             ticks_in_stage: 0,
             candidate_stage: None,
             candidate_ticks: 0,
@@ -190,10 +190,16 @@ pub fn enforce_rosa_focus_system(
     }
 }
 
+/// Piso de biomasa para que `infer_organ_manifest` produzca pétalos en Reproductive.
+const ROSA_FOCUS_BIOMASS_FLOOR: f32 = 3.0;
+/// Piso de qe para que la rosa no muera por disipación en el demo.
+const ROSA_FOCUS_QE_FLOOR: f32 = 80.0;
+
 /// Mantiene detalle máximo y fuerza rebuild para reflejar crecimiento.
 pub fn stabilize_rosa_growth_system(
     mut commands: Commands,
     mut prec_q: Query<&mut QuantizedPrecision, With<RosaLifecycleFocus>>,
+    mut bio_q: Query<(&mut GrowthBudget, &mut BaseEnergy), With<RosaLifecycleFocus>>,
     rebuild_q: Query<
         Entity,
         (With<RosaLifecycleFocus>,
@@ -204,6 +210,15 @@ pub fn stabilize_rosa_growth_system(
     for mut prec in &mut prec_q {
         if prec.0 < 1.0 { prec.0 = 1.0; }
     }
+    for (mut budget, mut energy) in &mut bio_q {
+        if budget.biomass_available < ROSA_FOCUS_BIOMASS_FLOOR {
+            budget.biomass_available = ROSA_FOCUS_BIOMASS_FLOOR;
+        }
+        let qe = energy.qe();
+        if qe < ROSA_FOCUS_QE_FLOOR {
+            energy.inject(ROSA_FOCUS_QE_FLOOR - qe);
+        }
+    }
     for entity in &rebuild_q {
         commands.entity(entity).insert(crate::worldgen::shape_inference::PendingGrowthMorphRebuild);
     }
@@ -212,15 +227,15 @@ pub fn stabilize_rosa_growth_system(
 /// Telemetría flora_*.
 pub fn debug_botanical_seed_system(
     sim_elapsed: Option<Res<SimulationElapsed>>,
-    q: Query<(&Name, &BaseEnergy, &MatterCoherence, &SpatialVolume, Option<&GrowthBudget>, Option<&InferenceProfile>)>,
+    q: Query<(&Name, &BaseEnergy, &SpatialVolume, Option<&GrowthBudget>, Option<&LifecycleStageCache>)>,
 ) {
     let sim_secs = sim_elapsed.map(|e| e.secs).unwrap_or(0.0);
     let bio_months = (sim_secs * DEMO_BIO_SECS_PER_SIM_SEC) / SECONDS_PER_MONTH;
-    for (name, energy, _matter, volume, budget, profile) in &q {
+    for (name, energy, volume, budget, stage) in &q {
         if !name.as_str().starts_with("flora_") { continue; }
-        let b = budget.map(|g| format!("Bio={:.3} Eff={:.2}", g.biomass_available, g.efficiency)).unwrap_or("None".into());
-        let p = profile.map(|p| format!("g={:.1} b={:.1}", p.growth_bias, p.branching_bias)).unwrap_or("None".into());
-        info!("[{}] t={:.1}m | qe={:.0} | r={:.3} | {b} | {p}", name.as_str(), bio_months, energy.qe, volume.radius);
+        let b = budget.map(|g| format!("Bio={:.3} Eff={:.2}", g.biomass_available, g.efficiency)).unwrap_or("NoBudget".into());
+        let s = stage.map(|s| format!("{:?}", s.stage)).unwrap_or("NoStage".into());
+        info!("[{}] t={:.1}m | qe={:.0} | r={:.3} | {b} | stage={s}", name.as_str(), bio_months, energy.qe, volume.radius);
     }
 }
 
@@ -229,9 +244,9 @@ mod tests {
     use super::{DEMO_ALLOMETRIC_GROWTH_MULTIPLIER, DEMO_BIO_SECS_PER_SIM_SEC};
 
     #[test]
-    fn bio_clock_one_hour_per_sim_second() {
-        let hours = DEMO_BIO_SECS_PER_SIM_SEC / 3600.0;
-        assert!((hours - 1.0).abs() < 1e-2);
+    fn bio_clock_three_months_per_sim_second() {
+        let months = DEMO_BIO_SECS_PER_SIM_SEC / (30.0 * 24.0 * 60.0 * 60.0);
+        assert!((months - 3.0).abs() < 1e-2);
     }
 
     #[test]

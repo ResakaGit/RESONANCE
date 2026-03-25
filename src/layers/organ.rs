@@ -3,7 +3,7 @@ use bevy::prelude::*;
 use crate::blueprint::equations::BranchRole;
 
 /// Cantidad máxima de órganos inferidos por entidad en un tick.
-pub const MAX_ORGANS_PER_ENTITY: usize = 8;
+pub const MAX_ORGANS_PER_ENTITY: usize = 16;
 
 /// Rol funcional de un órgano inferido; no es un componente ECS.
 #[repr(u8)]

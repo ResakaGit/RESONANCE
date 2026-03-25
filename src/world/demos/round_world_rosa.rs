@@ -19,7 +19,7 @@ use crate::blueprint::IdGenerator;
 use crate::blueprint::constants::QE_MIN_EXISTENCE;
 use crate::entities::archetypes::spawn_rosa;
 use crate::layers::{
-    BaseEnergy, CapabilitySet, InferenceProfile, LifecycleStage, LifecycleStageCache,
+    BaseEnergy, CapabilitySet, GrowthBudget, InferenceProfile, LifecycleStage, LifecycleStageCache,
 };
 use crate::rendering::quantized_color::QuantizedPrecision;
 use crate::runtime_platform::camera_controller_3d::{CameraRigTarget, MobaCameraConfig, MobaCameraState};
@@ -91,15 +91,17 @@ fn attach_round_world_rosa_field_shape(
             CapabilitySet::GROW
                 | CapabilitySet::BRANCH
                 | CapabilitySet::ROOT
-                | CapabilitySet::PHOTOSYNTH,
+                | CapabilitySet::PHOTOSYNTH
+                | CapabilitySet::REPRODUCE,
         ),
         // `resolve_organ_manifest` exige `Some(LifecycleStageCache)`; sin esto GF1 cae a tubo simple sin EPI3.
         LifecycleStageCache {
-            stage: LifecycleStage::Growing,
-            ticks_in_stage: 32,
+            stage: LifecycleStage::Reproductive,
+            ticks_in_stage: 64,
             candidate_stage: None,
             candidate_ticks: 0,
         },
+        GrowthBudget::new(3.0, 0, 0.9),
         InferenceProfile::new(
             ROSA_DEMO_GROWTH_BIAS,
             ROSA_DEMO_MOBILITY_BIAS,

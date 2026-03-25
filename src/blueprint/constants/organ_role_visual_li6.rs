@@ -40,9 +40,9 @@ pub const ORGAN_ROLE_VISUAL_PROFILES: [OrganRoleVisualProfile; 12] = [
     },
     OrganRoleVisualProfile {
         accent_lin: [0.92, 0.35, 0.45], // Petal
-        blend: 0.40,
-        scale: 0.4,
-        opacity: 0.75,
+        blend: 0.80,
+        scale: 1.0,
+        opacity: 0.95,
     },
     OrganRoleVisualProfile {
         accent_lin: [0.15, 0.15, 0.15], // Sensory
@@ -110,7 +110,7 @@ pub const ORGAN_ROLE_BLEND: [f32; 12] = [
     0.15,                       // Root
     0.05,                       // Core
     GF1_BRANCH_ROLE_BLEND_LEAF, // Leaf
-    0.40,                       // Petal
+    0.80,                       // Petal
     0.50,                       // Sensory
     GF1_BRANCH_ROLE_BLEND_THORN, // Thorn
     0.18,                       // Shell
@@ -126,7 +126,7 @@ pub const ORGAN_ROLE_SCALE: [f32; 12] = [
     0.6,  // Root
     1.2,  // Core
     0.5,  // Leaf
-    0.4,  // Petal
+    1.0,  // Petal
     0.15, // Sensory
     0.2,  // Thorn
     0.8,  // Shell
@@ -142,7 +142,7 @@ pub const ORGAN_ROLE_OPACITY: [f32; 12] = [
     1.0,  // Root
     1.0,  // Core
     0.85, // Leaf
-    0.75, // Petal
+    0.95, // Petal
     1.0,  // Sensory
     1.0,  // Thorn
     0.95, // Shell
