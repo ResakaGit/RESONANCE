@@ -167,6 +167,56 @@ pub fn nutrient_retention_water() -> f32 {
     (1.0 - DISSIPATION_LIQUID / DISSIPATION_GAS).max(0.1)
 }
 
+// ─── Derived: worldgen field constants ────────────────────────────────────────
+
+/// Minimum qe in a cell to materialize an entity = self_sustaining_qe_min / 2.
+/// Half the sustaining minimum — enough to be visible but not necessarily alive.
+#[inline]
+pub fn min_materialization_qe() -> f32 { self_sustaining_qe_min() * 0.5 }
+
+/// Field decay rate (qe/s per cell). = basal_drain_rate (same scale as entity metabolism).
+#[inline]
+pub fn field_decay_rate() -> f32 { basal_drain_rate() }
+
+/// Reference density for visual derivation = liquid threshold.
+#[inline]
+pub fn reference_density() -> f32 { liquid_density_threshold() }
+
+/// Low density class boundary = DENSITY_SCALE (the fundamental grid unit).
+#[inline]
+pub fn density_low_threshold() -> f32 { DENSITY_SCALE }
+
+/// High density class boundary = liquid_density_threshold.
+#[inline]
+pub fn density_high_threshold() -> f32 { liquid_density_threshold() }
+
+/// Purity threshold for pure vs compound materialization.
+/// Derived: at sense_coherence_min × 2, signal is clearly dominant.
+#[inline]
+pub fn purity_threshold() -> f32 {
+    (sense_coherence_min() * 2.0).min(0.95)
+}
+
+/// Field conductivity spread between neighbors.
+/// = DISSIPATION_LIQUID (lateral diffusion scales with liquid-state mobility).
+#[inline]
+pub fn field_conductivity_spread() -> f32 { DISSIPATION_LIQUID }
+
+/// Bond energy for materialized spawns = 1/DISSIPATION_SOLID (inverse of base decay).
+#[inline]
+pub fn materialized_bond_energy() -> f32 { 1.0 / DISSIPATION_SOLID }
+
+/// Thermal conductivity for materialized spawns = DISSIPATION_SOLID × DENSITY_SCALE.
+#[inline]
+pub fn materialized_thermal_conductivity() -> f32 { DISSIPATION_SOLID * DENSITY_SCALE }
+
+/// Collider radius factor = 0.5 (half of cell — geometric).
+pub const MATERIALIZED_COLLIDER_RADIUS_FACTOR: f32 = 0.5;
+
+/// Minimum collider radius = DISSIPATION_SOLID (smallest stable structure scale).
+#[inline]
+pub fn materialized_min_collider_radius() -> f32 { DISSIPATION_SOLID }
+
 // ─── Tests ───────────────────────────────────────────────────────────────────
 
 #[cfg(test)]

@@ -231,8 +231,15 @@ fn materialization_full_world(world: &mut World) {
                     },
                     BaseEnergy::new(cell.accumulated_qe.max(0.0)),
                     OscillatorySignature::new(cell.dominant_frequency_hz, 0.0),
-                    SpatialVolume::new((grid_snapshot.cell_size * 0.5).max(0.01)),
-                    MatterCoherence::new(cell.matter_state, 1000.0, 0.3),
+                    SpatialVolume::new(
+                        (grid_snapshot.cell_size * crate::worldgen::constants::MATERIALIZED_COLLIDER_RADIUS_FACTOR)
+                            .max(crate::worldgen::constants::MATERIALIZED_MIN_COLLIDER_RADIUS),
+                    ),
+                    MatterCoherence::new(
+                        cell.matter_state,
+                        crate::worldgen::constants::MATERIALIZED_SPAWN_BOND_ENERGY,
+                        crate::worldgen::constants::MATERIALIZED_SPAWN_THERMAL_CONDUCTIVITY,
+                    ),
                     SenescenceProfile {
                         tick_birth: 0,
                         senescence_coeff: crate::blueprint::constants::senescence_coeff_materialized(),

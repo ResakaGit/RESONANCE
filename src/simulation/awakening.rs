@@ -68,7 +68,7 @@ pub fn awakening_system(
         }
 
         // Derive capabilities from current energy state (Axiom 1).
-        let vol = volume.radius.max(0.01);
+        let vol = volume.radius.max(dt::DISSIPATION_SOLID);
         let density = energy.qe() / (vol * vol);
         let coherence_norm = (coherence / (coherence + energy.qe())).clamp(0.0, 1.0);
         let caps = equations::capabilities_from_energy(energy.qe(), density, coherence_norm);
