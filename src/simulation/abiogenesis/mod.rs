@@ -191,9 +191,9 @@ fn try_spawn_emergent_at_cell(
         CapabilitySet::new(caps),
         SenescenceProfile {
             tick_birth,
-            senescence_coeff: 0.0001,
-            max_viable_age: 5_000,
-            strategy: 0,
+            senescence_coeff: crate::blueprint::constants::SENESCENCE_COEFF_FLORA,
+            max_viable_age: crate::blueprint::constants::SENESCENCE_MAX_AGE_FLORA,
+            strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
         },
     ));
 
@@ -303,9 +303,9 @@ fn try_spawn_fauna_at_cell(
         PerformanceCachePolicy { enabled: true, scope: CacheScope::StableWindow, version_tag: 1, dependency_signature: 0 },
         SenescenceProfile {
             tick_birth,
-            senescence_coeff: 0.0001,
-            max_viable_age: 3_000,
-            strategy: 0,
+            senescence_coeff: crate::blueprint::constants::SENESCENCE_COEFF_FAUNA,
+            max_viable_age: crate::blueprint::constants::SENESCENCE_MAX_AGE_FAUNA,
+            strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
         },
     ));
 

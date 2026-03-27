@@ -10,7 +10,8 @@ use super::super::performance::{
 use crate::blueprint::AlchemicalAlmanac;
 use crate::eco::boundary_field::EcoBoundaryField;
 use crate::eco::context_lookup::eco_field_aligned_with_grid;
-use crate::layers::{BaseEnergy, MatterCoherence, OscillatorySignature, SpatialVolume};
+use crate::layers::{BaseEnergy, MatterCoherence, OscillatorySignature, SenescenceProfile, SpatialVolume};
+use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::topology::TerrainField;
 use crate::worldgen::constants::{
@@ -128,7 +129,9 @@ pub fn materialization_delta_system(
     mut cache: ResMut<MaterializationCellCache>,
     mut mat_budget: ResMut<MatBudgetCounters>,
     mut cache_stats: ResMut<MatCacheStats>,
+    clock: Option<Res<SimulationClock>>,
 ) {
+    let tick_birth = clock.map(|c| c.tick_id).unwrap_or(0);
     let t = time.elapsed_secs();
     let cell_size = grid.cell_size;
     let width = grid.width;
@@ -265,6 +268,12 @@ pub fn materialization_delta_system(
                                 layout.materialized_tile_transform(world_pos),
                                 GlobalTransform::default(),
                                 Sprite::default(),
+                                SenescenceProfile {
+                                    tick_birth,
+                                    senescence_coeff: crate::blueprint::constants::SENESCENCE_COEFF_MATERIALIZED,
+                                    max_viable_age: crate::blueprint::constants::SENESCENCE_MAX_AGE_MATERIALIZED,
+                                    strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
+                                },
                             ))
                             .id()
                     } else {
@@ -289,6 +298,12 @@ pub fn materialization_delta_system(
                                 layout.materialized_tile_transform(world_pos),
                                 GlobalTransform::default(),
                                 Sprite::default(),
+                                SenescenceProfile {
+                                    tick_birth,
+                                    senescence_coeff: crate::blueprint::constants::SENESCENCE_COEFF_MATERIALIZED,
+                                    max_viable_age: crate::blueprint::constants::SENESCENCE_MAX_AGE_MATERIALIZED,
+                                    strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
+                                },
                             ))
                             .id()
                     };
@@ -338,6 +353,12 @@ pub fn materialization_delta_system(
                                 layout.materialized_tile_transform(world_pos),
                                 GlobalTransform::default(),
                                 Sprite::default(),
+                                SenescenceProfile {
+                                    tick_birth,
+                                    senescence_coeff: crate::blueprint::constants::SENESCENCE_COEFF_MATERIALIZED,
+                                    max_viable_age: crate::blueprint::constants::SENESCENCE_MAX_AGE_MATERIALIZED,
+                                    strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
+                                },
                             ))
                             .id()
                     } else {
@@ -362,6 +383,12 @@ pub fn materialization_delta_system(
                                 layout.materialized_tile_transform(world_pos),
                                 GlobalTransform::default(),
                                 Sprite::default(),
+                                SenescenceProfile {
+                                    tick_birth,
+                                    senescence_coeff: crate::blueprint::constants::SENESCENCE_COEFF_MATERIALIZED,
+                                    max_viable_age: crate::blueprint::constants::SENESCENCE_MAX_AGE_MATERIALIZED,
+                                    strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
+                                },
                             ))
                             .id()
                     };

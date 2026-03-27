@@ -24,7 +24,9 @@ pub fn behavior_assess(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
     while mi != 0 {
         let i = mi.trailing_zeros() as usize;
         mi &= mi - 1;
-        if world.entities[i].archetype < 2 { continue; }
+        // Axiom 6: behavior emerges from composition, not top-down tags.
+        // Entities with mobility capacity (mobility_bias > 0) exhibit behavior.
+        if world.entities[i].mobility_bias <= 0.01 { continue; }
 
         let (hunger, _energy_ratio) = equations::assess_energy(
             world.entities[i].engine_buffer, world.entities[i].engine_max.max(0.01),

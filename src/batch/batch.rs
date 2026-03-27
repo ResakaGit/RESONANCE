@@ -32,7 +32,8 @@ impl Default for BatchConfig {
             max_generations:  100,
             seed:             42,
             initial_entities: 8,
-            fitness_weights:  [1.0, 0.5, 2.0, 1.5, 1.0, 0.8],
+            // weights: survivors, reproductions, species, trophic_depth, memes, coalitions
+            fitness_weights:  [1.0, 1.0, 4.0, 3.0, 1.0, 1.0],
         }
     }
 }

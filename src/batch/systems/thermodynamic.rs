@@ -26,24 +26,26 @@ pub fn engine_processing(world: &mut SimWorldFlat) {
     }
 }
 
-/// Fill irradiance grid from alive entities' energy contribution.
+/// External irradiance source (sunlight). Not entity-fed.
 ///
-/// Each alive entity adds a fraction of its qe to the grid cell it occupies.
-/// Grid is zeroed each tick (transient field).
+/// Axiom 5: energy conservation — irradiance is the ONLY external energy input.
+/// Models a constant solar flux. Entities absorb from it via photosynthesis;
+/// the grid itself is replenished externally (not from entity qe).
+///
+/// The grid represents available photon density per cell. Constant per tick
+/// with slight spatial variation from seed.
 pub fn irradiance_update(world: &mut SimWorldFlat) {
-    // Reset grid each tick
-    world.irradiance_grid = [0.0; GRID_CELLS];
-    let mut mask = world.alive_mask;
-    while mask != 0 {
-        let i = mask.trailing_zeros() as usize;
-        mask &= mask - 1;
-        let e = &world.entities[i];
-        let cell = grid_cell(e.position);
-        if cell < GRID_CELLS {
-            world.irradiance_grid[cell] += e.qe * 0.01;
-        }
+    // External source: constant solar flux. Not derived from entity energy.
+    // Slight variation by cell index for spatial heterogeneity.
+    for cell in 0..GRID_CELLS {
+        // Base irradiance + small deterministic variation per cell
+        let variation = ((cell as f32 * 0.1).sin() * 0.3 + 1.0).max(0.5);
+        world.irradiance_grid[cell] = SOLAR_FLUX_BASE * variation;
     }
 }
+
+/// Base solar irradiance per grid cell per tick.
+const SOLAR_FLUX_BASE: f32 = 2.0;
 
 /// Map world position to flat grid index.
 #[inline]
@@ -103,23 +105,26 @@ mod tests {
     }
 
     #[test]
-    fn irradiance_grid_populated_from_entities() {
+    fn irradiance_grid_is_external_source() {
         let mut w = SimWorldFlat::new(0, 0.05);
-        let mut e = EntitySlot::default();
-        e.qe = 200.0;
-        e.position = [3.0, 5.0];
-        w.spawn(e);
         irradiance_update(&mut w);
-        let cell = grid_cell([3.0, 5.0]);
-        assert!(w.irradiance_grid[cell] > 0.0, "cell should have irradiance");
+        // All cells should have positive irradiance (solar flux)
+        for cell in &w.irradiance_grid {
+            assert!(*cell > 0.0, "external source should provide irradiance");
+        }
     }
 
     #[test]
-    fn irradiance_grid_zeroed_each_tick() {
-        let mut w = SimWorldFlat::new(0, 0.05);
-        w.irradiance_grid[0] = 999.0;
-        irradiance_update(&mut w);
-        assert_eq!(w.irradiance_grid[0], 0.0, "grid should reset");
+    fn irradiance_grid_independent_of_entities() {
+        let mut w1 = SimWorldFlat::new(0, 0.05);
+        let mut w2 = SimWorldFlat::new(0, 0.05);
+        let mut e = EntitySlot::default();
+        e.qe = 1000.0;
+        w2.spawn(e); // w2 has entity, w1 doesn't
+        irradiance_update(&mut w1);
+        irradiance_update(&mut w2);
+        // Grid should be identical — entities don't affect it (Axiom 5)
+        assert_eq!(w1.irradiance_grid[0].to_bits(), w2.irradiance_grid[0].to_bits());
     }
 
     #[test]

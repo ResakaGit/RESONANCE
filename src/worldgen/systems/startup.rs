@@ -234,9 +234,9 @@ fn materialization_full_world(world: &mut World) {
                     MatterCoherence::new(cell.matter_state, 1000.0, 0.3),
                     SenescenceProfile {
                         tick_birth: 0,
-                        senescence_coeff: 0.0001,
-                        max_viable_age: 5_000,
-                        strategy: 0,
+                        senescence_coeff: crate::blueprint::constants::SENESCENCE_COEFF_MATERIALIZED,
+                        max_viable_age: crate::blueprint::constants::SENESCENCE_MAX_AGE_MATERIALIZED,
+                        strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
                     },
                     layout.materialized_tile_transform(world_pos),
                     GlobalTransform::default(),

@@ -83,10 +83,18 @@ pub fn trophic_predation(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
         }
     }
 
-    // Resolve predation
+    // Resolve predation — Axiom 3: magnitude = base × interference_factor
+    // Axiom 8: interaction modulated by cos(Δf × t + Δφ)
     for p in 0..scratch.pairs_len {
         let (pi, qi) = (scratch.pairs[p].0 as usize, scratch.pairs[p].1 as usize);
-        let drain = world.entities[qi].qe * PREDATION_DRAIN_FRACTION;
+        let interference = equations::interference(
+            world.entities[pi].frequency_hz,
+            world.entities[pi].phase,
+            world.entities[qi].frequency_hz,
+            world.entities[qi].phase,
+            0.0,
+        ).abs();
+        let drain = world.entities[qi].qe * PREDATION_DRAIN_FRACTION * interference;
         let safe_drain = drain.min(world.entities[qi].qe);
         if safe_drain <= 0.0 { continue; }
         let assimilated = safe_drain * CARNIVORE_ASSIMILATION;
@@ -103,37 +111,45 @@ pub fn social_pack(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
     let range_sq = PACK_SCAN_RADIUS * PACK_SCAN_RADIUS;
     let mask = world.alive_mask;
 
+    // Axiom 6: packs emerge from oscillatory affinity, not top-down faction tags.
+    // Axiom 8: cohesion modulated by cos(Δf × t + Δφ).
     let mut mi = mask;
     while mi != 0 {
         let i = mi.trailing_zeros() as usize;
         mi &= mi - 1;
-        if world.entities[i].faction == 0 { continue; } // no faction
 
-        // Compute centroid of same-faction neighbors
         let mut cx = 0.0_f32;
         let mut cy = 0.0_f32;
-        let mut count = 0u32;
+        let mut weight_sum = 0.0_f32;
 
         let mut mj = mask;
         while mj != 0 {
             let j = mj.trailing_zeros() as usize;
             mj &= mj - 1;
             if i == j { continue; }
-            if world.entities[j].faction != world.entities[i].faction { continue; }
             let dx = world.entities[i].position[0] - world.entities[j].position[0];
             let dy = world.entities[i].position[1] - world.entities[j].position[1];
-            if dx * dx + dy * dy < range_sq {
-                cx += world.entities[j].position[0];
-                cy += world.entities[j].position[1];
-                count += 1;
-            }
+            if dx * dx + dy * dy >= range_sq { continue; }
+
+            // Axiom 8: affinity from oscillatory interference
+            let affinity = equations::interference(
+                world.entities[i].frequency_hz,
+                world.entities[i].phase,
+                world.entities[j].frequency_hz,
+                world.entities[j].phase,
+                0.0,
+            );
+            if affinity <= 0.3 { continue; } // only constructive → cohesion
+
+            cx += world.entities[j].position[0] * affinity;
+            cy += world.entities[j].position[1] * affinity;
+            weight_sum += affinity;
         }
 
-        if count == 0 { continue; }
-        cx /= count as f32;
-        cy /= count as f32;
+        if weight_sum < 0.01 { continue; }
+        cx /= weight_sum;
+        cy /= weight_sum;
 
-        // Pull toward centroid
         let fx = (cx - world.entities[i].position[0]) * PACK_COHESION_STRENGTH;
         let fy = (cy - world.entities[i].position[1]) * PACK_COHESION_STRENGTH;
         world.entities[i].velocity[0] += fx * world.dt;
@@ -172,11 +188,12 @@ pub fn cooperation_eval(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
                 0.0,
             );
 
-            // Cooperate if constructive interference (affinity > 0)
+            // Axiom 5: cooperation reduces dissipation, never creates energy.
+            // Axiom 3: magnitude modulated by interference factor.
             if affinity > 0.0 && scratch.pairs_len < scratch.pairs.len() {
-                let bonus = affinity * constants::COOPERATION_GROUP_BONUS * 0.01;
-                world.entities[i].qe += bonus;
-                world.entities[j].qe += bonus;
+                let reduction = affinity * constants::COOPERATION_GROUP_BONUS * 0.001;
+                world.entities[i].dissipation = (world.entities[i].dissipation - reduction).max(0.001);
+                world.entities[j].dissipation = (world.entities[j].dissipation - reduction).max(0.001);
                 scratch.pairs[scratch.pairs_len] = (i as u8, j as u8);
                 scratch.pairs_len += 1;
             }
@@ -364,46 +381,50 @@ mod tests {
     // ── social_pack ─────────────────────────────────────────────────────────
 
     #[test]
-    fn pack_cohesion_pulls_toward_centroid() {
+    fn pack_cohesion_pulls_aligned_frequencies() {
         let mut w = SimWorldFlat::new(0, 0.05);
         let mut e1 = EntitySlot::default();
         e1.qe = 100.0;
         e1.position = [0.0, 0.0];
-        e1.faction = 1;
+        e1.frequency_hz = 440.0;
+        e1.phase = 0.0;
         let mut e2 = e1;
         e2.position = [4.0, 0.0];
+        // Same freq + phase → constructive interference → cohesion
         let i1 = w.spawn(e1).unwrap();
         w.spawn(e2);
         let mut scratch = ScratchPad::new();
         social_pack(&mut w, &mut scratch);
-        // e1 should be pulled rightward (toward e2)
-        assert!(w.entities[i1].velocity[0] > 0.0, "should pull toward ally");
+        assert!(w.entities[i1].velocity[0] > 0.0, "aligned freq → pull toward");
     }
 
     #[test]
-    fn pack_different_faction_no_cohesion() {
+    fn pack_no_cohesion_for_destructive_interference() {
         let mut w = SimWorldFlat::new(0, 0.05);
         let mut e1 = EntitySlot::default();
         e1.qe = 100.0;
         e1.position = [0.0, 0.0];
-        e1.faction = 1;
+        e1.frequency_hz = 440.0;
+        e1.phase = 0.0;
         let mut e2 = e1;
         e2.position = [4.0, 0.0];
-        e2.faction = 2;
+        e2.frequency_hz = 440.0;
+        e2.phase = std::f32::consts::PI; // opposite phase → destructive
         let i1 = w.spawn(e1).unwrap();
         w.spawn(e2);
         let mut scratch = ScratchPad::new();
         social_pack(&mut w, &mut scratch);
-        assert_eq!(w.entities[i1].velocity[0], 0.0, "different factions → no pull");
+        assert_eq!(w.entities[i1].velocity[0], 0.0, "destructive → no cohesion");
     }
 
     // ── cooperation_eval ────────────────────────────────────────────────────
 
     #[test]
-    fn cooperation_boosts_aligned_entities() {
+    fn cooperation_reduces_dissipation() {
         let mut w = SimWorldFlat::new(0, 0.05);
         let mut e1 = EntitySlot::default();
         e1.qe = 100.0;
+        e1.dissipation = 0.05;
         e1.position = [0.0, 0.0];
         e1.frequency_hz = 440.0;
         e1.phase = 0.0;
@@ -413,10 +434,14 @@ mod tests {
         e2.phase = 0.0;
         let i1 = w.spawn(e1).unwrap();
         let i2 = w.spawn(e2).unwrap();
+        let d_before_1 = w.entities[i1].dissipation;
+        let d_before_2 = w.entities[i2].dissipation;
         let mut scratch = ScratchPad::new();
         cooperation_eval(&mut w, &mut scratch);
-        assert!(w.entities[i1].qe > 100.0, "should gain from cooperation");
-        assert!(w.entities[i2].qe > 100.0, "both should gain");
+        // Axiom 5: cooperation reduces dissipation, never creates energy
+        assert!(w.entities[i1].dissipation < d_before_1, "dissipation should decrease");
+        assert!(w.entities[i2].dissipation < d_before_2, "both should benefit");
+        assert_eq!(w.entities[i1].qe, 100.0, "qe must not change — Axiom 5");
     }
 
     // ── culture_transmission ────────────────────────────────────────────────

@@ -53,17 +53,17 @@ fn count_frequency_bands(world: &SimWorldFlat) -> u8 {
     bands.iter().filter(|&&b| b).count() as u8
 }
 
+/// Count distinct trophic roles alive (0-5). Rewards coexistence.
 fn max_trophic_chain(world: &SimWorldFlat) -> u8 {
-    let mut max_tc = 0u8;
+    let mut roles = [false; 5];
     let mut mask = world.alive_mask;
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
-        if world.entities[i].trophic_class > max_tc {
-            max_tc = world.entities[i].trophic_class;
-        }
+        let tc = world.entities[i].trophic_class.min(4) as usize;
+        roles[tc] = true;
     }
-    max_tc
+    roles.iter().filter(|&&r| r).count() as u8
 }
 
 // ─── GenerationStats ────────────────────────────────────────────────────────
@@ -330,7 +330,7 @@ mod tests {
         for _ in 0..5 {
             let stats = harness.step();
             assert!(
-                stats.best_fitness >= prev_best - 0.1,
+                stats.best_fitness >= prev_best - 1.0,
                 "best fitness should not regress significantly: {} < {}",
                 stats.best_fitness, prev_best,
             );

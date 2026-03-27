@@ -19,15 +19,40 @@ pub struct GenomeBlob {
 
 impl GenomeBlob {
     /// Generate a random genome from a deterministic seed.
+    ///
+    /// Archetype and trophic_class are **coherent**: archetype determines
+    /// the valid trophic range. No "flora + carnivore" chimeras.
     pub fn random(rng_state: u64) -> Self {
         let s0 = determinism::next_u64(rng_state);
         let s1 = determinism::next_u64(s0);
         let s2 = determinism::next_u64(s1);
         let s3 = determinism::next_u64(s2);
         let s4 = determinism::next_u64(s3);
+
+        // Archetype distribution: 30% flora, 40% fauna, 20% cell, 10% virus
+        let arch_roll = determinism::unit_f32(s0);
+        let archetype = if arch_roll < 0.30 { 1 }      // flora
+                        else if arch_roll < 0.70 { 2 }  // fauna
+                        else if arch_roll < 0.90 { 3 }  // cell
+                        else { 4 };                       // virus
+
+        // Trophic coherent with archetype
+        let trophic_class = match archetype {
+            1 => 0,  // flora → always primary producer
+            2 => {   // fauna → herbivore(60%), carnivore(30%), omnivore(10%)
+                let t = determinism::unit_f32(s1);
+                if t < 0.60 { 1 } else if t < 0.90 { 3 } else { 2 }
+            }
+            3 => {   // cell → producer(50%), detritivore(50%)
+                if determinism::unit_f32(s1) < 0.5 { 0 } else { 4 }
+            }
+            4 => 3,  // virus → always carnivore (parasitic)
+            _ => 0,
+        };
+
         Self {
-            archetype:      ((determinism::unit_f32(s0) * 4.0) as u8).min(4),
-            trophic_class:  ((determinism::unit_f32(s1) * 5.0) as u8).min(4),
+            archetype,
+            trophic_class,
             growth_bias:    determinism::unit_f32(s2),
             mobility_bias:  determinism::unit_f32(s3),
             branching_bias: determinism::unit_f32(s4),
@@ -75,14 +100,23 @@ impl GenomeBlob {
     }
 
     /// Uniform crossover between two genomes.
+    ///
+    /// Archetype+trophic inherited as a unit from one parent (no chimeras).
+    /// Biases crossed uniformly.
     pub fn crossover(&self, other: &Self, rng_state: u64) -> Self {
         use crate::blueprint::equations::batch_fitness;
         let a = [self.growth_bias, self.mobility_bias, self.branching_bias, self.resilience];
         let b = [other.growth_bias, other.mobility_bias, other.branching_bias, other.resilience];
         let child_biases = batch_fitness::crossover_uniform(&a, &b, rng_state);
+        // Inherit archetype+trophic as a coherent pair from one parent
+        let (arch, troph) = if determinism::unit_f32(rng_state) < 0.5 {
+            (self.archetype, self.trophic_class)
+        } else {
+            (other.archetype, other.trophic_class)
+        };
         Self {
-            archetype:      if determinism::unit_f32(rng_state) < 0.5 { self.archetype } else { other.archetype },
-            trophic_class:  if determinism::unit_f32(determinism::next_u64(rng_state)) < 0.5 { self.trophic_class } else { other.trophic_class },
+            archetype: arch,
+            trophic_class: troph,
             growth_bias:    child_biases[0],
             mobility_bias:  child_biases[1],
             branching_bias: child_biases[2],

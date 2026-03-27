@@ -67,8 +67,10 @@ pub fn photosynthesis(world: &mut SimWorldFlat) {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
         let e = &mut world.entities[i];
-        // Only photosynthetic band (simplified: archetype=1 flora or trophic=0 producer)
-        if e.trophic_class != 0 && e.archetype != 1 { continue; }
+        // Axiom 6: no top-down archetype gate. Any entity with frequency in
+        // photosynthetic band (200-600 Hz) and radius > 0 can photosynthesize.
+        // Axiom 8: oscillatory nature determines capability.
+        if e.frequency_hz < 200.0 || e.frequency_hz > 600.0 { continue; }
         let cell = grid_cell(e.position);
         if cell >= GRID_CELLS { continue; }
         let irr = world.irradiance_grid[cell];
@@ -185,19 +187,18 @@ mod tests {
     }
 
     #[test]
-    fn photosynthesis_skips_non_producers() {
+    fn photosynthesis_skips_outside_lux_band() {
         let mut w = SimWorldFlat::new(0, 0.05);
         let mut e = EntitySlot::default();
         e.qe = 50.0;
         e.radius = 1.0;
         e.position = [3.0, 3.0];
-        e.archetype = 2; // fauna
-        e.trophic_class = 3; // carnivore
+        e.frequency_hz = 800.0; // outside photosynthetic band (200-600)
         let idx = w.spawn(e).unwrap();
         let cell = grid_cell([3.0, 3.0]);
         w.irradiance_grid[cell] = 10.0;
         photosynthesis(&mut w);
-        assert_eq!(w.entities[idx].qe, 50.0, "non-producer shouldn't photosynthesize");
+        assert_eq!(w.entities[idx].qe, 50.0, "outside Lux band → no photosynthesis");
     }
 
     // ── nutrient_uptake ─────────────────────────────────────────────────────
