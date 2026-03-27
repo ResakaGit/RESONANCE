@@ -10,9 +10,9 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 
 | Métrica | Valor |
 |---------|-------|
-| Sprints pendientes | **6** |
-| Tracks activos | **1** |
-| Oleadas restantes | **4** |
+| Sprints pendientes | **11** |
+| Tracks activos | **2** |
+| Oleadas restantes | **5** |
 | Tracks archivados | **34** |
 
 ---
@@ -31,6 +31,19 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 | [GS-9](GAMEPLAY_SYSTEMS/SPRINT_GS9_ONBOARDING.md) | Onboarding experience sequence | Alto | GS-7, GS-8 | |
 
 Sprints archivados del track: [archive/GAMEPLAY_SYSTEMS/](archive/GAMEPLAY_SYSTEMS/) (GS-1 ✅, GS-3 ✅, GS-5 ✅)
+
+---
+
+### EMERGENT_MORPHOLOGY (4 sprints pendientes)
+
+| Sprint | Descripción | Esfuerzo | Bloqueado por | Doc |
+|--------|-------------|----------|---------------|-----|
+| [EM-1](EMERGENT_MORPHOLOGY/SPRINT_EM1_RADIAL_FIELD_EQUATIONS.md) | Radial field equations: 2D diffusion, peak detection, gradients | Medio | — | [Design](../design/EMERGENT_MORPHOLOGY.md) |
+| [EM-2](EMERGENT_MORPHOLOGY/SPRINT_EM2_ARENA_INTEGRATION.md) | EntitySlot 2D fields, internal_diffusion 2D, pipeline | Medio | EM-1 | |
+| [EM-3](EMERGENT_MORPHOLOGY/SPRINT_EM3_APPENDAGE_INFERENCE.md) | Peaks → sub-meshes, bilateral emergence, creature_builder 2D | Alto | EM-2 | |
+| [EM-4](EMERGENT_MORPHOLOGY/SPRINT_EM4_JOINT_ARTICULATION.md) | Valley detection → joints, segmented appendages | Alto | EM-3 | |
+
+Track README: [EMERGENT_MORPHOLOGY/](EMERGENT_MORPHOLOGY/)
 
 ---
 

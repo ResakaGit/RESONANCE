@@ -45,6 +45,7 @@ Especificaciones de alto nivel del proyecto Resonance. Para contratos runtime po
 | [INFERRED_WORLD_GEOMETRY.md](INFERRED_WORLD_GEOMETRY.md) | `worldgen/inference/` | Geometria del mundo inferida desde campos energeticos |
 | [MACRO_STEPPING.md](MACRO_STEPPING.md) | `simulation/` | Temporal LOD: analytical solvers O(1) para entidades lejanas |
 | [BATCH_SIMULATOR.md](../arquitectura/blueprint_batch_simulator.md) | `batch/` | Simulador masivo sin Bevy: SimWorldFlat, WorldBatch ×1M, GeneticHarness, evolucion real |
+| [EMERGENT_MORPHOLOGY.md](EMERGENT_MORPHOLOGY.md) | `batch/`, `equations/`, `geometry_flow/` | 2D radial energy field → bilateral organisms emergentes. 100% axiom-pure. |
 
 ## Gameplay
 

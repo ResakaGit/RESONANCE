@@ -153,27 +153,36 @@
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│              8 AXIOMAS (reglas del universo)                                │
+│              8 AXIOMAS (5 primitivos + 3 derivados)                        │
 │                                                                             │
+│  PRIMITIVOS (independientes, irreducibles):                                │
 │  1. Everything is Energy    — all entities are qe                           │
 │  2. Pool Invariant          — Σ children ≤ parent                           │
-│  3. Competition as Primitive — magnitude = base × interference              │
 │  4. Dissipation (2nd Law)   — all processes lose energy                     │
-│  5. Conservation            — energy never created (only solar input)       │
-│  6. Emergence at Scale      — N emerges from N-1 (no top-down tags)        │
 │  7. Distance Attenuation    — interaction decays with distance              │
 │  8. Oscillatory Nature      — every qe oscillates at frequency f            │
-├─────────────────────────────────────────────────────────────────────────────┤
-│              4 CONSTANTES FUNDAMENTALES (parámetros irreducibles)           │
 │                                                                             │
-│  KLEIBER_EXPONENT = 0.75              (Axiom 4 — biológico universal)      │
-│  DISSIPATION_SOLID   = 0.005          (Axiom 4 — Segunda Ley por estado)   │
+│  DERIVADOS (consecuencias, elevados por utilidad de diseño):               │
+│  3. Competition as Primitive — de Axiom 8 aplicado a transferencia          │
+│  5. Conservation             — de Axiom 2 + 4 (pool + dissipation)         │
+│  6. Emergence at Scale       — meta-regla (constrañe al dev, no al motor)  │
+│                                                                             │
+│  Los 3 derivados no producen comportamiento adicional.                     │
+│  Existen como guard rails contra hardcoding.                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│              4 CONSTANTES (2 física + 2 calibración)                       │
+│                                                                             │
+│  FÍSICA (no tocar para calibrar):                                          │
+│  KLEIBER_EXPONENT = 0.75              (biológico universal)                │
+│  DISSIPATION_SOLID   = 0.005          (Segunda Ley, ratios 1:4:16:50)     │
 │  DISSIPATION_LIQUID  = 0.02                                                │
 │  DISSIPATION_GAS     = 0.08                                                │
 │  DISSIPATION_PLASMA  = 0.25                                                │
-│  COHERENCE_BANDWIDTH = 50.0 Hz        (Axiom 8 — ventana de observación)   │
-│  DENSITY_SCALE       = 20.0           (Axiom 1 — geometría del grid)       │
-│  SOLAR_FREQUENCY     = 400.0 Hz       (Axiom 8 — resonancia fotosintética) │
+│                                                                             │
+│  CALIBRACIÓN (grid/game, recalibrar si cambia cell_size o bandas):        │
+│  COHERENCE_BANDWIDTH = 50.0 Hz        (ventana de observación, Axiom 8)   │
+│  DENSITY_SCALE       = 20.0           (geometría del grid, Axiom 1)       │
+│  SOLAR_FREQUENCY     = 400.0 Hz       (resonancia fotosintética, Axiom 8) │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐

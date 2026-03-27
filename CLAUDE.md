@@ -81,14 +81,21 @@ worldgen/           → V7: field_grid, nucleus (+NucleusReservoir), propagation
 
 All simulation behavior MUST derive from these. No arbitrary constants, no per-element special cases.
 
+### Primitive axioms (independent, irreducible)
+
 1. **Everything is Energy** — All entities are qe. No separate HP/mana/stats.
 2. **Pool Invariant** — `Σ energy(children) ≤ energy(parent)`. Conservation absolute.
-3. **Competition as Primitive** — `magnitude = base × interference_factor`. Cooperation emerges from competition.
 4. **Dissipation (2nd Law)** — All processes lose energy. `loss ≥ qe × rate`. No 100% efficiency.
-5. **Conservation** — Energy never created, only transferred/dissipated. Total qe monotonically decreases.
-6. **Emergence at Scale** — Behavior at scale N = consequence of interactions at scale N-1. No top-down programming.
 7. **Distance Attenuation** — `interaction_intensity` monotonically decreasing in distance.
 8. **Oscillatory Nature** — Every concentration oscillates at frequency f. Interaction modulated by `cos(Δf × t + Δφ)`.
+
+### Derived axioms (consequences of primitives, elevated for clarity)
+
+3. **Competition as Primitive** — `magnitude = base × interference_factor`. *Derived from Axiom 8 applied to energy transfer. Kept as axiom because it's the most cited design constraint.*
+5. **Conservation** — Energy never created, only transferred/dissipated. Total qe monotonically decreases. *Derived from Axiom 2 + Axiom 4. Kept as axiom because INV-7 (SimWorld) enforces it explicitly.*
+6. **Emergence at Scale** — Behavior at scale N = consequence of interactions at scale N-1. No top-down programming. *Meta-rule constraining the developer, not the physics. Kept as axiom because it prevents hardcoded trophic classes, faction tags, and behavior scripts.*
+
+> **Note:** The 3 derived axioms produce zero additional simulation behavior. Removing them from the list would not change a single tick of simulation output. They exist as guard rails for design decisions, not as physics laws.
 
 **Cross-axiom compositions:** `docs/design/AXIOMATIC_CLOSURE.md`. Runtime contracts: `docs/arquitectura/blueprint_axiomatic_closure.md`.
 
@@ -96,12 +103,21 @@ All simulation behavior MUST derive from these. No arbitrary constants, no per-e
 
 The 8 axioms define the **rules**. These 4 constants are the **parameters** — the only numeric values that cannot be derived further. Everything else is computed algebraically from these via `blueprint/equations/derived_thresholds.rs`.
 
+### Truly fundamental (physics)
+
 | Constant | Value | Axiom | Justification |
 |----------|-------|-------|---------------|
 | `KLEIBER_EXPONENT` | 0.75 | Axiom 4 | Biological universal: metabolic rate ∝ mass^0.75 (validated across 27 orders of magnitude) |
-| `DISSIPATION_{SOLID,LIQUID,GAS,PLASMA}` | 0.005, 0.02, 0.08, 0.25 | Axiom 4 | Second Law dissipation rate per matter state (empirical physics) |
-| `COHERENCE_BANDWIDTH` | 50.0 Hz | Axiom 8 | Observation window for frequency interference (defines elemental band width) |
-| `DENSITY_SCALE` | 20.0 | Axiom 1 | Spatial normalization factor (grid geometry → density thresholds) |
+| `DISSIPATION_{SOLID,LIQUID,GAS,PLASMA}` | 0.005, 0.02, 0.08, 0.25 | Axiom 4 | Second Law dissipation rate per matter state (empirical physics, ratios 1:4:16:50) |
+
+### Grid/game calibration (not derivable from physics, but constrained by axioms)
+
+| Constant | Value | Axiom | Justification |
+|----------|-------|-------|---------------|
+| `COHERENCE_BANDWIDTH` | 50.0 Hz | Axiom 8 | Observation window for frequency interference. Defines elemental band width. Circular with game design (Terra band = 85-110 Hz). |
+| `DENSITY_SCALE` | 20.0 | Axiom 1 | Spatial normalization factor. Depends on grid cell_size. Artefact of spatial resolution, not physics. |
+
+> **Note:** KLEIBER + DISSIPATION_RATIOS are physics. BANDWIDTH + DENSITY_SCALE are grid/game calibration. If you change cell_size or frequency bands, recalibrate these two — but never touch KLEIBER or the dissipation ratios for calibration purposes.
 
 **Derivation chain** (computed, not hardcoded):
 ```
