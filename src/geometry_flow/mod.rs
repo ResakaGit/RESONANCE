@@ -16,6 +16,7 @@ use crate::blueprint::equations::{
 };
 
 pub mod branching;
+pub mod creature_builder;
 pub mod deformation;
 pub mod deformation_cache;
 pub mod geometry_deformation_system;

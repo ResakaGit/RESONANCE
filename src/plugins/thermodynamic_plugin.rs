@@ -57,8 +57,17 @@ impl Plugin for ThermodynamicPlugin {
             )
                 .chain()
                 .in_set(Phase::ThermodynamicLayer)
-                .run_if(run_gameplay)
+                .run_if(run_gameplay.clone())
                 .after(crate::worldgen::systems::visual::flush_pending_energy_visual_rebuild_system),
+        );
+
+        // Radiation pressure: excess energy above threshold pushes outward.
+        // After dissipation (propagation system), before materialization.
+        app.add_systems(
+            FixedUpdate,
+            crate::worldgen::systems::radiation_pressure::radiation_pressure_system
+                .in_set(Phase::ThermodynamicLayer)
+                .run_if(run_gameplay),
         );
     }
 }

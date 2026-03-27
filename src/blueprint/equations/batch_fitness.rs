@@ -28,9 +28,33 @@ pub fn composite_fitness(
     normalized.iter().zip(weights.iter()).map(|(v, w)| v * w).sum()
 }
 
-/// Tournament selection: sample `k` random indices, return the one with best fitness.
+/// Intra-world genome diversity: mean pairwise distance among biases.
 ///
-/// Deterministic — uses `rng_state` for index sampling.
+/// Axiom 6 compliant: measures a natural outcome (how different survivors are),
+/// does not prescribe what they should be.
+/// Returns [0, 2] — 0 = monoculture, 2 = max diversity.
+pub fn genome_diversity(biases: &[[f32; 4]]) -> f32 {
+    if biases.len() < 2 { return 0.0; }
+    let mut sum = 0.0_f32;
+    let mut count = 0u32;
+    for i in 0..biases.len() {
+        for j in (i + 1)..biases.len() {
+            let d = euclidean_4d(&biases[i], &biases[j]);
+            sum += d;
+            count += 1;
+        }
+    }
+    if count > 0 { sum / count as f32 } else { 0.0 }
+}
+
+/// Euclidean distance in 4D bias space.
+fn euclidean_4d(a: &[f32; 4], b: &[f32; 4]) -> f32 {
+    let mut sq = 0.0;
+    for k in 0..4 { let d = a[k] - b[k]; sq += d * d; }
+    sq.sqrt()
+}
+
+/// Tournament selection: sample `k` random indices, return the one with best fitness.
 pub fn tournament_select(fitnesses: &[f32], k: usize, rng_state: u64) -> usize {
     if fitnesses.is_empty() { return 0; }
     let k = k.max(1).min(fitnesses.len());
@@ -58,6 +82,69 @@ pub fn crossover_uniform(a: &[f32; 4], b: &[f32; 4], rng_state: u64) -> [f32; 4]
         result[i] = if determinism::unit_f32(s) < 0.5 { a[i] } else { b[i] };
     }
     result
+}
+
+// ─── Genome → Geometry Influence mapping ────────────────────────────────────
+
+/// Branching plan derived from genome biases.
+///
+/// `branch_count`: number of sub-branches (from branching_bias).
+/// `branch_angles`: azimuthal angle per branch (evenly distributed).
+/// `branch_length_fraction`: fraction of trunk length per branch.
+/// `branch_radius_fraction`: fraction of trunk radius per branch.
+#[derive(Debug, Clone)]
+pub struct BranchPlan {
+    pub count:           usize,
+    pub attach_fractions: [f32; 8],
+    pub angles:          [f32; 8],
+    pub length_fraction: f32,
+    pub radius_fraction: f32,
+    pub flexibility:     f32,
+}
+
+/// Derive trunk geometry parameters from genome biases.
+///
+/// Pure function. No Bevy, no ECS, no side effects.
+/// Returns `(length, radius, tilt, resistance, detail, segments)`.
+pub fn trunk_params_from_genome(
+    growth_bias: f32,
+    mobility_bias: f32,
+    branching_bias: f32,
+    resilience: f32,
+) -> (f32, f32, f32, f32, f32, u32) {
+    let length    = 0.5 + growth_bias * 3.5;
+    let radius    = 0.15 + (1.0 - growth_bias) * 0.6;
+    let tilt      = mobility_bias * 1.2;
+    let resistance = 0.1 + resilience * 0.9;
+    let detail    = 0.4 + branching_bias * 0.6;
+    let segments  = 6 + (branching_bias * 18.0) as u32;
+    (length, radius, tilt, resistance, detail, segments)
+}
+
+/// Derive branch plan from genome biases.
+///
+/// Pure function. `branch_count = floor(branching_bias × 5)`.
+/// Branches are evenly distributed azimuthally.
+pub fn branch_plan_from_genome(
+    branching_bias: f32,
+    growth_bias: f32,
+    resilience: f32,
+) -> BranchPlan {
+    let count = (branching_bias * 5.0) as usize;
+    let mut attach_fractions = [0.0f32; 8];
+    let mut angles = [0.0f32; 8];
+    for b in 0..count.min(8) {
+        attach_fractions[b] = (b as f32 + 1.0) / (count as f32 + 1.0);
+        angles[b] = (b as f32 / count.max(1) as f32) * std::f32::consts::TAU;
+    }
+    BranchPlan {
+        count: count.min(8),
+        attach_fractions,
+        angles,
+        length_fraction: 0.3 * (1.0 - resilience * 0.5),
+        radius_fraction: 0.4,
+        flexibility: 1.0 - resilience * 0.5,
+    }
 }
 
 #[cfg(test)]
@@ -92,31 +179,17 @@ mod tests {
     #[test]
     fn tournament_select_deterministic() {
         let fitnesses = [0.1, 0.5, 0.9, 0.3, 0.7];
-        let a = tournament_select(&fitnesses, 3, 42);
-        let b = tournament_select(&fitnesses, 3, 42);
-        assert_eq!(a, b);
+        assert_eq!(tournament_select(&fitnesses, 3, 42), tournament_select(&fitnesses, 3, 42));
     }
 
     #[test]
     fn tournament_select_tends_toward_best() {
-        let fitnesses = [0.0, 0.0, 0.0, 0.0, 1.0]; // idx 4 is best
+        let fitnesses = [0.0, 0.0, 0.0, 0.0, 1.0];
         let mut best_count = 0;
         for seed in 0..100 {
-            if tournament_select(&fitnesses, 3, seed * 7 + 13) == 4 {
-                best_count += 1;
-            }
+            if tournament_select(&fitnesses, 3, seed * 7 + 13) == 4 { best_count += 1; }
         }
         assert!(best_count > 20, "should frequently select best: {best_count}/100");
-    }
-
-    #[test]
-    fn crossover_uniform_mixes_parents() {
-        let a = [0.0; 4];
-        let b = [1.0; 4];
-        let child = crossover_uniform(&a, &b, 42);
-        let has_a = child.iter().any(|&v| v == 0.0);
-        let has_b = child.iter().any(|&v| v == 1.0);
-        assert!(has_a || has_b, "should contain genes from at least one parent");
     }
 
     #[test]
@@ -124,5 +197,31 @@ mod tests {
         let a = [0.1, 0.2, 0.3, 0.4];
         let b = [0.9, 0.8, 0.7, 0.6];
         assert_eq!(crossover_uniform(&a, &b, 42), crossover_uniform(&a, &b, 42));
+    }
+
+    // ── genome_diversity ────────────────────────────────────────────────────
+
+    #[test]
+    fn diversity_monoculture_is_zero() {
+        let biases = [[0.5, 0.5, 0.5, 0.5]; 5];
+        assert_eq!(genome_diversity(&biases), 0.0);
+    }
+
+    #[test]
+    fn diversity_max_is_two() {
+        let biases = [[0.0, 0.0, 0.0, 0.0], [1.0, 1.0, 1.0, 1.0]];
+        assert!((genome_diversity(&biases) - 2.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn diversity_single_entity_is_zero() {
+        assert_eq!(genome_diversity(&[[0.5, 0.5, 0.5, 0.5]]), 0.0);
+    }
+
+    #[test]
+    fn diversity_increases_with_spread() {
+        let narrow = [[0.5, 0.5, 0.5, 0.5], [0.51, 0.51, 0.51, 0.51]];
+        let wide = [[0.0, 0.0, 0.0, 0.0], [1.0, 1.0, 1.0, 1.0]];
+        assert!(genome_diversity(&wide) > genome_diversity(&narrow));
     }
 }

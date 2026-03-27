@@ -2,6 +2,7 @@ pub mod materialization;
 pub mod materialization_delta;
 pub mod nucleus_recycling;
 pub mod performance;
+pub mod radiation_pressure;
 pub mod phenology_visual;
 pub mod prephysics;
 pub mod propagation;

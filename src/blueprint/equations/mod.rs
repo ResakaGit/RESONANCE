@@ -42,6 +42,7 @@ mod simulation_quality;
 mod tactical_ai;
 mod game_loop;
 mod netcode;
+mod radiation_pressure;
 mod signal_propagation;
 mod culture;
 pub mod emergence;
@@ -89,6 +90,7 @@ pub use simulation_quality::*;
 pub use tactical_ai::*;
 pub use game_loop::*;
 pub use netcode::*;
+pub use radiation_pressure::*;
 pub use signal_propagation::*;
 pub use culture::{
     CulturalPhase,

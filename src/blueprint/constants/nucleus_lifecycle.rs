@@ -1,7 +1,8 @@
 // ── Nucleus lifecycle constants ───────────────────────────────────────────────
 
 /// Default fuel reservoir for a nucleus (qe). Determines total energy a nucleus can emit.
-pub const NUCLEUS_DEFAULT_RESERVOIR_QE: f32 = 50_000.0;
+/// At ~400 qe/s emission, 15k fuel ≈ 2250 ticks ≈ visible depletion in a 5k run.
+pub const NUCLEUS_DEFAULT_RESERVOIR_QE: f32 = 15_000.0;
 
 /// Minimum reservoir below which a nucleus stops emitting.
 pub const NUCLEUS_EMISSION_CUTOFF_QE: f32 = 1.0;
@@ -21,7 +22,8 @@ pub const RADIATION_PRESSURE_TRANSFER_RATE: f32 = 0.05;
 // ── Nucleus recycling constants ──────────────────────────────────────────────
 
 /// Nutrient accumulation threshold to spawn a new nucleus from dead matter.
-pub const NUCLEUS_RECYCLING_NUTRIENT_THRESHOLD: f32 = 0.8;
+/// Lower = faster recycling. 0.5 triggers with moderate death accumulation.
+pub const NUCLEUS_RECYCLING_NUTRIENT_THRESHOLD: f32 = 0.5;
 
 /// Energy of the recycled nucleus (qe/s emission rate).
 pub const NUCLEUS_RECYCLING_EMISSION_RATE: f32 = 80.0;

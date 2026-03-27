@@ -22,16 +22,41 @@ pub struct FitnessReport {
 
 impl FitnessReport {
     /// Evaluate a world's fitness using weighted composite score.
+    ///
+    /// Axiom 6: includes intra-world genome diversity — measures how different
+    /// survivors are from each other. Worlds with diverse survivors score higher.
     pub fn compute(world: &SimWorldFlat, world_index: usize, weights: &[f32; 6]) -> Self {
         let survivors = world.alive_mask.count_ones() as u8;
         let reproductions = world.events.repro_len as u16;
         let species_count = count_frequency_bands(world);
         let max_trophic = max_trophic_chain(world);
 
-        let composite = batch_fitness::composite_fitness(
+        // Collect biases of all survivors for diversity measurement
+        let mut biases_buf = [[0.0f32; 4]; 64];
+        let mut bias_count = 0usize;
+        let mut mask = world.alive_mask;
+        while mask != 0 {
+            let i = mask.trailing_zeros() as usize;
+            mask &= mask - 1;
+            biases_buf[bias_count] = [
+                world.entities[i].growth_bias,
+                world.entities[i].mobility_bias,
+                world.entities[i].branching_bias,
+                world.entities[i].resilience,
+            ];
+            bias_count += 1;
+        }
+        let diversity = batch_fitness::genome_diversity(&biases_buf[..bias_count]);
+
+        // Diversity bonus: normalized to [0,1] (max euclidean in 4D = 2.0)
+        let diversity_norm = (diversity / 2.0).min(1.0);
+
+        let mut composite = batch_fitness::composite_fitness(
             survivors, reproductions, species_count,
             max_trophic, 0, 0, weights,
         );
+        // Add diversity bonus (scaled by species weight — same axis of importance)
+        composite += diversity_norm * weights[2];
 
         Self {
             world_index, survivors, total_qe: world.total_qe,

@@ -11,9 +11,9 @@ use crate::layers::{BaseEnergy, EnergyOps, SenescenceProfile, SpatialVolume};
 use crate::runtime_platform::simulation_tick::SimulationClock;
 
 /// Base drain rate (qe/tick) for an entity with radius ≈ 1.0 and no senescence.
-/// Calibrated against nucleus emission: 500 qe/s ÷ ~400 entities ≈ 1.25 qe/entity/tick.
-/// At 0.5, an entity needs to forage to survive. At 0.05, drain is invisible.
-const BASAL_RATE: f32 = 0.5;
+/// At 1.0, an entity with 30 qe lives ~30 ticks without foraging.
+/// Creates real selective pressure: entities in low-energy zones die.
+const BASAL_RATE: f32 = 1.0;
 
 /// Volume exponent: larger entities pay proportionally more.
 /// `drain ∝ radius ^ VOLUME_EXPONENT`. Allometric scaling (Kleiber's 3/4 law approximation).
