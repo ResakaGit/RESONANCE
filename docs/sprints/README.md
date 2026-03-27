@@ -30,7 +30,8 @@ Eliminar 100% de constantes arbitrarias. Todo derivado de 4 fundamentales irredu
 | [AI-3](AXIOMATIC_INFERENCE/SPRINT_AI3_CAPABILITY_THRESHOLDS.md) | MOVE/SENSE/BRANCH desde density + coherence | Bajo | AI-2 | |
 | [AI-4](AXIOMATIC_INFERENCE/SPRINT_AI4_SENESCENCE_DERIVED.md) | Senescence coeff + max_age desde metabolic rate | Medio | AI-1 | |
 | [AI-5](AXIOMATIC_INFERENCE/SPRINT_AI5_PRESSURE_AND_DRAIN.md) | Basal rate + pressure desde dissipation | Bajo | AI-2 | |
-| [AI-6](AXIOMATIC_INFERENCE/SPRINT_AI6_INLINE_EXTRACTION.md) | Magic numbers inline + duplicados | Bajo | AI-1 | |
+| [AI-6](AXIOMATIC_INFERENCE/SPRINT_AI6_INLINE_EXTRACTION.md) | Magic numbers inline + duplicados | Bajo | AI-1 ✅ | |
+| [AI-7](AXIOMATIC_INFERENCE/SPRINT_AI7_WORLDGEN_CONSTANTS_MIGRATION.md) | Migrar 5 DEBT worldgen constants a derived fns | Alto | AI-1 ✅, AI-2 ✅ | |
 
 ---
 

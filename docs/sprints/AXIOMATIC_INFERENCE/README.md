@@ -2,7 +2,7 @@
 
 **Objetivo:** Eliminar todas las constantes arbitrarias y empíricamente calibradas de los sistemas de vida. Cada valor numérico debe derivarse algebraicamente de los 4 fundamentales irreducibles.
 
-**Estado:** ✅ Cerrado (2026-03-27) — todos los sprints completados
+**Estado:** ✅ Cerrado (2026-03-27) — AI-1 a AI-6 completados. AI-7 pendiente (DEBT migration).
 **Bloqueado por:** Nada (track independiente)
 **Desbloquea:** Validación axiomática del ciclo de vida completo
 
@@ -45,6 +45,7 @@ Todo lo demás es COMPUTABLE desde estos 4.
 | [AI-4](SPRINT_AI4_SENESCENCE_DERIVED.md) | Coeff + max_age derivados de metabolic rate (Kleiber) | 4 (constants + 3 spawn paths) | Medio | AI-1 |
 | [AI-5](SPRINT_AI5_PRESSURE_AND_DRAIN.md) | Basal rate, pressure threshold/rate derivados de dissipation | 3 (basal_drain + pressure + constants) | Bajo | AI-2 |
 | [AI-6](SPRINT_AI6_INLINE_EXTRACTION.md) | Eliminar magic numbers inline + consolidar duplicados | 3 (nucleus_recycling + awakening) | Bajo | AI-1 |
+| [AI-7](SPRINT_AI7_WORLDGEN_CONSTANTS_MIGRATION.md) | Migrar 5 DEBT constants en worldgen a derived functions | 11+ archivos | Alto | AI-1, AI-2 |
 
 **Total: 6 sprints, ~10 archivos. Dependencias: AI-1 → {AI-2, AI-4, AI-6} → {AI-3, AI-5} (AI-3 y AI-5 necesitan density thresholds de AI-2).**
 
