@@ -8,7 +8,7 @@
 use bevy::prelude::Mesh;
 
 use crate::blueprint::equations::{
-    batch_fitness::{self, BranchPlan},
+    batch_fitness,
     frequency_to_tint_rgb, internal_field, BranchRole,
 };
 use crate::geometry_flow::{self, GeometryInfluence, merge_meshes};

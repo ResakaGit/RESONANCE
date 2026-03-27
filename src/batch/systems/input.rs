@@ -11,7 +11,7 @@ use crate::blueprint::{constants, equations};
 /// Behavioral assessment: scan neighbors for nearest threat and nearest food.
 ///
 /// Writes results into scratch.neighbors (nearest food idx, nearest threat idx).
-/// Only entities with `archetype >= 2` (fauna) have behavior.
+/// Entities with mobility capacity exhibit behavior (Axiom 6: emergence from composition).
 pub fn behavior_assess(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
     let mask = world.alive_mask;
 
@@ -47,8 +47,12 @@ pub fn behavior_assess(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
             let dy = world.entities[i].position[1] - world.entities[j].position[1];
             let dist_sq = dx * dx + dy * dy;
 
-            if world.entities[j].archetype == 1
-                || world.entities[j].trophic_class < world.entities[i].trophic_class
+            // Axiom 6: food identified by trophic hierarchy, not archetype tag.
+            // Lower trophic class = potential food. Photosynthetic band (200-600 Hz) = plant-like.
+            if world.entities[j].trophic_class < world.entities[i].trophic_class
+                || (world.entities[j].frequency_hz >= 200.0
+                    && world.entities[j].frequency_hz <= 600.0
+                    && world.entities[j].trophic_class == 0)
             {
                 if dist_sq < best_food_dist_sq {
                     best_food_dist_sq = dist_sq;

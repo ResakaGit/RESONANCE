@@ -23,9 +23,9 @@ const LIQUID_DENSITY_THRESHOLD: f32 = 80.0;    // ARBITRARY
 Las transiciones de estado ocurren donde el régimen de disipación cambia. El ratio entre tasas define el punto de transición:
 
 ```
-liquid_threshold = (DISSIPATION_LIQUID / DISSIPATION_SOLID) ^ (1/KLEIBER) × DENSITY_SCALE
-gas_threshold    = liquid + (DISSIPATION_GAS / DISSIPATION_LIQUID) ^ (1/KLEIBER) × DENSITY_SCALE
-plasma_threshold = gas + (DISSIPATION_PLASMA / DISSIPATION_GAS) ^ (1/KLEIBER) × DENSITY_SCALE
+liquid_threshold = (0.02/0.005)^(1/0.75) × 20 = 4.0^1.333 × 20 = 6.35 × 20 ≈ 127
+gas_threshold    = 127 + (0.08/0.02)^(1/0.75) × 20 = 127 + 6.35 × 20 ≈ 254
+plasma_threshold = 254 + (0.25/0.08)^(1/0.75) × 20 = 254 + 4.56 × 20 ≈ 345
 ```
 
 ## Tareas

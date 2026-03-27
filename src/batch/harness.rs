@@ -2,7 +2,6 @@
 
 use crate::batch::arena::SimWorldFlat;
 use crate::batch::batch::{BatchConfig, WorldBatch};
-use crate::batch::constants::MAX_ENTITIES;
 use crate::batch::genome::GenomeBlob;
 use crate::blueprint::equations::{batch_fitness, determinism};
 

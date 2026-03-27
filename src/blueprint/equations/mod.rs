@@ -43,6 +43,7 @@ mod tactical_ai;
 mod game_loop;
 mod netcode;
 pub mod awakening;
+pub mod derived_thresholds;
 mod radiation_pressure;
 mod signal_propagation;
 mod culture;

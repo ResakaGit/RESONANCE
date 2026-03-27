@@ -1,7 +1,7 @@
 //! Phase::ThermodynamicLayer batch systems — engine processing, irradiance.
 
 use crate::batch::arena::SimWorldFlat;
-use crate::batch::constants::{GRID_CELLS, GRID_SIDE, MAX_ENTITIES};
+use crate::batch::constants::{GRID_CELLS, GRID_SIDE};
 use crate::blueprint::equations;
 
 /// L5 AlchemicalEngine: intake energy into buffer per tick.

@@ -2,7 +2,7 @@
 //! photosynthesis, nutrient uptake.
 
 use crate::batch::arena::SimWorldFlat;
-use crate::batch::constants::{GRID_CELLS, MAX_ENTITIES, NUTRIENT_UPTAKE_RATE, PHOTOSYNTHESIS_EFFICIENCY};
+use crate::batch::constants::{GRID_CELLS, NUTRIENT_UPTAKE_RATE, PHOTOSYNTHESIS_EFFICIENCY};
 use crate::batch::systems::thermodynamic::grid_cell;
 use crate::blueprint::constants;
 use crate::blueprint::equations;

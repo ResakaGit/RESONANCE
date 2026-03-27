@@ -6,7 +6,7 @@
 use crate::blueprint::{constants, equations};
 use crate::blueprint::equations::emergence::entrainment as entrainment_eq;
 use crate::batch::arena::SimWorldFlat;
-use crate::batch::constants::{COLLISION_EXCHANGE_FRACTION, MAX_ENTITIES};
+use crate::batch::constants::COLLISION_EXCHANGE_FRACTION;
 use crate::batch::scratch::ScratchPad;
 
 /// L3→L0: entropy drain per tick.
@@ -214,7 +214,7 @@ pub fn entrainment(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
 /// L11 TensionField: gravity/magnetic force between nearby entities.
 ///
 /// Entities with nonzero tension radius attract/repel neighbors.
-pub fn tension_field_apply(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
+pub fn tension_field_apply(world: &mut SimWorldFlat, _scratch: &mut ScratchPad) {
     let dt = world.dt;
     let mut mi = world.alive_mask;
     while mi != 0 {
@@ -256,7 +256,7 @@ pub fn tension_field_apply(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
 /// Containment check: overlapping entities apply thermal drag.
 ///
 /// Larger entity drags the smaller one, transferring thermal energy.
-pub fn containment_check(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
+pub fn containment_check(world: &mut SimWorldFlat, _scratch: &mut ScratchPad) {
     let mut mi = world.alive_mask;
     while mi != 0 {
         let i = mi.trailing_zeros() as usize;

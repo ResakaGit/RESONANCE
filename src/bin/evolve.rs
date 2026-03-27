@@ -5,7 +5,6 @@
 
 use resonance::batch::batch::BatchConfig;
 use resonance::batch::bridge;
-use resonance::batch::genome::GenomeBlob;
 use resonance::batch::harness::GeneticHarness;
 use std::path::Path;
 use std::time::Instant;

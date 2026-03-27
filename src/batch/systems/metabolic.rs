@@ -107,7 +107,7 @@ pub fn trophic_predation(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
 /// Social pack: same-faction entities nearby pull toward centroid.
 ///
 /// Applies cohesion force to velocity.
-pub fn social_pack(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
+pub fn social_pack(world: &mut SimWorldFlat, _scratch: &mut ScratchPad) {
     let range_sq = PACK_SCAN_RADIUS * PACK_SCAN_RADIUS;
     let mask = world.alive_mask;
 
@@ -203,7 +203,7 @@ pub fn cooperation_eval(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
 
 /// Culture transmission: nearby entities with high oscillatory affinity
 /// influence each other's expression mask.
-pub fn culture_transmission(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
+pub fn culture_transmission(world: &mut SimWorldFlat, _scratch: &mut ScratchPad) {
     let range_sq = CULTURE_SCAN_RADIUS * CULTURE_SCAN_RADIUS;
     let mask = world.alive_mask;
 

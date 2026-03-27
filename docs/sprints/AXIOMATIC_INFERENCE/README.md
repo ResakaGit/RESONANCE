@@ -46,7 +46,7 @@ Todo lo demás es COMPUTABLE desde estos 4.
 | [AI-5](SPRINT_AI5_PRESSURE_AND_DRAIN.md) | Basal rate, pressure threshold/rate derivados de dissipation | 3 (basal_drain + pressure + constants) | Bajo | AI-2 |
 | [AI-6](SPRINT_AI6_INLINE_EXTRACTION.md) | Eliminar magic numbers inline + consolidar duplicados | 3 (nucleus_recycling + awakening) | Bajo | AI-1 |
 
-**Total: 6 sprints, ~10 archivos, todos ejecutables en paralelo excepto AI-2→AI-3 (dependencia de density thresholds).**
+**Total: 6 sprints, ~10 archivos. Dependencias: AI-1 → {AI-2, AI-4, AI-6} → {AI-3, AI-5} (AI-3 y AI-5 necesitan density thresholds de AI-2).**
 
 ---
 
