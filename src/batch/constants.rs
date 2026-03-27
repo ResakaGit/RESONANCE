@@ -155,3 +155,15 @@ pub const FIELD_RADIUS_MAX_RATIO: f32 = 2.5;
 
 /// Numeric guard epsilon for division/normalization.
 pub const GUARD_EPSILON: f32 = 0.01;
+
+/// Satiation level above which entity stops hunting.
+pub const SATIATION_WELL_FED: f32 = 0.7;
+
+/// Minimum dissipation floor (prevents zero-dissipation immortality).
+pub const DISSIPATION_FLOOR: f32 = 0.001;
+
+/// Minimum oscillatory affinity for cultural imitation.
+pub const CULTURE_AFFINITY_MIN: f32 = 0.3;
+
+/// Frequency field initialization spread per node (Hz offset from center).
+pub const FREQ_FIELD_SPREAD: f32 = 5.0;

@@ -29,7 +29,9 @@ pub fn internal_diffusion(world: &mut SimWorldFlat) {
             e.qe_field = internal_field::distribute_to_field(e.qe, &profile);
             // Initialize freq_field from entity frequency with slight variation
             for n in 0..internal_field::NODE_COUNT {
-                e.freq_field[n] = e.frequency_hz + (n as f32 - 3.5) * 5.0;
+                e.freq_field[n] = e.frequency_hz
+                    + (n as f32 - (internal_field::NODE_COUNT as f32 - 1.0) / 2.0)
+                    * FREQ_FIELD_SPREAD;
             }
         } else if e.qe > 1e-6 {
             // Sync: if other systems changed qe, rescale field to match

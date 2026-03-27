@@ -83,7 +83,6 @@ pub fn cultural_transmission_system(
     mut imitators: Query<(
         Entity, &Transform, &mut CulturalMemory, &BaseEnergy, Option<&OscillatorySignature>,
     ), With<BehavioralAgent>>,
-    models: Query<(Entity, &Transform, &BaseEnergy, &CulturalMemory, Option<&OscillatorySignature>)>,
     spatial: Res<SpatialIndex>,
     clock: Res<SimulationClock>,
     elapsed: Option<Res<SimulationElapsed>>,
@@ -92,10 +91,9 @@ pub fn cultural_transmission_system(
 ) {
     let t = elapsed.map(|e| e.secs).unwrap_or(0.0);
 
-    // Snapshot (entity, memes, meme_count, qe, freq, phase) to avoid aliasing.
-    // Position is not needed here — SpatialEntry already carries it from the index.
-    let snapshot: Vec<(Entity, [MemeEntry; MAX_MEMES], u8, f32, f32, f32)> = models.iter()
-        .map(|(e, _t, en, cm, osc)| {
+    // Snapshot all cultural data before mutation pass (avoids query aliasing).
+    let snapshot: Vec<(Entity, [MemeEntry; MAX_MEMES], u8, f32, f32, f32)> = imitators.iter()
+        .map(|(e, _t, cm, en, osc)| {
             let (freq, phase) = osc.map(|o| (o.frequency_hz(), o.phase())).unwrap_or((0.0, 0.0));
             (e, cm.memes, cm.meme_count, en.qe(), freq, phase)
         })

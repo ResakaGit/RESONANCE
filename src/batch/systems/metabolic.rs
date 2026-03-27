@@ -43,7 +43,7 @@ pub fn trophic_forage(world: &mut SimWorldFlat) {
         if cell >= GRID_CELLS { continue; }
         let available = world.nutrient_grid[cell];
         if available <= 0.0 { continue; }
-        let intake = (world.entities[i].radius * 0.5).min(available);
+        let intake = (world.entities[i].radius * NUTRIENT_UPTAKE_RATE).min(available);
         world.nutrient_grid[cell] -= intake;
         world.entities[i].qe += intake;
         world.entities[i].satiation += equations::satiation_gain_from_meal(intake);
@@ -62,7 +62,7 @@ pub fn trophic_predation(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
     while mi != 0 {
         let i = mi.trailing_zeros() as usize;
         mi &= mi - 1;
-        if world.entities[i].satiation > 0.7 { continue; }
+        if world.entities[i].satiation > SATIATION_WELL_FED { continue; }
         let pred_qe = world.entities[i].qe;
 
         let mut mj = world.alive_mask;
@@ -191,8 +191,8 @@ pub fn cooperation_eval(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
             // Axiom 3: magnitude modulated by interference factor.
             if affinity > 0.0 && scratch.pairs_len < scratch.pairs.len() {
                 let reduction = affinity * constants::COOPERATION_GROUP_BONUS * 0.001;
-                world.entities[i].dissipation = (world.entities[i].dissipation - reduction).max(0.001);
-                world.entities[j].dissipation = (world.entities[j].dissipation - reduction).max(0.001);
+                world.entities[i].dissipation = (world.entities[i].dissipation - reduction).max(DISSIPATION_FLOOR);
+                world.entities[j].dissipation = (world.entities[j].dissipation - reduction).max(DISSIPATION_FLOOR);
                 scratch.pairs[scratch.pairs_len] = (i as u8, j as u8);
                 scratch.pairs_len += 1;
             }
@@ -228,7 +228,7 @@ pub fn culture_transmission(world: &mut SimWorldFlat, _scratch: &mut ScratchPad)
                 0.0,
             );
 
-            if affinity <= 0.3 { continue; } // low affinity → no imitation
+            if affinity <= CULTURE_AFFINITY_MIN { continue; }
 
             // Blend expression masks toward each other (small step)
             let blend = affinity * CULTURE_BLEND_RATE;
