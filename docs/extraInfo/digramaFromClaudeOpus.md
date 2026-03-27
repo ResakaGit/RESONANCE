@@ -1,6 +1,6 @@
 # Resonance — Arquitectura Completa (Estado Actual)
 
-> Actualizado: 2026-03-27 | Estado: SF ✅ · ET parcial (systems wired for ET-2,3,5,6,7,8,9; T3-T4 stubs) · AC ✅ 5/5 · GS parcial (3/9) · Batch ✅ · Stellar ✅ · Energy Cycle ✅ · Bevy Decoupled (math_types) · 2421+ tests
+> Actualizado: 2026-03-27 | Estado: SF ✅ · ET parcial (ET-2,3,5,6,7,8,9 wired; T3-T4 stubs) · AC ✅ 5/5 · GS parcial (3/9) · Batch ✅ · Stellar ✅ · Energy Cycle ✅ · Awakening ✅ · Bevy Decoupled (math_types) · Derived Thresholds ✅ (AI-1 done) · 2472+ tests
 
 ---
 
@@ -152,6 +152,7 @@
 ║  │    coherence_gain(neighbors) > dissipation(local) → spawn  │              ║
 ║  │    ANY frequency band, properties from energy density      │              ║
 ║  │  ✅ nucleus_recycling_system: nutrient threshold → new nucleus            ║
+║  │  ✅ awakening_system: coherence > threshold → BehavioralAgent            ║
 ║  │  D8 morpho adaptation (every 16 ticks)                     │              ║
 ║  │  IWG: terrain_mesh_gen ──→ water_surface                   │              ║
 ║  │  bridge_metrics_collect                                    │              ║
@@ -230,7 +231,7 @@
 │  Energy field (nuclei emit) ──→ coherence > dissipation ──→ ABIOGENESIS    │
 │    → entity with state/caps/profile derived from density                    │
 │  Trophic succession: sessile → herbivore → carnivore                       │
-│  Life systems: basal_drain (cost of living) + senescence (age-based death)│
+│  Life systems: basal_drain + senescence + awakening (inert → alive)       │
 │  Reproduction: parent drains qe → offspring inherits mutated profile       │
 │  Selection: competition (Ax3) + dissipation (Ax4) → less fit die           │
 │  Entrainment (AC-2): neighbors sync frequency (Kuramoto)                   │
@@ -317,7 +318,7 @@ Update / after sync_visual:
 ## Test Coverage
 
 ```
-2421+ tests total:
+2472+ tests total:
   blueprint/equations/     → ~600+ pure math tests (all domains)
   simulation/              → ~800+ system tests (MinimalPlugins pattern)
   worldgen/                → ~300+ field/materialization tests
@@ -362,4 +363,37 @@ RESONANCE_MAP=genesis_validation cargo run --release --bin headless_sim -- --tic
 #   visual_showcase    — 14 nuclei, all 6 frequency bands, max visual richness
 #   proving_grounds    — 7 nuclei, standard test environment
 #   headless_stress    — 256×256, high emission stress test
+#   optimal_inference  — 6 bands equal emission, calibrated for full cycle in 5k ticks
+```
+
+## Axiom-Derived Constants (`derived_thresholds.rs`)
+
+```
+4 FUNDAMENTALS (irreducible inputs):
+├── KLEIBER_EXPONENT = 0.75          (biological universal, Axiom 4)
+├── DISSIPATION_SOLID  = 0.005       (Second Law per state, Axiom 4)
+│   DISSIPATION_LIQUID = 0.02
+│   DISSIPATION_GAS    = 0.08
+│   DISSIPATION_PLASMA = 0.25
+├── COHERENCE_BANDWIDTH = 50.0 Hz    (observation window, Axiom 8)
+└── DENSITY_SCALE = 20.0             (grid geometry normalization)
+
+ALL DERIVED (12 functions, 12 tests):
+├── basal_drain_rate()                = SOLID × 200 = 1.0 qe/tick
+├── liquid_density_threshold()        = (LIQUID/SOLID)^(1/Kleiber) × scale ≈ 127
+├── gas_density_threshold()           = liquid + (GAS/LIQUID)^(1/Kleiber) × scale ≈ 254
+├── plasma_density_threshold()        = gas + (PLASMA/GAS)^(1/Kleiber) × scale ≈ 345
+├── move_density_min/max()            = liquid×0.5 / gas×1.5
+├── sense_coherence_min()             = SOLID / (SOLID + 0.01)
+├── branch_qe_min()                   = self_sustaining × 2
+├── spawn_potential_threshold()       = 1/3 (algebraic break-even)
+├── senescence_coeff_{mat,flora,fauna}() = dissipation rate per state
+├── max_age_{mat,flora,fauna}()       = 1/coeff (Gompertz inverse)
+├── radiation_pressure_threshold()    = gas_density_threshold
+├── radiation_pressure_transfer_rate()= DISSIPATION_GAS
+├── survival_probability_threshold()  = exp(-2) ≈ 0.135
+└── nutrient_retention_{mineral,water}() = 1 - dissipation × factor
+
+Sprint: AXIOMATIC_INFERENCE (6 sprints) wires these into all consumers.
+Status: AI-1 ✅ (module + 12 tests), AI-2–AI-6 ⏳ pending.
 ```

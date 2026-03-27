@@ -41,7 +41,9 @@ blueprint/          → Types, equations/, constants/, almanac/, abilities, reci
     core_physics/   → interference, density, dissipation, state transitions
     determinism.rs  → hash_f32_slice, next_u64, unit_f32, range_f32, gaussian_f32
     entity_shape.rs → GF1 influence, constructal optimizer, organ_slot_scale(mobility)
-    radiation_pressure.rs → Non-linear outward push when cell qe > threshold
+    radiation_pressure.rs → Frequency-coherent outward push (Axiom 8)
+    awakening.rs      → Awakening potential (coherence vs dissipation threshold)
+    derived_thresholds.rs → ALL lifecycle constants from 4 fundamentals (12 tests)
   morphogenesis/    → Constructal (shape_cost, drag, fineness), surface (rugosity, albedo), thermodynamics
 bridge/             → Cache optimizer (BridgeCache<B>, 11 equation kinds) + constants.rs
 eco/                → Eco-boundaries, zones, climate + systems.rs
@@ -57,6 +59,7 @@ simulation/         → pipeline, bootstrap, pathfinding, fog, growth, photosynt
   emergence/        → ET systems: theory_of_mind, symbiosis_effect, epigenetic_adaptation, niche_adaptation,
                       culture, entrainment, coalitions (+ stubs: infrastructure, institutions, etc.)
   lifecycle/        → constructal_body_plan, entity_shape_inference (compound mesh), body_plan_layout
+  awakening.rs      → Inert entities gain BehavioralAgent when coherence > threshold (axiom-derived)
   metabolic/        → basal_drain (passive qe cost), senescence_death (age-based mortality),
                       trophic (herbivore/carnivore/decomposer), growth_budget, metabolic_stress
   reproduction/     → Flora seed dispersal + fauna offspring (inherits mutated InferenceProfile incl. mobility_bias)
@@ -143,10 +146,13 @@ Zone cools down                            Live (basal_drain) → die (senescenc
 - `NucleusReservoir` (SparseSet): finite fuel, drained per tick by `propagate_nuclei_system`
 - `basal_drain_system` (MetabolicLayer): passive qe cost ∝ radius^0.75 × age_factor (Kleiber)
 - `senescence_death_system` (MetabolicLayer): hard age limit + Gompertz hazard
-- `radiation_pressure_system` (ThermodynamicLayer): non-linear outward push above threshold
+- `radiation_pressure_system` (ThermodynamicLayer): frequency-coherent outward push (Axiom 8)
 - `nucleus_recycling_system` (MorphologicalLayer): nutrients accumulate → spawn new nucleus
+- `awakening_system` (MorphologicalLayer): inert entities gain BehavioralAgent when coherence > threshold
 
-**Constants:** `blueprint/constants/nucleus_lifecycle.rs`, `blueprint/constants/senescence.rs`
+**Axiom-derived constants:** `blueprint/equations/derived_thresholds.rs` — ALL lifecycle constants computed from 4 fundamentals:
+- `KLEIBER_EXPONENT` (0.75), `DISSIPATION_{SOLID,LIQUID,GAS,PLASMA}`, `COHERENCE_BANDWIDTH`, `DENSITY_SCALE`
+- Sprint `AXIOMATIC_INFERENCE` (6 sprints) wires these into all consumers — see `docs/sprints/AXIOMATIC_INFERENCE/`
 
 ## Evolution & Emergence Pipeline
 
@@ -351,7 +357,7 @@ impl MyComp {
 - **Property** (proptest): `tests/property_conservation.rs` — fuzzes conservation + pool equations with arbitrary inputs.
 - **Batch** (headless): tests in `src/batch/` modules. 156 tests covering 33 systems, arena, genome, harness, bridge. Zero Bevy dependency.
 - **Headless sim**: `cargo run --bin headless_sim -- --ticks N --scale S --out file.ppm` — full sim → PPM image, no GPU.
-- **Run**: `cargo test` (~2420+ tests). `cargo bench --bench batch_benchmark` for performance.
+- **Run**: `cargo test` (~2472+ tests). `cargo bench --bench batch_benchmark` for performance.
 - **Maps**: `RESONANCE_MAP={name} cargo run` (genesis_validation, visual_showcase, proving_grounds, four_flowers, demo_animal).
 
 ## Roles
@@ -434,8 +440,12 @@ If following a coding rule makes the game worse, break the rule and explain why.
 - `src/math_types.rs` — glam re-exports (Bevy-free math types)
 - `src/bin/headless_sim.rs` — headless simulation → PPM image
 - `src/worldgen/nucleus.rs` — EnergyNucleus + NucleusReservoir (finite fuel)
-- `src/worldgen/systems/radiation_pressure.rs` — non-linear energy redistribution
+- `src/worldgen/systems/radiation_pressure.rs` — frequency-coherent energy redistribution (Axiom 8)
 - `src/worldgen/systems/nucleus_recycling.rs` — nutrient → new nucleus cycle
+- `src/simulation/awakening.rs` — inert entities gain BehavioralAgent when coherence threshold met
+- `src/blueprint/equations/derived_thresholds.rs` — ALL lifecycle constants from 4 fundamentals
+- `src/blueprint/equations/awakening.rs` — awakening potential (coherence vs dissipation)
+- `src/blueprint/equations/radiation_pressure.rs` — pressure transfer + frequency alignment
 - `src/blueprint/constants/nucleus_lifecycle.rs` — depletion, pressure, recycling constants
 - `src/blueprint/constants/senescence.rs` — age/death constants (materialized, flora, fauna)
 - `src/batch/mod.rs` — batch simulator entry point (17 files, 33 systems)
