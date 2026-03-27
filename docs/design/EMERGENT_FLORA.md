@@ -2,7 +2,7 @@
 
 **Versión:** 1.0
 **Depende de:** THERMODYNAMIC_LADDER, GEOMETRY_DEFORMATION_ENGINE, QUANTIZED_COLOR_ENGINE
-**Estado:** Diseño — implementación pendiente
+**Estado:** Parcialmente implementado — abiogenesis axiomática reemplaza gating Flora-only (ver `blueprint/equations/abiogenesis/axiomatic.rs`). Constructal body plan y compound mesh assembly implementados en `simulation/lifecycle/`.
 
 ---
 

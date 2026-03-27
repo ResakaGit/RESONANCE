@@ -30,11 +30,11 @@ src/
 - **Design:** [docs/design/](./docs/design/) — High-level specs, index at [INDEX.md](./docs/design/INDEX.md).
 - **Module contracts:** [docs/arquitectura/](./docs/arquitectura/) — 30 runtime blueprints.
 - **Active backlog:** [docs/sprints/](./docs/sprints/) — Open sprint tracks.
-- **Roots:** [TOPOLOGY_AND_LAYERS.md](./TOPOLOGY_AND_LAYERS.md), [PLANT_SIMULATION.md](./PLANT_SIMULATION.md), [DESIGNING.md](./DESIGNING.md).
+- **Full diagram:** [docs/extraInfo/digramaFromClaudeOpus.md](./docs/extraInfo/digramaFromClaudeOpus.md) — Architecture flow, 14 layers, event map, scorecard.
 
 ## Requirements
 
-- Rust 1.80+ (`rustup update stable`)
+- Rust 1.85+ (`rustup update stable`) — edition 2024
 - macOS / Linux / Windows
 
 ## Run
@@ -87,7 +87,7 @@ Values: `legacy2d`, `hybrid`, `full3d` (also `RESONANCE_V6_PROFILE` as alias). S
 cargo test
 ```
 
-1721 unit tests, 0 failures.
+2150 unit tests, 0 failures.
 
 ## License
 
@@ -98,6 +98,15 @@ Private — All rights reserved.
 ## Changelog
 
 ### 2026-03-25
+
+**AC-1–AC-5 — Axiomatic Closure (cross-axiom dynamics)**
+- AC-1: Metabolic interference factor (Axiom 3×8) — predation assimilation modulated by oscillatory alignment
+- AC-2: Kuramoto entrainment system — neighbours align frequencies via distance-weighted coupling
+- AC-3: Culture coherence × frequency — imitation gated by oscillatory affinity (Axiom 6×8)
+- AC-4: Frequency purity attenuation — `exp(-d/λ)` spatial decay for entrainment coupling
+- AC-5: Cooperation emergence — Nash-stable alliance detection with interference cost
+- 60+ equation tests, 7 integration tests; all wired to `Phase::AtomicLayer` / `Phase::MetabolicLayer`
+- New events: `AllianceProposedEvent`, `AllianceDefectEvent`
 
 **Q5 — SimulationPlugin domain split**
 - Extracted 6 domain plugins from `SimulationPlugin`: `ThermodynamicPlugin`, `AtomicPlugin`, `ChemicalPlugin`, `InputPlugin`, `MetabolicPlugin`, `MorphologicalPlugin`

@@ -58,8 +58,20 @@ mod social_communication_d6;
 mod morpho_adaptation_d8;
 mod ecology_dynamics_d9;
 mod energy_competition_ec;
+pub mod calibration;
+pub mod inferred_world_geometry;
 mod organ_primitive_geometry;
+mod surrogate;
+pub mod units;
+mod simulation_foundations;
 mod visual_quantization_phenology;
+mod tactical_ai;
+mod game_loop;
+mod netcode;
+mod culture;
+mod entrainment_ac2;
+mod cooperation_ac5;
+pub mod stellar;
 
 pub use almanac_coherence::*;
 pub use allometry_tl6::*;
@@ -116,7 +128,16 @@ pub use morpho_adaptation_d8::*;
 pub use ecology_dynamics_d9::*;
 pub use energy_competition_ec::*;
 pub use organ_primitive_geometry::*;
+pub use surrogate::*;
+pub use units::*;
+pub use simulation_foundations::*;
 pub use visual_quantization_phenology::*;
+pub use tactical_ai::*;
+pub use game_loop::*;
+pub use netcode::*;
+pub use culture::*;
+pub use entrainment_ac2::*;
+pub use cooperation_ac5::*;
 
 pub use morphogenesis_track::morphogenesis;
 pub use morphogenesis::{

@@ -278,15 +278,9 @@ macro_rules! impl_bridge_defaults {
     };
 }
 
-pub(super) use impl_bridge_defaults;
-
 pub mod combat;
 pub mod ecosystem;
 pub mod physics;
-
-pub use combat::*;
-pub use ecosystem::*;
-pub use physics::*;
 
 // --- Merge RON → config tipada -------------------------------------------------------------
 

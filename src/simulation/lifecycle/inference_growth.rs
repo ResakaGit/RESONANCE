@@ -6,6 +6,8 @@ use crate::layers::{
     SpatialVolume,
 };
 
+// NOTE: 8 component types justified — lifecycle reads full entity state for growth intent inference.
+// Splitting would create ordering hazards; all fields are read-only except GrowthIntent (inserted/removed via Commands).
 /// Infiere intención de crecimiento a partir de estímulos/rasgos (stateless).
 pub fn growth_intent_inference_system(
     mut commands: Commands,
@@ -53,6 +55,7 @@ pub fn growth_intent_inference_system(
             }
             continue;
         }
+        // TODO SM-8C: extract to blueprint/equations/
         let confidence = (budget.efficiency * profile.growth_bias).clamp(0.0, 1.0);
         let intent = GrowthIntent::new(delta_radius, confidence, profile.resilience);
         let must_write = current_intent_opt

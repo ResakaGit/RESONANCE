@@ -15,4 +15,16 @@ pub const FRUIT_BIOMASS_THRESHOLD: f32 = 3.0;
 pub const MAX_ORGAN_INSTANCE_COUNT: u8 = 16;
 /// Factor de atenuación global de órganos en fase de deterioro.
 pub const DECLINING_ORGAN_FALLOFF: f32 = 0.5;
+/// Divisor de biomasa para normalizar growth_progress a [0, 1] en organ_manifest_inputs.
+pub const ORGAN_MANIFEST_BIOMASS_NORM_DIVISOR: f32 = 3.0;
+
+// ── Constructal body plan inference ─────────────────────────────────────────
+/// Maximum limb count evaluated in `optimal_appendage_count` search.
+pub const MAX_CONSTRUCTAL_LIMBS: u8 = 8;
+/// Internal vascular viscosity proxy (Hagen-Poiseuille μ parameter).
+pub const CONSTRUCTAL_VISCOSITY: f32 = 0.1;
+/// Default limb length as fraction of entity radius.
+pub const CONSTRUCTAL_LIMB_LENGTH_RATIO: f32 = 0.8;
+/// Default limb radius as fraction of entity radius (per-limb, divided by √N).
+pub const CONSTRUCTAL_LIMB_RADIUS_RATIO: f32 = 0.15;
 

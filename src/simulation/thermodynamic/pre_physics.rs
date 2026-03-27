@@ -314,8 +314,8 @@ pub fn perception_system(
                 .map(|d| d.purity(target_wave.frequency_hz()))
                 .unwrap_or(0.25);
 
-            let distance_sq = origin.distance_squared(entry.position).max(1.0);
-            let signal = energy.qe() * visibility * purity / distance_sq;
+            let distance_sq = origin.distance_squared(entry.position);
+            let signal = equations::perception_signal_weighted(energy.qe(), visibility, purity, distance_sq);
 
             if signal >= DETECTION_THRESHOLD {
                 cache.mark_visible(identity.faction(), entry.entity);
@@ -345,7 +345,7 @@ pub fn sync_injector_projected_qe_system(
 mod tests {
     use super::*;
     use crate::blueprint::{ElementDef, constants::LINK_NEUTRAL_MULTIPLIER};
-    use crate::layers::{Faction, MatterState, RelationalTag, SpatialVolume};
+    use crate::layers::{Faction, MatterState, SpatialVolume};
     use crate::topology::TerrainField;
     use crate::world::SpatialEntry;
     use std::time::Duration;
@@ -373,7 +373,7 @@ mod tests {
     fn neutral_identity() -> MobaIdentity {
         MobaIdentity {
             faction: Faction::Neutral,
-            relational_tags: Vec::<RelationalTag>::new(),
+            relational_tags: Vec::new(),
             critical_multiplier: LINK_NEUTRAL_MULTIPLIER,
         }
     }

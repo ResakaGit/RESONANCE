@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::blueprint::ElementId;
 use crate::eco::contracts::{TransitionType, ZoneClass};
@@ -6,10 +7,15 @@ use crate::layers::MatterState;
 use crate::worldgen::archetypes::WorldArchetype;
 use crate::worldgen::constants::{MAX_FREQUENCY_CONTRIBUTIONS, MIN_CONTRIBUTION_INTENSITY};
 
+fn placeholder_entity() -> Entity {
+    Entity::PLACEHOLDER
+}
+
 /// Contribución frecuencial de una fuente hacia una celda del grid.
-#[derive(Clone, Copy, Debug, Reflect, PartialEq)]
+#[derive(Clone, Copy, Debug, Reflect, PartialEq, Serialize, Deserialize)]
 pub struct FrequencyContribution {
     /// Entidad fuente que emitió la contribución.
+    #[serde(skip, default = "placeholder_entity")]
     pub(crate) source_entity: Entity,
     /// Frecuencia emitida [Hz].
     pub(crate) frequency_hz: f32,
@@ -74,7 +80,7 @@ pub fn top_two(
 }
 
 /// Estado energético resumido de una celda de campo.
-#[derive(Clone, Debug, Reflect)]
+#[derive(Clone, Debug, Reflect, Serialize, Deserialize)]
 pub struct EnergyCell {
     /// Energía acumulada en la celda [qe].
     pub accumulated_qe: f32,
@@ -89,6 +95,7 @@ pub struct EnergyCell {
     /// Estado de materia derivado.
     pub matter_state: MatterState,
     /// Entidad materializada en esta celda; limpiar si la entidad ya no existe.
+    #[serde(skip, default)]
     pub materialized_entity: Option<Entity>,
 }
 

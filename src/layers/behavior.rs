@@ -9,6 +9,10 @@ pub enum BehaviorMode {
     Flee { threat: Entity },
     Reproduce,
     Migrate { direction: Vec2 },
+    /// Nash-optimal focus: the whole team converges on the easiest-to-eliminate target.
+    FocusFire { target: Entity, team_priority: u8 },
+    /// Tactical regrouping toward a rally position.
+    Regroup { rally_pos: Vec2 },
 }
 
 impl Default for BehaviorMode {

@@ -13,7 +13,7 @@ use resonance::bridge::benchmark_harness::{
     collect_benchmark_report, generate_benchmark_scenario, run_derived_chain_bridged,
     run_derived_chain_direct, set_bridge_phase, warm_derived_chain_bridged,
 };
-use resonance::bridge::bridged_ops::InterferenceEquationInput;
+use resonance::bridge::InterferenceEquationInput;
 use resonance::bridge::cache::BridgeCache;
 use resonance::bridge::clear_all_bridge_caches;
 use resonance::bridge::config::{

@@ -9,7 +9,7 @@ pub enum FieldFalloffMode {
 }
 
 /// Capa 11: Campo de tensión a distancia.
-#[derive(Component, Reflect, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct TensionField {
     pub radius: f32,

@@ -12,9 +12,14 @@ use crate::blueprint::{equations, ElementId};
 use crate::entities::builder::EntityBuilder;
 use crate::events::DeathCause;
 use crate::layers::{
-    AllometricRadiusAnchor, BaseEnergy, CapabilitySet, EnergyOps, InferenceProfile, MatterState,
-    SpatialVolume,
+    AllometricRadiusAnchor, BaseEnergy, BehavioralAgent, BehaviorCooldown, BehaviorIntent,
+    CacheScope, CapabilitySet, EnergyOps, HasInferredShape, Homeostasis, InferenceProfile,
+    MatterState, MorphogenesisShapeParams, PerformanceCachePolicy, SpatialVolume, TrophicClass,
+    TrophicConsumer, TrophicState,
 };
+use crate::layers::organ::LifecycleStageCache;
+use crate::layers::senescence::SenescenceProfile;
+use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::worldgen::{EnergyFieldGrid, Materialized, WorldArchetype};
 
 pub use constants::{
@@ -68,40 +73,48 @@ fn sim_plane_xz(transform: &Transform) -> Vec2 {
     Vec2::new(transform.translation.x, transform.translation.z)
 }
 
-/// Deriva drift principal y deltas acoplados para `InferenceProfile` (determinista por `Entity`).
+/// Derives deterministic mutation drifts for all 4 InferenceProfile dimensions.
+/// `(d_growth, d_mobility, d_branching, d_resilience)` — deterministic from Entity index.
 #[inline]
-fn profile_mutation_drifts(entity: Entity) -> (f32, f32, f32) {
+fn profile_mutation_drifts(entity: Entity) -> (f32, f32, f32, f32) {
     let idx = entity.index() as f32;
     let base =
         (idx * constants::REPRODUCTION_MUTATION_INDEX_SCALE).sin() * constants::MUTATION_MAX_DRIFT;
     (
         base,
+        base * constants::REPRODUCTION_MUTATION_MOBILITY_SCALE,
         -base * constants::REPRODUCTION_MUTATION_BRANCHING_SCALE,
         base * constants::REPRODUCTION_MUTATION_RESILIENCE_SCALE,
     )
 }
 
-/// Candidatos elegibles por biomasa y capacidad; orden estable por `Entity` antes del cupo global.
+/// Candidates eligible by biomass/energy and capability; stable order by Entity before global budget.
+/// Handles both flora (BRANCH → seed) and fauna (MOVE + REPRODUCE → offspring).
 pub fn reproduction_spawn_system(
     mut commands: Commands,
     mut energy_ops: EnergyOps,
     grid: Option<Res<EnergyFieldGrid>>,
     query: ReproductionSpawnQuery,
+    clock: Res<SimulationClock>,
 ) {
     let mut eligible: Vec<Entity> = Vec::new();
     for (entity, _, volume, anchor, profile, caps) in &query {
-        if !caps.can_branch() {
-            continue;
+        let is_flora = caps.can_branch() && !caps.has(CapabilitySet::MOVE);
+        let is_fauna = caps.has(CapabilitySet::MOVE) && caps.has(CapabilitySet::REPRODUCE);
+
+        if is_flora {
+            if equations::can_reproduce(
+                volume.radius, anchor.base_radius, profile.branching_bias,
+                constants::REPRODUCTION_RADIUS_FACTOR,
+            ) {
+                eligible.push(entity);
+            }
+        } else if is_fauna {
+            let Some(qe) = energy_ops.qe(entity) else { continue };
+            if qe >= constants::FAUNA_REPRODUCTION_QE_MIN {
+                eligible.push(entity);
+            }
         }
-        if !equations::can_reproduce(
-            volume.radius,
-            anchor.base_radius,
-            profile.branching_bias,
-            constants::REPRODUCTION_RADIUS_FACTOR,
-        ) {
-            continue;
-        }
-        eligible.push(entity);
     }
     eligible.sort_unstable();
 
@@ -110,70 +123,75 @@ pub fn reproduction_spawn_system(
         if spawned >= constants::MAX_REPRODUCTIONS_PER_FRAME {
             break;
         }
-        let Some(qe) = energy_ops.qe(entity) else {
-            continue;
-        };
-        let seed_want = qe * constants::SEED_ENERGY_FRACTION;
-        if seed_want <= 0.0 {
-            continue;
-        }
+        let Some(qe) = energy_ops.qe(entity) else { continue };
+        let Ok((_, transform, _, _anchor, profile, caps)) = query.get(entity) else { continue };
 
-        let Ok((_, transform, _, _anchor, profile, caps)) = query.get(entity) else {
-            continue;
-        };
+        let is_fauna = caps.has(CapabilitySet::MOVE);
+        let energy_fraction = if is_fauna { constants::FAUNA_SEED_ENERGY_FRACTION } else { constants::SEED_ENERGY_FRACTION };
+        let seed_want = qe * energy_fraction;
+        if seed_want <= 0.0 { continue; }
 
         let drained = energy_ops.drain(entity, seed_want, DeathCause::Dissipation);
-        if drained <= 0.0 {
-            continue;
-        }
+        if drained <= 0.0 { continue; }
 
-        let seed_pos = sim_plane_xz(transform) + dispersal_offset_xy(entity);
-        let (d_growth, d_branch, d_res) = profile_mutation_drifts(entity);
+        let child_pos = sim_plane_xz(transform) + dispersal_offset_xy(entity);
+        let (d_growth, d_mobility, d_branch, d_res) = profile_mutation_drifts(entity);
         let child_profile = InferenceProfile::new(
             equations::mutate_bias(profile.growth_bias, d_growth, constants::MUTATION_MAX_DRIFT),
-            profile.mobility_bias,
-            equations::mutate_bias(
-                profile.branching_bias,
-                d_branch,
-                constants::MUTATION_MAX_DRIFT,
-            ),
+            equations::mutate_bias(profile.mobility_bias, d_mobility, constants::MUTATION_MAX_DRIFT),
+            equations::mutate_bias(profile.branching_bias, d_branch, constants::MUTATION_MAX_DRIFT),
             equations::mutate_bias(profile.resilience, d_res, constants::MUTATION_MAX_DRIFT),
         );
 
-        let child = EntityBuilder::new()
-            .named(constants::SEED_ENTITY_NAME)
-            .energy(drained)
-            .volume(constants::SEED_INITIAL_RADIUS)
-            .wave(ElementId::from_name(constants::FLORA_ELEMENT_SYMBOL))
-            .flow(Vec2::ZERO, constants::SEED_FLOW_DISSIPATION)
-            .matter(
-                MatterState::Solid,
-                constants::SEED_MATTER_BOND_EB,
-                constants::SEED_MATTER_THERMAL_CONDUCTIVITY,
-            )
-            .nutrient(
-                constants::SEED_NUTRIENT_CARBON,
-                constants::SEED_NUTRIENT_NITROGEN,
-                constants::SEED_NUTRIENT_PHOSPHORUS,
-                constants::SEED_NUTRIENT_WATER,
-            )
-            .growth_budget(
-                constants::SEED_GROWTH_BIOMASS,
-                constants::SEED_GROWTH_LIMITER,
-                constants::SEED_GROWTH_EFFICIENCY,
-            )
-            .at(seed_pos)
-            .spawn(&mut commands);
+        if is_fauna {
+            // ── Fauna offspring: mobile entity with behavior stack ───────────
+            let child = EntityBuilder::new()
+                .named("fauna_offspring")
+                .energy(drained)
+                .volume(constants::FAUNA_OFFSPRING_INITIAL_RADIUS)
+                .wave_from_hz(profile.mobility_bias * 400.0 + 75.0) // freq from parent profile
+                .flow(Vec2::ZERO, 0.08)
+                .matter(MatterState::Solid, 1000.0, 1.5)
+                .motor(400.0, 0.6, 0.5, drained * 0.3)
+                .will_default()
+                .ambient(0.0, 1.0)
+                .at(child_pos)
+                .spawn(&mut commands);
 
-        commands.entity(child).insert((child_profile, *caps));
-        if let Some(grid) = grid.as_deref()
-            && let Some((cx, cy)) = grid.cell_coords(seed_pos)
-        {
-            commands.entity(child).insert(Materialized {
-                cell_x: cx as i32,
-                cell_y: cy as i32,
-                archetype: WorldArchetype::TerraSolid,
-            });
+            commands.entity(child).insert((
+                child_profile,
+                *caps,
+                BehavioralAgent,
+                BehaviorIntent::default(),
+                BehaviorCooldown::default(),
+                TrophicConsumer::new(TrophicClass::Herbivore, 12.0),
+                TrophicState::new(0.5),
+                HasInferredShape,
+                LifecycleStageCache::default(),
+                MorphogenesisShapeParams::default(),
+                PerformanceCachePolicy { enabled: true, scope: CacheScope::StableWindow, version_tag: 1, dependency_signature: 0 },
+                SenescenceProfile { tick_birth: clock.tick_id, senescence_coeff: 0.0001, max_viable_age: 3_000, strategy: 0 },
+            ));
+        } else {
+            // ── Flora seed: sessile, simple ──────────────────────────────────
+            let child = EntityBuilder::new()
+                .named(constants::SEED_ENTITY_NAME)
+                .energy(drained)
+                .volume(constants::SEED_INITIAL_RADIUS)
+                .wave(ElementId::from_name(constants::FLORA_ELEMENT_SYMBOL))
+                .flow(Vec2::ZERO, constants::SEED_FLOW_DISSIPATION)
+                .matter(MatterState::Solid, constants::SEED_MATTER_BOND_EB, constants::SEED_MATTER_THERMAL_CONDUCTIVITY)
+                .nutrient(constants::SEED_NUTRIENT_CARBON, constants::SEED_NUTRIENT_NITROGEN, constants::SEED_NUTRIENT_PHOSPHORUS, constants::SEED_NUTRIENT_WATER)
+                .growth_budget(constants::SEED_GROWTH_BIOMASS, constants::SEED_GROWTH_LIMITER, constants::SEED_GROWTH_EFFICIENCY)
+                .at(child_pos)
+                .spawn(&mut commands);
+
+            commands.entity(child).insert((child_profile, *caps));
+            if let Some(grid) = grid.as_deref()
+                && let Some((cx, cy)) = grid.cell_coords(child_pos)
+            {
+                commands.entity(child).insert(Materialized { cell_x: cx as i32, cell_y: cy as i32, archetype: WorldArchetype::TerraSolid });
+            }
         }
 
         commands.entity(entity).insert(ReproductionCooldown {
@@ -200,6 +218,7 @@ mod tests {
         let mut app = App::new();
         app.add_plugins(MinimalPlugins);
         app.add_event::<DeathEvent>();
+        app.init_resource::<SimulationClock>();
         app.add_systems(
             Update,
             (reproduction_cooldown_tick_system, reproduction_spawn_system).chain(),

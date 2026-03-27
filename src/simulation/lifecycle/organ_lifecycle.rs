@@ -76,6 +76,8 @@ pub fn lifecycle_stage_init_system(
     }
 }
 
+// NOTE: 8 component types justified — lifecycle reads full entity state for stage transition inference.
+// Splitting would create ordering hazards; all fields are read-only except LifecycleStageCache (&mut) and PendingGrowthMorphRebuild (inserted via Commands).
 /// Infiere etapa funcional de ciclo de vida y actualiza `LifecycleStageCache` con histéresis.
 /// Una transformación: estado energético/morfológico -> cache de etapa.
 pub fn lifecycle_stage_inference_system(

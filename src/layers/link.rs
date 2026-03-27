@@ -3,6 +3,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::blueprint::constants::LINK_NEUTRAL_MULTIPLIER;
 
+fn placeholder_entity() -> Entity {
+    Entity::PLACEHOLDER
+}
+
 /// Campo de una entidad target que puede ser modificado por una entidad-efecto.
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect, Serialize, Deserialize)]
 pub enum ModifiedField {
@@ -18,10 +22,11 @@ pub enum ModifiedField {
 ///
 /// Une una entidad-efecto (fuente) con un target y aplica un modificador
 /// temporal mientras la entidad-efecto tenga energía.
-#[derive(Component, Reflect, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct ResonanceLink {
     /// Entidad cuyo estado será modificado.
+    #[serde(skip, default = "placeholder_entity")]
     pub target: Entity,
 
     /// Qué campo del target se modifica.
@@ -34,7 +39,7 @@ pub struct ResonanceLink {
 // --- Overlays efímeros (DoD: máx. 4 campos por componente) ---
 
 /// Multiplicadores de cinemática / disipación (Capa 10 → overlay).
-#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq)]
+#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct ResonanceFlowOverlay {
     pub velocity_multiplier: f32,
@@ -51,7 +56,7 @@ impl Default for ResonanceFlowOverlay {
 }
 
 /// Multiplicadores del motor alquímico (Capa 5).
-#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq)]
+#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct ResonanceMotorOverlay {
     pub motor_intake_multiplier: f32,
@@ -68,7 +73,7 @@ impl Default for ResonanceMotorOverlay {
 }
 
 /// Multiplicadores térmicos / coherencia (Capa 4 + conducción).
-#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq)]
+#[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct ResonanceThermalOverlay {
     pub bond_energy_multiplier: f32,

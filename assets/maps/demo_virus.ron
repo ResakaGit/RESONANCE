@@ -1,0 +1,33 @@
+(
+  width_cells: 16,
+  height_cells: 16,
+  cell_size: 0.5,
+  origin: (-4.0, -4.0),
+  warmup_ticks: Some(20),
+  seed: Some(13),
+  fog_of_war: false,
+  nuclei: [
+    (
+      name: "host_pool",
+      position: (-1.5, 0.0),
+      frequency_hz: 250.0,
+      emission_rate_qe_s: 50.0,
+      propagation_radius: 3.0,
+      decay: InverseLinear,
+      ambient_pressure: Some((
+        delta_qe: 0.4,
+        viscosity: 0.6,
+      )),
+    ),
+    (
+      name: "ignis_disruption",
+      position: (1.5, 0.0),
+      frequency_hz: 450.0,
+      emission_rate_qe_s: 20.0,
+      propagation_radius: 2.0,
+      decay: InverseSquare,
+      ambient_pressure: None,
+    ),
+  ],
+  seasons: [],
+)

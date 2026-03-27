@@ -1,4 +1,4 @@
-//! Smoke + contrato frente a `docs/DEMO_FLOW.md`: mapas demo parsean, validan y
+//! Smoke + contrato frente a `docs/guides/DEMO_FLOW.md`: mapas demo parsean, validan y
 //! conservan grid/origen/warmup/núcleos esperados.
 
 use std::fs;

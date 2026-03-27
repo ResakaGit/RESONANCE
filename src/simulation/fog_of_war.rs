@@ -143,7 +143,7 @@ mod integration_tests {
                 Transform::from_xyz(20.0, DEFAULT_SIM_STANDING_Y, 0.0),
                 MobaIdentity {
                     faction: Faction::Blue,
-                    relational_tags: vec![],
+                    relational_tags: Vec::new(),
                     critical_multiplier: 1.0,
                 },
             ))
@@ -190,7 +190,7 @@ mod integration_tests {
                 VisionFogAnchor::default(),
                 MobaIdentity {
                     faction: Faction::Blue,
-                    relational_tags: vec![],
+                    relational_tags: Vec::new(),
                     critical_multiplier: 1.0,
                 },
             ))

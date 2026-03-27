@@ -1,6 +1,7 @@
 pub mod abilities;
 pub mod almanac;
 pub mod almanac_contract;
+pub mod checkpoint;
 pub mod constants;
 pub mod element_id;
 pub mod equations;
@@ -19,7 +20,8 @@ pub use almanac::{
 pub use element_id::ElementId;
 pub use equations::BranchRole;
 pub use ids::{
-    ChampionId, EffectId, EntityLookup, IdGenerator, WorldEntityId, setup_entity_id_observers,
+    AgentId, ChampionId, EffectId, EntityLookup, IdGenerator, OrganId, PoolId,
+    WorldEntityId, setup_entity_id_observers,
 };
 pub use spell_compiler::compile_and_enable_ability;
 pub use validator::{FormulaValidator, checksum_ability};

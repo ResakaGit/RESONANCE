@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::blueprint::constants::{
     ENGINE_DEFAULT_INPUT_VALVE, ENGINE_DEFAULT_MAX_BUFFER, ENGINE_DEFAULT_OUTPUT_VALVE,
@@ -17,7 +18,7 @@ use crate::blueprint::{AlchemicalAlmanac, ElementId};
 ///   intake = min(valvula_entrada * dt, qe_disponible, buffer_libre)
 ///   qe -= intake
 ///   buffer_actual += intake
-#[derive(Component, Reflect, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct AlchemicalEngine {
     /// "Maná" acumulado (qe aislado del campo principal).
@@ -68,6 +69,14 @@ impl AlchemicalEngine {
     pub fn valve_in_rate(&self) -> f32 {
         self.input_valve
     }
+
+    #[inline]
+    pub fn intake(&self) -> f32 { self.input_valve }
+
+    #[inline]
+    pub fn base_intake(&self) -> f32 { self.input_valve }
+
+    pub fn set_intake(&mut self, rate: f32) { self.input_valve = rate.max(0.0); }
 
     #[inline]
     pub fn valve_out_rate(&self) -> f32 {

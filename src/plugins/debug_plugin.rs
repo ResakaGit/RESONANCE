@@ -18,13 +18,19 @@ use crate::simulation::states::{GameState, PlayState};
 use crate::worldgen::shape_color_inference_system;
 
 use crate::world::{
-    COMPETITION_ARENA_SLUG, DemoCloudSpawnerState, Scoreboard, ROUND_WORLD_ROSA_SLUG,
+    COMPETITION_ARENA_SLUG, DEMO_ANIMAL_SLUG, DEMO_CELULA_SLUG, DEMO_PLANTA_SLUG, DEMO_VIRUS_SLUG,
+    DemoCloudSpawnerState, INFERRED_WORLD_SLUG, Scoreboard,
+    ROUND_WORLD_ROSA_SLUG, SIGNAL_DEMO_SLUG,
     demo_cloud_context_spawn_system, demo_cloud_motion_system, spawn_demo_clouds_startup_system,
     enforce_rosa_focus_system, enforce_round_world_rosa_focus_system,
     pin_rosa_lod_focus_system, round_world_rosa_pin_lod_focus_for_inference_system,
-    spawn_competition_demo_startup_system, spawn_demo_level_startup_system,
-    spawn_round_world_rosa_startup_system,
+    ensure_demo_metrics_hud_system, spawn_competition_demo_startup_system,
+    spawn_demo_animal_startup_system, spawn_demo_celula_startup_system,
+    spawn_demo_level_startup_system, spawn_demo_planta_startup_system,
+    spawn_demo_virus_startup_system, spawn_inferred_world_startup_system,
+    spawn_round_world_rosa_startup_system, spawn_signal_demo_startup_system,
     stabilize_rosa_growth_system, stabilize_round_world_rosa_energy_system,
+    sync_demo_metrics_hud_system,
 };
 use crate::worldgen::ActiveMapName;
 use crate::worldgen::systems::startup::mark_play_state_active_system;
@@ -41,9 +47,51 @@ fn active_map_is_competition_arena(active: Option<Res<ActiveMapName>>) -> bool {
     active.is_some_and(|a| a.0 == COMPETITION_ARENA_SLUG)
 }
 
+fn active_map_is_inferred_world(active: Option<Res<ActiveMapName>>) -> bool {
+    active.is_some_and(|a| a.0 == INFERRED_WORLD_SLUG)
+}
+
+fn active_map_is_signal_demo(active: Option<Res<ActiveMapName>>) -> bool {
+    active.is_some_and(|a| a.0 == SIGNAL_DEMO_SLUG)
+}
+
+fn active_map_is_demo_celula(active: Option<Res<ActiveMapName>>) -> bool {
+    active.is_some_and(|a| a.0 == DEMO_CELULA_SLUG)
+}
+
+fn active_map_is_demo_virus(active: Option<Res<ActiveMapName>>) -> bool {
+    active.is_some_and(|a| a.0 == DEMO_VIRUS_SLUG)
+}
+
+fn active_map_is_demo_planta(active: Option<Res<ActiveMapName>>) -> bool {
+    active.is_some_and(|a| a.0 == DEMO_PLANTA_SLUG)
+}
+
+fn active_map_is_demo_animal(active: Option<Res<ActiveMapName>>) -> bool {
+    active.is_some_and(|a| a.0 == DEMO_ANIMAL_SLUG)
+}
+
+fn active_map_is_catalog_demo(active: Option<Res<ActiveMapName>>) -> bool {
+    active.is_some_and(|a| {
+        a.0 == DEMO_CELULA_SLUG
+            || a.0 == DEMO_VIRUS_SLUG
+            || a.0 == DEMO_PLANTA_SLUG
+            || a.0 == DEMO_ANIMAL_SLUG
+    })
+}
+
 fn active_map_is_default_flora_demo(active: Option<Res<ActiveMapName>>) -> bool {
     active
-        .map(|a| a.0 != ROUND_WORLD_ROSA_SLUG && a.0 != COMPETITION_ARENA_SLUG)
+        .map(|a| {
+            a.0 != ROUND_WORLD_ROSA_SLUG
+                && a.0 != COMPETITION_ARENA_SLUG
+                && a.0 != INFERRED_WORLD_SLUG
+                && a.0 != SIGNAL_DEMO_SLUG
+                && a.0 != DEMO_CELULA_SLUG
+                && a.0 != DEMO_VIRUS_SLUG
+                && a.0 != DEMO_PLANTA_SLUG
+                && a.0 != DEMO_ANIMAL_SLUG
+        })
         .unwrap_or(true)
 }
 
@@ -74,6 +122,24 @@ impl Plugin for DebugPlugin {
                 spawn_competition_demo_startup_system
                     .after(mark_play_state_active_system)
                     .run_if(active_map_is_competition_arena),
+                spawn_inferred_world_startup_system
+                    .after(mark_play_state_active_system)
+                    .run_if(active_map_is_inferred_world),
+                spawn_signal_demo_startup_system
+                    .after(mark_play_state_active_system)
+                    .run_if(active_map_is_signal_demo),
+                spawn_demo_celula_startup_system
+                    .after(mark_play_state_active_system)
+                    .run_if(active_map_is_demo_celula),
+                spawn_demo_virus_startup_system
+                    .after(mark_play_state_active_system)
+                    .run_if(active_map_is_demo_virus),
+                spawn_demo_planta_startup_system
+                    .after(mark_play_state_active_system)
+                    .run_if(active_map_is_demo_planta),
+                spawn_demo_animal_startup_system
+                    .after(mark_play_state_active_system)
+                    .run_if(active_map_is_demo_animal),
             ),
         );
 
@@ -99,6 +165,9 @@ impl Plugin for DebugPlugin {
                 debug_scoreboard_system,
                 crate::world::demo_level::debug_botanical_seed_system
                     .run_if(on_timer(Duration::from_secs_f32(2.0))),
+                // Catalog demo metrics HUD.
+                ensure_demo_metrics_hud_system.run_if(active_map_is_catalog_demo),
+                sync_demo_metrics_hud_system.run_if(active_map_is_catalog_demo),
             ),
         );
 

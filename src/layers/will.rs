@@ -12,7 +12,7 @@ pub const MAX_GRIMOIRE_ABILITIES: usize = 64;
 ///
 /// La voluntad inyectada en el motor. Traduce inputs (teclado/IA) en órdenes
 /// de drenaje de la Capa 5 para generar vectores en la Capa 3.
-#[derive(Component, Reflect, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct WillActuator {
     /// Vector normalizado del input (WASD / Click / IA).
@@ -23,6 +23,10 @@ pub struct WillActuator {
 
     /// Índice del slot activo en el Grimoire (None si no canaliza).
     pub(crate) active_slot: Option<usize>,
+
+    /// Intención social: dirección de agrupamiento o exploración colectiva.
+    /// Escrito por GS-4 (pack cohesion) y ET-16 (long-range planning). Vec2::ZERO = sin presión social.
+    pub(crate) social_intent: Vec2,
 }
 
 impl Default for WillActuator {
@@ -31,6 +35,7 @@ impl Default for WillActuator {
             movement_intent: Vec2::ZERO,
             channeling_ability: false,
             active_slot: None,
+            social_intent: Vec2::ZERO,
         }
     }
 }
@@ -61,6 +66,16 @@ impl WillActuator {
 
     pub fn set_active_slot(&mut self, slot: Option<usize>) {
         self.active_slot = slot;
+    }
+
+    /// Intención social: dirección de cohesión de grupo o exploración planificada.
+    #[inline]
+    pub fn social_intent(&self) -> Vec2 {
+        self.social_intent
+    }
+
+    pub fn set_social_intent(&mut self, v: Vec2) {
+        self.social_intent = if v.is_finite() { v } else { Vec2::ZERO };
     }
 
     /// ¿Tiene intención de moverse?

@@ -1,9 +1,15 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
+
+fn placeholder_entity() -> Entity {
+    Entity::PLACEHOLDER
+}
 
 /// Capa 13: Vínculo físico tipo resorte entre nodos.
-#[derive(Component, Reflect, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct StructuralLink {
+    #[serde(skip, default = "placeholder_entity")]
     pub target: Entity,
     pub rest_length: f32,
     pub stiffness: f32,

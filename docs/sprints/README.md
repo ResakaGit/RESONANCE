@@ -6,26 +6,107 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 
 ---
 
-## Morphogenesis
+## Conteo global
 
-| Track | Pending | Doc |
-|-------|---------|-----|
-| **MORPHOGENESIS_INFERENCE** | MG-8 (integration demo + EntityBuilder wiring); MG-1–MG-7 closed | [MORPHOGENESIS_INFERENCE/](MORPHOGENESIS_INFERENCE/) |
+| Métrica | Valor |
+|---------|-------|
+| Sprints pendientes | **7** |
+| Tracks activos | **1** |
+| Oleadas restantes | **3** |
+| Tracks archivados | **34** |
 
-## Geometry / Rendering
+---
 
-| Track | Pending | Doc |
-|-------|---------|-----|
-| **GEOMETRY_FLOW** | GF2 (post-branching deformation) | [GEOMETRY_FLOW/](GEOMETRY_FLOW/) |
-| **THERMODYNAMIC_LADDER** | TL5–GF2 coupling open; TL1–TL4, TL6 closed | [THERMODYNAMIC_LADDER/](THERMODYNAMIC_LADDER/) |
-| **INFERRED_WORLD_GEOMETRY** | IWG-1–IWG-7: body plan, terrain mesh, water surface, atmosphere, demo | [INFERRED_WORLD_GEOMETRY/](INFERRED_WORLD_GEOMETRY/) |
+## 7 sprints pendientes
 
-## Simulation
+### GAMEPLAY_SYSTEMS (6 sprints pendientes)
 
-| Track | Pending | Doc |
-|-------|---------|-----|
-| **SIMULATION_FOUNDATIONS** | SF-1–SF-7: observability CSV/JSON, serialization+replay, signal latency propagation | [SIMULATION_FOUNDATIONS/](SIMULATION_FOUNDATIONS/) |
-| **SIMULATION_QUALITY** | SM-8: god-systems in `thermodynamic/`, magic numbers, SRP violations in `reactions.rs` | [SIMULATION_QUALITY/](SIMULATION_QUALITY/) |
+| Sprint | Descripción | Esfuerzo | Bloqueado por | Doc |
+|--------|-------------|----------|---------------|-----|
+| [GS-2](GAMEPLAY_SYSTEMS/SPRINT_GS2_NETCODE_ROLLBACK.md) | Rollback + predicción | Alto | GS-1 ✅ | |
+| [GS-4](GAMEPLAY_SYSTEMS/SPRINT_GS4_PACK_DYNAMICS.md) | Pack formation + threat gradient | Medio | GS-3 ✅ | |
+| [GS-6](GAMEPLAY_SYSTEMS/SPRINT_GS6_MAP_ENERGY.md) | Map as energy landscape | Medio | GS-5 ✅ | |
+| [GS-7](GAMEPLAY_SYSTEMS/SPRINT_GS7_VISUAL_CONTRACT.md) | Injective visual mapping | Medio | GS-5 ✅, GS-6 | |
+| [GS-8](GAMEPLAY_SYSTEMS/SPRINT_GS8_ARCHETYPE_CONFIG.md) | Archetype as physics config (RON) | Medio | GS-5 ✅, GS-6 | |
+| [GS-9](GAMEPLAY_SYSTEMS/SPRINT_GS9_ONBOARDING.md) | Onboarding experience sequence | Alto | GS-7, GS-8 | |
+
+Sprints archivados del track: [archive/GAMEPLAY_SYSTEMS/](archive/GAMEPLAY_SYSTEMS/) (GS-1 ✅, GS-3 ✅, GS-5 ✅)
+
+---
+
+### DEMO (1 sprint)
+
+| Sprint | Descripción | Esfuerzo | Bloqueado por | Doc |
+|--------|-------------|----------|---------------|-----|
+| Proving Grounds | ~46 entidades, 14/14 capas, 7 funciones spawn | Alto | Oleada 3 | [Doc](DEMO_PROVING_GROUNDS.md) |
+
+---
+
+## Tabla de oleadas
+
+### Oleada 1 — ✅ COMPLETA (2026-03-25)
+
+| Sprint | Track | Descripción | Esfuerzo | Desbloquea |
+|--------|-------|-------------|----------|------------|
+| SF-4 | SIMULATION_FOUNDATIONS | Export CSV/JSON a disco | Bajo | SF-7 |
+| SF-5 | SIMULATION_FOUNDATIONS | Checkpoint save/load | Bajo | SF-7, GS-1 |
+| SF-6 | SIMULATION_FOUNDATIONS | Propagación multi-tick (WaveFront) | Bajo | SF-7 |
+| GS-1 | GAMEPLAY_SYSTEMS | Lockstep determinista | Bajo | GS-2 |
+| GS-3 | GAMEPLAY_SYSTEMS | Nash AI targeting equations | Bajo | GS-4 |
+| GS-5 | GAMEPLAY_SYSTEMS | Victory condition física | Bajo | GS-6, GS-7, GS-8 |
+| SM-8D | SIMULATION_QUALITY | God-system splits (containment 248 LOC) | Bajo | — |
+| SM-8F | SIMULATION_QUALITY | Lifecycle query documentation | Bajo | — |
+| SM-8G | SIMULATION_QUALITY | Input SRP (grimoire → 3 sistemas) | Bajo | — |
+
+> Todos los sprints de Oleada 1 pueden ejecutarse en paralelo (3 tracks independientes).
+
+---
+
+### Oleada 2 — ⏳ Desbloqueada
+
+| Sprint | Track | Descripción | Esfuerzo | Bloqueado por | Desbloquea |
+|--------|-------|-------------|----------|---------------|------------|
+| [GS-2](GAMEPLAY_SYSTEMS/SPRINT_GS2_NETCODE_ROLLBACK.md) | GAMEPLAY_SYSTEMS | Rollback + predicción | Alto | GS-1 ✅ | — |
+| [GS-4](GAMEPLAY_SYSTEMS/SPRINT_GS4_PACK_DYNAMICS.md) | GAMEPLAY_SYSTEMS | Pack formation + threat gradient | Medio | GS-3 ✅ | — |
+| [GS-6](GAMEPLAY_SYSTEMS/SPRINT_GS6_MAP_ENERGY.md) | GAMEPLAY_SYSTEMS | Map as energy landscape | Medio | GS-5 ✅ | GS-7, GS-8 |
+
+> Los tres GS pueden ejecutarse en paralelo.
+
+---
+
+### Oleada 3 — 🔒 Requiere Oleada 2
+
+| Sprint | Track | Descripción | Esfuerzo | Bloqueado por | Desbloquea |
+|--------|-------|-------------|----------|---------------|------------|
+| [GS-7](GAMEPLAY_SYSTEMS/SPRINT_GS7_VISUAL_CONTRACT.md) | GAMEPLAY_SYSTEMS | Injective visual mapping | Medio | GS-5 ✅, GS-6 | GS-9 |
+| [GS-8](GAMEPLAY_SYSTEMS/SPRINT_GS8_ARCHETYPE_CONFIG.md) | GAMEPLAY_SYSTEMS | Archetype as physics config (RON) | Medio | GS-5 ✅, GS-6 | GS-9 |
+| [GS-9](GAMEPLAY_SYSTEMS/SPRINT_GS9_ONBOARDING.md) | GAMEPLAY_SYSTEMS | Onboarding experience sequence | Alto | GS-7, GS-8 | DEMO |
+
+> GS-7 y GS-8 en paralelo → GS-9 en serie.
+
+---
+
+### Oleada 4 — 🔒 Requiere Oleada 3
+
+| Sprint | Track | Descripción | Esfuerzo | Bloqueado por |
+|--------|-------|-------------|----------|---------------|
+| [Proving Grounds](DEMO_PROVING_GROUNDS.md) | DEMO | ~46 entidades, 14/14 capas, 7 funciones spawn | Alto | GS-9 |
+
+---
+
+## Resumen ejecutivo
+
+| Oleada | # Sprints | Track | Paralelos | Estado | Precondición |
+|--------|-----------|-------|-----------|--------|--------------|
+| **1** | 9 | SF+GS+SM | 9 | ✅ COMPLETA | — |
+| **SF-7** | 1 | SF | 1 | ✅ COMPLETA | Oleada 1 ✅ |
+| **ET** | 16 | ET | 16 | ✅ COMPLETA | — |
+| **AC** | 5 | AC | 5 | ✅ COMPLETA | — |
+| **2** | 3 | GS | 3 | ⏳ Desbloqueada | Oleada 1 ✅ |
+| **BS** | 7 | BATCH_SIMULATOR | 7 | ✅ COMPLETA | — |
+| **3** | 3 | GS | 2 → 1 | 🔒 | Oleada 2 |
+| **4** | 1 | DEMO | 1 | 🔒 | Oleada 3 |
+| **Total** | **45** | — | — | 38 ✅ · 7 ⏳ | |
 
 ---
 
@@ -33,6 +114,16 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 
 Implementation in `src/`, contracts in `docs/design/` and `docs/arquitectura/`. Full list in [`archive/README.md`](archive/README.md):
 
+- **BATCH_SIMULATOR** — BS-0–BS-6: EntitySlot+SimWorldFlat arena, 33 batch systems (Tier 1/2/3), GeneticHarness+FitnessReport, GenomeBlob bridge (Batch↔Bevy), rayon parallelism, criterion benchmarks. 156 tests, 17 files (2026-03-26) — [archive/BATCH_SIMULATOR/](archive/BATCH_SIMULATOR/)
+- **AXIOMATIC_CLOSURE** — AC-1–AC-5: metabolic interference (Axiom 3×8), Kuramoto entrainment (Axiom 8), culture coherence (Axiom 6×8), frequency attenuation (Axiom 7×8), cooperation emergence (Axiom 3 game theory). 60+ tests (2026-03-25) — [archive/AXIOMATIC_CLOSURE/](archive/AXIOMATIC_CLOSURE/)
+- **EMERGENCE_TIERS** — ET-1–ET-16: associative memory, theory of mind, cultural transmission, infrastructure, symbiosis, epigenetics, senescence, coalitions, niche, timescales, multiscale, continental drift, geological LOD, institutions, language, consciousness (2026-03-25)
+- **GAMEPLAY_SYSTEMS (parcial)** — GS-1/3/5: lockstep, Nash targeting, victory nucleus (2026-03-25) — [archive/GAMEPLAY_SYSTEMS/](archive/GAMEPLAY_SYSTEMS/)
+- **SIMULATION_FOUNDATIONS** — SF-4–SF-7: metrics export, checkpoint, wavefront propagation, integration replay 11 tests (2026-03-25)
+- **SIMULATION_QUALITY** — SM-8A–G: magic numbers, change detection, inline math, god-system splits, lifecycle docs, input SRP (2026-03-25)
+- **INFERRED_WORLD_GEOMETRY** — IWG-1–IWG-7: body plan bilateral, terrain mesh V7, water surface, atmosphere inference, integration demo (2026-03-25)
+- **MORPHOGENESIS_INFERENCE** — MG-1–MG-8: thermodynamic equations, MetabolicGraph, DAG step, shape optimization, albedo, Writer Monad, rugosity, integration demo (2026-03-25)
+- **GEOMETRY_FLOW** — GF1–GF2: stateless spine+mesh, thermodynamic deformation+cache+EnergyFieldGrid wiring (2026-03-25)
+- **THERMODYNAMIC_LADDER** — TL1–TL4, TL6: osmosis, nutrient field, growth budget, photosynthesis, branching; TL5 coupling closed with GF2 (2026-03-25)
 - **CODE_QUALITY** — Q2, Q3, Q5, Q8: named constants, encapsulation, plugin split, color isolation (2026-03-25)
 - **STRUCTURE_MIGRATION** — SM-1–SM-7: worldgen split, sim subdirs, bridge split, archetypes, macro, constants, docs (2026-03-25)
 - **SIMULATION_RELIABILITY** — R1–R9: conservation, determinism, benchmarks, calibration, sensitivity, observability, morph, surrogate, CI gates (2026-03-25)

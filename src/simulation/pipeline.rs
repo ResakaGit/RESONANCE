@@ -35,6 +35,36 @@ where
         );
     }
 
+    // GS-5: Victory Nucleus — condición de victoria física.
+    app.init_resource::<crate::simulation::game_loop::GameOutcome>();
+    app.add_event::<crate::simulation::game_loop::VictoryEvent>();
+    app.add_systems(
+        schedule.clone(),
+        (
+            crate::simulation::game_loop::nucleus_intake_decay_system
+                .in_set(Phase::ThermodynamicLayer),
+            crate::simulation::game_loop::victory_check_system
+                .in_set(Phase::MetabolicLayer),
+        ),
+    );
+
+    // GS-1: Lockstep netcode — deterministic input synchronisation.
+    app.init_resource::<crate::simulation::netcode::LockstepConfig>();
+    app.init_resource::<crate::simulation::netcode::InputBuffer>();
+    app.init_resource::<crate::simulation::netcode::ChecksumLog>();
+    app.init_resource::<crate::simulation::netcode::LockstepRunCondition>();
+    app.add_event::<crate::simulation::netcode::DesyncEvent>();
+    app.add_systems(
+        schedule.clone(),
+        crate::simulation::netcode::lockstep_input_gate_system
+            .in_set(Phase::Input)
+            .before(simulation::InputChannelSet::PlatformWill),
+    );
+    app.add_systems(
+        PostUpdate,
+        crate::simulation::netcode::lockstep_checksum_record_system,
+    );
+
     // `PrePhysics` mezcla worldgen (`GameState::Playing`, puede `Warmup`) y simulación (`Active` solo).
     let run_gameplay = in_state(GameState::Playing).and(in_state(PlayState::Active));
     app.configure_sets(
@@ -100,7 +130,21 @@ where
     #[cfg(not(feature = "v7_worldgen"))]
     crate::worldgen::systems::prephysics::register_postphysics_nucleus_death_before_faction(
         app,
+        schedule.clone(),
+    );
+
+    // SF-4: Metrics Export — env-gated, zero overhead when RESONANCE_METRICS is unset.
+    app.add_systems(
+        schedule.clone(),
+        crate::simulation::observability::metrics_batch_system
+            .in_set(Phase::MetabolicLayer),
+    );
+
+    // SF-5: Checkpoint Save — env-gated, zero overhead when interval is 0.
+    app.add_systems(
         schedule,
+        crate::simulation::checkpoint_system::checkpoint_save_system
+            .in_set(Phase::MorphologicalLayer),
     );
 }
 

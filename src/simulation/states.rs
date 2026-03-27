@@ -23,6 +23,8 @@ pub enum PlayState {
     #[default]
     Warmup,
     Active,
+    /// GS-5: partida terminada, simulación congelada.
+    Victory,
 }
 
 #[cfg(test)]

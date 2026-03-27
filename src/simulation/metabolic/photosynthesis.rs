@@ -7,7 +7,7 @@ use crate::layers::{
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::runtime_platform::core_math_agnostic::sim_plane_pos;
 use crate::simulation::time_compat::simulation_delta_secs;
-use crate::worldgen::{EnergyNucleus, Materialized, NUTRIENT_WRITE_EPS};
+use crate::worldgen::{EnergyNucleus, NUTRIENT_WRITE_EPS};
 
 type IrradianceEntityQuery<'w, 's> = Query<
     'w,
@@ -18,7 +18,7 @@ type IrradianceEntityQuery<'w, 's> = Query<
         &'static OscillatorySignature,
         Option<&'static IrradianceReceiver>,
     ),
-    (With<Materialized>, With<BaseEnergy>),
+    With<BaseEnergy>,
 >;
 
 #[derive(Resource, Debug, Default)]

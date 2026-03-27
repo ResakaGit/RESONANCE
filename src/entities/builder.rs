@@ -90,6 +90,26 @@ impl EntityBuilder {
         self
     }
 
+    /// Capa 2 from frequency Hz (axiomatic abiogenesis — no element lookup).
+    ///
+    /// Sets OscillatorySignature directly from Hz. ElementId derived from frequency hash.
+    pub fn wave_from_hz(mut self, frequency_hz: f32) -> Self {
+        // Deterministic ElementId from frequency: hash the Hz band as a string.
+        // This ensures entities at similar frequencies share an ElementId.
+        let band_key = (frequency_hz / 50.0) as u32; // bucket by 50Hz bands
+        let sym = match band_key {
+            0       => "Um",  // Umbra ~0-50
+            1       => "Te",  // Terra ~50-100
+            2..=4   => "Fl",  // Flora/low Terra ~100-250
+            5..=6   => "Aq",  // Aqua ~250-350
+            7..=10  => "Ig",  // Ignis ~350-550
+            11..=15 => "Ve",  // Ventus ~550-800
+            _       => "Lx",  // Lux ~800+
+        };
+        self.wave = Some((ElementId::from_name(sym), OscillatorySignature::new(frequency_hz, 0.0)));
+        self
+    }
+
     /// Capa 3
     pub fn flow(mut self, velocity: Vec2, dissipation: f32) -> Self {
         self.flow = Some(FlowVector::new(velocity, dissipation));

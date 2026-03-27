@@ -1,11 +1,12 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::blueprint::constants::{
     FACTION_ALLY_BONUS, FACTION_ENEMY_MALUS, LINK_NEUTRAL_MULTIPLIER,
 };
 
 /// Facciones del juego. Determinan alianza y afectan el signo de interferencia.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect, Default)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect, Default, Serialize, Deserialize)]
 pub enum Faction {
     #[default]
     Neutral,
@@ -14,8 +15,20 @@ pub enum Faction {
     Wild,
 }
 
+impl Faction {
+    /// En un 1v1, retorna la facción oponente canónica. Red ↔ Blue.
+    pub fn opponent(self) -> Self {
+        match self {
+            Faction::Red     => Faction::Blue,
+            Faction::Blue    => Faction::Red,
+            Faction::Neutral => Faction::Neutral,
+            Faction::Wild    => Faction::Wild,
+        }
+    }
+}
+
 /// Tags relacionales para filtros de targeting.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect, Serialize, Deserialize)]
 pub enum RelationalTag {
     Ally,
     Enemy,
@@ -31,7 +44,7 @@ pub enum RelationalTag {
 ///
 /// El "Juego" sobre la simulación. Etiquetas arbitrarias que interceptan las
 /// matemáticas físicas para aplicar reglas de diseño (Lore, Facciones, Odio, Ítems).
-#[derive(Component, Reflect, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct MobaIdentity {
     /// Equipo/facción de la entidad.

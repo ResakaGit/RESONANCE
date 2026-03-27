@@ -400,9 +400,12 @@ If following a coding rule makes the game worse, break the rule and explain why.
 - `src/batch/arena.rs` — EntitySlot (flat entity) + SimWorldFlat (world)
 - `src/batch/harness.rs` — GeneticHarness (evolutionary loop)
 - `src/batch/bridge.rs` — GenomeBlob ↔ Bevy components round-trip
+- `src/simulation/reproduction/mod.rs` — flora seed + fauna offspring (with mutation)
+- `src/simulation/emergence/` — theory_of_mind, symbiosis_effect, epigenetic_adaptation, niche_adaptation
+- `src/blueprint/constants/stellar.rs` — stellar-scale constants (star/planet gravity, radii, emission)
 
 ## Design Docs (`docs/design/`)
 
-`FOLDER_STRUCTURE.md` | `GAMEDEV_PATTERNS.md` | `TOPOLOGY.md` | `V7.md` | `ECO_BOUNDARIES.md` | `BRIDGE_OPTIMIZER.md` | `MORPHOGENESIS.md` | `AXIOMATIC_CLOSURE.md` | `EMERGENCE_TIERS.md` | `INFERRED_WORLD_GEOMETRY.md` | `SIMULATION_CORE_DECOUPLING.md`
+`FOLDER_STRUCTURE.md` | `GAMEDEV_PATTERNS.md` | `TOPOLOGY.md` | `V7.md` | `ECO_BOUNDARIES.md` | `BRIDGE_OPTIMIZER.md` | `MORPHOGENESIS.md` | `AXIOMATIC_CLOSURE.md` | `EMERGENCE_TIERS.md` | `INFERRED_WORLD_GEOMETRY.md` | `SIMULATION_CORE_DECOUPLING.md` | `EVOLUTION_GROUP_BEHAVIOR.md`
 
 Module narratives: `docs/arquitectura/` (incl. `blueprint_batch_simulator.md`).

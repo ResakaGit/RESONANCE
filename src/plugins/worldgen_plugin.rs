@@ -30,9 +30,26 @@ use crate::worldgen::systems::performance::{
 use crate::worldgen::systems::propagation::{
     derive_cell_state_system, dissipate_field_system, propagate_nuclei_system,
 };
+use crate::worldgen::{
+    diffuse_propagation_system, insert_nucleus_emission_state_system, PropagationMode,
+};
 use crate::worldgen::systems::terrain::{terrain_mutation_system, TerrainMutationQueue};
+use crate::worldgen::systems::materialization_delta::materialization_incremental_system;
+use crate::worldgen::systems::terrain_visual_mesh::{
+    TerrainMeshResource, terrain_mesh_generation_system, terrain_mesh_sync_system,
+};
 use crate::worldgen::systems::visual::flush_pending_energy_visual_rebuild_system;
+use crate::worldgen::systems::water_surface::{
+    WaterMeshResource, water_mesh_sync_system, water_surface_system,
+};
+use crate::simulation::metabolic::atmosphere_inference::{
+    atmosphere_inference_system, atmosphere_sync_system, AtmosphereState,
+};
 use crate::worldgen::EnergyFieldGrid;
+use crate::runtime_platform::render_bridge_3d::sync_visual_from_sim_system;
+use crate::simulation::lifecycle::{
+    body_plan_layout_inference_system, entity_shape_inference_system,
+};
 
 /// SystemSet para todos los sistemas V7 worldgen en `FixedUpdate`.
 /// Añadir `run_if(...)` a este set deshabilita V7 entero.
@@ -57,6 +74,8 @@ impl Plugin for WorldgenPlugin {
         register_field_pipeline(app);
         register_postphysics_chain(app);
         register_visual_pipeline(app);
+        register_terrain_water_pipeline(app);
+        register_atmosphere_pipeline(app);
         register_worldgen_reflect_types(app);
 
         app.add_systems(Startup, init_worldgen_system);
@@ -65,6 +84,7 @@ impl Plugin for WorldgenPlugin {
 
 /// Recursos y eventos worldgen (idempotente — seguro si bootstrap ya los creó).
 fn init_worldgen_resources(app: &mut App) {
+    app.init_resource::<PropagationMode>();
     app.init_resource::<crate::worldgen::systems::materialization::SeasonTransition>()
         .init_resource::<crate::worldgen::systems::materialization::NucleusFreqTrack>()
         .init_resource::<crate::worldgen::systems::performance::WorldgenPerfSettings>()
@@ -77,7 +97,11 @@ fn init_worldgen_resources(app: &mut App) {
         .init_resource::<crate::worldgen::systems::performance::VisualDerivationFrameState>()
         .init_resource::<crate::worldgen::systems::terrain::TerrainMutationQueue>()
         .init_resource::<crate::eco::boundary_field::EcoBoundaryField>()
-        .init_resource::<crate::eco::context_lookup::EcoPlayfieldMargin>();
+        .init_resource::<crate::eco::context_lookup::EcoPlayfieldMargin>()
+        .init_resource::<TerrainMeshResource>()
+        .init_resource::<WaterMeshResource>()
+        .init_resource::<AtmosphereState>()
+        .insert_resource(crate::geometry_flow::deformation_cache::GeometryDeformationCache::new(4096));
 
     // Eventos worldgen (idempotente).
     app.add_event::<crate::events::SeasonChangeEvent>()
@@ -116,7 +140,9 @@ fn register_field_pipeline(app: &mut App) {
                     .run_if(resource_exists::<TerrainMutationQueue>)
                     .run_if(resource_exists::<TerrainField>)
                     .run_if(resource_exists::<TerrainConfigRuntime>),
+                insert_nucleus_emission_state_system, // SF-6: auto-insert emission state before propagation
                 propagate_nuclei_system,
+                diffuse_propagation_system, // SF-6: lateral diffusion (no-op in Legacy mode)
                 dissipate_field_system,
                 derive_cell_state_system,
             )
@@ -130,6 +156,7 @@ fn register_field_pipeline(app: &mut App) {
                 .chain(),
             cell_field_snapshot_sync_system.run_if(resource_exists::<CellFieldSnapshotCache>),
             worldgen_sim_tick_advance_system,
+            materialization_incremental_system,
         )
             .chain()
             .in_set(WorldgenPhase),
@@ -168,8 +195,58 @@ fn register_visual_pipeline(app: &mut App) {
             crate::worldgen::reset_shape_inference_frame_system,
             crate::worldgen::shape_color_inference_system,
             crate::worldgen::growth_morphology_system,
+            crate::geometry_flow::geometry_deformation_system::geometry_deformation_system,
         )
             .chain()
+            .run_if(in_state(GameState::Playing).and(in_state(PlayState::Active))),
+    );
+    // Entity shape inference (MG-9): outside the chain so it is not budget-capped
+    // by ShapeInferenceFrameState. Runs after sync_visual_from_sim_system so V6VisualRoot
+    // is guaranteed present on the same frame, preventing a 1-frame sphere flash.
+    app.add_systems(
+        Update,
+        (
+            body_plan_layout_inference_system,
+            entity_shape_inference_system,
+        )
+            .chain()
+            .after(sync_visual_from_sim_system)
+            .run_if(in_state(GameState::Playing).and(in_state(PlayState::Active))),
+    );
+}
+
+/// FixedUpdate (MorphologicalLayer) + Update: terrain mesh and water surface generation + sync.
+fn register_terrain_water_pipeline(app: &mut App) {
+    app.add_systems(
+        FixedUpdate,
+        (
+            terrain_mesh_generation_system,
+            water_surface_system.after(terrain_mesh_generation_system),
+        )
+            .in_set(Phase::MorphologicalLayer)
+            .run_if(in_state(GameState::Playing)),
+    );
+    app.add_systems(
+        Update,
+        (
+            terrain_mesh_sync_system,
+            water_mesh_sync_system.after(terrain_mesh_sync_system),
+        )
+            .run_if(in_state(GameState::Playing).and(in_state(PlayState::Active))),
+    );
+}
+
+/// FixedUpdate (MorphologicalLayer) + Update: atmosphere inference + sync to lights.
+fn register_atmosphere_pipeline(app: &mut App) {
+    app.add_systems(
+        FixedUpdate,
+        atmosphere_inference_system
+            .in_set(Phase::MorphologicalLayer)
+            .run_if(in_state(GameState::Playing)),
+    );
+    app.add_systems(
+        Update,
+        atmosphere_sync_system
             .run_if(in_state(GameState::Playing).and(in_state(PlayState::Active))),
     );
 }
@@ -179,7 +256,8 @@ fn register_worldgen_reflect_types(app: &mut App) {
     app.register_type::<crate::worldgen::EnergyNucleus>()
         .register_type::<crate::worldgen::Materialized>()
         .register_type::<crate::worldgen::EnergyVisual>()
-        .register_type::<crate::worldgen::WorldArchetype>();
+        .register_type::<crate::worldgen::WorldArchetype>()
+        .register_type::<AtmosphereState>();
 }
 
 #[cfg(test)]

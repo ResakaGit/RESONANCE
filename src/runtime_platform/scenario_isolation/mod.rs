@@ -165,7 +165,7 @@ fn nucleus_orb_color(frequency_hz: f32) -> Color {
 }
 
 /// Spawn visual: losa al tamaño del `EnergyFieldGrid` en full3d; cubo chico en 2D/tests.
-/// El color del mosaico viene de celdas materializadas; ver `docs/DEMO_FLOW.md`.
+/// El color del mosaico viene de celdas materializadas; ver `docs/guides/DEMO_FLOW.md`.
 fn ensure_v6_ground_plane_system(
     mut commands: Commands,
     mut meshes: Option<ResMut<Assets<Mesh>>>,

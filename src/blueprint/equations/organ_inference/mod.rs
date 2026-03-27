@@ -263,8 +263,8 @@ pub fn infer_organ_manifest(
 /// Deriva inputs normalizados para `infer_organ_manifest` desde estado agregado.
 #[inline]
 pub fn organ_manifest_inputs_from_state(qe_norm: f32, growth_efficiency: f32, biomass: f32) -> (f32, f32) {
-    let growth_progress = finite_unit(finite_non_negative(biomass) / 3.0);
-    let viability = finite_unit(finite_unit(qe_norm) * 0.7 + finite_unit(growth_efficiency) * 0.3);
+    let growth_progress = finite_unit(finite_non_negative(biomass) / ORGAN_MANIFEST_BIOMASS_NORM_DIVISOR);
+    let viability = finite_unit(finite_unit(qe_norm) * ORGAN_BASE_VIABILITY_QE_WEIGHT + finite_unit(growth_efficiency) * ORGAN_BASE_VIABILITY_EFFICIENCY_WEIGHT);
     (growth_progress, viability)
 }
 

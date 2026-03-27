@@ -1,5 +1,6 @@
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
 use crate::blueprint::constants::DEFAULT_FREQUENCY_HZ;
@@ -19,7 +20,7 @@ use crate::runtime_platform::simulation_tick::SimulationElapsed;
 /// I ~ +1.0 → constructiva (resonancia, amplificación, curación)
 /// I ~ -1.0 → destructiva (daño, aniquilación, oposición)
 /// I ~  0.0 → ortogonal (sin interacción)
-#[derive(Component, Reflect, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct OscillatorySignature {
     /// Frecuencia primaria de oscilación (Hz).

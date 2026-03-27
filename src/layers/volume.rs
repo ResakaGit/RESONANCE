@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::blueprint::constants::{DEFAULT_SPHERE_RADIUS, VOLUME_MIN_RADIUS};
 use crate::blueprint::equations;
@@ -10,7 +11,7 @@ use crate::blueprint::equations;
 ///
 /// Cantidad derivada (calculada en sistemas, no almacenada):
 ///   densidad = qe / ((4/3) * PI * radio³)
-#[derive(Component, Reflect, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct SpatialVolume {
     /// Radio en unidades de mundo (metros).
@@ -47,7 +48,8 @@ impl SpatialVolume {
     /// Actualiza el radio respetando invariantes de capa.
     #[inline]
     pub fn set_radius(&mut self, radius: f32) {
-        self.radius = radius.max(VOLUME_MIN_RADIUS);
+        let r = radius.max(VOLUME_MIN_RADIUS);
+        if self.radius != r { self.radius = r; }
     }
 }
 

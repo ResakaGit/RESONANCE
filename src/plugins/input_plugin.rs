@@ -29,6 +29,15 @@ impl Plugin for InputPlugin {
                 .run_if(simulation::behavior::has_behavioral_agents),
         );
 
+        // ET-2: Theory of Mind — update mental models before behavior decisions.
+        app.add_systems(
+            FixedUpdate,
+            simulation::emergence::theory_of_mind::theory_of_mind_update_system
+                .in_set(Phase::Input)
+                .before(simulation::behavior::BehaviorSet::Assess)
+                .run_if(simulation::behavior::has_behavioral_agents),
+        );
+
         // D1: Behavioral Intelligence systems
         app.add_systems(
             FixedUpdate,
@@ -40,10 +49,12 @@ impl Plugin for InputPlugin {
                 .chain()
                 .in_set(simulation::behavior::BehaviorSet::Assess),
         );
+        app.init_resource::<simulation::behavior::NashTargetConfig>();
         app.add_systems(
             FixedUpdate,
             (
                 simulation::behavior::behavior_decision_system,
+                simulation::behavior::nash_target_select_system,
                 simulation::behavior::behavior_will_bridge_system,
             )
                 .chain()
@@ -72,11 +83,15 @@ impl Plugin for InputPlugin {
                 .after(simulation::element_layer2::derive_frequency_from_element_id_system),
         );
 
+        // SM-8G: grimoire_cast_intent split into 3 SRP systems.
+        app.add_event::<simulation::input::SlotActivatedEvent>();
         app.add_systems(
             FixedUpdate,
             // Hotkeys primero: en el mismo tick Q+click, el targeting ya está armado antes del pick.
             (
-                simulation::input::grimoire_cast_intent_system,
+                simulation::input::grimoire_slot_selection_system,
+                simulation::input::grimoire_targeting_system,
+                simulation::input::grimoire_channeling_start_system,
                 simulation::ability_targeting::ability_point_target_pick_system,
             )
                 .chain()

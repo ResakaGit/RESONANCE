@@ -38,7 +38,49 @@ impl InferenceProfile {
     pub fn resilience_effective(profile: Option<&Self>) -> f32 {
         profile.map(|p| p.resilience).unwrap_or(DEFAULT_INFERENCE_RESILIENCE)
     }
+
+    // ── ET-6 Epigenetic Expression API ────────────────────────────────────────
+
+    /// Valor base del gen en la dimensión `i` (0=growth, 1=mobility, 2=branching, 3=resilience).
+    #[inline]
+    pub fn gene_benefit(&self, i: usize) -> f32 {
+        match i {
+            0 => self.growth_bias,
+            1 => self.mobility_bias,
+            2 => self.branching_bias,
+            3 => self.resilience,
+            _ => 0.0,
+        }
+    }
+
+    /// Costo metabólico de mantener el gen `i` expresado (proporcional al bias).
+    #[inline]
+    pub fn gene_cost(&self, i: usize) -> f32 {
+        self.gene_benefit(i) * GENE_EXPRESSION_COST_RATE
+    }
+
+    /// Complejidad del gen `i` — usada por `silencing_cost` (ET-6).
+    #[inline]
+    pub fn gene_complexity(&self, i: usize) -> f32 {
+        self.gene_benefit(i)  // complejidad ∝ expresión base
+    }
+
+    /// Escribe la dimensión `i` con `val` clampeado a `[0, 1]`.
+    /// Setter puro — la ecuación `effective_phenotype` la llama el sistema ET-6, no este método.
+    pub fn set_bias(&mut self, i: usize, val: f32) {
+        let v = sanitize_norm(val);
+        match i {
+            0 => self.growth_bias    = v,
+            1 => self.mobility_bias  = v,
+            2 => self.branching_bias = v,
+            3 => self.resilience     = v,
+            _ => {}
+        }
+    }
 }
+
+/// Costo de expresión génica por unidad de bias (ET-6 epigenetics).
+const GENE_EXPRESSION_COST_RATE: f32 = 0.1;
 
 /// Capacidades ejecutables por reducer; evita etiquetas fijas "planta/animal".
 #[derive(Component, Reflect, Debug, Clone, Copy, PartialEq, Eq)]

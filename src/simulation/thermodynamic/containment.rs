@@ -13,6 +13,14 @@ use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::runtime_platform::core_math_agnostic::sim_plane_pos;
 use crate::simulation::time_compat::simulation_delta_secs;
 
+/// Resultado de overlap calculado por `containment_overlap_system`. Efímero (SparseSet).
+#[derive(Component, Debug, Clone, Copy, Default)]
+#[component(storage = "SparseSet")]
+pub struct ContainmentContact {
+    pub overlap_area: f32,
+    pub drag_factor: f32,
+}
+
 /// Clasifica el canal de transferencia para una entidad con radio `entity_radius`
 /// respecto de un host de radio `host_radius`, según distancia entre centros.
 pub fn infer_contact_type(dist: f32, host_radius: f32, entity_radius: f32) -> Option<ContactType> {
@@ -113,7 +121,162 @@ pub fn containment_system(
     }
 }
 
+/// Sistema: calcula overlap geométrico con todos los hosts activos; escribe `ContainmentContact`.
+/// Fase: Phase::ThermodynamicLayer — debe correr antes de `containment_thermal_system`.
+pub fn containment_overlap_system(
+    mut commands: Commands,
+    fixed: Option<Res<Time<Fixed>>>,
+    time: Res<Time>,
+    layout: Res<SimWorldTransformParams>,
+    hosts: Query<(Entity, &Transform, &SpatialVolume, &AmbientPressure)>,
+    targets: Query<(Entity, &Transform, &SpatialVolume, Option<&ContainmentContact>)>,
+) {
+    let dt = simulation_delta_secs(fixed, &time);
+    let xz = layout.use_xz_ground;
+
+    for (entity, e_transform, e_vol, contact_opt) in &targets {
+        let e_pos = sim_plane_pos(e_transform.translation, xz);
+        let mut total_overlap = 0.0_f32;
+        let mut drag_factor = 1.0_f32;
+        let mut any_host = false;
+
+        for (host_entity, h_transform, h_vol, h_pressure) in &hosts {
+            if host_entity == entity {
+                continue;
+            }
+            let h_pos = sim_plane_pos(h_transform.translation, xz);
+            let distance = e_pos.distance(h_pos);
+            let Some(contact) = infer_contact_type(distance, h_vol.radius, e_vol.radius) else {
+                continue;
+            };
+            any_host = true;
+            total_overlap +=
+                equations::circle_intersection_area(distance, h_vol.radius, e_vol.radius);
+            if contact == ContactType::Surface || contact == ContactType::Immersed {
+                let viscosity = h_pressure.terrain_viscosity;
+                let host_drag = 1.0 / (1.0 + (viscosity - 1.0) * dt);
+                drag_factor *= host_drag;
+            }
+        }
+
+        if any_host {
+            let new_contact = ContainmentContact {
+                overlap_area: total_overlap,
+                drag_factor,
+            };
+            let needs_insert = contact_opt.map_or(true, |c| {
+                (c.overlap_area - new_contact.overlap_area).abs() > f32::EPSILON
+                    || (c.drag_factor - new_contact.drag_factor).abs() > f32::EPSILON
+            });
+            if needs_insert {
+                commands.entity(entity).insert(new_contact);
+            }
+        } else if contact_opt.is_some() {
+            commands.entity(entity).remove::<ContainmentContact>();
+        }
+    }
+}
+
+/// Sistema: transfiere energía térmica por los hosts activos usando `ContainmentContact`.
+/// Fase: Phase::ThermodynamicLayer — después de `containment_overlap_system`.
+pub fn containment_thermal_system(
+    fixed: Option<Res<Time<Fixed>>>,
+    time: Res<Time>,
+    layout: Res<SimWorldTransformParams>,
+    mut energy_ops: EnergyOps,
+    hosts: Query<(
+        Entity,
+        &Transform,
+        &SpatialVolume,
+        &AmbientPressure,
+        Option<&MatterCoherence>,
+        Option<&ResonanceThermalOverlay>,
+    )>,
+    targets: Query<(
+        Entity,
+        &ContainedIn,
+        &Transform,
+        &SpatialVolume,
+        Option<&MatterCoherence>,
+        Option<&ResonanceThermalOverlay>,
+    )>,
+) {
+    let dt = simulation_delta_secs(fixed, &time);
+    if dt <= 0.0 {
+        return;
+    }
+    let fallback_entity_coh = MatterCoherence::default();
+    let xz = layout.use_xz_ground;
+
+    for (entity, _contained, e_transform, e_vol, matter_opt, target_overlay_opt) in &targets {
+        let e_pos = sim_plane_pos(e_transform.translation, xz);
+        let mut entity_coh = matter_opt.cloned().unwrap_or(fallback_entity_coh.clone());
+        if let Some(overlay) = target_overlay_opt {
+            entity_coh.set_thermal_conductivity(
+                entity_coh.thermal_conductivity() * overlay.conductivity_multiplier.max(0.0),
+            );
+        }
+        let mut total_transfer = 0.0_f32;
+
+        for (host_entity, h_transform, h_vol, h_pressure, host_matter_opt, host_overlay_opt) in
+            &hosts
+        {
+            if host_entity == entity {
+                continue;
+            }
+            let h_pos = sim_plane_pos(h_transform.translation, xz);
+            let distance = e_pos.distance(h_pos);
+            let Some(contact) = infer_contact_type(distance, h_vol.radius, e_vol.radius) else {
+                continue;
+            };
+            let overlap_area =
+                equations::circle_intersection_area(distance, h_vol.radius, e_vol.radius);
+            let mut host_coh = host_matter_opt.cloned();
+            if let Some(overlay) = host_overlay_opt
+                && let Some(ref mut coh) = host_coh
+            {
+                coh.set_thermal_conductivity(
+                    coh.thermal_conductivity() * overlay.conductivity_multiplier.max(0.0),
+                );
+            }
+            total_transfer += equations::thermal_transfer(
+                contact,
+                h_pressure,
+                host_coh.as_ref(),
+                &entity_coh,
+                distance,
+                overlap_area,
+                dt,
+            );
+        }
+
+        if total_transfer > 0.0 {
+            energy_ops.inject(entity, total_transfer);
+        } else if total_transfer < 0.0 {
+            energy_ops.drain(entity, -total_transfer, DeathCause::Dissipation);
+        }
+    }
+}
+
+/// Sistema: aplica drag de viscosidad por containment usando `ContainmentContact` cacheado.
+/// Fase: Phase::ThermodynamicLayer — después de `containment_thermal_system`.
+pub fn containment_drag_system(
+    mut targets: Query<(&ContainmentContact, &mut FlowVector)>,
+) {
+    for (contact, mut flow) in &mut targets {
+        let drag_factor = contact.drag_factor;
+        if (drag_factor - 1.0).abs() > f32::EPSILON {
+            let v = flow.velocity();
+            let new_v = v * drag_factor;
+            if v != new_v {
+                flow.set_velocity(new_v, None);
+            }
+        }
+    }
+}
+
 /// Sistema: aplica transferencia termodinámica por canal según `ContainedIn`.
+#[allow(dead_code)]
 pub fn contained_thermal_transfer_system(
     fixed: Option<Res<Time<Fixed>>>,
     time: Res<Time>,

@@ -5,7 +5,6 @@ use crate::bridge::config::{
     OsmosisBridge,
 };
 
-use super::impl_bridge_defaults;
 
 const DISSIPATION_MOD: [BandDef; 4] = [
     BandDef { min: 0.0,  max: 0.25, canonical: 0.12, stable: true },

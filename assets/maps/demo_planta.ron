@@ -1,0 +1,45 @@
+(
+  width_cells: 24,
+  height_cells: 24,
+  cell_size: 1.0,
+  origin: (-12.0, -12.0),
+  warmup_ticks: Some(60),
+  seed: Some(42),
+  fog_of_war: false,
+  nuclei: [
+    (
+      name: "terra_soil",
+      position: (0.0, -3.0),
+      frequency_hz: 75.0,
+      emission_rate_qe_s: 80.0,
+      propagation_radius: 8.0,
+      decay: InverseLinear,
+      ambient_pressure: Some((
+        delta_qe: 0.8,
+        viscosity: 1.2,
+      )),
+    ),
+    (
+      name: "aqua_rain",
+      position: (0.0, 3.0),
+      frequency_hz: 250.0,
+      emission_rate_qe_s: 35.0,
+      propagation_radius: 5.0,
+      decay: InverseSquare,
+      ambient_pressure: Some((
+        delta_qe: 0.2,
+        viscosity: 0.8,
+      )),
+    ),
+    (
+      name: "lux_sun",
+      position: (0.0, 8.0),
+      frequency_hz: 1000.0,
+      emission_rate_qe_s: 25.0,
+      propagation_radius: 12.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+  ],
+  seasons: [],
+)

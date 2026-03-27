@@ -1,0 +1,24 @@
+(
+  width_cells: 16,
+  height_cells: 16,
+  cell_size: 0.5,
+  origin: (-4.0, -4.0),
+  warmup_ticks: Some(30),
+  seed: Some(7),
+  fog_of_war: false,
+  nuclei: [
+    (
+      name: "aqua_pond",
+      position: (0.0, 0.0),
+      frequency_hz: 250.0,
+      emission_rate_qe_s: 40.0,
+      propagation_radius: 3.5,
+      decay: InverseLinear,
+      ambient_pressure: Some((
+        delta_qe: 0.3,
+        viscosity: 0.5,
+      )),
+    ),
+  ],
+  seasons: [],
+)

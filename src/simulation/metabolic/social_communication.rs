@@ -223,7 +223,7 @@ mod tests {
     fn red_identity() -> MobaIdentity {
         MobaIdentity {
             faction: Faction::Red,
-            relational_tags: vec![],
+            relational_tags: Vec::new(),
             critical_multiplier: 1.0,
         }
     }
@@ -231,7 +231,7 @@ mod tests {
     fn blue_identity() -> MobaIdentity {
         MobaIdentity {
             faction: Faction::Blue,
-            relational_tags: vec![],
+            relational_tags: Vec::new(),
             critical_multiplier: 1.0,
         }
     }

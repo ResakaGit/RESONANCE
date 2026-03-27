@@ -42,6 +42,9 @@ Template base: [`00_contratos_glosario.md`](00_contratos_glosario.md).
 | `organ_role_scale` | `equations.rs` | (OrganRole, base_radius) → f32 | Escala por rol |
 | `organ_attachment_points` | `organ_inference.rs` | (spine, count, zone) → ArrayVec<OrganAttachment> | Puntos de anclaje |
 | `organ_orientation` | `organ_inference.rs` | (role, attachment, energy_dir) → (Vec3, Vec3) | Normal + tangent del órgano |
+| `organ_slot_scale` | `entity_shape.rs` | (slot, count, mobility_bias) → (f32, f32) | Length/radius per organ — front/rear asymmetry from mobility |
+| `optimal_appendage_count` | `entity_shape.rs` | (radius, fineness, density, velocity, …) → u8 | Constructal N limbs: drag×efficiency + maintenance |
+| `merge_meshes` | `geometry_flow/mod.rs` | (&[Mesh]) → Mesh | Canonical compound mesh assembly |
 
 ### Primitivas geométricas (LI4)
 

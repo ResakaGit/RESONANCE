@@ -17,3 +17,7 @@ pub const ENGINE_EFFICIENCY_FALLOFF: f32 = 0.7;
 /// Bonus fijo si el elemento objetivo está dominado (recompensa por afinidad declarada).
 pub const ENGINE_MASTERY_BONUS: f32 = 0.1;
 
+/// Squared distance beyond which entities enter macro-step LOD mode (4000 units radius).
+pub const LOD_MACRO_STEP_DIST_SQ: f32 = 4_000.0 * 4_000.0;
+/// Ticks to advance analytically when an entity enters macro-step LOD.
+pub const LOD_MACRO_STEP_TICKS: u32 = 60;

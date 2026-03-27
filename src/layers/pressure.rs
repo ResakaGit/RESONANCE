@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::blueprint::constants::{
     BIOME_LEY_LINE_DELTA_QE, BIOME_LEY_LINE_VISCOSITY, BIOME_PLAIN_DELTA_QE, BIOME_PLAIN_VISCOSITY,
@@ -14,7 +15,7 @@ use crate::blueprint::constants::{
 /// Aplicación (en sistema presion_entorno):
 ///   entidad.qe += bioma.delta_qe_constante * dt
 ///   entidad.tasa_disipacion_efectiva *= bioma.viscosidad_terreno
-#[derive(Component, Reflect, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct AmbientPressure {
     /// Inyecta (positivo) o roba (negativo) energía por segundo.
@@ -67,6 +68,15 @@ impl AmbientPressure {
         Self {
             delta_qe_constant: BIOME_TUNDRA_DELTA_QE,
             terrain_viscosity: BIOME_TUNDRA_VISCOSITY,
+        }
+    }
+
+    /// Deep space vacuum: near-zero dissipation, no energy injection.
+    /// Axiom 4 still holds (dissipation > 0) but at negligible rate.
+    pub fn vacuum() -> Self {
+        Self {
+            delta_qe_constant: 0.0,
+            terrain_viscosity: 0.001,
         }
     }
 }

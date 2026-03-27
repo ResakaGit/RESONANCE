@@ -109,9 +109,22 @@ fn reactions_use_sim_clock() {
 #[test]
 fn input_phase_no_gameplay_mutation() {
     let input = read("src/simulation/input.rs");
+    // SM-8G: grimoire_cast_intent_system split into 3 SRP systems.
+    assert!(
+        input.contains("pub fn grimoire_slot_selection_system"),
+        "missing grimoire_slot_selection_system"
+    );
+    assert!(
+        input.contains("pub fn grimoire_targeting_system"),
+        "missing grimoire_targeting_system"
+    );
+    assert!(
+        input.contains("pub fn grimoire_channeling_start_system"),
+        "missing grimoire_channeling_start_system"
+    );
     let start = input
-        .find("pub fn grimoire_cast_intent_system")
-        .expect("missing grimoire_cast_intent_system");
+        .find("pub fn grimoire_slot_selection_system")
+        .expect("missing grimoire_slot_selection_system");
     let end = input
         .find("pub fn grimoire_cast_resolve_system")
         .expect("missing grimoire_cast_resolve_system");

@@ -1,97 +1,116 @@
-# Blueprint: Mundo y Recursos Espaciales (`world`)
+# Blueprint: Mundo y Recursos Espaciales (`world/`)
 
-Módulos cubiertos: `src/world/*`.
-Referencia: `CLAUDE.md`, `docs/sprints/DEMO_PROVING_GROUNDS.md`.
+Recursos globales del mundo: indice espacial, cache de percepcion, fog of war, scoreboard.
+Define setup de escenas demo y seleccion de mapas RON.
+No implementa ecuaciones — eso vive en `simulation/` y `blueprint/`.
 
-## 1) Propósito y frontera
-
-- Mantener recursos globales del mundo (`SpatialIndex`, `PerceptionCache`, `Scoreboard`).
-- Definir setup de escenas demo (varios mapas).
-- No implementa ecuaciones de reacción/física fina (eso está en `simulation`/`blueprint`).
-
-## 2) Superficie pública (contrato)
-
-### Recursos
-
-- `SpatialIndex` — grid 2D para queries de proximidad. Usado por containment, collision, perception.
-- `PerceptionCache` — cache de observación por entidad (señal energética: `qe × vis(freq) / dist²`).
-- `Scoreboard` — métricas de partida (puntuación por facción).
-
-### Sistemas
-
-- `update_spatial_index_system` — reconstruye SpatialIndex cada tick.
-
-### Mapas y demos
-
-Los escenarios se eligen con **`RESONANCE_MAP`** → archivo **`assets/maps/{nombre}.ron`** (`worldgen/map_config.rs`). Ejemplos en repo: `default.ron`, `demo_arena.ron`, `proving_grounds.ron`, `flower_demo.ron`, `demo_floor.ron`, etc.
-
-El spawn de entidades “demo” actual pasa por **`spawn_demo_level`** / **`spawn_demo_level_startup_system`** (`demo_level.rs`): sandbox **Single-Plant** (semilla botánica + parámetros de crecimiento), no funciones separadas `spawn_demo_arena` / `spawn_proving_grounds` en `world/`.
-
-### Módulos (estado real `world/mod.rs`)
-
-```
-world/
-├── mod.rs              → re-exports públicos
-├── demo_level.rs       → spawn_demo_level, startup, telemetría semilla
-├── demo_clouds.rs      → nubes demo, movimiento
-├── fog_of_war.rs       → grilla fog alineada al campo de energía
-├── grimoire_presets.rs → presets de grimorio (contenido demo)
-├── marker.rs           → Scoreboard
-├── perception.rs       → PerceptionCache
-└── space.rs            → SpatialIndex, update_spatial_index_*
-```
-
-## 3) Invariantes y precondiciones
-
-- Índice espacial debe reconstruirse antes de consultas de vecindad.
-- La granularidad de celdas del índice condiciona precisión vs costo.
-- Escenas demo no deben romper invariantes de capas al spawnear entidades.
-- Un mapa `.ron` ambicioso (p. ej. `proving_grounds.ron`) puede ejercitar más capas/materialización; la verdad está en el contenido del mapa + arquetipos worldgen, no en un `spawn_*` dedicado en `world/`.
-
-## 4) Comportamiento runtime
+## Arquitectura interna
 
 ```mermaid
 flowchart TD
-    transforms["Transform data"]
-    spatialUpdate["update_spatial_index_system"]
-    spatialIndex["SpatialIndex"]
-    containment["containment systems"]
-    collision["collision systems"]
-    perception["perception system"]
-    ecoBoundaries["eco_boundaries_system"]
+    subgraph "Recursos globales"
+        SI["SpatialIndex<br/>(grid 2D, queries de proximidad)"]
+        PC["PerceptionCache<br/>(signal: qe x vis / dist^2)"]
+        FOG["FogOfWarGrid<br/>(grid alineado al EnergyFieldGrid)"]
+        SB["Scoreboard<br/>(puntuacion por faccion)"]
+    end
 
-    transforms --> spatialUpdate
-    spatialUpdate --> spatialIndex
-    spatialIndex --> containment
-    spatialIndex --> collision
-    spatialIndex --> perception
-    spatialIndex --> ecoBoundaries
+    subgraph "Consumidores"
+        CON["containment_system"]
+        COL["collision_system"]
+        PER["perception_system"]
+        ECO["eco_boundaries_system"]
+        FOGW["fog_of_war_system"]
+    end
+
+    TR["Transform data"] --> USI["update_spatial_index_system"]
+    USI --> SI
+
+    SI --> CON & COL & PER & ECO
+    PC --> PER
+    FOG --> FOGW
+
+    subgraph "Mapa RON"
+        ENV["RESONANCE_MAP env var"]
+        RON["assets/maps/*.ron"]
+        MC["MapConfig resource"]
+    end
+
+    ENV --> RON --> MC
+    MC --> |nuclei + config| WG["worldgen startup"]
+
+    subgraph "Demos (world/demos/)"
+        DA["demo_animal"]
+        DC["demo_celula"]
+        DP["demo_planta"]
+        DV["demo_virus"]
+        CA["competition_arena"]
+        IW["inferred_world"]
+        MG["morphogenesis_demo"]
+        SD["signal_demo"]
+        RW["round_world_rosa"]
+    end
+
+    style SI fill:#e74c3c,color:#fff
+    style FOG fill:#3498db,color:#fff
 ```
 
-- `SpatialIndex` funciona como contrato compartido entre subsistemas de proximidad.
-- `PerceptionCache` se recalcula en la fase termodinámica del pipeline (`perception_system`, `Phase::ThermodynamicLayer`).
+## Tipos exportados
 
-## 5) Implementación y trade-offs
+| Tipo | Archivo | Rol |
+|------|---------|-----|
+| `SpatialIndex` | space.rs | Grid 2D para queries de proximidad |
+| `SpatialEntry` | space.rs | Entrada: entity + position + radius |
+| `PerceptionCache` | perception.rs | Cache de observacion por entidad |
+| `FogOfWarGrid` | fog_of_war.rs | Grid de visibilidad por equipo |
+| `Scoreboard` | marker.rs | Metricas de partida por faccion |
+| `DemoMetricsHud` | demos/demo_metrics.rs | HUD de metricas para demos |
 
-- **Valor**: centralizar recursos reduce duplicación de queries espaciales.
-- **Costo**: índice 2D actual no expresa completamente escenarios 3D (heights, terrain layers).
-- **Trade-off**: throughput simple/estable hoy vs fidelidad espacial 3D completa.
-- **Mejora futura**: SpatialIndex 3D o heightmap-aware si pathfinding (G5) lo requiere.
+## Mapas disponibles (`assets/maps/`)
 
-## 6) Fallas y observabilidad
+| Mapa | Proposito |
+|------|-----------|
+| `demo_minimal` | Sandbox minimo |
+| `demo_floor` | Terreno plano base |
+| `demo_celula` | Una celula aislada |
+| `demo_virus` | Virus vs host |
+| `demo_planta` | Planta con crecimiento |
+| `demo_animal` | Animal con D1 behavior |
+| `demo_river_plateau` | Terreno con rio y meseta |
+| `demo_strata` | Capas geologicas |
+| `four_flowers` | 4 nuclei Terra-band, grid 32x32 |
+| `competition_arena` | Arena de competencia EC |
+| `inferred_world` | Mundo inferido IWG |
+| `layer_ladder` | Escalera termodinamica |
+| `proving_grounds` | Stress test: todas las capas |
+| `signal_latency_demo` | Latencia de senal |
 
-- Riesgo: mismatch entre mundo demo y perfiles de escenarios.
-- Riesgo: densidad alta en demos puede sesgar validaciones de performance.
-- Mitigación: escenarios aislados y métricas por perfil; mapas `.ron` grandes como referencia de stress.
+Seleccion: `RESONANCE_MAP=nombre cargo run` carga `assets/maps/{nombre}.ron`.
 
-## 7) Checklist de atomicidad
+## Demos (`world/demos/`)
 
-- Responsabilidad principal: sí (estado global del mundo).
-- Acoplamiento: moderado con `simulation` y `entities`.
-- Split aplicado: recursos globales + `demo_level` / nubes / fog / presets en módulos dedicados; variantes de escena = archivos `assets/maps/*.ron`.
+| Demo | Slug | Que valida |
+|------|------|------------|
+| `demo_celula` | `demo_celula` | Metabolismo basico, homeostasis |
+| `demo_planta` | `demo_planta` | Fotosintesis, crecimiento, organos |
+| `demo_animal` | `demo_animal` | D1 behavior, trophic, locomotion |
+| `demo_virus` | `demo_virus` | Parasitismo, drenaje de qe |
+| `competition_arena` | `competition_arena` | Pools, competitors, EC dynamics |
+| `inferred_world` | `inferred_world` | IWG: body plan, terrain, water |
+| `morphogenesis_demo` | `morphogenesis_demo` | MG1-7: forma, rugosity, albedo |
+| `signal_demo` | `signal_demo` | Signal propagation latency |
+| `round_world_rosa` | `round_world_rosa` | Rosa con mundo redondo |
 
-## 8) Referencias cruzadas
+## Dependencias
 
-- `CLAUDE.md` — Comandos de ejecución por mapa
-- `docs/sprints/DEMO_PROVING_GROUNDS.md` — Diseño de la demo de 14 capas
-- `docs/sprints/GAMEDEV_PATTERNS/README.md` — G12 fog implementado (`FogOfWarGrid`, `simulation/fog_of_war.rs`)
+- `crate::layers` — componentes para spawn de demos
+- `crate::entities` — funciones `spawn_*`
+- `crate::worldgen` — EnergyFieldGrid para alinear fog grid
+- `bevy::prelude` — Resource, Transform
+
+## Invariantes
+
+- `SpatialIndex` reconstruido antes de queries de vecindad
+- `FogOfWarGrid` alineado a la dimension del `EnergyFieldGrid`
+- Escenas demo no violan invariantes de capas al spawnear
+- `PerceptionCache` recalculado en `Phase::ThermodynamicLayer`

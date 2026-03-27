@@ -13,6 +13,7 @@ pub mod nucleus;
 pub mod nutrient_field;
 pub mod organ_inference;
 pub(crate) mod propagation;
+pub mod propagation_mode;
 pub mod shape_inference;
 pub(crate) mod visual_derivation;
 
@@ -40,6 +41,10 @@ pub use materialization_rules::{
     materialize_cell_at_time, materialize_cell_at_time_with_boundary,
 };
 pub use nucleus::{EnergyNucleus, PropagationDecay};
+pub use propagation_mode::{
+    NucleusEmissionState, PropagationMode,
+    diffuse_propagation_system, insert_nucleus_emission_state_system,
+};
 pub use nutrient_field::{
     COMPETITION_BASE_DRAIN_PER_EXTRA_COMPETITOR_QE, NUTRIENT_DEPLETION_RATE,
     NUTRIENT_REGEN_PER_TICK, NUTRIENT_RETURN_RATE, NUTRIENT_WRITE_EPS, NutrientCell,

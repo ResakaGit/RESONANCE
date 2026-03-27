@@ -117,7 +117,7 @@ pub fn opportunistic_generalist() -> ExtractionProfile {
         base: ExtractionType::Proportional,
         primary_param: 0.0,
         modifiers: [
-            Some(ExtractionModifier::StressResponse { threshold: 0.4, multiplier: 1.5 }),
+            Some(ExtractionModifier::StressResponse { threshold: OPPORTUNISTIC_STRESS_THRESHOLD, multiplier: REGULATED_AGGRESSIVE_MULT }),
             None, None, None,
         ],
     }
@@ -156,7 +156,7 @@ pub fn resilient_homeostatic(base_rate: f32) -> ExtractionProfile {
         base: ExtractionType::Regulated,
         primary_param: base_rate,
         modifiers: [
-            Some(ExtractionModifier::StressResponse { threshold: 0.3, multiplier: 1.2 }),
+            Some(ExtractionModifier::StressResponse { threshold: HOMEOSTATIC_STRESS_THRESHOLD, multiplier: HOMEOSTATIC_STRESS_MULT }),
             None, None, None,
         ],
     }
@@ -169,7 +169,7 @@ pub fn apex_predator(capacity: f32) -> ExtractionProfile {
         base: ExtractionType::Greedy,
         primary_param: capacity,
         modifiers: [
-            Some(ExtractionModifier::ScaleFactor { factor: 2.0 }),
+            Some(ExtractionModifier::ScaleFactor { factor: APEX_PREDATOR_SCALE_FACTOR }),
             None, None, None,
         ],
     }

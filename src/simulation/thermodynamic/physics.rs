@@ -165,6 +165,7 @@ pub fn dissipation_system(
 
 /// Integra fuerzas de voluntad + arrastre en velocidad (sin desplazar Transform).
 /// Fase: Phase::AtomicLayer
+#[allow(dead_code)]
 pub fn movement_will_drag_system(
     fixed: Option<Res<Time<Fixed>>>,
     time: Res<Time>,
@@ -258,6 +259,110 @@ pub fn movement_will_drag_system(
             v = v.normalize() * limit;
         }
         flow.set_velocity(v, None);
+    }
+}
+
+/// Aplica fuerzas de voluntad + arrastre eco → velocidad integrada. Sin SolidLock si tiene actuador.
+/// Fase: Phase::AtomicLayer
+pub fn will_to_velocity_system(
+    fixed: Option<Res<Time<Fixed>>>,
+    time: Res<Time>,
+    layout: Res<SimWorldTransformParams>,
+    ctx_lookup: ContextLookup,
+    mut query: Query<(
+        Entity,
+        &mut FlowVector,
+        &BaseEnergy,
+        &SpatialVolume,
+        &Transform,
+        Option<&WillActuator>,
+        Option<&AlchemicalEngine>,
+        Option<&MatterCoherence>,
+    )>,
+) {
+    let dt = simulation_delta_secs(fixed, &time);
+    if dt <= 0.0 {
+        return;
+    }
+    let xz = layout.use_xz_ground;
+
+    for (entity, mut flow, energy, volume, transform, actuator_opt, engine_opt, matter_opt) in
+        query.iter_mut()
+    {
+        if let Some(matter) = matter_opt {
+            if matter.state() == MatterState::Solid && actuator_opt.is_none() {
+                flow.set_velocity(Vec2::ZERO, None);
+                continue;
+            }
+        }
+
+        let will_force_vec = if let Some(actuator) = actuator_opt {
+            if actuator.can_move() {
+                let buffer = engine_opt.map(|e| e.buffer_level()).unwrap_or(energy.qe());
+                let buffer_max = engine_opt
+                    .map(|e| e.buffer_cap())
+                    .unwrap_or(ACTUATOR_FALLBACK_BUFFER_MAX);
+                equations::will_force(actuator.movement_intent(), buffer, buffer_max)
+            } else {
+                Vec2::ZERO
+            }
+        } else {
+            Vec2::ZERO
+        };
+
+        let pos = sim_plane_pos(transform.translation, xz);
+        // Viscosidad de eco (grid V7). Coexiste con containment drag (Capa 6 terrain_viscosity);
+        // contrato dual en `docs/design/ECO_BOUNDARIES.md` §2 / §8.
+        let visc = ctx_lookup.context_at(pos).viscosity.max(0.0);
+        let drag = equations::drag_force(visc, volume.density(energy.qe()), flow.velocity());
+        let net_force = will_force_vec + drag;
+
+        let v_integrated =
+            equations::integrate_velocity(flow.velocity(), net_force, energy.qe(), dt);
+        if flow.velocity() != v_integrated {
+            flow.set_velocity(v_integrated, None);
+        }
+
+        if actuator_opt.is_some()
+            && flow.velocity().length_squared() > ACTUATOR_VELOCITY_SQ_TRACE_EPSILON
+        {
+            trace!("Héroe {:?} velocidad: {:?}", entity, flow.velocity());
+        }
+    }
+}
+
+/// Aplica overlay de velocidad + clamp global al límite de materia/actuador.
+/// Fase: Phase::AtomicLayer — después de `will_to_velocity_system`.
+pub fn velocity_cap_system(
+    mut query: Query<(
+        &mut FlowVector,
+        Option<&WillActuator>,
+        Option<&MatterCoherence>,
+        Option<&ResonanceFlowOverlay>,
+    )>,
+) {
+    for (mut flow, actuator_opt, matter_opt, overlay_opt) in query.iter_mut() {
+        let mut limit = matter_opt
+            .and_then(|m| m.velocity_limit())
+            .unwrap_or(MAX_GLOBAL_VELOCITY);
+
+        if actuator_opt.is_some() && limit < ACTUATOR_MATTER_LOW_VELOCITY_CAP {
+            limit = ACTUATOR_VELOCITY_LIMIT;
+        }
+        limit = limit.min(MAX_GLOBAL_VELOCITY);
+
+        let mut v = flow.velocity();
+        if let Some(overlay) = overlay_opt {
+            v *= overlay.velocity_multiplier.max(0.0);
+        }
+        let speed = v.length();
+        v = v.clamp_length_max(limit);
+        if speed > limit && speed > 0.0 {
+            v = v.normalize() * limit;
+        }
+        if flow.velocity() != v {
+            flow.set_velocity(v, None);
+        }
     }
 }
 
@@ -481,13 +586,14 @@ pub fn collision_interference_system(
     }
 }
 
-/// Registra la cadena `Phase::AtomicLayer` (orden fijo; sprint Q5).
+/// Registra la cadena `Phase::AtomicLayer` (orden fijo; sprint Q5 + SM-8D split).
 pub fn register_physics_phase_systems<S: ScheduleLabel + Clone>(app: &mut App, schedule: S) {
     app.add_systems(
         schedule,
         (
             dissipation_system,
-            movement_will_drag_system,
+            will_to_velocity_system,
+            velocity_cap_system,
             terrain_effects_system,
             super::locomotion::locomotion_energy_drain_system,
             super::locomotion::locomotion_exhaustion_system,

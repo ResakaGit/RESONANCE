@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::blueprint::constants::DEFAULT_DISSIPATION_RATE;
 
@@ -11,7 +12,7 @@ use crate::blueprint::constants::DEFAULT_DISSIPATION_RATE;
 ///   qe -= tasa_disipacion_efectiva * dt
 ///   tasa_efectiva = tasa_disipacion + coef_friccion * |velocidad|²
 ///   F_arrastre = -0.5 * viscosidad * densidad * |v| * v
-#[derive(Component, Reflect, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct FlowVector {
     /// Dirección y rapidez (unidades/segundo).

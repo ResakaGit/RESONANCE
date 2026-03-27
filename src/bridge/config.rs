@@ -65,6 +65,71 @@ impl BridgeKind for EvolutionSurrogateBridge {}
 pub struct CompetitionNormBridge;
 impl BridgeKind for CompetitionNormBridge {}
 
+// ─── Emergence Tiers (ET-1 … ET-16) ────────────────────────────────────────
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct AssociativeMemoryBridge;
+impl BridgeKind for AssociativeMemoryBridge {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct OtherModelBridge;
+impl BridgeKind for OtherModelBridge {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct MemeSpreadBridge;
+impl BridgeKind for MemeSpreadBridge {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct FieldModBridge;
+impl BridgeKind for FieldModBridge {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct SymbiosisBridge;
+impl BridgeKind for SymbiosisBridge {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct EpigeneticBridge;
+impl BridgeKind for EpigeneticBridge {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct SenescenceBridge;
+impl BridgeKind for SenescenceBridge {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct CoalitionBridge;
+impl BridgeKind for CoalitionBridge {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct NicheOverlapBridge;
+impl BridgeKind for NicheOverlapBridge {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct TimescaleBridge;
+impl BridgeKind for TimescaleBridge {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct AggSignalBridge;
+impl BridgeKind for AggSignalBridge {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct TectonicBridge;
+impl BridgeKind for TectonicBridge {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct LODPhysicsBridge;
+impl BridgeKind for LODPhysicsBridge {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct InstitutionBridge;
+impl BridgeKind for InstitutionBridge {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct SymbolBridge;
+impl BridgeKind for SymbolBridge {}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
+pub struct SelfModelBridge;
+impl BridgeKind for SelfModelBridge {}
+
 /// Definición de una banda de normalización: rango half-open salvo la última (cerrada en `max`).
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct BandDef {

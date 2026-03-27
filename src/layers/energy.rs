@@ -1,5 +1,6 @@
 use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::blueprint::constants::DEFAULT_BASE_ENERGY;
 
@@ -12,7 +13,7 @@ use crate::events::{DeathCause, DeathEvent};
 /// Es el HP termodinámico: cuando `qe` llega a 0, la entidad se disipa o muere.
 ///
 /// Invariante: qe >= 0.0 (clampeado en todo sistema que lo modifique)
-#[derive(Component, Reflect, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct BaseEnergy {
     /// Quanta de energía (Joules mágicos). Unidad fundamental de transferencia.
@@ -51,6 +52,13 @@ impl BaseEnergy {
 
     pub fn is_dead(&self) -> bool {
         self.qe <= 0.0
+    }
+
+    /// Asigna `qe` directamente, clampeado a `[0, ∞)`.
+    /// Usar sólo en sistemas que calculan el nuevo valor externamente
+    /// (ET-5 symbiosis, ET-6 epigenetics, ET-7 senescence, etc.).
+    pub fn set_qe(&mut self, val: f32) {
+        self.qe = val.max(0.0);
     }
 }
 

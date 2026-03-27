@@ -1,45 +1,134 @@
-# Blueprint: Geometry Flow (motor stateless)
+# Blueprint: Geometry Flow (GF1 Flora-Tube Engine)
 
-Referencia de contrato para el track [`docs/sprints/GEOMETRY_FLOW/README.md`](../sprints/GEOMETRY_FLOW/README.md) y el cableado EPI3 en código (`worldgen::gf1_field_linear_rgb_qe_at_position`, `field_visual_sample`; track EPI cerrado — [`ENERGY_PARTS_INFERENCE/README.md`](../sprints/ENERGY_PARTS_INFERENCE/README.md)).  
-Template base: [`00_contratos_glosario.md`](00_contratos_glosario.md).
+**Modulo:** `src/geometry_flow/`
+**Rol:** Motor de geometria **stateless** para ejes tipo flora/flujo — spine + tubo triangular + branching + deformacion
+**Diseno:** `docs/design/V7.md` seccion GF
 
-## 1) Propósito y frontera
+---
 
-- **Qué resuelve:** generación **pura** de spine + malla 3D (flujo / flora visual) desde un DTO `GeometryInfluence`, con LOD `detail ∈ [0,1]` y color por vértice inferido sin texturas de estado.
-- **Qué no resuelve:** simulación ECS, propagación V7, física, almacenamiento de assets de imagen, ni decisión de gameplay de planta.
+## 1. Idea central
 
-## 2) Superficie pública (contrato)
+El llamador inyecta un `GeometryInfluence` (todo el contexto "de mundo" ya resuelto) y recibe un `Mesh` listo para PBR con vertex color. El motor no lee ECS ni `EnergyFieldGrid` — boundary puro.
 
-- **Rust:** `crate::geometry_flow` — `GeometryInfluence`, `SpineNode`, `build_flow_spine`, `build_flow_mesh`, `vertex_along_flow_color`.
-- **EPI3 (tinte por nodo/rama):** `build_flow_spine_painted` — el llamador inyecta `FnMut(Vec3, &GeometryInfluence) -> ([f32; 3], f32)` para RGB + `qe_norm` por punto (p. ej. vía `worldgen::gf1_field_linear_rgb_qe_at_position`); `GeometryInfluence` puede llevar `branch_role` para modular sin `match` por especie en ecuaciones.
-- **Matemática:** `crate::blueprint::equations` — `flow_push_along_tangent`, `flow_maintain_straight_segment`, `flow_steered_tangent` (y constante opcional `FLOW_STEER_ON_BREAK` si aplica).
-- **Eventos / resources:** ninguno **dentro** del núcleo; el inyector (otro módulo) puede usar `Res`/`Query`.
+---
 
-## 3) Invariantes y precondiciones
+## 2. Pipeline
 
-- `detail` se interpreta clamped a \([0,1]\) en la API pública.
-- Direcciones de entrada finitas; degeneradas → fallback documentado (sin panic).
-- `max_segments ≥ 4` (mínimo operativo del spine en GF1).
+```mermaid
+flowchart LR
+    GI[GeometryInfluence] --> BS[build_flow_spine]
+    BS --> SN["SpineNode[]"]
+    SN --> BM[build_flow_mesh]
+    BM --> M[Mesh<br>PBR + vertex color]
 
-## 4) Comportamiento runtime
+    GI --> BR[build_branched_tree]
+    BR --> BN[BranchNode tree]
+    BN --> |"por rama"| BM
 
-- **Fase:** fuera del motor — típicamente `Update` o tras snapshot de render.
-- **Orden:** después de que exista el paquete inyectado; antes de render del `Mesh`.
-- **Determinismo:** sin RNG en `geometry_flow` ni en las ecuaciones de flow spine citadas.
-- **Side-effects:** solo los que imponga el llamador al insertar `Mesh` en `Assets<Mesh>`.
+    SN --> DF[deform_spine]
+    DF --> SN2["SpineNode[] deformado"]
+    SN2 --> BM
+```
 
-## 5) Implementación y trade-offs
+---
 
-- **DoD:** buffers planos para posiciones, normales, UV, color, índices.
-- **Costo vs valor:** tubo simple alrededor del spine; ramificación L-system queda para sprints posteriores.
-- **Límite:** triángulos acotados por `detail` y techos numéricos explícitos.
+## 3. GeometryInfluence (boundary contract)
 
-## 6) Fallas y observabilidad
+```rust
+pub struct GeometryInfluence {
+    pub detail: f32,                      // LOD [0,1]
+    pub energy_direction: Vec3,           // direccion del empuje
+    pub energy_strength: f32,             // magnitud del empuje
+    pub resistance: f32,                  // resistencia del medio
+    pub least_resistance_direction: Vec3, // fallback si empuje < resistencia
+    pub length_budget: f32,               // longitud total del spine
+    pub max_segments: u32,                // techo de segmentos
+    pub radius_base: f32,                 // radio del tubo
+    pub start_position: Vec3,             // origen
+    pub qe_norm: f32,                     // [0,1] para color
+    pub tint_rgb: [f32; 3],              // RGB lineal base
+    pub branch_role: BranchRole,          // Root/Stem/Leaf/Flower
+}
+```
 
-- **NaN/Inf:** precondición del llamador; el núcleo puede usar `normalize_or_zero` y clamps.
-- **LOD cero:** `detail = 0` aún debe producir geometría mínima válida (mínimo segmentos/anillos).
+---
 
-## 7) Checklist de atomicidad
+## 4. Spine generation
 
-- ¿Una responsabilidad principal? **Sí** — solo geometría desde DTO.
-- ¿Acopla más de un dominio? **No** en el núcleo; el inyector acopla ECS/campo/almanaque.
+`build_flow_spine()` genera la polilinea del eje central:
+
+1. Inicializa posicion y tangente desde `energy_direction`
+2. Por cada segmento: evalua `flow_push_along_tangent` vs `resistance`
+3. Si empuje >= resistencia -> segmento recto
+4. Si no -> mezcla tangente con `least_resistance_direction` (blend = `FLOW_BREAK_STEER_BLEND`)
+5. Avanza `pos += tangent * step_length`
+
+`build_flow_spine_painted(influence, paint_fn)` permite muestreo de campo por nodo (color variable a lo largo del eje).
+
+---
+
+## 5. Mesh generation
+
+`build_flow_mesh(spine, influence)` construye un tubo triangular:
+
+- Anillos perpendiculares al spine (4-12 vertices segun `detail`)
+- Normals radiales, UVs (u = angulo, v = progresion)
+- Vertex color via `vertex_flow_color(qe_norm, tint_rgb, s_along, azimuth_t)`
+- Output: `Mesh` con POSITION, NORMAL, UV_0, COLOR, indices U32
+
+---
+
+## 6. Branching (GF1 recursivo)
+
+| Tipo | Rol |
+|------|-----|
+| `BranchNode` | Nodo del arbol: spine + influence + children[] |
+| `BranchRole` | Root / Stem / Leaf / Flower — modula color y atenuacion |
+
+`build_branched_tree(influence, growth_budget)`:
+- Profundidad maxima: `BRANCH_MAX_DEPTH`
+- Ramas totales maximas: `MAX_TOTAL_BRANCHES`
+- Atenuacion por nivel: radius, energy, qe, detail decaen con `BRANCH_*_DECAY`
+- Angulo de apertura: `BRANCH_ANGLE_SPREAD`
+
+---
+
+## 7. Deformacion (GF2B post-GF1)
+
+`deform_spine(payload)` aplica curvatura termodinamica al spine ya generado:
+
+```rust
+pub struct DeformationPayload {
+    pub base_spine: Vec<SpineNode>,
+    pub t_energy: Vec3,      // tensor energia
+    pub t_gravity: Vec3,     // tensor gravedad
+    pub bond_energy: f32,    // rigidez (Capa 4)
+    pub gravity_scale: f32,
+}
+```
+
+Peso cuadratico: nodo base (weight=0) fijo, punta (weight=1) maximo desplazamiento.
+`delta = deformation_delta(tangent, t_energy, t_gravity, bond_energy)`.
+`new_pos = base_pos + delta * weight^2`.
+
+---
+
+## 8. Mesh merging (compound bodies)
+
+`merge_meshes(meshes: &[Mesh]) -> Mesh` — canonical public function for combining multiple GF1 tubes into a single mesh.
+
+- Concatenates POSITION, NORMAL, UV_0, COLOR vertex buffers
+- Remaps indices with base offset per sub-mesh
+- Missing attributes synthesized with defaults (normal=[0,1,0], uv=[0,0], color=[1,1,1,1])
+- Used by `entity_shape_inference_system` for compound body mesh (torso + organs from BodyPlanLayout)
+- Also used by `worldgen/organ_inference.rs` and `worldgen/inference/organ.rs` (delegate to this canonical version)
+
+---
+
+## 9. Invariantes
+
+1. **Stateless:** misma `GeometryInfluence` -> mismo spine y mesh (determinista)
+2. **Sin ECS:** el motor no accede a World ni Resources
+3. **LOD monotono:** mas `detail` nunca reduce triangulos
+4. **Ecuaciones en blueprint:** toda la math vive en `blueprint/equations/` (branch_attenuation, deformation_delta, vertex_flow_color, etc.)
+5. **merge_meshes determinista:** mismo input meshes → mismo output mesh (vertex order preserved)

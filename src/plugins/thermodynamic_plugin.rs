@@ -45,7 +45,9 @@ impl Plugin for ThermodynamicPlugin {
             (
                 simulation::containment::containment_system,
                 simulation::structural_runtime::structural_constraint_system,
-                simulation::containment::contained_thermal_transfer_system,
+                simulation::containment::containment_overlap_system,
+                simulation::containment::containment_thermal_system,
+                simulation::containment::containment_drag_system,
                 simulation::pre_physics::reset_resonance_overlay_system,
                 simulation::pre_physics::resonance_link_system,
                 simulation::pre_physics::sync_injector_projected_qe_system,

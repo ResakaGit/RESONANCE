@@ -1,17 +1,97 @@
-# Blueprint: Entidades y Arquetipos (`entities`)
+# Blueprint: Entidades y Arquetipos (`entities/`)
 
-Módulos cubiertos: `src/entities/*`.
-Referencia: `DESIGNING.md` (tipos A/B, complejidad por niveles), `.cursor/skills/bevy-ecs-resonance/SKILL.md`.
+Encapsula la construccion de entidades ECS desde presets coherentes.
+Composicion declarativa via `EntityBuilder` + funciones `spawn_*` por arquetipo.
+Solo define estado inicial — la dinamica temporal vive en `simulation/`.
 
-## 1) Propósito y frontera
+## Jerarquia de arquetipos
 
-- Encapsular la construcción de entidades ECS desde presets coherentes.
-- Mantener composición declarativa para héroes, proyectiles, biomas y efectos.
-- No ejecuta dinámica temporal; solo define estado inicial.
+```mermaid
+flowchart TD
+    P["Particle<br/>L0+L1+L2"]
+    S["Stone<br/>L0+L1+L4"]
+    D["Dummy<br/>L0+L1+L4"]
 
-## 2) Superficie pública (contrato)
+    P --> PR["Projectile<br/>+L3+L8"]
+    S --> CR["Crystal<br/>+L2+L3+L5"]
 
-### EntityBuilder (API fluent)
+    C["Celula<br/>L0-L5+L9+L12"]
+    C --> V["Virus<br/>Celula minimal"]
+    C --> FL["Flora<br/>+L13 structural"]
+
+    FL --> R["Rosa"]
+    FL --> O["Oak"]
+    FL --> M["Moss"]
+
+    C --> PL["Planta<br/>+GrowthBudget+Organs"]
+
+    PL --> MO["MorphoOrganism<br/>+MetabolicGraph+InferenceProfile"]
+    MO --> AQ["Aquatic organism"]
+    MO --> DE["Desert organism"]
+    MO --> FO["Forest organism"]
+
+    AN["Animal<br/>L0-L7+L6+L9+L12<br/>+BehavioralAgent<br/>+ConstructalBodyPlan"]
+    AN --> H["Hero<br/>+L8+L10+L11<br/>+Grimoire+Champion"]
+
+    H --> FM["FireMage<br/>Ignis 450Hz"]
+    H --> EW["EarthWarrior<br/>Terra 75Hz"]
+    H --> PA["PlantAssassin<br/>Umbra 20Hz"]
+    H --> LH["LightHealer<br/>Lux 1000Hz"]
+    H --> WS["WindShooter<br/>Ventus 700Hz"]
+    H --> WT["WaterTank<br/>Aqua 250Hz"]
+
+    B["Biome<br/>L0+L1+L4+L6"]
+    LK["LavaKnight<br/>L0-L8"]
+    EF["Effect<br/>L0+L3+L10"]
+
+    PO["Pool<br/>EnergyPool+L6"]
+    PO --> CP["Competitor<br/>PoolParentLink"]
+    PO --> SP["SubPool"]
+
+    style H fill:#e74c3c,color:#fff
+    style MO fill:#27ae60,color:#fff
+    style PO fill:#3498db,color:#fff
+```
+
+## Funciones spawn por modulo
+
+| Modulo | Funcion | Entidad | Capas principales |
+|--------|---------|---------|-------------------|
+| **catalog.rs** | `spawn_celula` | Celula | L0-L5, L9, L12 |
+| | `spawn_virus` | Virus | L0-L4, L9 |
+| | `spawn_planta` | Planta | L0-L5, L9, L12, L13 |
+| | `spawn_animal` | Animal | L0-L7, L6, L9, L12 + constructal body plan |
+| **flora.rs** | `spawn_rosa` | Rosa | Flora + GF1 shape |
+| | `spawn_oak` | Oak | Flora + high bond_energy |
+| | `spawn_moss` | Moss | Flora + low energy |
+| **morphogenesis.rs** | `spawn_aquatic_organism` | Aquatic | MorphoOrganism + Aqua band |
+| | `spawn_desert_organism` | Desert | MorphoOrganism + Ignis band |
+| | `spawn_forest_organism` | Forest | MorphoOrganism + Terra band |
+| **heroes.rs** | `spawn_hero(HeroClass)` | Hero | L0-L9 + L11, L12 |
+| **world_entities.rs** | `spawn_effect` | Effect | L0, L3, L10 |
+| | `spawn_dummy` | Dummy | L0, L1, L4 |
+| | `spawn_projectile` | Projectile | L0-L3, L8 |
+| | `spawn_crystal` | Crystal | L0-L5 |
+| | `spawn_biome` | Biome | L0, L1, L4, L6 |
+| | `spawn_particle` | Particle | L0, L1, L2 |
+| | `spawn_stone` | Stone | L0, L1, L4 |
+| | `spawn_lava_knight` | LavaKnight | L0-L8 |
+| **competition.rs** | `spawn_pool` | Pool | EnergyPool, L6 |
+| | `spawn_competitor` | Competitor | PoolParentLink |
+| | `spawn_sub_pool` | SubPool | nested pool |
+
+## HeroClass (6 clases)
+
+| Clase | Elemento | Frecuencia | Perfil |
+|-------|----------|-----------|--------|
+| FireMage | Ignis | 450 Hz | Alta energia, bajo radio |
+| EarthWarrior | Terra | 75 Hz | Alta cohesion, alta bond_energy |
+| PlantAssassin | Umbra | 20 Hz | Baja energia, alta velocidad |
+| LightHealer | Lux | 1000 Hz | Buffer grande, alta visibilidad |
+| WindShooter | Ventus | 700 Hz | Largo rango, alta disipacion |
+| WaterTank | Aqua | 250 Hz | Maxima cohesion, alta viscosidad |
+
+## EntityBuilder (API fluent)
 
 ```rust
 EntityBuilder::new()
@@ -21,106 +101,22 @@ EntityBuilder::new()
     .volume(0.8)             // L1
     .wave(element_id)        // L2
     .flow(Vec2::ZERO, 0.01)  // L3
-    .matter(Solid, 2000.0, 0.6)  // L4
-    .motor(1500.0, 8.0, 80.0, 750.0)  // L5
+    .matter(Solid, 2000.0)   // L4
+    .motor(1500.0, 8.0)      // L5
     .will_default()          // L7
     .identity(Red, vec![Hero], 1.5)  // L9
-    .sim_world_layout(&layout)
     .spawn(commands)
 ```
 
-### Spawners de arquetipo
+## Dependencias
 
-| Función | Capas | Tipo |
-|---------|-------|------|
-| `spawn_hero(HeroClass)` | L0-L9 + opcionales L11,L12,L13 | A |
-| `spawn_projectile()` | L0,L1,L2,L3,L8 | B (L8) |
-| `spawn_biome(BiomeType)` | L0,L1,L2,L3,L4,L6 | B (L6) |
-| `spawn_crystal()` | L0,L1,L2,L3,L4,L5 | A |
-| `spawn_stone()` | L0,L1,L2,L3,L4 | A |
-| `spawn_particle()` | L0,L1,L2,L3 | A |
-| `spawn_lava_knight()` | L0-L8 | A+B |
-| `spawn_effect()` | L0,L3,L10 | B (L10) |
+- `crate::layers` — todos los componentes de las 14 capas
+- `crate::blueprint::constants` — valores por defecto de arquetipos
+- `bevy::prelude` — Commands, Entity, Transform
 
-### HeroClass enum (6 clases)
+## Invariantes
 
-| Clase | Elemento | Características |
-|-------|----------|----------------|
-| FireMage | Ignis (450 Hz) | Alta energía, bajo radio |
-| EarthWarrior | Terra (75 Hz) | Alta cohesión, alta bond_energy |
-| PlantAssassin | Umbra (20 Hz) | Baja energía, alta velocidad, invisible natural |
-| LightHealer | Lux (1000 Hz) | Buffer grande, alta visibilidad |
-| WindShooter | Ventus (700 Hz) | Largo rango, alta disipación |
-| WaterTank | Aqua (250 Hz) | Máxima cohesión, alta viscosidad |
-
-### BiomeType enum (6 tipos)
-
-| Tipo | delta_qe | viscosity | Comportamiento |
-|------|----------|-----------|---------------|
-| Plain | 0.0 | 1.0 | Neutral |
-| Volcano | -5.0 | 2.0 | Drena energía, terreno pesado |
-| LeyLine | +10.0 | 0.5 | Inyecta energía, terreno liviano |
-| Swamp | -2.0 | 3.0 | Drena poco, mucha viscosidad |
-| Tundra | -3.0 | 1.5 | Drena medio, frío |
-| Desert | -1.0 | 1.2 | Drena poco, seco |
-
-### Configs de composición
-
-- `PhysicsConfig` — radio, disipación
-- `InjectorConfig` — qe proyectado, frecuencia forzada, radio
-- `EngineConfig` — buffer, valves
-- `MatterConfig` — estado, bond_energy, conductividad
-- `PressureConfig` — delta_qe, viscosidad
-- `EffectConfig` — target, campo modificado, magnitud
-
-## 3) Invariantes y precondiciones
-
-- Configs deben respetar invariantes numéricas de componentes en `layers` (qe >= 0, radius >= 0.01).
-- `spawn_projectile` define correctamente flags de colisión/despawn.
-- `spawn_effect` crea entidad Tipo B (L10) con su propia qe — la duración emerge de disipación.
-- Derivaciones que dependen de sistemas (ej. frecuencia final) corren luego en `simulation`.
-
-## 4) Comportamiento runtime
-
-```mermaid
-flowchart LR
-    archetypes["entities/archetypes"]
-    builder["EntityBuilder"]
-    ecsSpawn["Commands::spawn"]
-    layersState["14 capas"]
-    simulationDomain["simulation systems"]
-
-    archetypes --> builder
-    builder --> ecsSpawn
-    ecsSpawn --> layersState
-    layersState --> simulationDomain
-```
-
-- El módulo define semilla de estado; la simulación refina ese estado en tiempo.
-- Demos (demo_level, demo_arena, proving_grounds) usan las funciones de spawn con presets.
-
-## 5) Implementación y trade-offs
-
-- **Valor**: factories explícitas, menos boilerplate al spawnear. EntityBuilder soporta las 14 capas.
-- **Costo**: presets hardcodeados acoplan tuning de gameplay al código.
-- **Trade-off**: velocidad de iteración vs data-driven completo (futuro: RON assets para héroes).
-- **Futuro (G6):** marker components con `#[require]` (AlchemicalBase, WaveEntity, Champion) complementarán EntityBuilder.
-
-## 6) Fallas y observabilidad
-
-- Falla común: preset inválido que viola invariantes de capa.
-- Riesgo: defaults silenciosos que ocultan error de diseño de arquetipo.
-- Mitigación: centralizar validaciones en configs y tests de spawn. `new()` constructors con clamping.
-
-## 7) Checklist de atomicidad
-
-- Responsabilidad principal: sí (composición/spawn).
-- Acoplamiento: moderado con `layers`, bajo con runtime.
-- Split futuro: separar presets demo de presets productivos. Data-driven hero definitions (RON).
-
-## 8) Referencias cruzadas
-
-- `DESIGNING.md` — Tipos A/B, complejidad por niveles
-- `.cursor/skills/bevy-ecs-resonance/SKILL.md` — Entity archetypes table
-- `docs/sprints/GAMEDEV_PATTERNS/README.md` — G6 `#[require]` (sprint doc eliminado)
-- `docs/sprints/DEMO_PROVING_GROUNDS.md` — Demo que ejercita 14 capas
+- Configs respetan invariantes numericas de `layers/` (qe >= 0, radius >= 0.01)
+- `spawn_projectile` define flags de colision/despawn
+- `spawn_effect` crea entidad Tipo B (L10) — duracion emerge de disipacion
+- Derivaciones que dependen de sistemas corren luego en `simulation/`

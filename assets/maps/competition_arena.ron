@@ -1,0 +1,45 @@
+(
+  width_cells: 32,
+  height_cells: 32,
+  cell_size: 1.0,
+  origin: (-16.0, -16.0),
+  warmup_ticks: None,
+  seed: Some(42),
+  fog_of_war: false,
+  nuclei: [
+    (
+      name: "forest_nucleus",
+      position: (-8.0, -8.0),
+      frequency_hz: 75.0,
+      emission_rate_qe_s: 100.0,
+      propagation_radius: 6.0,
+      decay: InverseSquare,
+      ambient_pressure: Some((
+        delta_qe: 1.0,
+        viscosity: 1.0,
+      )),
+    ),
+    (
+      name: "desert_nucleus",
+      position: (8.0, -8.0),
+      frequency_hz: 450.0,
+      emission_rate_qe_s: 30.0,
+      propagation_radius: 4.0,
+      decay: InverseSquare,
+      ambient_pressure: None,
+    ),
+    (
+      name: "ocean_nucleus",
+      position: (0.0, 8.0),
+      frequency_hz: 200.0,
+      emission_rate_qe_s: 80.0,
+      propagation_radius: 8.0,
+      decay: InverseLinear,
+      ambient_pressure: Some((
+        delta_qe: 0.5,
+        viscosity: 2.5,
+      )),
+    ),
+  ],
+  seasons: [],
+)

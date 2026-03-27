@@ -2,6 +2,17 @@
 
 ## [Unreleased] — 2026-03-25
 
+### Added — AC-1–AC-5: Axiomatic Closure (cross-axiom dynamics)
+- **AC-1**: `metabolic_interference_factor` / `apply_metabolic_interference` in `blueprint/equations/energy_competition/metabolic_interference.rs` (15 tests). `trophic_predation_attempt_system` scales assimilation by oscillatory alignment between predator and prey (Axiom 3×8)
+- **AC-2**: Kuramoto entrainment in `blueprint/equations/emergence/entrainment.rs` (12 tests) + `simulation/emergence/entrainment.rs` system (4 integration tests). Distance-weighted frequency alignment via `Phase::AtomicLayer`
+- **AC-3**: `frequency_imitation_affinity` + `should_imitate_with_affinity` in `blueprint/equations/emergence/culture.rs` (12 tests). `cultural_transmission_system` gates imitation by oscillatory affinity (Axiom 6×8)
+- **AC-4**: `frequency_purity_at_distance` + `entrainment_coupling_at_distance` in `blueprint/equations/signal_propagation.rs` (11 tests). Exponential spatial decay for entrainment coupling (Axiom 7×8)
+- **AC-5**: `cooperation_is_beneficial` + `extraction_estimate_in_group` + `defection_temptation` in `blueprint/equations/emergence/symbiosis.rs` (10 tests). `cooperation_evaluation_system` in `simulation/cooperation.rs` (3 integration tests). Nash-stable alliance detection with AC-1 interference cost
+- **Events**: `AllianceProposedEvent`, `AllianceDefectEvent` in `events.rs`, registered in bootstrap
+- **Constants**: `METABOLIC_INTERFERENCE_FLOOR`, `KURAMOTO_BASE_COUPLING`, `ENTRAINMENT_SCAN_RADIUS`, `COOPERATION_GROUP_BONUS`, `COOPERATION_DEFECT_THRESHOLD`, `CULTURE_COHERENCE_IMITATION_BONUS_CAP`
+- **Plugins**: `AtomicPlugin` registers entrainment after spatial index; `MetabolicPlugin` registers cooperation after trophic
+- **Test count**: 1721 → 2150
+
 ### Added — Sprint MG-8: Morphogenesis Integration & Demo
 - **EntityBuilder**: `with_organ_manifest()`, `with_metabolic_graph_inferred()`, `with_metabolic_graph()`, `irradiance()` methods for metabolic graph composition
 - **Archetypes**: `spawn_aquatic_organism`, `spawn_desert_plant`, `spawn_desert_creature`, `spawn_forest_plant` with `MorphogenesisSpawnPreset` constants

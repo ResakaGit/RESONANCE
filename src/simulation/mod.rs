@@ -4,6 +4,7 @@ use bevy::prelude::*;
 pub mod thermodynamic;
 pub mod metabolic;
 pub mod lifecycle;
+pub mod emergence;
 
 // Re-exports transparentes: preservan `crate::simulation::module` para todo el codebase.
 pub use thermodynamic::containment;
@@ -15,14 +16,19 @@ pub use thermodynamic::sensory;
 pub use thermodynamic::homeostasis_thermo;
 pub use thermodynamic::structural_runtime;
 
+pub use metabolic::atmosphere_inference;
+pub use metabolic::competition_dynamics;
+pub use metabolic::ecology_dynamics;
 pub use metabolic::growth_budget;
 pub use metabolic::metabolic_stress;
 pub use metabolic::morphogenesis;
 pub use metabolic::nutrient_uptake;
 pub use metabolic::photosynthesis;
+pub use metabolic::pool_conservation;
+pub use metabolic::pool_distribution;
+pub use metabolic::scale_composition;
 pub use metabolic::social_communication;
 pub use metabolic::trophic;
-pub use metabolic::ecology_dynamics;
 
 pub use lifecycle::allometric_growth;
 pub use lifecycle::competitive_exclusion;
@@ -33,8 +39,14 @@ pub use lifecycle::morpho_adaptation;
 pub use lifecycle::organ_lifecycle;
 
 // --- Módulos en raíz (cross-cutting) ---
+pub mod netcode;
+pub mod culture_observation;
 pub mod ability_targeting;
+pub mod game_loop;
+pub mod checkpoint_system;
 pub mod abiogenesis;
+pub mod cooperation;
+pub mod observability;
 pub mod behavior;
 pub mod atomic;
 mod bootstrap;

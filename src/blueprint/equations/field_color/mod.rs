@@ -75,3 +75,37 @@ pub fn neutral_field_visual_linear_rgb() -> [f32; 3] {
 pub fn field_linear_rgb_sanitize_finite(rgb: [f32; 3]) -> [f32; 3] {
     if rgb.iter().all(|x| x.is_finite()) { rgb } else { neutral_field_visual_linear_rgb() }
 }
+
+/// Color por vértice de flujo en RGBA lineal (vertex color stateless para GF1 / primitivas de órgano).
+///
+/// Fórmula: `gain = (0.75 + 0.25 * s_along) * (0.7 + 0.3 * qe_norm)`; borde oscuro proporcional al azimut.
+/// Inputs: `qe_norm` ∈ [0,1], `tint_rgb` lineal, `s_along` ∈ [0,1] (fracción longitudinal),
+/// `azimuth_along_ring` ∈ [0,1] (fracción angular del anillo).
+#[inline]
+pub fn vertex_flow_color(qe_norm: f32, tint_rgb: [f32; 3], s_along: f32, azimuth_along_ring: f32) -> [f32; 4] {
+    let q = qe_norm.clamp(0.0, 1.0);
+    let edge = (1.0 - azimuth_along_ring.clamp(0.0, 1.0)) * 0.15;
+    let g = (0.75 + 0.25 * s_along.clamp(0.0, 1.0)) * (0.7 + 0.3 * q);
+    [
+        (tint_rgb[0] * g - edge).clamp(0.0, 1.0),
+        (tint_rgb[1] * g - edge).clamp(0.0, 1.0),
+        (tint_rgb[2] * g - edge).clamp(0.0, 1.0),
+        1.0,
+    ]
+}
+
+/// Tinte de pétalo: `ring_t` ∈ [0,1] (pétalos externos más claros), `u` ∈ [0,1] (base→punta).
+///
+/// Aplica sombreado radial y longitudinal antes de delegar a [`vertex_flow_color`].
+#[inline]
+pub fn petal_shaded_flow_color(tint_rgb: [f32; 3], ring_t: f32, u: f32, qe_norm: f32, v: f32) -> [f32; 4] {
+    let ring_shade = 0.70 + 0.30 * ring_t.clamp(0.0, 1.0);
+    let along_shade = 0.75 + 0.25 * u.clamp(0.0, 1.0);
+    let shade = ring_shade * along_shade;
+    let tinted = [
+        (tint_rgb[0] * shade).clamp(0.0, 1.0),
+        (tint_rgb[1] * shade).clamp(0.0, 1.0),
+        (tint_rgb[2] * shade).clamp(0.0, 1.0),
+    ];
+    vertex_flow_color(qe_norm, tinted, u, v)
+}

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    blueprint::{AlchemicalAlmanac, IdGenerator, constants},
+    blueprint::{AlchemicalAlmanac, constants},
     entities::EffectConfig,
     entities::archetypes::{spawn_projectile, spawn_resonance_effect},
     events::{
@@ -19,8 +19,21 @@ use crate::{
     simulation::grimoire_enqueue::enqueue_grimoire_cast_intent,
 };
 
-/// Sistema: Lee input del teclado y lo traduce a intención de movimiento.
-/// Fase: Phase::Input
+// ─── Internal signal ─────────────────────────────────────────────────────────
+
+/// Player pressed an ability key this tick.
+/// Produced by `grimoire_slot_selection_system`, consumed by `grimoire_targeting_system`
+/// and `grimoire_channeling_start_system` in the same frame.
+#[derive(Event, Debug, Clone, Copy)]
+pub struct SlotActivatedEvent {
+    pub caster: Entity,
+    pub slot_index: usize,
+}
+
+// ─── Systems ──────────────────────────────────────────────────────────────────
+
+/// Translates keyboard input to movement intent.
+/// Phase: Phase::Input
 pub fn will_input_system(
     input: Res<ButtonInput<KeyCode>>,
     mut query: Query<&mut WillActuator, With<PlayerControlled>>,
@@ -46,35 +59,20 @@ pub fn will_input_system(
         } else {
             Vec2::ZERO
         };
-        actuator.set_movement_intent(movement);
+        if actuator.movement_intent() != movement {
+            actuator.set_movement_intent(movement);
+        }
     }
 }
 
-/// Q / F / E / R + targeting → pending grimorio (sin spawn ni drenaje L5). Resolución: `grimoire_cast_resolve_system`.
-/// Fase: Phase::Input
-pub fn grimoire_cast_intent_system(
+/// Q / F / E / R key press → writes active slot + fires `AbilitySelectionEvent` + `SlotActivatedEvent`.
+/// Phase: Phase::Input, InputChannelSet::SimulationRest
+pub fn grimoire_slot_selection_system(
     input: Res<ButtonInput<KeyCode>>,
-    mut commands: Commands,
-    mut targeting: ResMut<TargetingState>,
+    mut query: Query<(Entity, &Grimoire, &mut WillActuator), With<PlayerControlled>>,
+    mut slot_ev: EventWriter<SlotActivatedEvent>,
     mut select_ev: EventWriter<AbilitySelectionEvent>,
-    mut cast_ev: EventWriter<AbilityCastEvent>,
-    mut pending_proj: EventWriter<GrimoireProjectileCastPending>,
-    mut pending_self: EventWriter<GrimoireSelfBuffCastPending>,
-    mut query: Query<
-        (
-            Entity,
-            &mut WillActuator,
-            &Transform,
-            &SpatialVolume,
-            &Grimoire,
-            &AlchemicalEngine,
-        ),
-        With<PlayerControlled>,
-    >,
-    layout: Res<SimWorldTransformParams>,
-    almanac: Res<AlchemicalAlmanac>,
 ) {
-    // Q / F / E / R: en Full3d el WASD no entra al IntentBuffer (pan MOBA); W libre para pan.
     const KEYS: [(KeyCode, usize); 4] = [
         (KeyCode::KeyQ, 0),
         (KeyCode::KeyF, 1),
@@ -82,7 +80,7 @@ pub fn grimoire_cast_intent_system(
         (KeyCode::KeyR, 3),
     ];
 
-    for (caster, mut will, tf, vol, grim, eng) in &mut query {
+    for (caster, grim, mut will) in &mut query {
         let n = grim.abilities().len();
         if n == 0 {
             continue;
@@ -95,38 +93,83 @@ pub fn grimoire_cast_intent_system(
                 break;
             }
         }
-        let Some(idx) = picked else {
-            continue;
-        };
+        let Some(idx) = picked else { continue; };
 
         if will.active_slot() != Some(idx) {
             will.set_active_slot(Some(idx));
         }
-        let slot = &grim.abilities()[idx];
-        let mode = slot.targeting().clone();
+        select_ev.send(AbilitySelectionEvent { caster, slot_index: idx });
+        slot_ev.send(SlotActivatedEvent { caster, slot_index: idx });
+    }
+}
 
-        select_ev.send(AbilitySelectionEvent {
-            caster,
-            slot_index: idx,
-        });
-
+/// Reads `SlotActivatedEvent` → sets `TargetingState.active` for abilities requiring player targeting.
+/// Phase: Phase::Input, after `grimoire_slot_selection_system`
+pub fn grimoire_targeting_system(
+    mut slot_ev: EventReader<SlotActivatedEvent>,
+    grimoire_q: Query<&Grimoire>,
+    mut targeting: ResMut<TargetingState>,
+) {
+    for ev in slot_ev.read() {
+        let Ok(grim) = grimoire_q.get(ev.caster) else { continue; };
+        if ev.slot_index >= grim.abilities().len() {
+            continue;
+        }
+        let mode = grim.abilities()[ev.slot_index].targeting().clone();
         match mode {
+            TargetingMode::PointTarget { .. }
+            | TargetingMode::AreaTarget { .. }
+            | TargetingMode::UnitTarget { .. } => {
+                targeting.active = Some(ActiveTargeting {
+                    caster: ev.caster,
+                    slot_index: ev.slot_index,
+                    mode,
+                });
+            }
+            TargetingMode::NoTarget | TargetingMode::DirectionTarget { .. } => {}
+        }
+    }
+}
+
+/// Reads `SlotActivatedEvent` → inserts `Channeling` or dispatches immediate cast
+/// for `NoTarget` and `DirectionTarget` abilities.
+/// Phase: Phase::Input, after `grimoire_targeting_system`
+pub fn grimoire_channeling_start_system(
+    mut slot_ev: EventReader<SlotActivatedEvent>,
+    mut commands: Commands,
+    query: Query<
+        (&Transform, &SpatialVolume, &Grimoire, &AlchemicalEngine, &WillActuator),
+        With<PlayerControlled>,
+    >,
+    layout: Res<SimWorldTransformParams>,
+    almanac: Res<AlchemicalAlmanac>,
+    mut cast_ev: EventWriter<AbilityCastEvent>,
+    mut pending_proj: EventWriter<GrimoireProjectileCastPending>,
+    mut pending_self: EventWriter<GrimoireSelfBuffCastPending>,
+) {
+    for ev in slot_ev.read() {
+        let Ok((tf, vol, grim, eng, will)) = query.get(ev.caster) else { continue; };
+        if ev.slot_index >= grim.abilities().len() {
+            continue;
+        }
+        let slot = &grim.abilities()[ev.slot_index];
+        match slot.targeting().clone() {
             TargetingMode::NoTarget => {
                 if slot.min_channeling_secs() > 0.0 {
-                    commands.entity(caster).insert(Channeling {
+                    commands.entity(ev.caster).insert(Channeling {
                         remaining_secs: slot.min_channeling_secs(),
-                        slot_index: idx,
+                        slot_index: ev.slot_index,
                         target: AbilityTarget::None,
                     });
                 } else {
                     let _ = enqueue_grimoire_cast_intent(
-                        caster,
-                        idx,
+                        ev.caster,
+                        ev.slot_index,
                         grim,
                         eng,
                         tf,
                         vol,
-                        &*will,
+                        will,
                         AbilityTarget::None,
                         &layout,
                         &almanac,
@@ -135,15 +178,6 @@ pub fn grimoire_cast_intent_system(
                         &mut pending_self,
                     );
                 }
-            }
-            TargetingMode::PointTarget { .. }
-            | TargetingMode::AreaTarget { .. }
-            | TargetingMode::UnitTarget { .. } => {
-                targeting.active = Some(ActiveTargeting {
-                    caster,
-                    slot_index: idx,
-                    mode,
-                });
             }
             TargetingMode::DirectionTarget { .. } => {
                 let d = will.movement_intent();
@@ -158,20 +192,20 @@ pub fn grimoire_cast_intent_system(
                     AbilityTarget::Direction(dir3.normalize())
                 };
                 if slot.min_channeling_secs() > 0.0 {
-                    commands.entity(caster).insert(Channeling {
+                    commands.entity(ev.caster).insert(Channeling {
                         remaining_secs: slot.min_channeling_secs(),
-                        slot_index: idx,
+                        slot_index: ev.slot_index,
                         target: at,
                     });
                 } else {
                     let _ = enqueue_grimoire_cast_intent(
-                        caster,
-                        idx,
+                        ev.caster,
+                        ev.slot_index,
                         grim,
                         eng,
                         tf,
                         vol,
-                        &*will,
+                        will,
                         at,
                         &layout,
                         &almanac,
@@ -181,14 +215,19 @@ pub fn grimoire_cast_intent_system(
                     );
                 }
             }
+            TargetingMode::PointTarget { .. }
+            | TargetingMode::AreaTarget { .. }
+            | TargetingMode::UnitTarget { .. } => {
+                // Handled by `grimoire_targeting_system`.
+            }
         }
     }
 }
 
-/// Materializa proyectiles pendientes y consume buffer del motor (PrePhysics).
+/// Materializes pending projectiles and drains engine buffer (ThermodynamicLayer).
 pub fn grimoire_cast_resolve_system(
     mut commands: Commands,
-    mut id_gen: ResMut<IdGenerator>,
+    mut id_gen: ResMut<crate::blueprint::IdGenerator>,
     layout: Res<SimWorldTransformParams>,
     mut pending_proj: EventReader<GrimoireProjectileCastPending>,
     mut pending_self: EventReader<GrimoireSelfBuffCastPending>,

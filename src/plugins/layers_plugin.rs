@@ -20,11 +20,14 @@ impl Plugin for LayersPlugin {
             .register_type::<crate::blueprint::ChampionId>()
             .register_type::<crate::blueprint::WorldEntityId>()
             .register_type::<crate::blueprint::EffectId>()
+            .register_type::<crate::blueprint::IdGenerator>()
             // Jerarquía #[require] (sprint G6)
             .register_type::<crate::layers::AlchemicalBase>()
             .register_type::<crate::layers::WaveEntity>()
             .register_type::<crate::layers::MobileEntity>()
             .register_type::<crate::layers::Champion>()
+            // Shape inference marker (Gap 1 / MG-9)
+            .register_type::<crate::layers::HasInferredShape>()
             // Capa 0
             .register_type::<BaseEnergy>()
             // Capa 1
@@ -80,6 +83,8 @@ impl Plugin for LayersPlugin {
             .register_type::<crate::layers::MorphogenesisShapeParams>()
             .register_type::<crate::layers::InferredAlbedo>()
             .register_type::<crate::layers::MorphogenesisSurface>()
+            // M2: LOD macro-step marker
+            .register_type::<crate::layers::MacroStepTarget>()
             // Energy Competition (EC-2)
             .register_type::<crate::layers::EnergyPool>()
             .register_type::<crate::layers::ExtractionType>()

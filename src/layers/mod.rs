@@ -1,4 +1,13 @@
 pub mod behavior;
+pub mod body_plan_layout;
+pub mod epigenetics;
+pub mod language;
+pub mod niche;
+pub mod other_model;
+pub mod self_model;
+pub mod senescence;
+pub mod symbiosis;
+pub mod timescale;
 pub mod coherence;
 pub mod containment;
 pub mod derived;
@@ -8,6 +17,7 @@ pub mod engine;
 pub mod entropy_ledger;
 pub mod flow;
 pub mod growth;
+pub mod has_inferred_shape;
 pub mod homeostasis;
 pub mod identity;
 pub mod inference;
@@ -20,8 +30,10 @@ pub mod metabolic_graph;
 pub mod morphogenesis_surface;
 pub mod nutrient;
 pub mod oscillatory;
+pub mod macro_step;
 pub mod organ;
 pub mod performance_cache;
+pub mod pool_ledger;
 pub mod pool_link;
 pub mod pressure;
 pub mod shape_params;
@@ -34,6 +46,8 @@ pub mod volume;
 pub mod will;
 
 // Componentes — re-exportación pública
+pub use body_plan_layout::BodyPlanLayout;
+pub use has_inferred_shape::HasInferredShape;
 pub use behavior::{
     BehaviorCooldown, BehaviorIntent, BehaviorMode, BehavioralAgent, EnergyAssessment,
     SensoryAwareness,
@@ -64,6 +78,8 @@ pub use metabolic_graph::{
 };
 pub use nutrient::NutrientProfile;
 pub use oscillatory::{OscillatorySignature, compute_interference_total};
+pub use macro_step::MacroStepTarget;
+pub use pool_ledger::PoolConservationLedger;
 pub use pool_link::{ExtractionType, PoolParentLink};
 pub use organ::{
     GeometryPrimitive, LifecycleStage, LifecycleStageCache, OrganManifest, OrganRole, OrganSpec,
@@ -83,6 +99,15 @@ pub use will::{
     Grimoire, MAX_GRIMOIRE_ABILITIES, OnContactEffect, ProjectedQeFromEnergy, TargetingMode,
     WillActuator,
 };
+
+pub use epigenetics::EpigeneticState;
+pub use language::{LanguageCapacity, MAX_VOCAB_SIZE};
+pub use niche::NicheProfile;
+pub use other_model::{OtherModel, OtherModelSet, MAX_MODELS};
+pub use self_model::{FunctionallyConscious, SelfModel};
+pub use senescence::SenescenceProfile;
+pub use symbiosis::{SymbiosisLink, SymbiosisType};
+pub use timescale::TimescaleAdapter;
 
 // Ops — SystemParam adapters
 pub use derived::PhysicsOps;

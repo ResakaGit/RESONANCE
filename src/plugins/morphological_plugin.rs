@@ -152,6 +152,25 @@ impl Plugin for MorphologicalPlugin {
                 .after(simulation::reproduction::reproduction_spawn_system),
         );
 
+        // ET-6: Epigenetic adaptation — environment modulates gene expression before constructal.
+        app.add_systems(
+            FixedUpdate,
+            simulation::emergence::epigenetic_adaptation::epigenetic_adaptation_system
+                .in_set(Phase::MorphologicalLayer)
+                .run_if(run_gameplay.clone())
+                .after(simulation::morphogenesis::albedo_inference_system),
+        );
+
+        // Constructal body plan — infer appendage count from thermodynamic cost minimization.
+        // After albedo (MG-5) + epigenetics so all morph params are current; before lifecycle stage.
+        app.add_systems(
+            FixedUpdate,
+            simulation::lifecycle::constructal_body_plan_system
+                .in_set(Phase::MorphologicalLayer)
+                .run_if(run_gameplay.clone())
+                .after(simulation::emergence::epigenetic_adaptation::epigenetic_adaptation_system),
+        );
+
         // D8: Morphological Adaptation — Bergmann/Allen/Wolff, every 16 ticks.
         app.add_systems(
             FixedUpdate,

@@ -4,7 +4,7 @@ Blueprint de arquitectura para la transicion de spawn manual a ecosistema emerge
 
 ## 1) Frontera y Responsabilidad
 
-- **Que Resuelve:** Cerrar el ciclo de vida completo: nacimiento espontaneo (abiogenesis), crecimiento (existente), reproduccion, competencia y muerte. Con estos 4 sistemas nuevos + 1 fix, el ecosistema se auto-forma sin spawn manual.
+- **Que Resuelve:** Cerrar el ciclo de vida completo: nacimiento espontaneo (abiogenesis axiomática — cualquier banda de frecuencia), crecimiento (existente), reproduccion, competencia y muerte. Abiogenesis ahora derivada de los 8 axiomas fundamentales: `coherence_gain > dissipation_loss` (ver `blueprint/equations/abiogenesis/axiomatic.rs`).
 - **Que NO Resuelve:** No define fauna (L15 Tactical Inference), ni gameplay MOBA (habilidades, facciones). No modifica el pipeline existente de crecimiento (FL1-FL4).
 - **Naturaleza:** 4 sistemas nuevos + 6 ecuaciones puras + 1 fix sensorial + 1 elemento.
 

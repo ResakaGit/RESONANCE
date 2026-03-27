@@ -1,8 +1,11 @@
 //! EC — Energy Competition: matemática pura de pools jerárquicos y extracción competitiva.
-//! Onda 0 (pool_equations) + Onda A (extraction registry).
+//! Onda 0 (pool_equations) + Onda A (extraction registry) + EC-5 (dynamics) + EC-7 (scale).
 
 mod pool_equations;
 mod extraction;
+mod metabolic_interference;
+pub mod dynamics;
+pub mod scale;
 
 pub use pool_equations::{
     available_for_extraction, dissipation_loss, extract_aggressive, extract_competitive,
@@ -16,3 +19,14 @@ pub use extraction::{
     opportunistic_generalist, resilient_homeostatic,
     ExtractionContext, ExtractionModifier, ExtractionProfile,
 };
+pub use dynamics::{
+    CompetitionMatrix, PoolHealthStatus, PoolTrajectory,
+    competition_intensity, competition_matrix, detect_collapse, detect_dominance,
+    detect_equilibrium, predict_pool_trajectory,
+};
+pub use scale::{
+    CompetitiveRegime,
+    classify_competitive_regime, infer_intake_rate, infer_pool_fitness,
+    propagate_fitness_to_link,
+};
+pub use metabolic_interference::{metabolic_interference_factor, apply_metabolic_interference};

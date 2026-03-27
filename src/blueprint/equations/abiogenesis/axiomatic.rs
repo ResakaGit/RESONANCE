@@ -1,0 +1,307 @@
+//! Axiomatic abiogenesis — life emergence derived from the 8 foundational axioms.
+//!
+//! No hardcoded bands, no element-specific catalysts.
+//! Life emerges wherever constructive interference gain exceeds dissipation loss.
+//!
+//! **Axiom 1:** Everything is energy (qe). Existence = qe > 0.
+//! **Axiom 4:** All processes dissipate energy. loss ≥ qe × rate.
+//! **Axiom 7:** Interaction decays with distance. attenuation = 1 / (1 + d²).
+//! **Axiom 8:** Every concentration oscillates at frequency f. Interference = cos(2π Δf t + Δφ).
+//!
+//! Derived: spawn_condition = coherence_gain(neighbors) > dissipation_cost(local).
+//! Entity properties (matter_state, capabilities, morph profile) derived from energy density.
+
+use crate::layers::MatterState;
+
+// ── Axiom-derived thresholds ────────────────────────────────────────────────
+// These are NOT arbitrary per-band constants. They are structural minima
+// below which self-sustaining patterns cannot form (derived from Axiom 4).
+
+/// Minimum local qe for a self-sustaining energy pattern to persist.
+/// Below this, dissipation destroys any nascent structure faster than coherence builds it.
+const SELF_SUSTAINING_QE_MIN: f32 = 20.0;
+
+/// Frequency alignment bandwidth (Hz). Determines how similar two frequencies
+/// must be for constructive interference. Narrow → tight elemental identity.
+/// Derived from Axiom 8: time-averaged interference over observation window.
+const COHERENCE_BANDWIDTH_HZ: f32 = 50.0;
+
+/// Potential threshold: net coherence must exceed this for spawn.
+/// Represents the minimum organizational energy needed to form persistent structure.
+const AXIOMATIC_SPAWN_THRESHOLD: f32 = 0.3;
+
+// ── Matter state thresholds (Axiom 1: qe density determines state) ──────────
+const PLASMA_DENSITY_THRESHOLD: f32 = 800.0;
+const GAS_DENSITY_THRESHOLD:    f32 = 300.0;
+const LIQUID_DENSITY_THRESHOLD: f32 = 80.0;
+
+// ── Capability thresholds (Axioms 1 + 8: energy + coherence → abilities) ────
+const MOVE_DENSITY_MIN:    f32 = 50.0;
+const MOVE_DENSITY_MAX:    f32 = 600.0;
+const SENSE_COHERENCE_MIN: f32 = 0.4;
+const BRANCH_QE_MIN:       f32 = 30.0;
+
+// ── Profile derivation scales ───────────────────────────────────────────────
+const PROFILE_DENSITY_REFERENCE: f32 = 500.0;
+const PROFILE_VELOCITY_REFERENCE: f32 = 10.0;
+
+/// Frequency alignment factor (Axiom 8, time-averaged).
+///
+/// Gaussian decay: `exp(-Δf² / (2 × bandwidth²))`.
+/// Δf = 0 → 1.0 (perfect constructive). Δf ≫ bandwidth → 0.0.
+#[inline]
+pub fn frequency_alignment(freq_a: f32, freq_b: f32) -> f32 {
+    let delta = (freq_a - freq_b).abs();
+    let sigma_sq = COHERENCE_BANDWIDTH_HZ * COHERENCE_BANDWIDTH_HZ * 2.0;
+    (-delta * delta / sigma_sq.max(f32::EPSILON)).exp()
+}
+
+/// Coherence gain from neighboring cells (Axioms 7 + 8).
+///
+/// Sums constructive interference contributions from neighbors, each attenuated by distance.
+/// `neighbors`: `(qe, frequency_hz, distance)` per neighbor.
+///
+/// `coherence = Σ qe_i × alignment(f_center, f_i) × 1/(1 + d_i²)`
+#[inline]
+pub fn cell_coherence_gain(
+    center_hz: f32,
+    neighbors: &[(f32, f32, f32)],
+) -> f32 {
+    if !center_hz.is_finite() { return 0.0; }
+    let mut sum = 0.0f32;
+    for &(qe, hz, dist) in neighbors {
+        if !qe.is_finite() || !hz.is_finite() || !dist.is_finite() { continue; }
+        let alignment = frequency_alignment(center_hz, hz);
+        let attenuation = 1.0 / (1.0 + dist * dist); // Axiom 7
+        sum += qe.max(0.0) * alignment * attenuation;
+    }
+    sum
+}
+
+/// Axiomatic abiogenesis potential (Axioms 1, 4, 7, 8).
+///
+/// `potential = (coherence_gain - dissipation_cost) / normalizer`
+///
+/// Returns `[0, 1]`: above `AXIOMATIC_SPAWN_THRESHOLD` → spawn possible.
+/// Frequency-agnostic: works for any band. The dominant frequency of the cell
+/// determines WHAT emerges, not WHETHER it emerges.
+pub fn axiomatic_abiogenesis_potential(
+    cell_qe: f32,
+    coherence_gain: f32,
+    dissipation_rate: f32,
+) -> f32 {
+    let qe = if cell_qe.is_finite() { cell_qe.max(0.0) } else { return 0.0 };
+    if qe < SELF_SUSTAINING_QE_MIN { return 0.0; }
+    let gain = if coherence_gain.is_finite() { coherence_gain.max(0.0) } else { 0.0 };
+    let loss = qe * dissipation_rate.max(0.0);
+    let net = gain - loss;
+    if net <= 0.0 { return 0.0; }
+    // Sigmoid normalization to [0, 1]
+    (net / (net + qe)).clamp(0.0, 1.0)
+}
+
+/// Whether axiomatic potential exceeds spawn threshold.
+#[inline]
+pub fn axiomatic_spawn_viable(potential: f32) -> bool {
+    potential >= AXIOMATIC_SPAWN_THRESHOLD
+}
+
+/// Matter state derived from energy density (Axiom 1).
+///
+/// High density → Plasma (unbound, energetic).
+/// Low density → Solid (crystallized, stable).
+/// No element-specific mapping — state is a CONSEQUENCE of energy.
+pub fn matter_state_from_density(qe: f32, volume: f32) -> MatterState {
+    let density = qe.max(0.0) / volume.max(f32::EPSILON);
+    if density >= PLASMA_DENSITY_THRESHOLD { MatterState::Plasma }
+    else if density >= GAS_DENSITY_THRESHOLD { MatterState::Gas }
+    else if density >= LIQUID_DENSITY_THRESHOLD { MatterState::Liquid }
+    else { MatterState::Solid }
+}
+
+/// Capabilities derived from energy profile (Axioms 1, 8).
+///
+/// - MOVE: moderate density (not crystallized, not diffuse)
+/// - SENSE: high coherence (can detect frequency patterns)
+/// - BRANCH: enough energy + not gaseous
+/// - GROW: always (qe accumulation is universal)
+pub fn capabilities_from_energy(
+    qe: f32,
+    density: f32,
+    coherence: f32,
+) -> u8 {
+    use crate::layers::CapabilitySet;
+    let mut caps = CapabilitySet::GROW;
+    if density >= MOVE_DENSITY_MIN && density <= MOVE_DENSITY_MAX {
+        caps |= CapabilitySet::MOVE;
+    }
+    if coherence >= SENSE_COHERENCE_MIN {
+        caps |= CapabilitySet::SENSE;
+    }
+    if qe >= BRANCH_QE_MIN && density < GAS_DENSITY_THRESHOLD {
+        caps |= CapabilitySet::BRANCH;
+    }
+    caps
+}
+
+/// Inference profile derived from energy state (Axioms 1, 3, 8).
+///
+/// Returns `(growth_bias, mobility_bias, branching_bias, resilience)`.
+/// All derived from density, coherence, and flow demand — no arbitrary assignment.
+pub fn inference_profile_from_energy(
+    density: f32,
+    coherence: f32,
+    flow_speed: f32,
+) -> (f32, f32, f32, f32) {
+    let d = density.max(0.0);
+    let c = coherence.clamp(0.0, 1.0);
+    let growth    = (1.0 - d / PROFILE_DENSITY_REFERENCE).clamp(0.1, 0.95);
+    let mobility  = (flow_speed / PROFILE_VELOCITY_REFERENCE).clamp(0.0, 0.95);
+    let branching = growth * (1.0 - mobility).max(0.1); // mobile entities don't branch
+    let resilience = (0.5 * d / PROFILE_DENSITY_REFERENCE + 0.5 * c).clamp(0.1, 0.95); // density + coherence → structural organization
+    (growth, mobility, branching, resilience)
+}
+
+/// Bond energy heuristic from local qe (Axiom 1).
+///
+/// Higher energy → stronger bonds (more energy to crystallize structure).
+#[inline]
+pub fn bond_from_energy(qe: f32) -> f32 {
+    (qe.max(0.0) * 8.0).clamp(100.0, 3000.0)
+}
+
+/// Thermal conductivity from matter state (Axiom 4).
+///
+/// Plasma conducts most (free particles), Solid least (rigid lattice).
+pub fn conductivity_from_state(state: MatterState) -> f32 {
+    match state {
+        MatterState::Plasma => 5.0,
+        MatterState::Gas    => 2.5,
+        MatterState::Liquid => 1.2,
+        MatterState::Solid  => 0.3,
+    }
+}
+
+/// Dissipation rate from matter state (Axiom 4).
+///
+/// Plasma dissipates fastest (highest entropy production), Solid slowest.
+pub fn dissipation_from_state(state: MatterState) -> f32 {
+    match state {
+        MatterState::Plasma => 0.25,
+        MatterState::Gas    => 0.10,
+        MatterState::Liquid => 0.03,
+        MatterState::Solid  => 0.005,
+    }
+}
+
+/// Initial radius from energy budget (Axiom 1).
+///
+/// More energy → larger entity. Clamped to reasonable game-world range.
+#[inline]
+pub fn initial_radius_from_qe(qe: f32) -> f32 {
+    (qe.max(0.0).sqrt() * 0.02).clamp(0.03, 0.8)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn alignment_same_frequency_is_one() {
+        let a = frequency_alignment(100.0, 100.0);
+        assert!((a - 1.0).abs() < 1e-6, "same freq alignment={a}");
+    }
+
+    #[test]
+    fn alignment_far_frequency_near_zero() {
+        let a = frequency_alignment(100.0, 500.0);
+        assert!(a < 0.01, "distant freq alignment={a}");
+    }
+
+    #[test]
+    fn alignment_symmetric() {
+        let ab = frequency_alignment(100.0, 150.0);
+        let ba = frequency_alignment(150.0, 100.0);
+        assert!((ab - ba).abs() < 1e-6);
+    }
+
+    #[test]
+    fn coherence_gain_empty_neighbors_is_zero() {
+        assert_eq!(cell_coherence_gain(100.0, &[]), 0.0);
+    }
+
+    #[test]
+    fn coherence_gain_same_freq_close_neighbor_high() {
+        let gain = cell_coherence_gain(100.0, &[(50.0, 100.0, 1.0)]);
+        assert!(gain > 10.0, "close same-freq neighbor should give high gain: {gain}");
+    }
+
+    #[test]
+    fn coherence_gain_far_neighbor_attenuated() {
+        let close = cell_coherence_gain(100.0, &[(50.0, 100.0, 1.0)]);
+        let far   = cell_coherence_gain(100.0, &[(50.0, 100.0, 10.0)]);
+        assert!(close > far, "close > far: {close} vs {far}");
+    }
+
+    #[test]
+    fn potential_below_min_qe_is_zero() {
+        let p = axiomatic_abiogenesis_potential(5.0, 100.0, 0.01);
+        assert_eq!(p, 0.0);
+    }
+
+    #[test]
+    fn potential_no_coherence_is_zero() {
+        let p = axiomatic_abiogenesis_potential(50.0, 0.0, 0.01);
+        assert_eq!(p, 0.0);
+    }
+
+    #[test]
+    fn potential_high_coherence_low_dissipation_is_positive() {
+        let p = axiomatic_abiogenesis_potential(50.0, 30.0, 0.01);
+        assert!(p > 0.0, "should be positive: {p}");
+    }
+
+    #[test]
+    fn potential_in_unit_range() {
+        for qe in [20.0, 100.0, 500.0, 2000.0] {
+            let p = axiomatic_abiogenesis_potential(qe, qe * 2.0, 0.01);
+            assert!((0.0..=1.0).contains(&p), "out of range: {p} for qe={qe}");
+        }
+    }
+
+    #[test]
+    fn matter_state_low_density_is_solid() {
+        assert_eq!(matter_state_from_density(10.0, 1.0), MatterState::Solid);
+    }
+
+    #[test]
+    fn matter_state_high_density_is_plasma() {
+        assert_eq!(matter_state_from_density(1000.0, 1.0), MatterState::Plasma);
+    }
+
+    #[test]
+    fn capabilities_stationary_gets_grow_only() {
+        let caps = capabilities_from_energy(10.0, 10.0, 0.0);
+        assert_eq!(caps & crate::layers::CapabilitySet::MOVE, 0);
+        assert_ne!(caps & crate::layers::CapabilitySet::GROW, 0);
+    }
+
+    #[test]
+    fn capabilities_moderate_density_gets_move() {
+        let caps = capabilities_from_energy(100.0, 200.0, 0.5);
+        assert_ne!(caps & crate::layers::CapabilitySet::MOVE, 0);
+        assert_ne!(caps & crate::layers::CapabilitySet::SENSE, 0);
+    }
+
+    #[test]
+    fn profile_high_density_and_coherence_high_resilience() {
+        let (_, _, _, resilience) = inference_profile_from_energy(500.0, 0.9, 0.0);
+        assert!(resilience > 0.7, "high density + high coherence → high resilience: {resilience}");
+    }
+
+    #[test]
+    fn profile_high_flow_high_mobility() {
+        let (_, mobility, _, _) = inference_profile_from_energy(200.0, 0.5, 8.0);
+        assert!(mobility > 0.7, "high flow → high mobility: {mobility}");
+    }
+}

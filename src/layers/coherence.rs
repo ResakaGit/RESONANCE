@@ -32,7 +32,7 @@ pub enum MatterState {
 ///   T < 1.0 * eb → Líquido
 ///   T < 3.0 * eb → Gas
 ///   T >= 3.0 * eb → Plasma
-#[derive(Component, Reflect, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct MatterCoherence {
     /// Estado actual de la materia.
@@ -70,7 +70,7 @@ impl MatterCoherence {
     }
 
     pub fn set_state(&mut self, s: MatterState) {
-        self.state = s;
+        if self.state != s { self.state = s; }
     }
 
     #[inline]
@@ -79,7 +79,8 @@ impl MatterCoherence {
     }
 
     pub fn set_bond_energy_eb(&mut self, eb: f32) {
-        self.bond_energy_eb = eb.max(0.0);
+        let v = eb.max(0.0);
+        if self.bond_energy_eb != v { self.bond_energy_eb = v; }
     }
 
     #[inline]
@@ -88,7 +89,18 @@ impl MatterCoherence {
     }
 
     pub fn set_thermal_conductivity(&mut self, k: f32) {
-        self.thermal_conductivity = k.clamp(0.0, 1.0);
+        let v = k.clamp(0.0, 1.0);
+        if self.thermal_conductivity != v { self.thermal_conductivity = v; }
+    }
+
+    /// Daño estructural normalizado [0,1]: proxy de degradación física.
+    pub fn structural_damage(&self) -> f32 {
+        match self.state {
+            MatterState::Solid  => 0.0,
+            MatterState::Liquid => 0.33,
+            MatterState::Gas    => 0.66,
+            MatterState::Plasma => 1.0,
+        }
     }
 
     /// Multiplicador de velocidad máxima según estado.

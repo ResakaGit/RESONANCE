@@ -11,7 +11,7 @@ use crate::layers::behavior::{
     BehaviorCooldown, BehaviorIntent, BehaviorMode, BehavioralAgent, EnergyAssessment,
     SensoryAwareness,
 };
-use crate::layers::{AlchemicalEngine, BaseEnergy, CapabilitySet, Faction, InferenceProfile, MobaIdentity, WillActuator};
+use crate::layers::{AlchemicalEngine, BaseEnergy, CapabilitySet, Faction, InferenceProfile, MobaIdentity, OscillatorySignature, WillActuator};
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::runtime_platform::core_math_agnostic::sim_plane_pos;
 use crate::world::SpatialIndex;
@@ -321,10 +321,116 @@ pub fn behavior_will_bridge_system(
                     .unwrap_or(Vec2::ZERO)
             }
             BehaviorMode::Migrate { direction } => *direction,
+            BehaviorMode::FocusFire { target, .. } => {
+                direction_to_target(Some(*target), self_pos, &targets, &layout)
+                    .map(|d| d * BEHAVIOR_SPRINT_FACTOR)
+                    .unwrap_or(Vec2::ZERO)
+            }
+            BehaviorMode::Regroup { rally_pos } => {
+                let delta = *rally_pos - self_pos;
+                if delta.length_squared() > 1e-6 { delta.normalize() } else { Vec2::ZERO }
+            }
         };
 
         if will.movement_intent() != movement {
             will.set_movement_intent(movement);
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// GS-3: Nash targeting — Resource + system
+// ---------------------------------------------------------------------------
+
+/// Tuning knobs for Nash-optimal target selection.
+#[derive(Resource, Reflect, Debug, Clone)]
+#[reflect(Resource)]
+pub struct NashTargetConfig {
+    pub base_extraction_capacity: f32,
+    pub flee_threshold: f32,
+    pub hunt_min_own_qe: f32,
+}
+
+impl Default for NashTargetConfig {
+    fn default() -> Self {
+        Self {
+            base_extraction_capacity: crate::blueprint::constants::BASE_EXTRACTION_CAPACITY,
+            flee_threshold: crate::blueprint::constants::FLEE_THREAT_THRESHOLD,
+            hunt_min_own_qe: crate::blueprint::constants::HUNT_MINIMUM_OWN_QE,
+        }
+    }
+}
+
+/// Returns the `Entity` with the lowest extraction_resistance among known hostiles.
+/// Uses only `SensoryAwareness.hostile_entity` (single hostile slot — N < 20 design).
+fn find_nash_target(
+    self_entity: Entity,
+    self_faction: &Faction,
+    self_osc: &OscillatorySignature,
+    awareness: &SensoryAwareness,
+    targets: &Query<(Entity, &BaseEnergy, &OscillatorySignature, &MobaIdentity)>,
+    config: &NashTargetConfig,
+) -> Option<Entity> {
+    let candidate = awareness.hostile_entity?;
+    if candidate == self_entity {
+        return None;
+    }
+    let Ok((_, energy, t_osc, t_id)) = targets.get(candidate) else {
+        return None;
+    };
+    if t_id.faction() == *self_faction {
+        return None;
+    }
+    if energy.qe() <= 0.0 {
+        return None;
+    }
+    let eff = equations::effective_extraction(
+        config.base_extraction_capacity,
+        self_osc.frequency_hz(),
+        t_osc.frequency_hz(),
+    );
+    let resistance = equations::extraction_resistance(energy.qe(), eff);
+    if resistance < f32::MAX {
+        Some(candidate)
+    } else {
+        None
+    }
+}
+
+/// Selects Nash-optimal target for entities in Hunt / FocusFire mode.
+/// Runs in BehaviorSet::Decide, after existing decide systems.
+pub fn nash_target_select_system(
+    mut agents: Query<
+        (
+            Entity,
+            &MobaIdentity,
+            &OscillatorySignature,
+            &SensoryAwareness,
+            &mut BehaviorIntent,
+        ),
+        With<BehavioralAgent>,
+    >,
+    targets: Query<(Entity, &BaseEnergy, &OscillatorySignature, &MobaIdentity)>,
+    config: Res<NashTargetConfig>,
+) {
+    for (entity, identity, osc, awareness, mut intent) in &mut agents {
+        let in_combat = matches!(
+            intent.mode,
+            BehaviorMode::Hunt { .. } | BehaviorMode::FocusFire { .. }
+        );
+        if !in_combat {
+            continue;
+        }
+        let faction = identity.faction();
+        let Some(best) =
+            find_nash_target(entity, &faction, osc, awareness, &targets, &config)
+        else {
+            continue;
+        };
+        let new_mode = BehaviorMode::FocusFire { target: best, team_priority: 0 };
+        if intent.mode != new_mode {
+            intent.mode = new_mode;
+            intent.target_entity = Some(best);
         }
     }
 }

@@ -1,141 +1,140 @@
-# Blueprint: Pipeline de Simulación (`simulation`)
+# Blueprint: Pipeline de Simulacion (`simulation/`)
 
-Módulos cubiertos: `src/simulation/*`.
-Referencia: `DESIGNING.md`, `CLAUDE.md`, `src/simulation/pipeline.rs`.
+Orquesta toda la logica de gameplay en `FixedUpdate` con timestep fijo.
+6 fases encadenadas en `SystemSet`s. Cada sistema pertenece a exactamente una fase.
+La fase `ThermodynamicLayer` corre en `Playing` (incluye `Warmup`); las demas solo en `Active`.
 
-## 1) Propósito y frontera
-
-- Implementar evolución temporal del mundo alquímico por fases en `FixedUpdate` (paso fijo; ver `Time<Fixed>` / plugins de tick).
-- Consumir/escribir componentes de `layers`, recursos de `world`, `worldgen`, `eco`, `bridge`, y eventos globales.
-- No define bootstrap general de app (eso vive en `plugins`/`main`).
-
-## 2) Superficie pública (contrato)
-
-### Phase enum (`SystemSet`)
-
-Definido en `simulation/mod.rs` (comentario interno: «5 capas strict» = **cinco** capas físicas **después** de `Input`):
-
-```rust
-SimulationClockSet
-  → Phase::Input
-  → Phase::ThermodynamicLayer
-  → Phase::AtomicLayer
-  → Phase::ChemicalLayer
-  → Phase::MetabolicLayer
-  → Phase::MorphologicalLayer
-```
-
-Encadenados con `.chain()` en `register_simulation_pipeline` (`simulation/pipeline.rs`). Los nombres legacy **PrePhysics / Physics / Reactions / PostPhysics** ya no existen en el enum.
-
-### InputChannelSet (sub-ordering dentro de Input)
-
-```rust
-InputChannelSet::PlatformWill    // runtime_platform escribe WillActuator primero
-InputChannelSet::SimulationRest  // grimoire cast, element sync, worldgen prephysics
-```
-
-### Sistemas por fase
-
-**SimulationClockSet** (antes de todas las fases):
-- `advance_simulation_clock_system` — incrementa frame counter
-- `bridge_phase_tick` — avanza fase del bridge optimizer
-
-**Phase::Input**
-- `almanac_hot_reload_system`
-- Cadena `ensure_element_id` → `derive_frequency_from_element_id` → `sync_element_id_from_frequency`
-- `grimoire_cast_intent_system` → `ability_point_target_pick_system` (misma cadena, `SimulationRest`)
-- Registro vía `register_prephysics_worldgen_through_delta` **no** añade sistemas en `Input`; el worldgen pesado vive en `ThermodynamicLayer`.
-
-**Phase::ThermodynamicLayer**
-- Cabeza: `channeling_grimoire_emit_system` → `grimoire_cast_resolve_system` (solo `PlayState::Active`)
-- `update_spatial_index_system` (después de cast resolve; en todo `Playing`)
-- Cadena worldgen: presupuestos/LOD, estaciones, núcleos, `terrain_mutation_system`, propagación, `eco_boundaries_system`, materialización delta, `flush_pending_energy_visual_rebuild_system`, etc. (`worldgen/systems/prephysics.rs`)
-- Subcadena sim (después del flush visual): `terrain_config_loader` → `climate_*` (antes de containment)
-- `attention_convergence_system` (`sensory`)
-- Cadena: `containment_system` → `structural_constraint_system` → `contained_thermal_transfer_system` → overlays L10 → injectors → `irradiance_update_system` → `perception_system`
-
-**Phase::AtomicLayer**
-- `physics::register_physics_phase_systems()` — colisión, movimiento, disipación, drag, etc.
-
-**Phase::ChemicalLayer**
-- `reactions::register_reactions_phase_systems()` — catálisis, transiciones de fase, homeostasis, efectos de hechizo
-
-**Phase::MetabolicLayer**
-- `fog_of_war_provider_system` → `fog_visibility_mask_system` → `worldgen_nucleus_death_notify_system` → `faction_identity_system` (`register_postphysics_nucleus_death_before_faction`)
-- `growth_budget_system` — **antes** de `faction_identity_system` (orden en `pipeline.rs`)
-
-**Phase::MorphologicalLayer**
-- `cleanup_orphan_growth_intent_system` → `growth_intent_inference_system` → `allometric_growth_system`
-- `bridge_metrics_collect_system` — **después** de `faction_identity_system`
-
-**Update (no FixedUpdate)**
-- `register_visual_derivation_pipeline` — derivación visual worldgen + `shape_color_inference_system`, `growth_morphology_system`, etc.
-
-### Módulos (resumen; el árbol real es más amplio)
-
-Además de los núcleos listados arriba existen, entre otros: `ability_targeting`, `allometric_growth`, `atomic`, `fog_of_war`, `grimoire_enqueue`, `growth_budget`, `inference_growth`, `nutrient_uptake`, `osmosis`, `pathfinding/`, `photosynthesis`, `player_controlled`, `sensory`, tests (`eco_e5_simulation_tests`, `event_ordering_tests`, `regression`, `verify_wave_gate`). Ver `simulation/mod.rs` para `pub mod` completos.
-
-## 3) Invariantes y precondiciones
-
-- `delta_secs > 0` para integración física estable.
-- Cast válido requiere energía suficiente en `AlchemicalEngine` (L5).
-- **No cooldown timers.** La disponibilidad de cast se computa como `buffer >= cost`.
-- Orden determinista en scan de catálisis.
-- `SpatialIndex` actualizado antes de sistemas de vecindad/contacto.
-- Overlays L10: `reset_resonance_overlay_system` al inicio de la cadena termodinámica local; `resonance_link_system` antes de motor/fotosíntesis/percepción (`pipeline.rs`).
-- Bridge optimizer: fase Warmup vs Active según worldgen (`BridgeConfig` / métricas en `MorphologicalLayer`).
-
-## 4) Comportamiento runtime
+## Pipeline completo
 
 ```mermaid
-flowchart TD
-    clock["SimulationClockSet"]
-    input["Phase::Input"]
-    thermo["Phase::ThermodynamicLayer"]
-    atomic["Phase::AtomicLayer"]
-    chemical["Phase::ChemicalLayer"]
-    metabolic["Phase::MetabolicLayer"]
-    morph["Phase::MorphologicalLayer"]
-    visual["Update: visual derivation"]
+sequenceDiagram
+    participant Clock as SimulationClockSet
+    participant Input as Phase::Input
+    participant Thermo as Phase::ThermodynamicLayer
+    participant Atomic as Phase::AtomicLayer
+    participant Chem as Phase::ChemicalLayer
+    participant Meta as Phase::MetabolicLayer
+    participant Morph as Phase::MorphologicalLayer
 
-    clock --> input
-    input --> thermo
-    thermo --> atomic
-    atomic --> chemical
-    chemical --> metabolic
-    metabolic --> morph
-    morph --> visual
+    Clock->>Clock: advance_simulation_clock<br/>bridge_phase_tick<br/>bridge_optimizer_log
+
+    Clock->>Input: PlatformWill then SimulationRest
+    Note over Input: almanac sync, grimoire enqueue<br/>ET-2 theory of mind<br/>targeting, D1 behavior (Assess->Decide)<br/>D5 sensory perception<br/>GS-1 lockstep input gate
+
+    Input->>Thermo: ---
+    Note over Thermo: containment, structural L13<br/>resonance link L10 reset+apply<br/>engine overload L5, irradiance<br/>perception cache<br/>V7 worldgen (propagation, mat, eco)<br/>nutrient field<br/>GS-5 nucleus intake/decay
+
+    Thermo->>Atomic: ---
+    Note over Atomic: dissipation, will->velocity<br/>D3 locomotion cost<br/>movement integration<br/>spatial index rebuild<br/>tension field L11, collision<br/>AC-2 Kuramoto entrainment
+
+    Atomic->>Chem: ---
+    Note over Chem: osmosis, nutrient uptake<br/>photosynthesis, state transitions<br/>catalysis chain<br/>D4 homeostasis + thermoregulation
+
+    Chem->>Meta: ---
+    Note over Meta: growth budget, allometric growth<br/>D2 trophic, D6 social, D9 ecology<br/>culture, AC-5 cooperation, ET-5 symbiosis, ET-9 niche<br/>MG3 metabolic graph, MG6 entropy<br/>GS-5 victory, fog of war<br/>SF-4 metrics export
+
+    Meta->>Morph: ---
+    Note over Morph: MG4 shape, MG7 rugosity, MG5 albedo<br/>ET-6 epigenetic adaptation<br/>constructal body plan (axiomatic)<br/>organ growth LI3, evolution surrogate<br/>D7 reproduction (flora + fauna), abiogenesis (axiomatic)<br/>D8 morpho adaptation<br/>bridge metrics, terrain mesh<br/>water, atmosphere<br/>SF-5 checkpoint save
 ```
 
-- Flujo crítico: intención y sync de elementos → mundo/campo (worldgen + eco + containment + motor) → física atómica → química/reacciones → fog/muerte/facción/presupuesto de crecimiento → inferencia y crecimiento alométrico + métricas bridge.
-- Worldgen (propagación, materialización, terreno) vive en `ThermodynamicLayer` junto a cast resolve e índice espacial (`prephysics.rs`).
-- Bridge optimizer: tick de fase en `SimulationClockSet`; métricas al final de `MorphologicalLayer`.
+## Sub-sets dentro de fases
 
-## 5) Implementación y trade-offs
+```mermaid
+flowchart LR
+    subgraph "Phase::Input"
+        PW["InputChannelSet::PlatformWill"]
+        SR["InputChannelSet::SimulationRest"]
+        BA["BehaviorSet::Assess"]
+        BD["BehaviorSet::Decide"]
+        PW --> SR
+        PW --> BA --> BD
+    end
+```
 
-- **Valor**: separación por fase reduce race conditions semánticas. Determinismo en `FixedUpdate` con dt fijo.
-- **Costo**: mayor disciplina de orden y dependencias explícitas. Agregar un sistema requiere elegir fase y posición.
-- **Trade-off**: menos flexibilidad dinámica, más previsibilidad del runtime.
-- **Bridge optimizer**: reduce ~80% de computación de ecuaciones via cache cuantizado. Trade-off: precisión (bandas discretas) vs velocidad.
+## Tipos exportados
 
-## 6) Fallas y observabilidad
+| Tipo | Archivo | Rol |
+|------|---------|-----|
+| `Phase` (6 variantes) | `mod.rs` | SystemSet principal del pipeline |
+| `InputChannelSet` | `mod.rs` | Orden dentro de Input |
+| `BehaviorSet` | `behavior.rs` | Sub-fases D1: Assess, Decide |
+| `GameState` | `states.rs` | Loading / Playing |
+| `PlayState` | `states.rs` | Warmup / Active / Paused |
+| `PlayerControlled` | `player_controlled.rs` | Marker del heroe local |
+| `SpellMarker` | `reactions.rs` | Marker de proyectil activo |
 
-- **Ambigüedad resuelta:** `ContainedIn` opera como single-host (host dominante en thermal transfer).
-- **Riesgo mitigado:** `will_input_system` legacy reemplazado por V6 projection como fuente única de intención.
-- **Riesgo activo:** density alta en demos puede sesgar validaciones de performance.
-- **Señales:** DebugPlugin (gizmos, labels), bridge metrics (cache hit rate), worldgen state (Warming/Propagating/Ready).
+## Sistemas clave por fase
 
-## 7) Checklist de atomicidad
+### Input
+- `platform_will_system` — input de plataforma a `WillActuator`
+- `grimoire_enqueue_system` — encola habilidades
+- `ability_targeting_system` — resuelve targets
+- `behavior_assess_system` / `behavior_decide_system` — D1 IA
+- `sensory_perception_system` — D5 campo sensorial
+- `lockstep_input_gate_system` — GS-1 netcode determinista
 
-- Responsabilidad principal: sí (evolución de simulación).
-- Acoplamiento: alto, pero controlado por fase.
-- Split aplicado: worldgen systems extraídos a `worldgen/systems/` (migración M2). Eco system extraído a `eco/systems.rs` (M3).
-- Split futuro: separar catalysis/reactions si crece complejidad de recetas.
+### ThermodynamicLayer
+- `containment_system` — relaciones host/contained
+- `structural_runtime_system` — spring joints L13
+- `resonance_link_system` — buffs/debuffs L10
+- `engine_tick_system` — AlchemicalEngine L5
+- `irradiance_system` — irradiancia solar
+- `perception_cache_system` — PerceptionCache
+- V7 worldgen: propagation, materialization, eco boundaries
 
-## 8) Referencias cruzadas
+### AtomicLayer
+- `dissipation_system` — perdida de energia por flujo
+- `will_to_velocity_system` — L7 intent a L3 velocity
+- `locomotion_cost_system` — D3 costo energetico
+- `movement_system` — integra posicion
+- `update_spatial_index_system` — rebuild SpatialIndex
+- `tension_field_system` — L11 fuerzas a distancia
+- `collision_system` — colisiones + contacto
+- `entrainment_system` — AC-2 Kuramoto sync
 
-- `DESIGNING.md` — Axioma energético, ciclo de vida
-- `CLAUDE.md` — Coding rules, pipeline spec
-- `docs/design/GAMEDEV_IMPLEMENTATION.md` — Invariantes energéticos para MOBA patterns
-- `docs/sprints/MIGRATION/` — M2 (worldgen extract), M3 (eco extract)
-- `docs/sprints/GAMEDEV_PATTERNS/SPRINT_G9_EVENT_ORDERING.md` — Event ordering explícito
+### ChemicalLayer
+- `osmosis_system` — transferencia osmotica
+- `nutrient_uptake_system` — absorcion de nutrientes
+- `photosynthesis_system` — luz a qe
+- `state_transition_system` — cambios MatterState
+- `catalysis_chain_system` — reacciones
+- `homeostasis_system` — D4 adaptacion de frecuencia
+- `thermoregulation_system` — D4 termorregulacion
+
+### MetabolicLayer
+- `growth_budget_system` — presupuesto de crecimiento
+- `trophic_system` — D2 depredacion
+- `social_communication_system` — D6 manadas
+- `ecology_dynamics_system` — D9 dinamica ecologica
+- `cooperation_system` — AC-5 cooperacion emergente
+- `victory_check_system` — GS-5 condicion de victoria
+- `fog_of_war_system` — niebla de guerra
+- `metrics_batch_system` — SF-4 metricas
+
+### MorphologicalLayer
+- `shape_optimization_system` — MG4 forma optima
+- `rugosity_system` — MG7 rugosidad superficial
+- `albedo_inference_system` — MG5 albedo
+- `organ_lifecycle_system` — LI3 organos
+- `evolution_surrogate_system` — mutacion/seleccion
+- `reproduction_system` — D7 reproduccion
+- `abiogenesis_system` — generacion espontanea
+- `morpho_adaptation_system` — D8 adaptacion
+- `checkpoint_save_system` — SF-5 guardado
+
+## Dependencias
+
+- `crate::layers` — lee/escribe las 14 capas
+- `crate::blueprint::equations` — matematica pura
+- `crate::blueprint::constants` — tuning
+- `crate::world` — SpatialIndex, FogOfWarGrid, PerceptionCache
+- `crate::worldgen` — V7 worldgen systems
+- `crate::events` — contratos de eventos
+
+## Invariantes
+
+- Todo sistema de gameplay en `FixedUpdate`, nunca en `Update` (salvo derivacion visual)
+- Todo sistema asignado a exactamente un `Phase::*`
+- Producers `.before()` o `.chain()` con consumers — nunca eventos sin orden
+- Determinismo: mismo input, mismo output (requisito netcode GS-1)
+- `SpatialIndex` actualizado antes de queries de vecindad

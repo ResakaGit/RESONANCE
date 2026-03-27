@@ -18,6 +18,8 @@ pub const SEED_ENERGY_FRACTION: f32 = 0.3;
 pub const SEED_DISPERSAL_ANGLE_STEP: f32 = 2.399963;
 /// Escala del índice en `sin` para drift de mutación.
 pub const REPRODUCTION_MUTATION_INDEX_SCALE: f32 = 0.1;
+/// Coeficiente del drift aplicado a `mobility_bias` (same direction as growth drift).
+pub const REPRODUCTION_MUTATION_MOBILITY_SCALE: f32 = 0.4;
 /// Coeficiente del drift aplicado a `branching_bias` (opuesto al drift principal).
 pub const REPRODUCTION_MUTATION_BRANCHING_SCALE: f32 = 0.5;
 /// Coeficiente del drift aplicado a `resilience`.
@@ -42,3 +44,11 @@ pub const SEED_NUTRIENT_CARBON: f32 = 32.0;
 pub const SEED_NUTRIENT_NITROGEN: f32 = 24.0;
 pub const SEED_NUTRIENT_PHOSPHORUS: f32 = 18.0;
 pub const SEED_NUTRIENT_WATER: f32 = 48.0;
+
+// ── Fauna reproduction (EV-1) ───────────────────────────────────────────────
+/// Minimum qe for fauna to reproduce (higher than flora — animals are costlier).
+pub const FAUNA_REPRODUCTION_QE_MIN: f32 = 200.0;
+/// Fraction of parent qe transferred to fauna offspring.
+pub const FAUNA_SEED_ENERGY_FRACTION: f32 = 0.25;
+/// Initial radius for fauna offspring (smaller than adult).
+pub const FAUNA_OFFSPRING_INITIAL_RADIUS: f32 = 0.2;

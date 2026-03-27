@@ -1,0 +1,25 @@
+(
+  width_cells: 24,
+  height_cells: 24,
+  cell_size: 2.0,
+  origin: (-24.0, -24.0),
+  warmup_ticks: None,
+  seed: Some(42),
+  fog_of_war: false,
+  playfield_margin_cells: None,
+  nuclei: [
+    (
+      name: "terra_demo_day",
+      position: (0.0, 0.0),
+      frequency_hz: 75.0,
+      emission_rate_qe_s: 100.0,
+      propagation_radius: 8.0,
+      decay: InverseSquare,
+      ambient_pressure: Some((
+        delta_qe: 2.0,
+        viscosity: 1.0,
+      )),
+    ),
+  ],
+  seasons: [],
+)

@@ -1,0 +1,22 @@
+(
+  width_cells: 32,
+  height_cells: 24,
+  cell_size: 2.0,
+  origin: (-32.0, -24.0),
+  warmup_ticks: None,
+  seed: Some(999),
+  fog_of_war: false,
+  playfield_margin_cells: Some(2),
+  nuclei: [
+    (
+      name: "terra_plateau",
+      position: (0.0, 4.0),
+      frequency_hz: 75.0,
+      emission_rate_qe_s: 100.0,
+      propagation_radius: 10.0,
+      decay: InverseSquare,
+      ambient_pressure: None,
+    ),
+  ],
+  seasons: [],
+)

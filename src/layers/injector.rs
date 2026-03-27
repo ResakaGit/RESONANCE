@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use serde::{Deserialize, Serialize};
 
 use crate::blueprint::constants::{
     INJECTOR_DEFAULT_FORCED_FREQUENCY, INJECTOR_DEFAULT_INFLUENCE_RADIUS,
@@ -8,7 +9,7 @@ use crate::blueprint::constants::{
 /// Capa 8: Catálisis — El Gestor de Reacciones Emergentes
 ///
 /// Arquetipo dinámico que representa el evento de alteración de la realidad.
-#[derive(Component, Reflect, Debug, Clone)]
+#[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct AlchemicalInjector {
     /// Cuánta energía intenta forzar en el objetivo.

@@ -8,6 +8,11 @@ Live contracts: `docs/design/` (specs) and `docs/arquitectura/` (runtime bluepri
 
 | Track | Description | Closed |
 |-------|-------------|--------|
+| **BATCH_SIMULATOR** | BS-0–BS-6: batch arena (EntitySlot, SimWorldFlat), 33 systems (Tier 1/2/3), GeneticHarness, GenomeBlob bridge, rayon parallelism, criterion benchmarks (156 tests, 17 files) | 2026-03-26 |
+| **EMERGENCE_TIERS** | ET-1–ET-16: associative memory, theory of mind, cultural transmission, infrastructure, obligate symbiosis, epigenetics, senescence, coalitions, multidimensional niche, timescales, multiscale info, continental drift, geological LOD, institutions, language, consciousness (127 unit tests) | 2026-03-25 |
+| **GAMEPLAY_SYSTEMS (parcial)** | GS-1 lockstep determinista, GS-3 Nash targeting, GS-5 victory nucleus (Onda 0 completa) | 2026-03-25 |
+| **SIMULATION_FOUNDATIONS** | SF-4–SF-7: metrics export CSV/JSON, checkpoint save/load, wavefront propagation, integration replay (11 SF-7 tests) | 2026-03-25 |
+| **SIMULATION_QUALITY** | SM-8A–G: magic numbers, change detection guards, inline math, god-system splits (containment+input), lifecycle docs, input SRP (grimoire → 3 sistemas) | 2026-03-25 |
 | **CODE_QUALITY** | Q2 (named constants), Q3 (encapsulation), Q5 (plugin split), Q8 (color isolation) | 2026-03-25 |
 | **STRUCTURE_MIGRATION** | SM-1–SM-7: worldgen split, sim subdirs, bridge split, archetypes split, bridge macro, constants consolidation, docs cleanup | 2026-03-25 |
 | **SIMULATION_RELIABILITY** | R1–R9: units+conservation, determinism+replay, benchmarks, calibration, sensitivity, observability, morph robustness, surrogate error, CI gates | 2026-03-25 |
@@ -29,4 +34,5 @@ Live contracts: `docs/design/` (specs) and `docs/arquitectura/` (runtime bluepri
 | **BRIDGE_OPTIMIZER** | B1–B10: BridgeCache<B>, 11 equation kinds | — |
 | **BLUEPRINT_V6** | 2D/3D platform (runtime_platform/, 17 sub-modules) | — |
 | **BLUEPRINT_V5** | Determinism + BridgeCache | — |
+| **AXIOMATIC_CLOSURE** | AC-1–AC-5: metabolic interference (Axiom 3×8), Kuramoto entrainment (Axiom 8), culture coherence (Axiom 6×8), frequency attenuation (Axiom 7×8), cooperation emergence (Axiom 3 game theory). 60+ unit tests, 7 integration tests | 2026-03-25 |
 | **BLUEPRINT_V4** | Layers L11–L13 (TensionField, Homeostasis, StructuralLink) | — |

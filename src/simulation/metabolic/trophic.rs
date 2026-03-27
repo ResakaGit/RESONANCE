@@ -7,11 +7,13 @@ use bevy::prelude::*;
 
 use crate::blueprint::constants::*;
 use crate::blueprint::equations;
+use crate::blueprint::equations::{apply_metabolic_interference, metabolic_interference_factor};
 use crate::events::{DeathCause, DeathEvent, HungerEvent, PreyConsumedEvent};
 use crate::layers::energy::EnergyOps;
-use crate::layers::{BaseEnergy, MatterCoherence, TrophicConsumer, TrophicState};
+use crate::layers::{BaseEnergy, MatterCoherence, OscillatorySignature, TrophicConsumer, TrophicState};
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::runtime_platform::core_math_agnostic::sim_plane_pos;
+use crate::runtime_platform::simulation_tick::SimulationElapsed;
 use crate::world::SpatialIndex;
 use crate::worldgen::NutrientFieldGrid;
 
@@ -105,33 +107,39 @@ pub fn trophic_herbivore_forage_system(
 }
 
 /// S3: Carnívoros/omnívoros intentan capturar presas cercanas.
-/// Energy model: prey loses raw_drain, predator receives drained × assimilation (waste heat = diff).
+/// Energy model: prey loses raw_drain, predator receives drained × assimilation × interference.
+/// AC-1: assimilation is modulated by oscillatory alignment between predator and prey (Axiom 3×8).
 pub fn trophic_predation_attempt_system(
     spatial_index: Res<SpatialIndex>,
     layout: Res<SimWorldTransformParams>,
+    elapsed: Option<Res<SimulationElapsed>>,
     mut energy_ops: EnergyOps,
     mut predator_query: Query<(
         Entity,
         &TrophicConsumer,
         &mut TrophicState,
         &Transform,
+        Option<&OscillatorySignature>,
     )>,
-    prey_query: Query<(Option<&MatterCoherence>,), With<BaseEnergy>>,
+    prey_query: Query<(Option<&MatterCoherence>, Option<&OscillatorySignature>), With<BaseEnergy>>,
     mut prey_consumed: EventWriter<PreyConsumedEvent>,
     mut cursor: ResMut<TrophicScanCursor>,
 ) {
+    let t = elapsed.map(|e| e.secs).unwrap_or(0.0);
+
     // Collect eligible predators bounded by scan budget to avoid borrow conflicts
     let remaining_budget = TROPHIC_SCAN_BUDGET.saturating_sub(cursor.scans_this_frame);
     let predators: Vec<_> = predator_query
         .iter()
-        .filter(|(_, consumer, state, _)| consumer.is_predator() && state.satiation <= PREDATION_WELL_FED_THRESHOLD)
+        .filter(|(_, consumer, state, _, _)| consumer.is_predator() && state.satiation <= PREDATION_WELL_FED_THRESHOLD)
         .take(remaining_budget)
-        .map(|(e, consumer, _state, transform)| {
-            (e, consumer.intake_rate, transform.translation)
+        .map(|(e, consumer, _state, transform, osc)| {
+            let (freq, phase) = osc.map(|o| (o.frequency_hz(), o.phase())).unwrap_or((0.0, 0.0));
+            (e, consumer.intake_rate, transform.translation, freq, phase)
         })
         .collect();
 
-    for (pred_entity, intake_rate, pred_pos_3d) in &predators {
+    for (pred_entity, intake_rate, pred_pos_3d, pred_freq, pred_phase) in &predators {
         if cursor.scans_this_frame >= TROPHIC_SCAN_BUDGET {
             break;
         }
@@ -151,12 +159,14 @@ pub fn trophic_predation_attempt_system(
                 continue;
             }
 
-            let bond_energy = prey_query
+            let (bond_energy, prey_freq, prey_phase) = prey_query
                 .get(entry.entity)
-                .ok()
-                .and_then(|(coherence,)| coherence)
-                .map(|c| c.bond_energy_eb())
-                .unwrap_or(0.0);
+                .map(|(coherence, osc)| {
+                    let be = coherence.map(|c| c.bond_energy_eb()).unwrap_or(0.0);
+                    let (f, p) = osc.map(|o| (o.frequency_hz(), o.phase())).unwrap_or((0.0, 0.0));
+                    (be, f, p)
+                })
+                .unwrap_or((0.0, 0.0, 0.0));
 
             let distance = pred_pos.distance(entry.position);
             let success = equations::predation_success_probability(
@@ -171,14 +181,17 @@ pub fn trophic_predation_attempt_system(
                 continue;
             }
 
-            // Energy model: drain raw amount, predator receives fraction (waste heat = diff)
+            // Energy model: drain raw amount, predator receives fraction scaled by
+            // oscillatory alignment (AC-1: Axiom 3 × Axiom 8). Waste heat = drained - assimilated.
             let raw_drain = equations::predation_raw_drain(prey_qe, bond_energy);
             if raw_drain <= 0.0 {
                 continue;
             }
 
+            let interference = metabolic_interference_factor(*pred_freq, *pred_phase, prey_freq, prey_phase, t);
             let drained = energy_ops.drain(entry.entity, raw_drain, DeathCause::Predation);
-            let assimilated = equations::predation_assimilated(drained, CARNIVORE_ASSIMILATION);
+            let base_assimilated = equations::predation_assimilated(drained, CARNIVORE_ASSIMILATION);
+            let assimilated = apply_metabolic_interference(base_assimilated, interference);
             energy_ops.inject(*pred_entity, assimilated);
 
             prey_consumed.send(PreyConsumedEvent {
@@ -187,7 +200,7 @@ pub fn trophic_predation_attempt_system(
                 qe_transferred: assimilated,
             });
 
-            if let Ok((_, _, mut state, _)) = predator_query.get_mut(*pred_entity) {
+            if let Ok((_, _, mut state, _, _)) = predator_query.get_mut(*pred_entity) {
                 let new_satiation = (state.satiation + MEAL_SATIATION_GAIN).min(1.0);
                 if state.satiation != new_satiation {
                     state.satiation = new_satiation;
@@ -549,5 +562,46 @@ mod tests {
         assert!(assimilated < raw, "assimilated={assimilated} < raw={raw}");
         let waste = raw - assimilated;
         assert!(waste > 0.0, "waste heat should be positive");
+    }
+
+    // ── AC-1: interference × predation ──────────────────────────────────────────
+
+    #[test]
+    fn same_frequency_predator_gets_full_assimilation() {
+        // factor = 1.0 when freq/phase identical → apply_metabolic_interference(x, 1.0) = x
+        let raw = equations::predation_raw_drain(100.0, 0.0);
+        let base = equations::predation_assimilated(raw, CARNIVORE_ASSIMILATION);
+        let factor = metabolic_interference_factor(75.0, 0.0, 75.0, 0.0, 0.0);
+        let result = apply_metabolic_interference(base, factor);
+        assert!((result - base).abs() < 1e-5, "same-freq: expected {base} got {result}");
+    }
+
+    #[test]
+    fn cross_band_predator_gets_reduced_assimilation() {
+        // factor < 1.0 when freqs differ significantly
+        use std::f32::consts::PI;
+        let raw = equations::predation_raw_drain(100.0, 0.0);
+        let base = equations::predation_assimilated(raw, CARNIVORE_ASSIMILATION);
+        // Opposite phase → factor = FLOOR < 1.0
+        let factor = metabolic_interference_factor(75.0, 0.0, 75.0, PI, 0.0);
+        let result = apply_metabolic_interference(base, factor);
+        assert!(result < base, "destructive: expected < {base}, got {result}");
+        assert!(result >= 0.0, "must be non-negative");
+    }
+
+    #[test]
+    fn interference_factor_never_amplifies_assimilation() {
+        use std::f32::consts::PI;
+        let raw = equations::predation_raw_drain(50.0, 0.0);
+        let base = equations::predation_assimilated(raw, CARNIVORE_ASSIMILATION);
+        for (f_pred, p_pred, f_prey, p_prey, t) in [
+            (75.0_f32, 0.0_f32, 75.0, 0.0, 0.0_f32),
+            (75.0, 0.0, 75.0, PI, 0.0),
+            (75.0, 0.0, 1000.0, 0.0, 1.0),
+        ] {
+            let factor = metabolic_interference_factor(f_pred, p_pred, f_prey, p_prey, t);
+            let result = apply_metabolic_interference(base, factor);
+            assert!(result <= base + 1e-5, "factor={factor} result={result} base={base}");
+        }
     }
 }

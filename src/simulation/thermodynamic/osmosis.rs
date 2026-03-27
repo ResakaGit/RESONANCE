@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::blueprint::{AlchemicalAlmanac, constants, equations};
-use crate::bridge::bridged_ops::OsmosisEquationInput;
+use crate::bridge::OsmosisEquationInput;
 use crate::bridge::cache::BridgeCache;
 use crate::bridge::config::{BridgeConfig, OsmosisBridge};
 use crate::bridge::context_fill::{BridgePhase, BridgePhaseState};

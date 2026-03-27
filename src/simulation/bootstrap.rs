@@ -12,7 +12,9 @@ use crate::eco::boundary_field::EcoBoundaryField;
 use crate::eco::climate::{ClimateAssetState, ClimateConfig, ClimateConfigLoader};
 use crate::eco::context_lookup::EcoPlayfieldMargin;
 use crate::events::{
-    AbilityCastEvent, AbilitySelectionEvent, CatalysisEvent, CatalysisRequest, CollisionEvent,
+    AbilityCastEvent, AbilitySelectionEvent, AllianceDefectEvent, AllianceProposedEvent,
+    CatalysisEvent, CatalysisRequest, CollisionEvent,
+    CultureConflictEvent, CultureEmergenceEvent,
     DeathEvent, DeltaEnergyCommit, GrimoireProjectileCastPending, GrimoireSelfBuffCastPending,
     HomeostasisAdaptEvent, HungerEvent, PhaseTransitionEvent, PreyConsumedEvent,
     ThreatDetectedEvent,
@@ -59,7 +61,11 @@ pub fn init_simulation_bootstrap(app: &mut App) {
         .add_event::<TerrainMutationEvent>()
         .add_event::<HungerEvent>()
         .add_event::<PreyConsumedEvent>()
-        .add_event::<ThreatDetectedEvent>();
+        .add_event::<ThreatDetectedEvent>()
+        .add_event::<CultureEmergenceEvent>()
+        .add_event::<CultureConflictEvent>()
+        .add_event::<AllianceProposedEvent>()
+        .add_event::<AllianceDefectEvent>();
 
     setup_lifecycle_observers(app);
     setup_entity_id_observers(app);

@@ -227,14 +227,16 @@ pub fn catalysis_energy_reducer_system(
             energy_ops.inject(target_ent, commit.result_qe);
             if let Some(delta) = commit.positive_freq_delta {
                 let hz = target_signature.frequency_hz() + delta;
-                target_signature.set_frequency_hz(hz);
+                if target_signature.frequency_hz() != hz {
+                    target_signature.set_frequency_hz(hz);
+                }
             }
         } else {
             energy_ops.drain(target_ent, commit.result_qe.abs(), DeathCause::Destruction);
             if let Some(w) = commit.bond_weakening_factor {
                 if let Some(ref mut matter) = matter_opt {
                     let eb = matter.bond_energy_eb();
-                    let new_eb = eb * w;
+                    let new_eb = equations::bond_weakening(eb, w);
                     if eb != new_eb {
                         matter.set_bond_energy_eb(new_eb);
                     }

@@ -1,0 +1,10 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 5d1859e33fa28976e49585fe75ff9a4de7a71ce3b994fdb4baffe698f2db7544 # shrinks to available = 192407.14, n = 5
+cc f79ee50b85b92f8dcfafd0fcdce4a3b9446f03244d9fc5dde3cefeadcdb86c9a # shrinks to available = 284514.28, fitness = 843742.7, total_fitness = 0.001
+cc 7bc96c69b90a3b83de471422cc8b12cf5df317da9d26be29cd76f1614865b665 # shrinks to mut extractions = [908676.8, 810027.8, 31264.936], available = 918174.1
+cc 892b7acdaca94f4c4851442bb5c47be204c298297e81acbec517092c2de1dcb9 # shrinks to available = 804564.06, n = 3
