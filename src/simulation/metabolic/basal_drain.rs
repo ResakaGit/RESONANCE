@@ -10,14 +10,7 @@ use crate::blueprint::equations::emergence::senescence::age_dependent_dissipatio
 use crate::layers::{BaseEnergy, EnergyOps, SenescenceProfile, SpatialVolume};
 use crate::runtime_platform::simulation_tick::SimulationClock;
 
-/// Base drain rate (qe/tick) for an entity with radius ≈ 1.0 and no senescence.
-/// At 1.0, an entity with 30 qe lives ~30 ticks without foraging.
-/// Creates real selective pressure: entities in low-energy zones die.
-const BASAL_RATE: f32 = 1.0;
-
-/// Volume exponent: larger entities pay proportionally more.
-/// `drain ∝ radius ^ VOLUME_EXPONENT`. Allometric scaling (Kleiber's 3/4 law approximation).
-const VOLUME_EXPONENT: f32 = 0.75;
+use crate::blueprint::equations::derived_thresholds as dt;
 
 /// Passive energy drain — the cost of being alive.
 pub fn basal_drain_system(
@@ -40,8 +33,8 @@ pub fn basal_drain_system(
             .map(|s| s.senescence_coeff)
             .unwrap_or(0.0);
         let age_factor = age_dependent_dissipation(1.0, age_ticks, senescence_coeff);
-        let vol_factor = volume.radius.max(0.01).powf(VOLUME_EXPONENT);
-        let drain = BASAL_RATE * vol_factor * age_factor;
+        let vol_factor = volume.radius.max(0.01).powf(dt::KLEIBER_EXPONENT);
+        let drain = dt::basal_drain_rate() * vol_factor * age_factor;
         if drain > 0.0 {
             ops.drain(entity, drain, crate::events::DeathCause::Dissipation);
         }
@@ -54,13 +47,13 @@ mod tests {
 
     #[test]
     fn basal_rate_positive() {
-        assert!(BASAL_RATE > 0.0);
+        assert!(dt::basal_drain_rate() > 0.0);
     }
 
     #[test]
     fn larger_entity_drains_more() {
-        let small = 0.5_f32.powf(VOLUME_EXPONENT);
-        let large = 2.0_f32.powf(VOLUME_EXPONENT);
+        let small = 0.5_f32.powf(dt::KLEIBER_EXPONENT);
+        let large = 2.0_f32.powf(dt::KLEIBER_EXPONENT);
         assert!(large > small);
     }
 

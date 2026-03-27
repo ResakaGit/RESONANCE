@@ -13,9 +13,8 @@ use crate::blueprint::equations;
 use crate::simulation::abiogenesis::constants::{
     FAUNA_EMERGENT_ADAPT_RATE, FAUNA_EMERGENT_QE_COST_HZ, FAUNA_EMERGENT_STAB_BAND,
 };
-use crate::blueprint::equations::awakening::{
-    AWAKENING_BUDGET_PER_TICK, AWAKENING_MIN_QE, AWAKENING_SCAN_INTERVAL, AWAKENING_THRESHOLD,
-};
+use crate::blueprint::equations::awakening::{AWAKENING_BUDGET_PER_TICK, AWAKENING_SCAN_INTERVAL};
+use crate::blueprint::equations::derived_thresholds as dt;
 use crate::layers::{
     BaseEnergy, BehaviorCooldown, BehaviorIntent, BehavioralAgent, CapabilitySet, Homeostasis,
     InferenceProfile, MatterCoherence, OscillatorySignature, SpatialVolume, TrophicClass,
@@ -52,7 +51,7 @@ pub fn awakening_system(
         if awakened >= AWAKENING_BUDGET_PER_TICK {
             break;
         }
-        if energy.qe() < AWAKENING_MIN_QE {
+        if energy.qe() < dt::self_sustaining_qe_min() {
             continue;
         }
 
@@ -64,7 +63,7 @@ pub fn awakening_system(
         let dissipation = equations::dissipation_from_state(matter.state());
         let potential = equations::awakening::awakening_potential(energy.qe(), coherence, dissipation);
 
-        if potential < AWAKENING_THRESHOLD {
+        if potential < dt::spawn_potential_threshold() {
             continue;
         }
 
@@ -118,8 +117,8 @@ pub fn awakening_system(
         }
 
         // Reset senescence on awakening — entity gets a new lifecycle as an organism.
-        let max_age = if is_mobile { SENESCENCE_MAX_AGE_FAUNA } else { SENESCENCE_MAX_AGE_FLORA };
-        let coeff = if is_mobile { SENESCENCE_COEFF_FAUNA } else { SENESCENCE_COEFF_FLORA };
+        let max_age = if is_mobile { senescence_max_age_fauna() } else { senescence_max_age_flora() };
+        let coeff = if is_mobile { senescence_coeff_fauna() } else { senescence_coeff_flora() };
         commands.entity(entity).insert(SenescenceProfile {
             tick_birth: clock.tick_id,
             senescence_coeff: coeff,

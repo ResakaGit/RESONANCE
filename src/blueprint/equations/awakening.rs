@@ -17,21 +17,16 @@ pub fn awakening_potential(qe: f32, coherence_gain: f32, dissipation_rate: f32) 
     (net / denom).clamp(0.0, 1.0)
 }
 
-/// Minimum awakening potential to gain behavioral capabilities.
-pub const AWAKENING_THRESHOLD: f32 = 0.3;
-
-/// Minimum qe for an entity to awaken (below this, not enough energy to sustain behavior).
-pub const AWAKENING_MIN_QE: f32 = 20.0;
-
-/// How many entities can awaken per tick (budget to prevent frame spikes).
+/// How many entities can awaken per tick (structural: prevents frame spikes).
 pub const AWAKENING_BUDGET_PER_TICK: usize = 4;
 
-/// Ticks between awakening scans (not every tick — expensive query).
+/// Ticks between awakening scans (structural: CPU optimization).
 pub const AWAKENING_SCAN_INTERVAL: u64 = 8;
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::blueprint::equations::derived_thresholds as dt;
 
     #[test]
     fn zero_coherence_returns_zero() {
@@ -41,7 +36,7 @@ mod tests {
     #[test]
     fn high_coherence_low_dissipation_high_potential() {
         let p = awakening_potential(50.0, 200.0, 0.005);
-        assert!(p > AWAKENING_THRESHOLD, "p={p}");
+        assert!(p > dt::spawn_potential_threshold(), "p={p}");
     }
 
     #[test]

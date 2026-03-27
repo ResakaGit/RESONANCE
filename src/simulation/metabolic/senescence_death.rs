@@ -7,14 +7,10 @@
 use bevy::prelude::*;
 
 use crate::blueprint::equations::emergence::senescence::survival_probability;
+use crate::blueprint::equations::derived_thresholds as dt;
 use crate::events::{DeathCause, DeathEvent};
 use crate::layers::{BaseEnergy, SenescenceProfile};
 use crate::runtime_platform::simulation_tick::SimulationClock;
-
-/// Survival probability threshold below which the entity dies.
-/// At 0.05, ~5% of the theoretical population at that age would die per tick.
-/// Deterministic: same age + same coeff = same outcome. No RNG needed.
-const SURVIVAL_THRESHOLD: f32 = 0.05;
 
 /// Age-based death: hard limit + Gompertz hazard.
 pub fn senescence_death_system(
@@ -36,7 +32,7 @@ pub fn senescence_death_system(
 
         // Gompertz hazard — increasing death probability with age.
         let prob = survival_probability(age, senescence.senescence_coeff, senescence.senescence_coeff);
-        if prob < SURVIVAL_THRESHOLD {
+        if prob < dt::survival_probability_threshold() {
             death_events.send(DeathEvent { entity, cause: DeathCause::Dissipation });
         }
     }
@@ -50,13 +46,13 @@ mod tests {
     #[test]
     fn young_entity_survives() {
         let prob = survival_probability(0, 0.0001, 0.0001);
-        assert!(prob > SURVIVAL_THRESHOLD);
+        assert!(prob > dt::survival_probability_threshold());
     }
 
     #[test]
     fn very_old_entity_below_threshold() {
         let prob = survival_probability(40_000, 0.0001, 0.0001);
-        assert!(prob < SURVIVAL_THRESHOLD, "prob={prob}");
+        assert!(prob < dt::survival_probability_threshold(), "prob={prob}");
     }
 
     #[test]

@@ -77,14 +77,16 @@ pub fn nucleus_recycling_system(
         let freq = grid.cell_xy(cx, cy)
             .map(|c| c.dominant_frequency_hz)
             .filter(|f| *f > 0.0)
-            .unwrap_or(85.0);
+            .unwrap_or(crate::blueprint::constants::ABIOGENESIS_FLORA_PEAK_HZ);
 
-        // Drain nutrients to fuel the new nucleus.
+        // Drain nutrients proportional to dissipation ratios (Axiom 4).
+        let mineral_ret = crate::blueprint::equations::derived_thresholds::nutrient_retention_mineral();
+        let water_ret = crate::blueprint::equations::derived_thresholds::nutrient_retention_water();
         if let Some(ncell) = nutrients.cell_xy_mut(cx, cy) {
-            ncell.carbon_norm = (ncell.carbon_norm * 0.3).max(0.0);
-            ncell.nitrogen_norm = (ncell.nitrogen_norm * 0.3).max(0.0);
-            ncell.phosphorus_norm = (ncell.phosphorus_norm * 0.3).max(0.0);
-            ncell.water_norm = (ncell.water_norm * 0.5).max(0.0);
+            ncell.carbon_norm = (ncell.carbon_norm * mineral_ret).max(0.0);
+            ncell.nitrogen_norm = (ncell.nitrogen_norm * mineral_ret).max(0.0);
+            ncell.phosphorus_norm = (ncell.phosphorus_norm * mineral_ret).max(0.0);
+            ncell.water_norm = (ncell.water_norm * water_ret).max(0.0);
         }
 
         // Spawn recycled nucleus with finite reservoir.

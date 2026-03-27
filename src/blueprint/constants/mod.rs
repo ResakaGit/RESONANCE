@@ -71,7 +71,7 @@ mod netcode;
 mod culture;
 mod entrainment_ac2;
 mod cooperation_ac5;
-mod nucleus_lifecycle;
+pub mod nucleus_lifecycle;
 mod senescence;
 pub mod stellar;
 

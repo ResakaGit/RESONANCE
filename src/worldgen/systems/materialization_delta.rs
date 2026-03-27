@@ -81,8 +81,8 @@ pub fn materialization_incremental_system(
                         Sprite::default(),
                         SenescenceProfile {
                             tick_birth: clock.tick_id,
-                            senescence_coeff: crate::blueprint::constants::SENESCENCE_COEFF_MATERIALIZED,
-                            max_viable_age: crate::blueprint::constants::SENESCENCE_MAX_AGE_MATERIALIZED,
+                            senescence_coeff: crate::blueprint::constants::senescence_coeff_materialized(),
+                            max_viable_age: crate::blueprint::constants::senescence_max_age_materialized(),
                             strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
                         },
                     ))

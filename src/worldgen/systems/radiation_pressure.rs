@@ -7,8 +7,8 @@
 
 use bevy::prelude::*;
 
-use crate::blueprint::constants::{
-    RADIATION_PRESSURE_THRESHOLD_QE, RADIATION_PRESSURE_TRANSFER_RATE,
+use crate::blueprint::constants::nucleus_lifecycle::{
+    radiation_pressure_threshold_qe, radiation_pressure_transfer_rate,
 };
 use crate::blueprint::equations::{
     radiation_pressure_transfer_coherent, PRESSURE_FREQUENCY_BANDWIDTH,
@@ -31,7 +31,7 @@ pub fn radiation_pressure_system(mut grid: ResMut<EnergyFieldGrid>) {
     for y in 0..h {
         for x in 0..w {
             let Some(cell) = grid.cell_xy(x, y) else { continue };
-            if cell.accumulated_qe <= RADIATION_PRESSURE_THRESHOLD_QE {
+            if cell.accumulated_qe <= radiation_pressure_threshold_qe() {
                 continue;
             }
             let source_freq = cell.dominant_frequency_hz;
@@ -50,8 +50,8 @@ pub fn radiation_pressure_system(mut grid: ResMut<EnergyFieldGrid>) {
                     source_qe,
                     target_freq,
                     source_freq,
-                    RADIATION_PRESSURE_THRESHOLD_QE,
-                    RADIATION_PRESSURE_TRANSFER_RATE,
+                    radiation_pressure_threshold_qe(),
+                    radiation_pressure_transfer_rate(),
                     PRESSURE_FREQUENCY_BANDWIDTH,
                     n_count,
                 );
