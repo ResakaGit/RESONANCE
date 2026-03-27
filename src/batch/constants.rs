@@ -72,3 +72,17 @@ pub const ABIOGENESIS_INITIAL_RADIUS: f32 = 0.3;
 
 /// Fraction of dying entity's qe returned to nutrient grid.
 pub const DEATH_NUTRIENT_RETURN: f32 = 0.5;
+
+// ── Internal energy field ───────────────────────────────────────────────────
+
+/// Diffusion conductivity between adjacent internal nodes per tick.
+pub const INTERNAL_DIFFUSION_CONDUCTIVITY: f32 = 0.05;
+
+/// Frequency entrainment coupling between adjacent nodes.
+pub const INTERNAL_FREQ_COUPLING: f32 = 0.02;
+
+/// Minimum per-node radius ratio (prevents zero-thickness).
+pub const FIELD_RADIUS_MIN_RATIO: f32 = 0.3;
+
+/// Maximum per-node radius ratio (prevents excessive bulging).
+pub const FIELD_RADIUS_MAX_RATIO: f32 = 2.5;

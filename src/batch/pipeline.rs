@@ -54,6 +54,7 @@ impl SimWorldFlat {
 
         // Phase::MorphologicalLayer
         systems::senescence(self);
+        systems::internal_diffusion(self);
         systems::growth_inference(self);
         systems::morpho_adaptation(self);
         systems::reproduction(self);

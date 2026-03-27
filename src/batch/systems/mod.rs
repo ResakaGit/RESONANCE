@@ -6,6 +6,7 @@
 mod atomic;
 mod chemical;
 mod input;
+mod internal_field;
 mod metabolic;
 mod morphological;
 mod thermodynamic;
@@ -30,6 +31,9 @@ pub use metabolic::{
     cooperation_eval, culture_transmission, ecology_census, pool_distribution, social_pack,
     trophic_forage, trophic_predation,
 };
+
+// Phase::MorphologicalLayer (internal field)
+pub use internal_field::internal_diffusion;
 
 // Phase::MorphologicalLayer
 pub use morphological::{

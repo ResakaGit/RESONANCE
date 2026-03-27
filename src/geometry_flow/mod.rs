@@ -235,6 +235,66 @@ pub fn build_flow_mesh(spine: &[SpineNode], influence: &GeometryInfluence) -> Me
     mesh
 }
 
+/// Tube mesh with variable radius per spine node — emergent organ geometry.
+///
+/// `radii[i]` = cross-section radius at `spine[i]`. Produces thicker/thinner
+/// sections where energy concentrates/dissipates.
+pub fn build_flow_mesh_variable_radius(
+    spine: &[SpineNode],
+    influence: &GeometryInfluence,
+    radii: &[f32],
+) -> Mesh {
+    let ring_n = influence.ring_vertex_count() as usize;
+    let spine_n = spine.len();
+    if spine_n < 2 || ring_n < 3 {
+        return Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
+    }
+
+    let fallback_r = influence.radius_base.max(1e-4);
+    let mut positions: Vec<[f32; 3]> = Vec::with_capacity(spine_n * ring_n);
+    let mut normals:   Vec<[f32; 3]> = Vec::with_capacity(spine_n * ring_n);
+    let mut uvs:       Vec<[f32; 2]> = Vec::with_capacity(spine_n * ring_n);
+    let mut colors:    Vec<[f32; 4]> = Vec::with_capacity(spine_n * ring_n);
+    let denom_s = (spine_n - 1).max(1) as f32;
+
+    for (i, node) in spine.iter().enumerate() {
+        let r = if i < radii.len() { radii[i].max(1e-4) } else { fallback_r };
+        let (n_axis, b_axis) = orthonormal_ring_axes(node.tangent);
+        let s_along = i as f32 / denom_s;
+        for j in 0..ring_n {
+            let theta = TAU * j as f32 / ring_n as f32;
+            let radial_dir = n_axis * theta.cos() + b_axis * theta.sin();
+            positions.push((node.position + radial_dir * r).to_array());
+            normals.push(radial_dir.normalize_or_zero().to_array());
+            uvs.push([j as f32 / ring_n as f32, s_along]);
+            colors.push(vertex_flow_color(
+                node.qe_norm, node.tint_rgb,
+                s_along, j as f32 / ring_n as f32,
+            ));
+        }
+    }
+
+    let mut indices: Vec<u32> = Vec::with_capacity((spine_n - 1) * ring_n * 6);
+    for i in 0..spine_n - 1 {
+        for j in 0..ring_n {
+            let jn = (j + 1) % ring_n;
+            let a = (i * ring_n + j) as u32;
+            let b = (i * ring_n + jn) as u32;
+            let c = ((i + 1) * ring_n + j) as u32;
+            let d = ((i + 1) * ring_n + jn) as u32;
+            indices.extend_from_slice(&[a, c, b, b, c, d]);
+        }
+    }
+
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
+    mesh.insert_indices(Indices::U32(indices));
+    mesh
+}
+
 /// Merges multiple meshes into one by concatenating vertex buffers and offsetting indices.
 ///
 /// Handles POSITION, NORMAL, UV_0, COLOR (Float32x3/x2/x4). Missing attributes are synthesized

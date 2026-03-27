@@ -70,6 +70,10 @@ pub struct EntitySlot {
     // ── Epigenetic mask ────────────────────
     pub expression_mask: [f32; 4],
 
+    // ── Internal energy field (8 nodes) ───
+    pub qe_field:   [f32; 8],
+    pub freq_field:  [f32; 8],
+
     // ── Flags (packed) ─────────────────────
     pub alive:          bool,
     pub archetype:      u8,
@@ -100,6 +104,8 @@ impl Default for EntitySlot {
             branching_bias: 0.0, resilience: 0.0,
             satiation: 0.0,
             expression_mask: [0.0; 4],
+            qe_field: [0.0; 8],
+            freq_field: [0.0; 8],
             alive: false, archetype: 0, matter_state: 0,
             channeling: false, faction: 0, trophic_class: 0,
             _pad: [0; 2],
@@ -240,7 +246,7 @@ mod tests {
     #[test]
     fn entity_slot_size_is_reasonable() {
         let size = std::mem::size_of::<EntitySlot>();
-        assert!(size <= 192, "EntitySlot too large: {size} bytes");
+        assert!(size <= 256, "EntitySlot too large: {size} bytes");
         assert!(size >= 100, "EntitySlot too small: {size} bytes — fields missing?");
     }
 

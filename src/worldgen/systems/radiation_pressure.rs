@@ -1,6 +1,8 @@
 //! Radiation pressure: high-density cells push excess energy outward.
-//! Stateless system operating on EnergyFieldGrid. No entity queries.
+//! Transfer modulated by frequency alignment (Axiom 8): same-frequency cells
+//! share easily, cross-frequency cells resist mixing. Biomes stay distinct.
 //!
+//! Stateless system operating on EnergyFieldGrid. No entity queries.
 //! Phase: ThermodynamicLayer, after dissipation, before materialization.
 
 use bevy::prelude::*;
@@ -8,10 +10,12 @@ use bevy::prelude::*;
 use crate::blueprint::constants::{
     RADIATION_PRESSURE_THRESHOLD_QE, RADIATION_PRESSURE_TRANSFER_RATE,
 };
-use crate::blueprint::equations::radiation_pressure_transfer;
+use crate::blueprint::equations::{
+    radiation_pressure_transfer_coherent, PRESSURE_FREQUENCY_BANDWIDTH,
+};
 use crate::worldgen::EnergyFieldGrid;
 
-/// Applies non-linear outward pressure on cells exceeding the energy threshold.
+/// Applies frequency-modulated outward pressure on cells exceeding threshold.
 /// Double-buffered: accumulates deltas then applies (order-independent, deterministic).
 pub fn radiation_pressure_system(mut grid: ResMut<EnergyFieldGrid>) {
     let w = grid.width;
@@ -30,26 +34,34 @@ pub fn radiation_pressure_system(mut grid: ResMut<EnergyFieldGrid>) {
             if cell.accumulated_qe <= RADIATION_PRESSURE_THRESHOLD_QE {
                 continue;
             }
+            let source_freq = cell.dominant_frequency_hz;
+            let source_qe = cell.accumulated_qe;
 
             let neighbors = grid.neighbors4(x, y);
             let n_count = neighbors.iter().flatten().count() as u32;
-            let transfer_per_neighbor = radiation_pressure_transfer(
-                cell.accumulated_qe,
-                RADIATION_PRESSURE_THRESHOLD_QE,
-                RADIATION_PRESSURE_TRANSFER_RATE,
-                n_count,
-            );
-            if transfer_per_neighbor <= 0.0 {
-                continue;
-            }
 
             let src_idx = y as usize * w as usize + x as usize;
             for neighbor in neighbors.iter().flatten() {
-                let dst_idx = neighbor.1 as usize * w as usize + neighbor.0 as usize;
-                deltas[src_idx] -= transfer_per_neighbor;
-                deltas[dst_idx] += transfer_per_neighbor;
+                let (nx, ny) = *neighbor;
+                let target_freq = grid.cell_xy(nx, ny)
+                    .map(|c| c.dominant_frequency_hz)
+                    .unwrap_or(0.0);
+                let transfer = radiation_pressure_transfer_coherent(
+                    source_qe,
+                    target_freq,
+                    source_freq,
+                    RADIATION_PRESSURE_THRESHOLD_QE,
+                    RADIATION_PRESSURE_TRANSFER_RATE,
+                    PRESSURE_FREQUENCY_BANDWIDTH,
+                    n_count,
+                );
+                if transfer > 0.0 {
+                    let dst_idx = ny as usize * w as usize + nx as usize;
+                    deltas[src_idx] -= transfer;
+                    deltas[dst_idx] += transfer;
+                    any_change = true;
+                }
             }
-            any_change = true;
         }
     }
 
