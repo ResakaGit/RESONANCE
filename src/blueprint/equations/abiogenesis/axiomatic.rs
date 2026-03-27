@@ -21,9 +21,13 @@ use crate::layers::MatterState;
 const COHERENCE_BANDWIDTH_HZ: f32 = 50.0;
 
 // ── Profile derivation scales (derived from density thresholds) ─────────────
-// Reference = midpoint of gas threshold (high-energy entities as baseline).
+
+/// Reference density for profile scaling = gas threshold × 2 (high-energy baseline).
 fn profile_density_reference() -> f32 { dt::gas_density_threshold() * 2.0 }
-const PROFILE_VELOCITY_REFERENCE: f32 = 10.0;
+
+/// Reference velocity for mobility_bias = 1.0.
+/// Derived: sqrt(gas_density_threshold) — flow speed at gas transition energy.
+fn profile_velocity_reference() -> f32 { dt::gas_density_threshold().sqrt() }
 
 /// Frequency alignment factor (Axiom 8, time-averaged).
 ///
@@ -136,30 +140,28 @@ pub fn inference_profile_from_energy(
     let d = density.max(0.0);
     let c = coherence.clamp(0.0, 1.0);
     let growth    = (1.0 - d / profile_density_reference()).clamp(0.1, 0.95);
-    let mobility  = (flow_speed / PROFILE_VELOCITY_REFERENCE).clamp(0.0, 0.95);
+    let mobility  = (flow_speed / profile_velocity_reference().max(1.0)).clamp(0.0, 0.95);
     let branching = growth * (1.0 - mobility).max(0.1); // mobile entities don't branch
     let resilience = (0.5 * d / profile_density_reference() + 0.5 * c).clamp(0.1, 0.95); // density + coherence → structural organization
     (growth, mobility, branching, resilience)
 }
 
-/// Bond energy heuristic from local qe (Axiom 1).
+/// Bond energy from local qe (Axiom 1 + 4).
 ///
-/// Higher energy → stronger bonds (more energy to crystallize structure).
+/// `bond = qe / DISSIPATION_SOLID` — stronger bonds where dissipation is lowest.
+/// Clamped to [liquid_threshold, plasma_threshold × 10] (physical bounds).
 #[inline]
 pub fn bond_from_energy(qe: f32) -> f32 {
-    (qe.max(0.0) * 8.0).clamp(100.0, 3000.0)
+    let scale = 1.0 / dt::DISSIPATION_SOLID; // = 200
+    (qe.max(0.0) * scale).clamp(dt::liquid_density_threshold(), dt::plasma_density_threshold() * 10.0)
 }
 
 /// Thermal conductivity from matter state (Axiom 4).
 ///
-/// Plasma conducts most (free particles), Solid least (rigid lattice).
+/// `conductivity = dissipation × DENSITY_SCALE` — proportional to particle freedom.
+/// Derived: conductivity scales with dissipation rate (Axiom 4), normalized by spatial scale.
 pub fn conductivity_from_state(state: MatterState) -> f32 {
-    match state {
-        MatterState::Plasma => 5.0,
-        MatterState::Gas    => 2.5,
-        MatterState::Liquid => 1.2,
-        MatterState::Solid  => 0.3,
-    }
+    dissipation_from_state(state) * dt::DENSITY_SCALE
 }
 
 /// Dissipation rate from matter state (Axiom 4).
@@ -174,12 +176,13 @@ pub fn dissipation_from_state(state: MatterState) -> f32 {
     }
 }
 
-/// Initial radius from energy budget (Axiom 1).
+/// Initial radius from energy budget (Axiom 1 + 4).
 ///
-/// More energy → larger entity. Clamped to reasonable game-world range.
+/// `radius = sqrt(qe) × DISSIPATION_SOLID` — higher energy = larger extent, scaled by base dissipation.
+/// Clamped: min = DISSIPATION_SOLID (smallest stable structure), max = 1.0 (grid-scale limit).
 #[inline]
 pub fn initial_radius_from_qe(qe: f32) -> f32 {
-    (qe.max(0.0).sqrt() * 0.02).clamp(0.03, 0.8)
+    (qe.max(0.0).sqrt() * dt::DISSIPATION_SOLID).clamp(dt::DISSIPATION_SOLID, 1.0)
 }
 
 #[cfg(test)]
@@ -296,7 +299,8 @@ mod tests {
 
     #[test]
     fn profile_high_flow_high_mobility() {
-        let (_, mobility, _, _) = inference_profile_from_energy(200.0, 0.5, 8.0);
-        assert!(mobility > 0.7, "high flow → high mobility: {mobility}");
+        let ref_v = profile_velocity_reference();
+        let (_, mobility, _, _) = inference_profile_from_energy(200.0, 0.5, ref_v * 0.9);
+        assert!(mobility > 0.7, "flow near reference → high mobility: {mobility}");
     }
 }

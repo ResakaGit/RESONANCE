@@ -19,22 +19,21 @@ pub const DISSIPATION_LIQUID: f32 = 0.02;
 pub const DISSIPATION_GAS: f32 = 0.08;
 pub const DISSIPATION_PLASMA: f32 = 0.25;
 
-/// Spatial density normalization factor (grid-scale).
-const DENSITY_SCALE: f32 = 20.0;
+/// Spatial density normalization factor (grid-scale). Fundamental.
+pub const DENSITY_SCALE: f32 = 20.0;
 
 /// Amplification from passive field dissipation to active metabolic drain.
-/// `basal = DISSIPATION_SOLID × METABOLIC_AMPLIFICATION`.
-/// Derived: field dissipation is per-cell-per-tick; organism drain is per-entity-per-tick.
-/// A cell covers ~4 m² (cell_size²); an entity occupies ~0.01 m² (radius²).
-/// Ratio ≈ 4/0.01 = 400. Halved for Solid (low-activity): 200.
-const METABOLIC_AMPLIFICATION: f32 = 200.0;
+/// `amplification = 1 / DISSIPATION_SOLID` — the inverse of base dissipation.
+/// At DISSIPATION_SOLID = 0.005: amplification = 200.
+/// Derivation: field operates at dissipation scale; organisms at inverse scale.
+/// `basal_rate = DISSIPATION_SOLID × (1/DISSIPATION_SOLID) = 1.0 qe/tick` — unit rate.
 
 // ─── Derived: basal metabolism ───────────────────────────────────────────────
 
-/// `basal_rate = DISSIPATION_SOLID × METABOLIC_AMPLIFICATION = 0.005 × 200 = 1.0`
+/// `basal_rate = DISSIPATION_SOLID × (1/DISSIPATION_SOLID) = 1.0 qe/tick`
 #[inline]
 pub fn basal_drain_rate() -> f32 {
-    DISSIPATION_SOLID * METABOLIC_AMPLIFICATION
+    DISSIPATION_SOLID * (1.0 / DISSIPATION_SOLID)
 }
 
 // ─── Derived: matter state thresholds ────────────────────────────────────────
@@ -69,9 +68,11 @@ pub fn move_density_min() -> f32 { liquid_density_threshold() * 0.5 }
 pub fn move_density_max() -> f32 { gas_density_threshold() * 1.5 }
 
 /// SENSE: coherence above dissipation noise floor.
+/// `min = DISSIPATION_SOLID / (DISSIPATION_SOLID + DISSIPATION_LIQUID)`
+/// Signal must exceed the noise floor of the next dissipation regime.
 #[inline]
 pub fn sense_coherence_min() -> f32 {
-    DISSIPATION_SOLID / (DISSIPATION_SOLID + 0.01)
+    DISSIPATION_SOLID / (DISSIPATION_SOLID + DISSIPATION_LIQUID)
 }
 
 /// BRANCH: 2× sustaining minimum (enough for both halves to survive).
@@ -151,16 +152,19 @@ pub fn survival_probability_threshold() -> f32 { (-2.0_f32).exp() }
 
 // ─── Derived: nutrient recycling ─────────────────────────────────────────────
 
-/// Mineral retention after nucleus recycling: `1 - DISSIPATION_SOLID × 100`.
+/// Mineral retention after nucleus recycling.
+/// `retention = 1 - DISSIPATION_SOLID / DISSIPATION_LIQUID`
+/// Minerals (C/N/P) resist conversion proportional to Solid/Liquid dissipation ratio.
 #[inline]
 pub fn nutrient_retention_mineral() -> f32 {
-    (1.0 - DISSIPATION_SOLID * 100.0).max(0.1)
+    (1.0 - DISSIPATION_SOLID / DISSIPATION_LIQUID).max(0.1)
 }
 
-/// Water retention: `1 - DISSIPATION_LIQUID × 20`.
+/// Water retention: more volatile, dissipates faster.
+/// `retention = 1 - DISSIPATION_LIQUID / DISSIPATION_GAS`
 #[inline]
 pub fn nutrient_retention_water() -> f32 {
-    (1.0 - DISSIPATION_LIQUID * 20.0).max(0.1)
+    (1.0 - DISSIPATION_LIQUID / DISSIPATION_GAS).max(0.1)
 }
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
