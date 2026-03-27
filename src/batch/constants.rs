@@ -15,7 +15,8 @@ pub const GRID_SIDE: usize = 16;
 pub const COLLISION_EXCHANGE_FRACTION: f32 = 0.01;
 
 /// Photosynthesis efficiency: fraction of irradiance × area converted to qe.
-pub const PHOTOSYNTHESIS_EFFICIENCY: f32 = 0.1;
+/// High enough that sessile producers are a viable strategy (Axiom 6: emergence).
+pub const PHOTOSYNTHESIS_EFFICIENCY: f32 = 0.4;
 
 /// Nutrient extraction rate per unit radius per tick.
 pub const NUTRIENT_UPTAKE_RATE: f32 = 0.5;
@@ -27,7 +28,8 @@ pub const PREDATION_RANGE: f32 = 3.0;
 pub const CARNIVORE_ASSIMILATION: f32 = 0.6;
 
 /// Fraction of prey qe drained per successful predation.
-pub const PREDATION_DRAIN_FRACTION: f32 = 0.3;
+/// Low enough that hunting is not always worth the locomotion cost (Axiom 4: dissipation).
+pub const PREDATION_DRAIN_FRACTION: f32 = 0.15;
 
 /// Social pack cohesion scan radius.
 pub const PACK_SCAN_RADIUS: f32 = 8.0;

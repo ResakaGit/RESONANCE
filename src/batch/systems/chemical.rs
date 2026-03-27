@@ -79,6 +79,10 @@ pub fn photosynthesis(world: &mut SimWorldFlat) {
         let area = e.radius * e.radius;
         let gain = irr * area * PHOTOSYNTHESIS_EFFICIENCY;
         e.qe += gain;
+        // Axiom 5: producers enrich soil — depositing a fraction of gained qe
+        // as nutrients. This creates the base of the trophic chain:
+        // solar → producer → soil nutrients → herbivore → carnivore.
+        world.nutrient_grid[cell] += gain * 0.3;
     }
 }
 

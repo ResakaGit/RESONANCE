@@ -3,7 +3,7 @@
 **Módulo:** `src/blueprint/equations/derived_thresholds.rs`
 **Tipo:** Ecuaciones puras (zero Bevy deps)
 **Eje axiomático:** Todos (Axiom 1-8 combinados)
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27)
 **Bloqueado por:** Nada
 **Esfuerzo:** Bajo (~1h)
 

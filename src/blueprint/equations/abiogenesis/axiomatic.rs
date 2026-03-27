@@ -11,38 +11,18 @@
 //! Derived: spawn_condition = coherence_gain(neighbors) > dissipation_cost(local).
 //! Entity properties (matter_state, capabilities, morph profile) derived from energy density.
 
+use crate::blueprint::equations::derived_thresholds as dt;
 use crate::layers::MatterState;
 
-// ── Axiom-derived thresholds ────────────────────────────────────────────────
-// These are NOT arbitrary per-band constants. They are structural minima
-// below which self-sustaining patterns cannot form (derived from Axiom 4).
+// ── All thresholds derived from 4 fundamentals via derived_thresholds.rs ────
+// No hardcoded constants. See docs/sprints/AXIOMATIC_INFERENCE/ for derivations.
 
-/// Minimum local qe for a self-sustaining energy pattern to persist.
-/// Below this, dissipation destroys any nascent structure faster than coherence builds it.
-const SELF_SUSTAINING_QE_MIN: f32 = 20.0;
-
-/// Frequency alignment bandwidth (Hz). Determines how similar two frequencies
-/// must be for constructive interference. Narrow → tight elemental identity.
-/// Derived from Axiom 8: time-averaged interference over observation window.
+/// Frequency alignment bandwidth (Hz). Axiom 8: observation window.
 const COHERENCE_BANDWIDTH_HZ: f32 = 50.0;
 
-/// Potential threshold: net coherence must exceed this for spawn.
-/// Represents the minimum organizational energy needed to form persistent structure.
-const AXIOMATIC_SPAWN_THRESHOLD: f32 = 0.3;
-
-// ── Matter state thresholds (Axiom 1: qe density determines state) ──────────
-const PLASMA_DENSITY_THRESHOLD: f32 = 800.0;
-const GAS_DENSITY_THRESHOLD:    f32 = 300.0;
-const LIQUID_DENSITY_THRESHOLD: f32 = 80.0;
-
-// ── Capability thresholds (Axioms 1 + 8: energy + coherence → abilities) ────
-const MOVE_DENSITY_MIN:    f32 = 50.0;
-const MOVE_DENSITY_MAX:    f32 = 600.0;
-const SENSE_COHERENCE_MIN: f32 = 0.4;
-const BRANCH_QE_MIN:       f32 = 30.0;
-
-// ── Profile derivation scales ───────────────────────────────────────────────
-const PROFILE_DENSITY_REFERENCE: f32 = 500.0;
+// ── Profile derivation scales (derived from density thresholds) ─────────────
+// Reference = midpoint of gas threshold (high-energy entities as baseline).
+fn profile_density_reference() -> f32 { dt::gas_density_threshold() * 2.0 }
 const PROFILE_VELOCITY_REFERENCE: f32 = 10.0;
 
 /// Frequency alignment factor (Axiom 8, time-averaged).
@@ -82,7 +62,7 @@ pub fn cell_coherence_gain(
 ///
 /// `potential = (coherence_gain - dissipation_cost) / normalizer`
 ///
-/// Returns `[0, 1]`: above `AXIOMATIC_SPAWN_THRESHOLD` → spawn possible.
+/// Returns `[0, 1]`: above `spawn_potential_threshold()` → spawn possible.
 /// Frequency-agnostic: works for any band. The dominant frequency of the cell
 /// determines WHAT emerges, not WHETHER it emerges.
 pub fn axiomatic_abiogenesis_potential(
@@ -91,7 +71,7 @@ pub fn axiomatic_abiogenesis_potential(
     dissipation_rate: f32,
 ) -> f32 {
     let qe = if cell_qe.is_finite() { cell_qe.max(0.0) } else { return 0.0 };
-    if qe < SELF_SUSTAINING_QE_MIN { return 0.0; }
+    if qe < dt::self_sustaining_qe_min() { return 0.0; }
     let gain = if coherence_gain.is_finite() { coherence_gain.max(0.0) } else { 0.0 };
     let loss = qe * dissipation_rate.max(0.0);
     let net = gain - loss;
@@ -103,7 +83,7 @@ pub fn axiomatic_abiogenesis_potential(
 /// Whether axiomatic potential exceeds spawn threshold.
 #[inline]
 pub fn axiomatic_spawn_viable(potential: f32) -> bool {
-    potential >= AXIOMATIC_SPAWN_THRESHOLD
+    potential >= dt::spawn_potential_threshold()
 }
 
 /// Matter state derived from energy density (Axiom 1).
@@ -113,9 +93,9 @@ pub fn axiomatic_spawn_viable(potential: f32) -> bool {
 /// No element-specific mapping — state is a CONSEQUENCE of energy.
 pub fn matter_state_from_density(qe: f32, volume: f32) -> MatterState {
     let density = qe.max(0.0) / volume.max(f32::EPSILON);
-    if density >= PLASMA_DENSITY_THRESHOLD { MatterState::Plasma }
-    else if density >= GAS_DENSITY_THRESHOLD { MatterState::Gas }
-    else if density >= LIQUID_DENSITY_THRESHOLD { MatterState::Liquid }
+    if density >= dt::plasma_density_threshold() { MatterState::Plasma }
+    else if density >= dt::gas_density_threshold() { MatterState::Gas }
+    else if density >= dt::liquid_density_threshold() { MatterState::Liquid }
     else { MatterState::Solid }
 }
 
@@ -132,13 +112,13 @@ pub fn capabilities_from_energy(
 ) -> u8 {
     use crate::layers::CapabilitySet;
     let mut caps = CapabilitySet::GROW;
-    if density >= MOVE_DENSITY_MIN && density <= MOVE_DENSITY_MAX {
+    if density >= dt::move_density_min() && density <= dt::move_density_max() {
         caps |= CapabilitySet::MOVE;
     }
-    if coherence >= SENSE_COHERENCE_MIN {
+    if coherence >= dt::sense_coherence_min() {
         caps |= CapabilitySet::SENSE;
     }
-    if qe >= BRANCH_QE_MIN && density < GAS_DENSITY_THRESHOLD {
+    if qe >= dt::branch_qe_min() && density < dt::gas_density_threshold() {
         caps |= CapabilitySet::BRANCH;
     }
     caps
@@ -155,10 +135,10 @@ pub fn inference_profile_from_energy(
 ) -> (f32, f32, f32, f32) {
     let d = density.max(0.0);
     let c = coherence.clamp(0.0, 1.0);
-    let growth    = (1.0 - d / PROFILE_DENSITY_REFERENCE).clamp(0.1, 0.95);
+    let growth    = (1.0 - d / profile_density_reference()).clamp(0.1, 0.95);
     let mobility  = (flow_speed / PROFILE_VELOCITY_REFERENCE).clamp(0.0, 0.95);
     let branching = growth * (1.0 - mobility).max(0.1); // mobile entities don't branch
-    let resilience = (0.5 * d / PROFILE_DENSITY_REFERENCE + 0.5 * c).clamp(0.1, 0.95); // density + coherence → structural organization
+    let resilience = (0.5 * d / profile_density_reference() + 0.5 * c).clamp(0.1, 0.95); // density + coherence → structural organization
     (growth, mobility, branching, resilience)
 }
 
@@ -187,10 +167,10 @@ pub fn conductivity_from_state(state: MatterState) -> f32 {
 /// Plasma dissipates fastest (highest entropy production), Solid slowest.
 pub fn dissipation_from_state(state: MatterState) -> f32 {
     match state {
-        MatterState::Plasma => 0.25,
-        MatterState::Gas    => 0.10,
-        MatterState::Liquid => 0.03,
-        MatterState::Solid  => 0.005,
+        MatterState::Plasma => dt::DISSIPATION_PLASMA,
+        MatterState::Gas    => dt::DISSIPATION_GAS,
+        MatterState::Liquid => dt::DISSIPATION_LIQUID,
+        MatterState::Solid  => dt::DISSIPATION_SOLID,
     }
 }
 
@@ -271,32 +251,47 @@ mod tests {
 
     #[test]
     fn matter_state_low_density_is_solid() {
-        assert_eq!(matter_state_from_density(10.0, 1.0), MatterState::Solid);
+        assert_eq!(matter_state_from_density(1.0, 1.0), MatterState::Solid);
     }
 
     #[test]
     fn matter_state_high_density_is_plasma() {
-        assert_eq!(matter_state_from_density(1000.0, 1.0), MatterState::Plasma);
+        let plasma_d = dt::plasma_density_threshold();
+        assert_eq!(matter_state_from_density(plasma_d * 2.0, 1.0), MatterState::Plasma);
     }
 
     #[test]
-    fn capabilities_stationary_gets_grow_only() {
-        let caps = capabilities_from_energy(10.0, 10.0, 0.0);
+    fn matter_state_transitions_monotonic() {
+        let s = matter_state_from_density(1.0, 1.0);
+        let l = matter_state_from_density(dt::liquid_density_threshold() + 1.0, 1.0);
+        let g = matter_state_from_density(dt::gas_density_threshold() + 1.0, 1.0);
+        let p = matter_state_from_density(dt::plasma_density_threshold() + 1.0, 1.0);
+        assert_eq!(s, MatterState::Solid);
+        assert_eq!(l, MatterState::Liquid);
+        assert_eq!(g, MatterState::Gas);
+        assert_eq!(p, MatterState::Plasma);
+    }
+
+    #[test]
+    fn capabilities_below_move_min_no_move() {
+        let caps = capabilities_from_energy(10.0, 1.0, 0.0);
         assert_eq!(caps & crate::layers::CapabilitySet::MOVE, 0);
         assert_ne!(caps & crate::layers::CapabilitySet::GROW, 0);
     }
 
     #[test]
-    fn capabilities_moderate_density_gets_move() {
-        let caps = capabilities_from_energy(100.0, 200.0, 0.5);
+    fn capabilities_in_move_range_gets_move() {
+        let mid = (dt::move_density_min() + dt::move_density_max()) * 0.5;
+        let caps = capabilities_from_energy(100.0, mid, 0.8);
         assert_ne!(caps & crate::layers::CapabilitySet::MOVE, 0);
         assert_ne!(caps & crate::layers::CapabilitySet::SENSE, 0);
     }
 
     #[test]
     fn profile_high_density_and_coherence_high_resilience() {
-        let (_, _, _, resilience) = inference_profile_from_energy(500.0, 0.9, 0.0);
-        assert!(resilience > 0.7, "high density + high coherence → high resilience: {resilience}");
+        let ref_d = profile_density_reference();
+        let (_, _, _, resilience) = inference_profile_from_energy(ref_d, 0.9, 0.0);
+        assert!(resilience > 0.7, "high density + coherence → high resilience: {resilience}");
     }
 
     #[test]

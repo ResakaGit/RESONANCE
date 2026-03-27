@@ -3,7 +3,7 @@
 **Módulo:** `src/blueprint/equations/abiogenesis/axiomatic.rs`
 **Tipo:** Refactor ecuaciones puras
 **Eje axiomático:** Axiom 4 (dissipation) + Axiom 1 (everything is energy)
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27)
 **Bloqueado por:** AI-1
 **Esfuerzo:** Bajo (~30min)
 

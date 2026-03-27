@@ -127,7 +127,7 @@ mod tests {
         e1.qe = 40.0; // below REPRODUCTION_THRESHOLD
         e1.radius = 2.0;
         e1.position = [0.0, 0.0];
-        e1.frequency_hz = 440.0;
+        e1.frequency_hz = 800.0; // outside photosynthetic band (200-600)
         e1.phase = 0.0;
         e1.dissipation = 0.001;
         e1.archetype = 2;
