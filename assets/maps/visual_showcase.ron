@@ -1,0 +1,43 @@
+(
+  // ── Visual Showcase ────────────────────────────────────────────────────
+  // Designed for maximum visual richness: dense overlapping fields,
+  // all 6 frequency bands, high emission, compact grid (no black space).
+  width_cells: 48,
+  height_cells: 48,
+  cell_size: 2.0,
+  origin: (-48.0, -48.0),
+  warmup_ticks: Some(150),
+  seed: Some(2026),
+  fog_of_war: false,
+  playfield_margin_cells: None,
+  nuclei: [
+    // ── Terra cluster (75-95 Hz) — golden orange ──
+    ( name: "terra_1", position: (0.0, 0.0),    frequency_hz: 85.0,  emission_rate_qe_s: 600.0, propagation_radius: 30.0, decay: InverseLinear, ambient_pressure: None ),
+    ( name: "terra_2", position: (10.0, 12.0),   frequency_hz: 78.0,  emission_rate_qe_s: 400.0, propagation_radius: 25.0, decay: InverseLinear, ambient_pressure: None ),
+    ( name: "terra_3", position: (-8.0, -10.0),  frequency_hz: 92.0,  emission_rate_qe_s: 350.0, propagation_radius: 22.0, decay: InverseLinear, ambient_pressure: None ),
+
+    // ── Aqua band (200-250 Hz) — cyan/teal ──
+    ( name: "aqua_1", position: (25.0, 0.0),     frequency_hz: 200.0, emission_rate_qe_s: 500.0, propagation_radius: 28.0, decay: InverseLinear, ambient_pressure: None ),
+    ( name: "aqua_2", position: (20.0, -20.0),   frequency_hz: 220.0, emission_rate_qe_s: 350.0, propagation_radius: 22.0, decay: InverseLinear, ambient_pressure: None ),
+
+    // ── Ignis band (400-500 Hz) — red/orange hot ──
+    ( name: "ignis_1", position: (-20.0, 15.0),  frequency_hz: 440.0, emission_rate_qe_s: 500.0, propagation_radius: 25.0, decay: InverseSquare, ambient_pressure: None ),
+    ( name: "ignis_2", position: (-25.0, -5.0),  frequency_hz: 480.0, emission_rate_qe_s: 300.0, propagation_radius: 18.0, decay: InverseSquare, ambient_pressure: None ),
+
+    // ── Ventus band (600-700 Hz) — blue ──
+    ( name: "ventus_1", position: (0.0, 25.0),   frequency_hz: 600.0, emission_rate_qe_s: 400.0, propagation_radius: 24.0, decay: InverseLinear, ambient_pressure: None ),
+    ( name: "ventus_2", position: (15.0, 22.0),  frequency_hz: 650.0, emission_rate_qe_s: 250.0, propagation_radius: 18.0, decay: InverseLinear, ambient_pressure: None ),
+
+    // ── Lux band (900-1200 Hz) — violet/magenta ──
+    ( name: "lux_1", position: (0.0, -25.0),     frequency_hz: 1000.0, emission_rate_qe_s: 400.0, propagation_radius: 22.0, decay: InverseSquare, ambient_pressure: None ),
+    ( name: "lux_2", position: (-15.0, -22.0),   frequency_hz: 1100.0, emission_rate_qe_s: 250.0, propagation_radius: 18.0, decay: InverseSquare, ambient_pressure: None ),
+
+    // ── Geo/Umbra (30-55 Hz) — deep brown/dark ──
+    ( name: "geo_deep", position: (-10.0, 25.0), frequency_hz: 50.0,  emission_rate_qe_s: 350.0, propagation_radius: 20.0, decay: InverseSquare, ambient_pressure: None ),
+
+    // ── Flora (110-130 Hz) — yellow-green ──
+    ( name: "flora_1", position: (18.0, -12.0),  frequency_hz: 120.0, emission_rate_qe_s: 300.0, propagation_radius: 20.0, decay: InverseLinear, ambient_pressure: None ),
+    ( name: "flora_2", position: (-18.0, -15.0), frequency_hz: 115.0, emission_rate_qe_s: 250.0, propagation_radius: 18.0, decay: InverseLinear, ambient_pressure: None ),
+  ],
+  seasons: [],
+)

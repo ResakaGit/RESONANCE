@@ -13,7 +13,7 @@ use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::topology::TerrainField;
 use crate::worldgen::materialization_rules::materialize_cell_at_time;
 use crate::worldgen::{
-    ActiveMapName, EnergyFieldGrid, EnergyNucleus, MapConfig, Materialized, NutrientFieldGrid,
+    ActiveMapName, EnergyFieldGrid, EnergyNucleus, MapConfig, Materialized, NucleusReservoir, NutrientFieldGrid,
     WARMUP_TICKS, active_map_slug_from_env, load_default_map_asset,
     load_map_config_from_env_result, resolve_nuclei_for_spawn, validate_map_config,
 };
@@ -128,6 +128,7 @@ pub fn spawn_nuclei_from_map_config_system(
             StartupNucleus,
             Name::new(format!("nucleus::{}", spawn.name)),
             spawn.nucleus,
+            NucleusReservoir { qe: crate::blueprint::constants::NUCLEUS_DEFAULT_RESERVOIR_QE },
             transform,
             GlobalTransform::default(),
             Visibility::default(),

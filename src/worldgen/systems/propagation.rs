@@ -15,7 +15,8 @@ use crate::worldgen::propagation::{
     cell_density, cell_matter_state, cell_temperature, diffusion_transfer, field_dissipation,
     nucleus_intensity_at, resolve_dominant_frequency,
 };
-use crate::worldgen::{EnergyFieldGrid, EnergyNucleus, FrequencyContribution};
+use crate::blueprint::constants::{NUCLEUS_DEPLETION_FACTOR, NUCLEUS_EMISSION_CUTOFF_QE};
+use crate::worldgen::{EnergyFieldGrid, EnergyNucleus, FrequencyContribution, NucleusReservoir};
 
 fn bbox_for_radius(
     grid: &EnergyFieldGrid,
@@ -82,7 +83,7 @@ pub fn propagate_nuclei_system(
     fixed: Option<Res<Time<Fixed>>>,
     time: Res<Time>,
     layout: Res<SimWorldTransformParams>,
-    nuclei: Query<(Entity, &EnergyNucleus, &Transform)>,
+    mut nuclei: Query<(Entity, &EnergyNucleus, &Transform, Option<&mut NucleusReservoir>)>,
     mut grid: ResMut<EnergyFieldGrid>,
     mut prop_budget: ResMut<PropagationWriteBudget>,
     terrain: Option<Res<TerrainField>>,
@@ -96,11 +97,17 @@ pub fn propagate_nuclei_system(
     grid.clear_frequency_contributions();
     let modulation = resolve_modulation_params(terrain_cfg.as_ref());
 
-    let mut ordered_nuclei = nuclei.iter().collect::<Vec<_>>();
-    ordered_nuclei.sort_by_key(|(entity, _, _)| entity.index());
+    let mut ordered_nuclei = nuclei.iter_mut().collect::<Vec<_>>();
+    ordered_nuclei.sort_by_key(|(entity, _, _, _)| entity.index());
 
     let xz = layout.use_xz_ground;
-    for (entity, nucleus, transform) in ordered_nuclei {
+    for (entity, nucleus, transform, mut reservoir) in ordered_nuclei {
+        // Finite reservoir: skip depleted nuclei.
+        if let Some(ref res) = reservoir {
+            if res.qe < NUCLEUS_EMISSION_CUTOFF_QE {
+                continue;
+            }
+        }
         let center = sim_plane_pos(transform.translation, xz);
         let emission_rate_qe_s = terrain
             .as_ref()
@@ -146,7 +153,13 @@ pub fn propagate_nuclei_system(
             continue;
         }
 
-        let nucleus_budget_qe = emission_rate_qe_s * dt;
+        let raw_budget = emission_rate_qe_s * dt;
+        // Clamp emission to remaining reservoir (if finite).
+        let nucleus_budget_qe = if let Some(ref res) = reservoir {
+            raw_budget.min(res.qe * NUCLEUS_DEPLETION_FACTOR)
+        } else {
+            raw_budget
+        };
         for (x, y, weight) in weights {
             if prop_budget.remaining == 0 {
                 break;
@@ -167,6 +180,10 @@ pub fn propagate_nuclei_system(
             }
             prop_budget.remaining -= 1;
             grid.mark_cell_dirty(x, y);
+        }
+        // Drain reservoir by total emitted this tick.
+        if let Some(ref mut res) = reservoir {
+            res.qe = (res.qe - nucleus_budget_qe).max(0.0);
         }
     }
 }

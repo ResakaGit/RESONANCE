@@ -10,6 +10,15 @@ pub enum PropagationDecay {
     Exponential { k: f32 },
 }
 
+/// Finite fuel reservoir for a nucleus. When depleted, emission stops.
+/// SparseSet: not all nuclei have finite fuel (legacy maps omit it).
+#[derive(Component, Clone, Copy, Debug, Reflect)]
+#[component(storage = "SparseSet")]
+#[reflect(Component)]
+pub struct NucleusReservoir {
+    pub qe: f32,
+}
+
 /// Emisor de energía frecuencial hacia el campo de worldgen (Capa 6 extendida).
 #[derive(Component, Clone, Copy, Debug, Reflect, PartialEq)]
 #[reflect(Component)]

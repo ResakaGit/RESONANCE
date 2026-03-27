@@ -152,6 +152,16 @@ impl Plugin for MorphologicalPlugin {
                 .after(simulation::reproduction::reproduction_spawn_system),
         );
 
+        // Nucleus recycling: nutrient accumulation → new finite nucleus.
+        app.init_resource::<crate::worldgen::systems::nucleus_recycling::NucleusRecyclingCursor>();
+        app.add_systems(
+            FixedUpdate,
+            crate::worldgen::systems::nucleus_recycling::nucleus_recycling_system
+                .in_set(Phase::MorphologicalLayer)
+                .run_if(run_gameplay.clone())
+                .after(simulation::abiogenesis::abiogenesis_system),
+        );
+
         // ET-6: Epigenetic adaptation — environment modulates gene expression before constructal.
         app.add_systems(
             FixedUpdate,

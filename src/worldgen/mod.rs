@@ -40,7 +40,7 @@ pub use materialization_rules::{
     boundary_marker_cache_tag, boundary_visual_from_marker, boundary_world_archetype,
     materialize_cell_at_time, materialize_cell_at_time_with_boundary,
 };
-pub use nucleus::{EnergyNucleus, PropagationDecay};
+pub use nucleus::{EnergyNucleus, NucleusReservoir, PropagationDecay};
 pub use propagation_mode::{
     NucleusEmissionState, PropagationMode,
     diffuse_propagation_system, insert_nucleus_emission_state_system,

@@ -71,6 +71,7 @@ mod netcode;
 mod culture;
 mod entrainment_ac2;
 mod cooperation_ac5;
+mod nucleus_lifecycle;
 mod senescence;
 pub mod stellar;
 
@@ -139,6 +140,7 @@ pub use netcode::*;
 pub use culture::*;
 pub use entrainment_ac2::*;
 pub use cooperation_ac5::*;
+pub use nucleus_lifecycle::*;
 pub use senescence::*;
 
 pub use morphogenesis_track::morphogenesis;
