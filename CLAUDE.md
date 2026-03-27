@@ -77,6 +77,8 @@ worldgen/           → V7: field_grid, nucleus (+NucleusReservoir), propagation
 
 ## The 8 Foundational Axioms
 
+**⚠️ INVIOLABLE: No change, feature, refactor, or optimization may contradict, bypass, or weaken ANY of the 8 axioms or 4 fundamental constants. If a proposed change conflicts with an axiom, the change is WRONG — not the axiom. This is the constitution of the project. No exceptions. No DEBT. No "temporary" violations.**
+
 All simulation behavior MUST derive from these. No arbitrary constants, no per-element special cases.
 
 1. **Everything is Energy** — All entities are qe. No separate HP/mana/stats.
