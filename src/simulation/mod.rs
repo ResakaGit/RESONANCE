@@ -45,6 +45,7 @@ pub mod ability_targeting;
 pub mod game_loop;
 pub mod checkpoint_system;
 pub mod abiogenesis;
+pub mod awakening;
 pub mod cooperation;
 pub mod observability;
 pub mod behavior;

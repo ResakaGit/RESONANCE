@@ -162,6 +162,15 @@ impl Plugin for MorphologicalPlugin {
                 .after(simulation::abiogenesis::abiogenesis_system),
         );
 
+        // Awakening: inert entities gain behavioral capabilities when coherence threshold met.
+        app.add_systems(
+            FixedUpdate,
+            simulation::awakening::awakening_system
+                .in_set(Phase::MorphologicalLayer)
+                .run_if(run_gameplay.clone())
+                .after(crate::worldgen::systems::nucleus_recycling::nucleus_recycling_system),
+        );
+
         // ET-6: Epigenetic adaptation — environment modulates gene expression before constructal.
         app.add_systems(
             FixedUpdate,

@@ -42,6 +42,7 @@ mod simulation_quality;
 mod tactical_ai;
 mod game_loop;
 mod netcode;
+pub mod awakening;
 mod radiation_pressure;
 mod signal_propagation;
 mod culture;

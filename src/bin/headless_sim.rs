@@ -110,9 +110,10 @@ fn main() {
             }
             let n = count.max(1) as f32;
             let mat_count = world.query::<&resonance::worldgen::Materialized>().iter(world).count();
+            let behav_count = world.query::<&resonance::layers::BehavioralAgent>().iter(world).count();
             let avg_age = if sen_count > 0 { sum_age / sen_count as f64 } else { 0.0 };
-            eprintln!("{:>6} {:>6} {:>10.1} {:>8.2} {:>8.3} {:>8.0} {:>6}  mat={}",
-                clk, count, sum_qe, sum_qe / n, sum_rad / n, avg_age, sen_count, mat_count);
+            eprintln!("{:>6} {:>6} {:>10.1} {:>8.2} {:>8.3} {:>8.0} {:>6}  mat={} beh={}",
+                clk, count, sum_qe, sum_qe / n, sum_rad / n, avg_age, sen_count, mat_count, behav_count);
         }
     }
     let total_time = start.elapsed().as_secs_f32();

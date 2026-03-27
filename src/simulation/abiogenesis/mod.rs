@@ -6,7 +6,7 @@
 //!
 //! Matemática en [`crate::blueprint::equations`]; constantes en [`crate::blueprint::constants`].
 
-mod constants;
+pub(crate) mod constants;
 
 use bevy::prelude::*;
 
