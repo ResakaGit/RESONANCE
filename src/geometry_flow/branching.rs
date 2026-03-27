@@ -1,4 +1,4 @@
-use bevy::math::{Quat, Vec3};
+use crate::math_types::{Quat, Vec3};
 use bevy::prelude::Mesh;
 use bevy::render::mesh::{Indices, VertexAttributeValues};
 

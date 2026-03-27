@@ -5,7 +5,7 @@
 //! [`EnergyFieldGrid::world_pos`] / coords XZ (EA3).
 
 use bevy::color::Color;
-use bevy::math::{Vec2, Vec3};
+use crate::math_types::{Vec2, Vec3};
 
 use crate::blueprint::almanac::AlchemicalAlmanac;
 use crate::blueprint::constants::FIELD_VISUAL_OPAQUE_ALPHA;

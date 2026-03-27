@@ -4,7 +4,7 @@
 
 use std::f32::consts::TAU;
 
-use bevy::math::Vec3;
+use crate::math_types::Vec3;
 use bevy::prelude::Mesh;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
@@ -12,9 +12,13 @@ use bevy::render::render_asset::RenderAssetUsages;
 use crate::blueprint::equations::{
     BranchRole, FLOW_BREAK_STEER_BLEND, branch_role_modulated_linear_rgb,
     flow_maintain_straight_segment, flow_push_along_tangent, flow_steered_tangent,
+    vertex_flow_color,
 };
 
 pub mod branching;
+pub mod deformation;
+pub mod deformation_cache;
+pub mod geometry_deformation_system;
 pub mod primitives;
 
 /// Mínimo de segmentos del spine (GF1).
@@ -144,26 +148,6 @@ where
     out
 }
 
-/// Color por vértice stateless (linear RGBA) a partir del paquete y parámetros intrínsecos de la malla.
-/// `azimuth_along_ring`: fracción \([0,1]\) alrededor del anillo (índice angular / `ring_n`), no radio geométrico.
-#[inline]
-pub fn vertex_along_flow_color(
-    qe_norm: f32,
-    tint_rgb: [f32; 3],
-    s_along: f32,
-    azimuth_along_ring: f32,
-) -> [f32; 4] {
-    let q = qe_norm.clamp(0.0, 1.0);
-    let edge = (1.0 - azimuth_along_ring.clamp(0.0, 1.0)) * 0.15;
-    let g = (0.75 + 0.25 * s_along.clamp(0.0, 1.0)) * (0.7 + 0.3 * q);
-    [
-        (tint_rgb[0] * g - edge).clamp(0.0, 1.0),
-        (tint_rgb[1] * g - edge).clamp(0.0, 1.0),
-        (tint_rgb[2] * g - edge).clamp(0.0, 1.0),
-        1.0,
-    ]
-}
-
 fn orthonormal_ring_axes(tangent: Vec3) -> (Vec3, Vec3) {
     let t = tangent.normalize_or_zero();
     let up = if t.dot(Vec3::Y).abs() > 0.92 {
@@ -217,7 +201,7 @@ pub fn build_flow_mesh(spine: &[SpineNode], influence: &GeometryInfluence) -> Me
             let v = s_along;
             uvs.push([u, v]);
             let azimuth_t = j as f32 / ring_n as f32;
-            colors.push(vertex_along_flow_color(
+            colors.push(vertex_flow_color(
                 node.qe_norm,
                 node.tint_rgb,
                 s_along,
@@ -242,6 +226,58 @@ pub fn build_flow_mesh(spine: &[SpineNode], influence: &GeometryInfluence) -> Me
         PrimitiveTopology::TriangleList,
         RenderAssetUsages::default(),
     );
+    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
+    mesh.insert_attribute(Mesh::ATTRIBUTE_COLOR, colors);
+    mesh.insert_indices(Indices::U32(indices));
+    mesh
+}
+
+/// Merges multiple meshes into one by concatenating vertex buffers and offsetting indices.
+///
+/// Handles POSITION, NORMAL, UV_0, COLOR (Float32x3/x2/x4). Missing attributes are synthesized
+/// with sensible defaults. All indices are remapped to U32.
+pub fn merge_meshes(meshes: &[Mesh]) -> Mesh {
+    use bevy::render::mesh::VertexAttributeValues;
+
+    let mut positions: Vec<[f32; 3]> = Vec::new();
+    let mut normals:   Vec<[f32; 3]> = Vec::new();
+    let mut uvs:       Vec<[f32; 2]> = Vec::new();
+    let mut colors:    Vec<[f32; 4]> = Vec::new();
+    let mut indices:   Vec<u32>      = Vec::new();
+
+    for mesh in meshes {
+        let base = positions.len() as u32;
+        let vtx_count = if let Some(VertexAttributeValues::Float32x3(src)) =
+            mesh.attribute(Mesh::ATTRIBUTE_POSITION)
+        {
+            positions.extend(src.iter().copied());
+            src.len()
+        } else {
+            0
+        };
+        if let Some(VertexAttributeValues::Float32x3(src)) = mesh.attribute(Mesh::ATTRIBUTE_NORMAL) {
+            normals.extend(src.iter().copied());
+        } else {
+            normals.extend(std::iter::repeat_n([0.0, 1.0, 0.0], vtx_count));
+        }
+        if let Some(VertexAttributeValues::Float32x2(src)) = mesh.attribute(Mesh::ATTRIBUTE_UV_0) {
+            uvs.extend(src.iter().copied());
+        } else {
+            uvs.extend(std::iter::repeat_n([0.0, 0.0], vtx_count));
+        }
+        if let Some(VertexAttributeValues::Float32x4(src)) = mesh.attribute(Mesh::ATTRIBUTE_COLOR) {
+            colors.extend(src.iter().copied());
+        } else {
+            colors.extend(std::iter::repeat_n([1.0, 1.0, 1.0, 1.0], vtx_count));
+        }
+        if let Some(Indices::U32(src)) = mesh.indices() {
+            indices.extend(src.iter().map(|idx| idx + base));
+        }
+    }
+
+    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
@@ -297,9 +333,10 @@ mod tests {
     }
 
     #[test]
-    fn vertex_along_flow_color_uses_injected_qe_norm_not_implicit_state() {
-        let a = vertex_along_flow_color(0.2, [1.0, 0.0, 0.0], 0.5, 0.5);
-        let b = vertex_along_flow_color(0.95, [1.0, 0.0, 0.0], 0.5, 0.5);
+    fn vertex_flow_color_uses_injected_qe_norm_not_implicit_state() {
+        use crate::blueprint::equations::vertex_flow_color;
+        let a = vertex_flow_color(0.2, [1.0, 0.0, 0.0], 0.5, 0.5);
+        let b = vertex_flow_color(0.95, [1.0, 0.0, 0.0], 0.5, 0.5);
         assert!(
             b[0] > a[0],
             "más qe_norm debe aclarar canales vía parámetro explícito"

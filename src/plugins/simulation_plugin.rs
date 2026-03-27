@@ -36,6 +36,16 @@ impl Plugin for SimulationPlugin {
 
         init_simulation_bootstrap(app);
 
+        // SF-4: Metrics export — only inserted when RESONANCE_METRICS=1.
+        if std::env::var("RESONANCE_METRICS").is_ok() {
+            app.insert_resource(crate::simulation::observability::MetricsExportConfig::default());
+        }
+
+        // SF-5: Checkpoint — only inserted when env vars are set.
+        if let Some(cfg) = crate::simulation::checkpoint_system::CheckpointConfig::from_env() {
+            app.insert_resource(cfg);
+        }
+
         // Phase ordering + clock + worldgen delegation (schedule-generic).
         pipeline::register_simulation_pipeline(app, FixedUpdate);
 
@@ -55,6 +65,7 @@ impl Plugin for SimulationPlugin {
         app.add_systems(
             Startup,
             (
+                crate::simulation::checkpoint_system::checkpoint_load_startup_system,
                 init_almanac_elements_system,
                 init_climate_config_system,
                 init_terrain_config_system,
@@ -66,9 +77,15 @@ impl Plugin for SimulationPlugin {
                 enter_game_state_playing_system,
                 worldgen_warmup_system,
                 mark_play_state_active_system,
-                spawn_fog_world_overlay_startup_system,
             )
                 .chain(),
+        );
+        // Fog overlay needs Assets<Image> (render plugin) — skip in headless.
+        app.add_systems(
+            Startup,
+            spawn_fog_world_overlay_startup_system
+                .run_if(resource_exists::<Assets<Image>>)
+                .after(mark_play_state_active_system),
         );
     }
 }

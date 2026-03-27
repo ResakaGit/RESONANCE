@@ -1,4 +1,4 @@
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 use bevy::prelude::{Reflect, Resource};
 
 use crate::runtime_platform::core_math_agnostic::sim_plane_pos;

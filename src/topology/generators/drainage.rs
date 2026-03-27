@@ -2,7 +2,7 @@
 
 use std::collections::BinaryHeap;
 
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 
 /// Vecinos D8 en orden fijo (determinista ante empates de altitud).
 const D8_DX: [i32; 8] = [-1, 0, 1, -1, 1, -1, 0, 1];

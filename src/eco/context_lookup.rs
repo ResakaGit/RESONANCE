@@ -2,7 +2,7 @@
 //! Ver `docs/sprints/ECO_BOUNDARIES/README.md` y `docs/design/ECO_BOUNDARIES.md` §6.
 
 use bevy::ecs::system::SystemParam;
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 use bevy::prelude::{Res, Resource};
 
 use crate::eco::boundary_field::EcoBoundaryField;

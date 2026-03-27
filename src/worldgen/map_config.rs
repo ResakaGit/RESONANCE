@@ -2,7 +2,7 @@ use std::env;
 use std::fs;
 use std::path::PathBuf;
 
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 use bevy::prelude::Resource;
 use serde::{Deserialize, Serialize};
 

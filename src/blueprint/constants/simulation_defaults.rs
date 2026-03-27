@@ -1,5 +1,5 @@
 // ── Simulation defaults: tuning values shared across simulation/ systems ──
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 
 /// Default thermal load for structural link stress (no thermal stress present).
 pub const STRUCTURAL_DEFAULT_THERMAL_LOAD: f32 = 0.0;

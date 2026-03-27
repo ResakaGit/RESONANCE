@@ -7,7 +7,7 @@ use super::propagation::{
 use crate::blueprint::AlchemicalAlmanac;
 use crate::eco::context_lookup::EcoPlayfieldMargin;
 use crate::layers::{
-    AmbientPressure, BaseEnergy, MatterCoherence, OscillatorySignature, SpatialVolume,
+    AmbientPressure, BaseEnergy, MatterCoherence, OscillatorySignature, SenescenceProfile, SpatialVolume,
 };
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::topology::TerrainField;
@@ -232,6 +232,12 @@ fn materialization_full_world(world: &mut World) {
                     OscillatorySignature::new(cell.dominant_frequency_hz, 0.0),
                     SpatialVolume::new((grid_snapshot.cell_size * 0.5).max(0.01)),
                     MatterCoherence::new(cell.matter_state, 1000.0, 0.3),
+                    SenescenceProfile {
+                        tick_birth: 0,
+                        senescence_coeff: 0.0001,
+                        max_viable_age: 5_000,
+                        strategy: 0,
+                    },
                     layout.materialized_tile_transform(world_pos),
                     GlobalTransform::default(),
                     Sprite::default(),

@@ -2,7 +2,7 @@
 
 use std::cmp::Ordering;
 
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 use noise::{NoiseFn, Perlin};
 use serde::{Deserialize, Serialize};
 

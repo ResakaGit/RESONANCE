@@ -24,6 +24,8 @@ impl Plugin for MetabolicPlugin {
         app.add_systems(
             FixedUpdate,
             (
+                simulation::metabolic::basal_drain::basal_drain_system,
+                simulation::metabolic::senescence_death::senescence_death_system,
                 simulation::growth_budget::growth_budget_system,
                 simulation::metabolic_stress::metabolic_stress_death_system,
             )
@@ -88,6 +90,60 @@ impl Plugin for MetabolicPlugin {
                 .run_if(run_gameplay.clone())
                 .run_if(simulation::ecology_dynamics::every_succession_interval)
                 .after(simulation::ecology_dynamics::carrying_capacity_system)
+                .before(faction_identity_system),
+        );
+
+        // SF-1: Observability — metrics snapshot after ecology dynamics.
+        app.init_resource::<simulation::observability::SimulationMetricsSnapshot>();
+        app.init_resource::<simulation::observability::SimulationEcologySnapshot>();
+        app.init_resource::<simulation::observability::SimulationHealthDashboard>();
+        app.add_systems(
+            FixedUpdate,
+            simulation::observability::metrics_snapshot_system
+                .in_set(Phase::MetabolicLayer)
+                .run_if(run_gameplay.clone())
+                .after(simulation::ecology_dynamics::succession_system)
+                .before(faction_identity_system),
+        );
+
+        // CE: Culture observation — after metrics_snapshot, before faction_identity.
+        app.add_systems(
+            FixedUpdate,
+            simulation::culture_observation::culture_observation_system
+                .in_set(Phase::MetabolicLayer)
+                .run_if(run_gameplay.clone())
+                .run_if(simulation::culture_observation::every_culture_observation_interval)
+                .after(simulation::observability::metrics_snapshot_system)
+                .before(faction_identity_system),
+        );
+
+        // AC-5: Cooperation Emergence — Nash alliance detection after trophic.
+        app.add_systems(
+            FixedUpdate,
+            simulation::cooperation::cooperation_evaluation_system
+                .in_set(Phase::MetabolicLayer)
+                .run_if(run_gameplay.clone())
+                .after(simulation::trophic::trophic_decomposer_system)
+                .before(faction_identity_system),
+        );
+
+        // ET-5: Symbiosis effects — mutualism/parasitism drain/benefit.
+        app.add_systems(
+            FixedUpdate,
+            simulation::emergence::symbiosis_effect::symbiosis_effect_system
+                .in_set(Phase::MetabolicLayer)
+                .run_if(run_gameplay.clone())
+                .after(simulation::cooperation::cooperation_evaluation_system)
+                .before(faction_identity_system),
+        );
+
+        // ET-9: Niche adaptation — character displacement under competitive pressure.
+        app.add_systems(
+            FixedUpdate,
+            simulation::emergence::niche_adaptation::niche_adaptation_system
+                .in_set(Phase::MetabolicLayer)
+                .run_if(run_gameplay.clone())
+                .after(simulation::cooperation::cooperation_evaluation_system)
                 .before(faction_identity_system),
         );
 

@@ -4,7 +4,7 @@
 
 use core::f32::consts::TAU;
 
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 
 use crate::bridge::config::BandDef;
 

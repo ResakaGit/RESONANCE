@@ -1,6 +1,6 @@
 //! Contratos públicos del subsistema topológico: muestras, tipos y drenaje.
 
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 use bevy::prelude::Reflect;
 use serde::{Deserialize, Serialize};
 

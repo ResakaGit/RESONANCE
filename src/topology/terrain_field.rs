@@ -1,6 +1,6 @@
 //! `TerrainField`: grid SoA alineado con `EnergyFieldGrid` (misma convención mundo↔celda).
 
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 use bevy::prelude::{Reflect, Resource};
 
 use crate::topology::contracts::{TerrainSample, TerrainType};

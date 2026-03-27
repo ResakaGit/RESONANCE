@@ -1,3 +1,5 @@
+pub mod math_types;
+pub mod batch;
 pub mod blueprint;
 pub mod bridge;
 pub mod eco;
@@ -6,6 +8,7 @@ pub mod geometry_flow;
 pub mod plugins;
 pub mod rendering;
 pub mod runtime_platform;
+pub mod sim_world;
 
 pub mod entities;
 pub mod layers;

@@ -1,6 +1,6 @@
 use std::f32::consts::{PI, TAU};
 
-use bevy::math::Vec3;
+use crate::math_types::Vec3;
 use bevy::prelude::Mesh;
 use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
@@ -9,10 +9,8 @@ use crate::blueprint::constants::{
     BULB_RADIUS_SCALE, FLAT_SURFACE_LENGTH_RATIO, FLAT_SURFACE_WIDTH_RATIO,
     PETAL_FAN_LENGTH_RATIO, PETAL_FAN_WIDTH_RATIO, TUBE_LENGTH_RATIO, TUBE_RADIUS_SCALE,
 };
-use crate::blueprint::equations::{BranchRole, organ_inferred_scale};
-use crate::geometry_flow::{
-    GeometryInfluence, SpineNode, build_flow_mesh, vertex_along_flow_color,
-};
+use crate::blueprint::equations::{BranchRole, organ_inferred_scale, petal_shaded_flow_color, vertex_flow_color};
+use crate::geometry_flow::{GeometryInfluence, SpineNode, build_flow_mesh};
 use crate::layers::organ::{GeometryPrimitive, OrganSpec};
 
 #[cfg(test)]
@@ -157,7 +155,7 @@ pub fn build_flat_surface(
             buffers.uvs.push([u, v]);
             buffers
                 .colors
-                .push(vertex_along_flow_color(qe_norm, tint_rgb, u, v));
+                .push(vertex_flow_color(qe_norm, tint_rgb, u, v));
         }
     }
     for i in 0..front_vtx {
@@ -256,15 +254,7 @@ pub fn build_petal_fan(
                 );
                 buffers.uvs.push([u, v]);
 
-                let ring_shade = 0.70 + 0.30 * ring_t;
-                let along_shade = 0.75 + 0.25 * u;
-                let shade = ring_shade * along_shade;
-                let tinted = [
-                    (tint_rgb[0] * shade).clamp(0.0, 1.0),
-                    (tint_rgb[1] * shade).clamp(0.0, 1.0),
-                    (tint_rgb[2] * shade).clamp(0.0, 1.0),
-                ];
-                buffers.colors.push(vertex_along_flow_color(qe_norm, tinted, u, v));
+                buffers.colors.push(petal_shaded_flow_color(tint_rgb, ring_t, u, qe_norm, v));
             }
         }
 
@@ -326,7 +316,7 @@ pub fn build_bulb(
             let lat = (sy * 0.5 + 0.5).clamp(0.0, 1.0);
             buffers
                 .colors
-                .push(vertex_along_flow_color(qe_norm, tint_rgb, v, lat));
+                .push(vertex_flow_color(qe_norm, tint_rgb, v, lat));
         }
     }
 

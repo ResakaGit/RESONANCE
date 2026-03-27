@@ -1,4 +1,4 @@
-use bevy::math::Vec3;
+use crate::math_types::Vec3;
 
 // ═══════════════════════════════════════════════
 // Geometry Flow — spine flora / tendencia vs resistencia (stateless)

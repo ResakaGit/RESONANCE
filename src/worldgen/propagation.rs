@@ -1,4 +1,4 @@
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 
 use crate::blueprint::equations;
 use crate::layers::MatterState;

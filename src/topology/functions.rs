@@ -1,4 +1,4 @@
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 
 use crate::topology::config::ModulationParams;
 use crate::topology::contracts::TerrainType;

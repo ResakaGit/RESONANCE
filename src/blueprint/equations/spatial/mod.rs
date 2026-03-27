@@ -1,4 +1,4 @@
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 
 /// Distancia entre dos puntos 2D.
 pub fn distance(pos_a: Vec2, pos_b: Vec2) -> f32 {

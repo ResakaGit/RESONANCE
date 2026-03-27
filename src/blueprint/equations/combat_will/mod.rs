@@ -1,4 +1,4 @@
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 use crate::blueprint::constants::*;
 use crate::blueprint::equations::core_physics::{is_constructive, is_critical, is_destructive};
 

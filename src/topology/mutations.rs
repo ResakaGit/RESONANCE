@@ -1,6 +1,6 @@
 //! Mutaciones runtime del terreno (Sprint T10): cráter, uplift, erosión puntual y flatten.
 
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 use bevy::prelude::Event;
 
 use crate::topology::TerrainField;

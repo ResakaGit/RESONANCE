@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 use bevy::prelude::Resource;
 
 use crate::eco::boundary_detector::{NEIGHBOR_OFFSETS, detect_boundary};

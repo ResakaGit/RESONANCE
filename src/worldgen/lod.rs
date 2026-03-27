@@ -1,6 +1,6 @@
 //! LOD y presupuestos de materialización: funciones puras (sin ECS), testeables.
 
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 
 use crate::blueprint::AlchemicalAlmanac;
 use crate::layers::MatterState;

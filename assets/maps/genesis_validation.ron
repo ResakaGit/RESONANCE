@@ -1,0 +1,144 @@
+(
+  // ── Genesis Validation Map ─────────────────────────────────────────────
+  // Designed for 10k tick headless runs. Optimized for maximum abiogenesis:
+  // - Dense Terra-band nuclei (75-95 Hz) create coherent clusters for flora
+  // - Overlapping radii ensure neighbor coherence (critical for spawn)
+  // - Aqua + Ignis at edges for trophic diversity
+  // - 64×64 grid keeps energy concentrated (no wasted black space)
+  //
+  // Expected: flora → herbivores → carnivores trophic chain within 500 ticks
+  width_cells: 64,
+  height_cells: 64,
+  cell_size: 2.0,
+  origin: (-64.0, -64.0),
+  warmup_ticks: Some(120),
+  seed: Some(7777),
+  fog_of_war: false,
+  playfield_margin_cells: None,
+  nuclei: [
+    // ══════════════════════════════════════════════════════════════════════
+    // FLORA ZONE — Terra band (75–95 Hz). Overlapping radii for coherence.
+    // 6 nuclei in a hexagonal-ish cluster, all within ~50 Hz of each other.
+    // ══════════════════════════════════════════════════════════════════════
+    (
+      name: "terra_heart",
+      position: (0.0, 0.0),
+      frequency_hz: 85.0,
+      emission_rate_qe_s: 800.0,
+      propagation_radius: 18.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    (
+      name: "flora_north",
+      position: (0.0, 14.0),
+      frequency_hz: 90.0,
+      emission_rate_qe_s: 500.0,
+      propagation_radius: 14.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    (
+      name: "flora_south",
+      position: (0.0, -14.0),
+      frequency_hz: 80.0,
+      emission_rate_qe_s: 500.0,
+      propagation_radius: 14.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    (
+      name: "flora_east",
+      position: (12.0, 6.0),
+      frequency_hz: 92.0,
+      emission_rate_qe_s: 400.0,
+      propagation_radius: 12.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    (
+      name: "flora_west",
+      position: (-12.0, -6.0),
+      frequency_hz: 82.0,
+      emission_rate_qe_s: 400.0,
+      propagation_radius: 12.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    (
+      name: "humus_patch",
+      position: (-8.0, 10.0),
+      frequency_hz: 88.0,
+      emission_rate_qe_s: 300.0,
+      propagation_radius: 10.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+
+    // ══════════════════════════════════════════════════════════════════════
+    // WATER SOURCES — Aqua band (200 Hz). Sustain nutrient water for fauna.
+    // Placed at edges of the flora zone to create transition biomes.
+    // ══════════════════════════════════════════════════════════════════════
+    (
+      name: "aqua_spring",
+      position: (20.0, -16.0),
+      frequency_hz: 200.0,
+      emission_rate_qe_s: 350.0,
+      propagation_radius: 16.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    (
+      name: "aqua_lake",
+      position: (-20.0, 16.0),
+      frequency_hz: 210.0,
+      emission_rate_qe_s: 300.0,
+      propagation_radius: 14.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+
+    // ══════════════════════════════════════════════════════════════════════
+    // ENERGY HOTSPOT — Ignis (440 Hz). High energy zone for density pressure.
+    // Creates a volcanic region that pushes matter state transitions.
+    // ══════════════════════════════════════════════════════════════════════
+    (
+      name: "ignis_vent",
+      position: (24.0, 20.0),
+      frequency_hz: 440.0,
+      emission_rate_qe_s: 500.0,
+      propagation_radius: 12.0,
+      decay: InverseSquare,
+      ambient_pressure: None,
+    ),
+
+    // ══════════════════════════════════════════════════════════════════════
+    // GEO ANCHOR — Low freq (50 Hz), dense, slow. Stabilizes terrain.
+    // Within Terra band tolerance (~50 Hz of flora), contributes coherence.
+    // ══════════════════════════════════════════════════════════════════════
+    (
+      name: "geo_bedrock",
+      position: (0.0, -24.0),
+      frequency_hz: 55.0,
+      emission_rate_qe_s: 400.0,
+      propagation_radius: 16.0,
+      decay: InverseSquare,
+      ambient_pressure: None,
+    ),
+
+    // ══════════════════════════════════════════════════════════════════════
+    // LUX BEACON — High freq (1000 Hz). Photosynthesis energy source.
+    // Far from flora zone — tests if entities migrate toward light.
+    // ══════════════════════════════════════════════════════════════════════
+    (
+      name: "lux_beacon",
+      position: (-24.0, -20.0),
+      frequency_hz: 1000.0,
+      emission_rate_qe_s: 350.0,
+      propagation_radius: 14.0,
+      decay: InverseSquare,
+      ambient_pressure: None,
+    ),
+  ],
+  seasons: [],
+)

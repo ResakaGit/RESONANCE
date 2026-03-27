@@ -1,4 +1,4 @@
-use bevy::math::{Vec2, Vec3};
+use crate::math_types::{Vec2, Vec3};
 
 // ═══════════════════════════════════════════════
 // Cámara MOBA (runtime): geometría pura

@@ -1,5 +1,6 @@
-use bevy::math::Vec2;
+use crate::math_types::Vec2;
 use bevy::prelude::{Reflect, Resource};
+use serde::{Deserialize, Serialize};
 
 use crate::worldgen::contracts::Materialized;
 use crate::worldgen::EnergyCell;
@@ -7,7 +8,7 @@ use crate::worldgen::EnergyCell;
 pub use crate::worldgen::constants::FIELD_GRID_CHUNK_SIZE;
 
 /// Grid denso de energía del mundo (estado global, no componente).
-#[derive(Clone, Debug, Resource, Reflect)]
+#[derive(Clone, Debug, Resource, Reflect, Serialize, Deserialize)]
 pub struct EnergyFieldGrid {
     pub width: u32,
     pub height: u32,
@@ -17,8 +18,10 @@ pub struct EnergyFieldGrid {
     pub generation: u32,
     cells: Vec<EnergyCell>,
     /// Bit por celda: necesita revisión de materialización / trabajo incremental.
+    #[serde(skip)]
     dirty_words: Vec<u64>,
     /// 1 si alguna celda del chunk 16×16 está dirty (acelera skip).
+    #[serde(skip)]
     chunk_dirty: Vec<u8>,
 }
 
@@ -104,6 +107,29 @@ impl EnergyFieldGrid {
     #[inline]
     pub fn any_dirty(&self) -> bool {
         self.dirty_words.iter().any(|w| *w != 0)
+    }
+
+    /// Drena hasta `budget` índices dirty, limpia sus bits y retorna los índices.
+    pub fn drain_dirty_budgeted(&mut self, budget: usize) -> impl Iterator<Item = usize> {
+        let mut result = Vec::with_capacity(budget);
+        let total_cells = (self.width as usize) * (self.height as usize);
+        'outer: for (wi, word) in self.dirty_words.iter_mut().enumerate() {
+            if *word == 0 { continue; }
+            let mut w = *word;
+            while w != 0 {
+                let bit = w.trailing_zeros() as usize;
+                let idx = wi * 64 + bit;
+                if idx >= total_cells { break; }
+                result.push(idx);
+                w &= !(1u64 << bit);
+                if result.len() >= budget {
+                    *word = w;
+                    break 'outer;
+                }
+            }
+            *word = w;
+        }
+        result.into_iter()
     }
 
     /// Si el chunk no está dirty, se puede saltar trabajo O(chunk) en iteradores.
@@ -209,6 +235,41 @@ impl EnergyFieldGrid {
             .iter()
             .map(|cell| cell.accumulated_qe.max(0.0))
             .sum::<f32>()
+    }
+
+    /// `accumulated_qe` de la celda en posición mundo `(x, z)`. 0.0 si fuera del grid.
+    /// Convenio de eje: `x` → columna, `z` → fila (coordenadas 3D world-space).
+    pub fn cell_qe_at_world(&self, x: f32, z: f32) -> f32 {
+        self.cell_at(Vec2::new(x, z))
+            .map(|c| c.accumulated_qe.max(0.0))
+            .unwrap_or(0.0)
+    }
+
+    /// Índice lineal row-major de la celda bajo la posición mundo `(x, z)`.
+    /// Retorna `u32::MAX` si fuera del grid (valor centinela — comprobar antes de usar).
+    pub fn world_to_cell_idx(&self, x: f32, z: f32) -> u32 {
+        let Some((cx, cy)) = self.cell_coords(Vec2::new(x, z)) else {
+            return u32::MAX;
+        };
+        cy * self.width + cx
+    }
+
+    /// `accumulated_qe` por índice lineal. 0.0 si fuera de rango.
+    #[inline]
+    pub fn cell_qe(&self, idx: usize) -> f32 {
+        self.cells.get(idx).map(|c| c.accumulated_qe.max(0.0)).unwrap_or(0.0)
+    }
+
+    /// Aplica `delta` de drenaje sobre la celda `idx` (positivo = drenar, negativo = añadir).
+    /// Clampea `accumulated_qe` a `[0, ∞)` y marca la celda dirty.
+    pub fn drain_cell(&mut self, idx: u32, delta: f32) {
+        let i = idx as usize;
+        if let Some(cell) = self.cells.get_mut(i) {
+            cell.accumulated_qe = (cell.accumulated_qe - delta).max(0.0);
+            let x = (i % self.width as usize) as u32;
+            let y = (i / self.width as usize) as u32;
+            self.mark_cell_dirty(x, y);
+        }
     }
 
     fn index_of(&self, x: u32, y: u32) -> Option<usize> {
