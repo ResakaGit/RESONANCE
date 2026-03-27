@@ -63,9 +63,9 @@ pub fn nucleus_recycling_system(
         let Some(world_pos) = grid.world_pos(cx, cy) else { continue };
         let too_close = existing_nuclei.iter().any(|tr| {
             let npos = if xz {
-                bevy::math::Vec2::new(tr.translation.x, tr.translation.z)
+                crate::math_types::Vec2::new(tr.translation.x, tr.translation.z)
             } else {
-                bevy::math::Vec2::new(tr.translation.x, tr.translation.y)
+                    crate::math_types::Vec2::new(tr.translation.x, tr.translation.y)
             };
             npos.distance(world_pos) < NUCLEUS_RECYCLING_RADIUS * 2.0
         });

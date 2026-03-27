@@ -173,9 +173,18 @@ fn main() {
     // ── Entities overlay ────────────────────────────────────────────────────
     struct EntityDot { grid_x: u32, grid_y: u32, freq: f32 }
     let mut entities: Vec<EntityDot> = Vec::new();
+    let xz_ground = world
+        .get_resource::<SimWorldTransformParams>()
+        .map(|p| p.use_xz_ground)
+        .unwrap_or(true);
     let mut eq = world.query::<(&Transform, &BaseEnergy, &SpatialVolume, &OscillatorySignature)>();
     for (tr, _energy, _vol, osc) in eq.iter(world) {
-        let rel = bevy::math::Vec2::new(tr.translation.x, tr.translation.z) - grid_origin;
+        let pos = if xz_ground {
+            bevy::math::Vec2::new(tr.translation.x, tr.translation.z)
+        } else {
+            bevy::math::Vec2::new(tr.translation.x, tr.translation.y)
+        };
+        let rel = pos - grid_origin;
         if rel.x >= 0.0 && rel.y >= 0.0 {
             let cx = (rel.x / grid_cell_size).floor() as u32;
             let cy = (rel.y / grid_cell_size).floor() as u32;
