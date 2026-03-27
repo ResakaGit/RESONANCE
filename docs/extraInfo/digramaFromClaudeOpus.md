@@ -1,6 +1,6 @@
 # Resonance — Arquitectura Completa (Estado Actual)
 
-> Actualizado: 2026-03-27 | Estado: SF ✅ · ET parcial (systems wired for ET-2,3,5,6,8,9; T3-T4 stubs) · AC ✅ 5/5 · GS parcial (3/9) · Batch ✅ · Stellar ✅ · 2408+ tests
+> Actualizado: 2026-03-27 | Estado: SF ✅ · ET parcial (systems wired for ET-2,3,5,6,7,8,9; T3-T4 stubs) · AC ✅ 5/5 · GS parcial (3/9) · Batch ✅ · Stellar ✅ · Energy Cycle ✅ · Bevy Decoupled (math_types) · 2421+ tests
 
 ---
 
@@ -83,6 +83,8 @@
 ║  │  Spell resolve: CastPending ──→ spawn projectile entity    │              ║
 ║  │  WaveFront:    PropagationMode::WaveFront (SF-6 ✅)        │              ║
 ║  │  [GS-5 ✅] nucleus_intake_decay                           │              ║
+║  │  ✅ radiation_pressure_system: qe > threshold → push out  │              ║
+║  │  ✅ NucleusReservoir: finite fuel, drained per tick       │              ║
 ║  └──────────────────────────┬───────────────────────────────┘              ║
 ║                             ▼                                               ║
 ║  ┌──────────────── Phase::AtomicLayer ──────────────────────┐              ║
@@ -110,6 +112,8 @@
 ║                             ▼                                               ║
 ║  ┌──────────────── Phase::MetabolicLayer ───────────────────┐              ║
 ║  │                                                           │              ║
+║  │  ✅ basal_drain_system: passive qe drain ∝ radius^0.75     │              ║
+║  │  ✅ senescence_death_system: hard age limit + Gompertz    │              ║
 ║  │  Growth: GrowthBudget (TL3 ✅) + Liebig Law               │              ║
 ║  │  Stress: metabolic_stress ──→ DeathEvent if insolvent     │              ║
 ║  │  Trophic: satiation ──→ forage ──→ predation              │              ║
@@ -147,6 +151,7 @@
 ║  │  Abiogenesis (axiomatic):                                  │              ║
 ║  │    coherence_gain(neighbors) > dissipation(local) → spawn  │              ║
 ║  │    ANY frequency band, properties from energy density      │              ║
+║  │  ✅ nucleus_recycling_system: nutrient threshold → new nucleus            ║
 ║  │  D8 morpho adaptation (every 16 ticks)                     │              ║
 ║  │  IWG: terrain_mesh_gen ──→ water_surface                   │              ║
 ║  │  bridge_metrics_collect                                    │              ║
@@ -216,9 +221,16 @@
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │              EMERGENCE PIPELINE (axiom-derived, bottom-up)                   │
 │                                                                             │
+│  ENERGY CYCLE (closed loop, validated at 5k ticks):                        │
+│    Nucleus (finite reservoir) → emit → field → diffusion + rad. pressure  │
+│    → reservoir depletes → zone cools → entities die (senescence/drain)    │
+│    → nutrients return → threshold → nucleus_recycling → NEW nucleus       │
+│    → cycle restarts                                                        │
+│                                                                             │
 │  Energy field (nuclei emit) ──→ coherence > dissipation ──→ ABIOGENESIS    │
 │    → entity with state/caps/profile derived from density                    │
 │  Trophic succession: sessile → herbivore → carnivore                       │
+│  Life systems: basal_drain (cost of living) + senescence (age-based death)│
 │  Reproduction: parent drains qe → offspring inherits mutated profile       │
 │  Selection: competition (Ax3) + dissipation (Ax4) → less fit die           │
 │  Entrainment (AC-2): neighbors sync frequency (Kuramoto)                   │
@@ -305,12 +317,49 @@ Update / after sync_visual:
 ## Test Coverage
 
 ```
-2408+ tests total:
+2421+ tests total:
   blueprint/equations/     → ~600+ pure math tests (all domains)
   simulation/              → ~800+ system tests (MinimalPlugins pattern)
   worldgen/                → ~300+ field/materialization tests
   layers/                  → ~200+ component tests
   batch/                   → 156 headless simulator tests
-  tests/                   → ~100+ integration (probe_animal, probe_mono, etc.)
+  tests/                   → ~100+ integration (probe_animal, probe_mono, property_conservation, etc.)
   emergence/               → ~100+ equations + system tests
+  proptest                 → 19 property-based (conservation, pool equations)
+  headless_sim             → binary for headless simulation → PPM image (no GPU)
+```
+
+---
+
+## Bevy Decoupling Status
+
+```
+BEVY-FREE (ready to extract as resonance_core):
+├── math_types.rs          ← glam 0.29 re-exports, 0 bevy imports
+├── blueprint/equations/   ← 178+ files, 0 bevy::math (2 use bevy::color/render)
+├── blueprint/constants/   ← 100% bevy-free
+├── topology/ (pure math)  ← 6 files decoupled
+├── geometry_flow/ (math)  ← 3 files decoupled
+├── eco/ (math)            ← 2 files decoupled
+└── bridge/ (normalize)    ← 1 file decoupled
+
+BEVY-COUPLED (phase 2 — future extraction):
+├── layers/                ← #[derive(Component, Reflect)]
+├── simulation/            ← Query<>, Res<>, Commands
+├── plugins/               ← Bevy plugin registration
+├── rendering/             ← Mesh, Material, Camera
+└── runtime_platform/      ← Input, windowing, navmesh
+```
+
+## Headless Runner
+
+```bash
+# Run simulation headless (no window, no GPU)
+RESONANCE_MAP=genesis_validation cargo run --release --bin headless_sim -- --ticks 10000 --scale 8 --out world.ppm
+
+# Available validation maps:
+#   genesis_validation — 11 nuclei, optimized for abiogenesis + energy cycle
+#   visual_showcase    — 14 nuclei, all 6 frequency bands, max visual richness
+#   proving_grounds    — 7 nuclei, standard test environment
+#   headless_stress    — 256×256, high emission stress test
 ```

@@ -45,6 +45,27 @@ Especificaciones de alto nivel del proyecto Resonance. Para contratos runtime po
 | [GAMEDEV_IMPLEMENTATION.md](GAMEDEV_IMPLEMENTATION.md) | Mapeo mecanicas MOBA → ECS: patterns, invariants, philosophy checklist |
 | [AXIOMATIC_CLOSURE.md](AXIOMATIC_CLOSURE.md) | 5 dinamicas cross-axiom: interference, Kuramoto, culture, purity, cooperation |
 | [EMERGENCE_TIERS.md](EMERGENCE_TIERS.md) | 16 modulos de emergencia organizados en tiers |
+| [EVOLUTION_GROUP_BEHAVIOR.md](EVOLUTION_GROUP_BEHAVIOR.md) | Evolucion, seleccion natural, dinamicas grupales |
+
+## Ciclo de Energia
+
+| Documento | Descripcion |
+|-----------|-------------|
+| CLAUDE.md §Energy Cycle | Closed loop: nucleus → field → entities → death → nutrients → new nucleus |
+| `blueprint/constants/nucleus_lifecycle.rs` | Reservoir, depletion, pressure, recycling constants |
+| `blueprint/constants/senescence.rs` | Age/death constants differentiated by entity type |
+| `blueprint/equations/radiation_pressure.rs` | Non-linear outward push when qe > threshold |
+
+## Bevy Decoupling
+
+| Area | Estado |
+|------|--------|
+| `math_types.rs` (glam re-exports) | ✅ 34 files migrated to `crate::math_types` |
+| `blueprint/equations/` (178 files) | ✅ 100% bevy::math free |
+| `blueprint/constants/` | ✅ 100% bevy-free |
+| `topology/`, `geometry_flow/`, `eco/`, `bridge/` | ✅ Pure math decoupled |
+| `layers/`, `simulation/`, `plugins/` | Pending — #[derive(Component)] coupled |
+| Headless runner (`src/bin/headless_sim.rs`) | ✅ Full sim → PPM without GPU |
 
 ## Propuestas
 

@@ -20,12 +20,13 @@ Resonance is an alchemical MOBA in Rust/Bevy 0.15 where everything is energy (qe
 |-------|-----------|---------|-------|
 | Language | Rust | stable 2024 edition | MSRV 1.85 |
 | Engine | Bevy | 0.15.x | ECS + rendering + input |
-| Math | `bevy::math` (glam) | bundled | Vec2, Vec3, f32 ops |
+| Math | glam 0.29 (direct) | `math_types.rs` | Vec2, Vec3, f32 ops — decoupled from bevy::math |
 | Async | None | — | Bevy schedule only, no tokio/async-std |
 
 ## Module Map (`src/lib.rs`)
 
 ```
+math_types.rs       → Engine-agnostic glam re-exports (Vec2, Vec3, Quat). All non-ECS code imports from here.
 batch/              → Batch simulator: millions of worlds without Bevy (rayon parallel)
   arena.rs          → EntitySlot (flat entity, repr(C)), SimWorldFlat (64 slots + grids)
   systems/          → 33 stateless systems (6 phases), call blueprint/equations/ for math
@@ -40,6 +41,7 @@ blueprint/          → Types, equations/, constants/, almanac/, abilities, reci
     core_physics/   → interference, density, dissipation, state transitions
     determinism.rs  → hash_f32_slice, next_u64, unit_f32, range_f32, gaussian_f32
     entity_shape.rs → GF1 influence, constructal optimizer, organ_slot_scale(mobility)
+    radiation_pressure.rs → Non-linear outward push when cell qe > threshold
   morphogenesis/    → Constructal (shape_cost, drag, fineness), surface (rugosity, albedo), thermodynamics
 bridge/             → Cache optimizer (BridgeCache<B>, 11 equation kinds) + constants.rs
 eco/                → Eco-boundaries, zones, climate + systems.rs
@@ -55,14 +57,18 @@ simulation/         → pipeline, bootstrap, pathfinding, fog, growth, photosynt
   emergence/        → ET systems: theory_of_mind, symbiosis_effect, epigenetic_adaptation, niche_adaptation,
                       culture, entrainment, coalitions (+ stubs: infrastructure, institutions, etc.)
   lifecycle/        → constructal_body_plan, entity_shape_inference (compound mesh), body_plan_layout
+  metabolic/        → basal_drain (passive qe cost), senescence_death (age-based mortality),
+                      trophic (herbivore/carnivore/decomposer), growth_budget, metabolic_stress
   reproduction/     → Flora seed dispersal + fauna offspring (inherits mutated InferenceProfile incl. mobility_bias)
 topology/           → Terrain: noise, slope, drainage, classifier, hydraulics, mutations, config
 world/              → SpatialIndex, demos, presets; maps = assets/maps/*.ron
-worldgen/           → V7: field_grid, nucleus, propagation, materialization, shape_inference, nutrient_field
-  systems/          → startup, prephysics, propagation, materialization, terrain, visual, performance
+worldgen/           → V7: field_grid, nucleus (+NucleusReservoir), propagation, materialization, shape_inference, nutrient_field
+  systems/          → startup, prephysics, propagation, materialization, terrain, visual, performance,
+                      radiation_pressure (non-linear outward push), nucleus_recycling (nutrient→new nucleus)
 ```
 
 **Maps:** `RESONANCE_MAP` → `assets/maps/{name}.ron` (`worldgen/map_config.rs`).
+**Headless:** `cargo run --bin headless_sim -- --ticks 10000 --scale 8 --out world.ppm` (sim → PPM image, no GPU).
 **Events:** `simulation/bootstrap.rs` — 15 `Event` types (incl. `TerrainMutationEvent`); `PathRequestEvent` in `Compat2d3dPlugin`.
 **Docs:** `docs/arquitectura/README.md` (module blueprints). Folder structure: `docs/design/FOLDER_STRUCTURE.md`.
 
@@ -116,6 +122,31 @@ Axiom 1: matter_state = f(energy_density), capabilities = f(density, coherence)
 ```
 
 Entity properties derived from energy state: matter_state_from_density, capabilities_from_energy, inference_profile_from_energy. No per-band constants.
+
+## Energy Cycle (Closed Loop)
+
+```
+Nucleus (finite reservoir) → emits to field → diffusion + radiation pressure
+    ↓                                                    ↓
+Reservoir depletes (→0)                    Entities materialize (SenescenceProfile)
+    ↓                                                    ↓
+Zone cools down                            Live (basal_drain) → die (senescence/starvation)
+    ↓                                                    ↓
+                        Nutrients return to grid (nutrient_return_on_death_system)
+                                     ↓
+                        Threshold reached → nucleus_recycling_system → new finite nucleus
+                                     ↓
+                                 Cycle restarts
+```
+
+**Key systems:**
+- `NucleusReservoir` (SparseSet): finite fuel, drained per tick by `propagate_nuclei_system`
+- `basal_drain_system` (MetabolicLayer): passive qe cost ∝ radius^0.75 × age_factor (Kleiber)
+- `senescence_death_system` (MetabolicLayer): hard age limit + Gompertz hazard
+- `radiation_pressure_system` (ThermodynamicLayer): non-linear outward push above threshold
+- `nucleus_recycling_system` (MorphologicalLayer): nutrients accumulate → spawn new nucleus
+
+**Constants:** `blueprint/constants/nucleus_lifecycle.rs`, `blueprint/constants/senescence.rs`
 
 ## Evolution & Emergence Pipeline
 
@@ -317,9 +348,11 @@ impl MyComp {
 - **Integration** (systems): `MinimalPlugins` app, spawn only needed components, ONE update, assert delta.
 - **Skip**: schedule ordering, rendering, keyboard input.
 - **Naming**: `<function>_<condition>_<expected>` — e.g. `density_zero_radius_returns_zero`.
+- **Property** (proptest): `tests/property_conservation.rs` — fuzzes conservation + pool equations with arbitrary inputs.
 - **Batch** (headless): tests in `src/batch/` modules. 156 tests covering 33 systems, arena, genome, harness, bridge. Zero Bevy dependency.
-- **Run**: `cargo test` (~2400+ tests). `cargo bench --bench batch_benchmark` for performance.
-- **Maps**: `RESONANCE_MAP={name} cargo run` (demo_arena, demo_animal, proving_grounds, flower_demo, four_flowers).
+- **Headless sim**: `cargo run --bin headless_sim -- --ticks N --scale S --out file.ppm` — full sim → PPM image, no GPU.
+- **Run**: `cargo test` (~2420+ tests). `cargo bench --bench batch_benchmark` for performance.
+- **Maps**: `RESONANCE_MAP={name} cargo run` (genesis_validation, visual_showcase, proving_grounds, four_flowers, demo_animal).
 
 ## Roles
 
@@ -395,7 +428,16 @@ If following a coding rule makes the game worse, break the rule and explain why.
 - `src/entities/archetypes/catalog.rs` — spawn functions (celula, virus, planta, animal)
 - `src/entities/builder.rs` — EntityBuilder API (incl. `wave_from_hz`)
 - `src/simulation/bootstrap.rs` — events + init resources
+- `src/simulation/metabolic/basal_drain.rs` — passive energy drain (cost of living)
+- `src/simulation/metabolic/senescence_death.rs` — age-based mortality
 - `src/sim_world.rs` — SimWorld boundary (tick, snapshot, determinism)
+- `src/math_types.rs` — glam re-exports (Bevy-free math types)
+- `src/bin/headless_sim.rs` — headless simulation → PPM image
+- `src/worldgen/nucleus.rs` — EnergyNucleus + NucleusReservoir (finite fuel)
+- `src/worldgen/systems/radiation_pressure.rs` — non-linear energy redistribution
+- `src/worldgen/systems/nucleus_recycling.rs` — nutrient → new nucleus cycle
+- `src/blueprint/constants/nucleus_lifecycle.rs` — depletion, pressure, recycling constants
+- `src/blueprint/constants/senescence.rs` — age/death constants (materialized, flora, fauna)
 - `src/batch/mod.rs` — batch simulator entry point (17 files, 33 systems)
 - `src/batch/arena.rs` — EntitySlot (flat entity) + SimWorldFlat (world)
 - `src/batch/harness.rs` — GeneticHarness (evolutionary loop)
