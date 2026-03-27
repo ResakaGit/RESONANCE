@@ -1,0 +1,87 @@
+(
+  // ── Civilization Test Map ──────────────────────────────────────────────────
+  //
+  // Designed to maximize simultaneous BehavioralAgents for cultural transmission.
+  // Strategy: small grid (32×32), high emission, slow depletion (30k reservoir),
+  // tight radius overlap to create dense coherence zones where awakening triggers.
+  //
+  // Expected behavior:
+  //   tick 0-500:     warmup → materialization → ~200 entities
+  //   tick 500-2000:  awakening peaks (20-30 BehavioralAgents)
+  //   tick 2000-4000: cultural transmission between agents, meme spread
+  //   tick 4000-8000: nuclei deplete → first generation dies → offspring inherit memes
+  //   tick 8000+:     second generation with inherited culture
+  //
+  // Key: reservoir 30k + emission 600 = nuclei last ~3000 ticks (enough for culture)
+  width_cells: 32,
+  height_cells: 32,
+  cell_size: 2.0,
+  origin: (-32.0, -32.0),
+  warmup_ticks: Some(80),
+  seed: Some(2026),
+  fog_of_war: false,
+  playfield_margin_cells: None,
+  nuclei: [
+    // ── Dense Terra cluster (75-95 Hz) — creates high coherence for awakening ──
+    // 4 overlapping nuclei, tight spacing, high emission → many cells above threshold
+    (
+      name: "terra_alpha",
+      position: (0.0, 0.0),
+      frequency_hz: 85.0,
+      emission_rate_qe_s: 600.0,
+      propagation_radius: 18.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    (
+      name: "terra_beta",
+      position: (6.0, 6.0),
+      frequency_hz: 88.0,
+      emission_rate_qe_s: 500.0,
+      propagation_radius: 16.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    (
+      name: "terra_gamma",
+      position: (-6.0, -4.0),
+      frequency_hz: 82.0,
+      emission_rate_qe_s: 500.0,
+      propagation_radius: 16.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    (
+      name: "terra_delta",
+      position: (4.0, -6.0),
+      frequency_hz: 90.0,
+      emission_rate_qe_s: 400.0,
+      propagation_radius: 14.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+
+    // ── Aqua source (200 Hz) — different biome for diversity ──
+    (
+      name: "aqua_source",
+      position: (-12.0, 10.0),
+      frequency_hz: 200.0,
+      emission_rate_qe_s: 400.0,
+      propagation_radius: 14.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+
+    // ── Ignis hotspot (440 Hz) — energy-dense zone ──
+    (
+      name: "ignis_core",
+      position: (12.0, -10.0),
+      frequency_hz: 440.0,
+      emission_rate_qe_s: 500.0,
+      propagation_radius: 12.0,
+      decay: InverseSquare,
+      ambient_pressure: None,
+    ),
+  ],
+  seasons: [],
+)
