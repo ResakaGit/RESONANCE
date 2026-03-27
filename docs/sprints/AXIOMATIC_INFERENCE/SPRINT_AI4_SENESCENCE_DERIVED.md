@@ -3,7 +3,7 @@
 **Módulo:** `src/blueprint/constants/senescence.rs`, spawn paths (startup.rs, spawn.rs, abiogenesis/mod.rs)
 **Tipo:** Constantes eliminadas → llamadas a derivación
 **Eje axiomático:** Axiom 4 (dissipation = aging) + Kleiber (metabolic rate ∝ mass^0.75)
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27)
 **Bloqueado por:** AI-1
 **Esfuerzo:** Medio (~45min, toca 4 archivos)
 

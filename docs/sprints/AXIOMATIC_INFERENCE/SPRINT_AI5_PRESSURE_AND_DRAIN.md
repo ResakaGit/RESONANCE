@@ -3,7 +3,7 @@
 **Módulo:** `src/simulation/metabolic/basal_drain.rs`, `src/blueprint/constants/nucleus_lifecycle.rs`
 **Tipo:** Constantes eliminadas → derivación
 **Eje axiomático:** Axiom 4 (dissipation scales everything)
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27)
 **Bloqueado por:** AI-2 (density thresholds para pressure)
 **Esfuerzo:** Bajo (~20min)
 

@@ -3,7 +3,7 @@
 **Módulo:** `src/worldgen/systems/nucleus_recycling.rs`, `src/blueprint/equations/awakening.rs`
 **Tipo:** Cleanup + consolidación
 **Eje axiomático:** N/A (higiene de código)
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27)
 **Bloqueado por:** AI-1
 **Esfuerzo:** Bajo (~20min)
 

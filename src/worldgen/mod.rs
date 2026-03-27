@@ -15,6 +15,7 @@ pub mod organ_inference;
 pub(crate) mod propagation;
 pub mod propagation_mode;
 pub mod shape_inference;
+pub mod visual_calibration;
 pub(crate) mod visual_derivation;
 
 pub use archetypes::{

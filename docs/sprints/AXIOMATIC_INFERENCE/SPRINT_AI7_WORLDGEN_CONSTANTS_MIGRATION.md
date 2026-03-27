@@ -3,7 +3,7 @@
 **Módulo:** `src/worldgen/constants.rs`, consumidores en `worldgen/systems/`, `worldgen/`, `rendering/`, `eco/`
 **Tipo:** Refactor API (const → fn) + recalibración visual
 **Eje axiomático:** Axiom 1 (energy = state) + Axiom 4 (dissipation scales everything)
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27) — alternative path: visual_calibration.rs
 **Bloqueado por:** AI-1 ✅, AI-2 ✅
 **Esfuerzo:** Alto (~3h — toca 11+ consumidores, requiere recalibración visual)
 

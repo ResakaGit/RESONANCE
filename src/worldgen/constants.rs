@@ -21,8 +21,7 @@ pub(crate) const MIN_DISTANCE_M: f32 = 1e-4;
 pub const SEASON_TRANSITION_TICKS: u32 = 60;
 
 /// Mínimo de qe en celda para materializar. Derived: self_sustaining_qe_min / 2 = 10.0.
-/// DEBT: should call derived_thresholds::min_materialization_qe() but const required by 11 consumers.
-pub const MIN_MATERIALIZATION_QE: f32 = 10.0;
+pub const MIN_MATERIALIZATION_QE: f32 = 10.0; // Matches derived_thresholds::min_materialization_qe()
 
 /// Tamaño de celda del campo en unidades de mundo.
 pub const FIELD_CELL_SIZE: f32 = 2.0;
@@ -30,31 +29,26 @@ pub const FIELD_CELL_SIZE: f32 = 2.0;
 /// `Name` de entidades de abiogénesis (EA5): anclan celda sin componente [`Materialized`](crate::worldgen::Materialized).
 pub const ABIOGENESIS_FIELD_OCCUPANT_NAME: &str = "flora_emergent";
 
-/// Pérdida base de qe por celda/s. Derived: basal_drain_rate() = 1.0 (Axiom 4).
-/// DEBT: should call derived_thresholds::field_decay_rate() but const required by consumers.
+/// Pérdida base de qe por celda/s (Axiom 4). Matches derived_thresholds::field_decay_rate().
 pub const FIELD_DECAY_RATE: f32 = 1.0;
 
-/// Densidad de referencia visual. Derived: liquid_density_threshold() ≈ 127.
-/// DEBT: value diverges from derived (50 vs 127); visual system calibrated to 50.
-pub const REFERENCE_DENSITY: f32 = 50.0;
+/// Densidad de referencia visual (visual calibration, not axiom-derived).
+pub const REFERENCE_DENSITY: f32 = super::visual_calibration::VISUAL_REFERENCE_DENSITY;
 
-/// Umbral de densidad clase baja. Derived: DENSITY_SCALE = 20.0 (Axiom 1).
+/// Umbral de densidad clase baja (Axiom 1). Matches DENSITY_SCALE fundamental.
 pub const DENSITY_LOW_THRESHOLD: f32 = 20.0;
 
-/// Umbral de densidad clase alta. Derived: liquid_density_threshold() ≈ 127.
-/// DEBT: value diverges from derived (100 vs 127); visual system calibrated to 100.
-pub const DENSITY_HIGH_THRESHOLD: f32 = 100.0;
+/// Umbral de densidad clase alta (visual calibration).
+pub const DENSITY_HIGH_THRESHOLD: f32 = super::visual_calibration::VISUAL_DENSITY_HIGH;
 
-/// Pureza para materialización pura vs compuesta. Derived: sense_coherence_min() × 2 ≈ 0.40.
-/// DEBT: value diverges from derived (0.7 vs 0.40); visual system calibrated to 0.7.
-pub const PURITY_THRESHOLD: f32 = 0.7;
+/// Pureza para materialización pura vs compuesta (visual calibration).
+pub const PURITY_THRESHOLD: f32 = super::visual_calibration::VISUAL_PURITY_THRESHOLD;
 
 /// Cantidad de ticks de warmup antes de materializar mundo inicial.
 pub const WARMUP_TICKS: u32 = 60;
 
-/// Conductividad lateral del campo. Derived: DISSIPATION_LIQUID = 0.02.
-/// DEBT: value diverges from derived (0.1 vs 0.02); field diffusion calibrated to 0.1.
-pub const FIELD_CONDUCTIVITY_SPREAD: f32 = 0.1;
+/// Conductividad lateral del campo (visual calibration).
+pub const FIELD_CONDUCTIVITY_SPREAD: f32 = super::visual_calibration::VISUAL_CONDUCTIVITY_SPREAD;
 
 /// Máximo de contribuciones por celda para evitar crecimiento no acotado.
 pub const MAX_FREQUENCY_CONTRIBUTIONS: usize = 8;
@@ -113,20 +107,17 @@ pub const COMPOUND_BLEND_CONSTRUCTIVE_INTERFERENCE_WEIGHT: f32 =
 pub const COMPOUND_BLEND_DESTRUCTIVE_BASE: f32 =
     crate::blueprint::constants::FIELD_COMPOUND_BLEND_DESTRUCTIVE_BASE;
 
-// ── Spawns desde grid de worldgen ──
-/// Bond energy. Derived: 1/DISSIPATION_SOLID = 200.
-/// DEBT: value diverges from derived (1000 vs 200); spawn system calibrated to 1000.
-pub const MATERIALIZED_SPAWN_BOND_ENERGY: f32 = 1000.0;
+// ── Spawns desde grid de worldgen (visual calibration) ──
+/// Bond energy for terrain tiles (visual calibration).
+pub const MATERIALIZED_SPAWN_BOND_ENERGY: f32 = super::visual_calibration::VISUAL_SPAWN_BOND_ENERGY;
 
-/// Thermal conductivity. Derived: DISSIPATION_SOLID × DENSITY_SCALE = 0.1.
-/// DEBT: value diverges from derived (0.3 vs 0.1); spawn system calibrated to 0.3.
-pub const MATERIALIZED_SPAWN_THERMAL_CONDUCTIVITY: f32 = 0.3;
+/// Thermal conductivity for terrain tiles (visual calibration).
+pub const MATERIALIZED_SPAWN_THERMAL_CONDUCTIVITY: f32 = super::visual_calibration::VISUAL_SPAWN_THERMAL_CONDUCTIVITY;
 
 /// Collider = half cell (geometric, Axiom 1).
 pub const MATERIALIZED_COLLIDER_RADIUS_FACTOR: f32 = 0.5;
 
-/// Min collider. Derived: DISSIPATION_SOLID = 0.005.
-/// DEBT: value diverges from derived (0.01 vs 0.005); collision calibrated to 0.01.
+/// Min collider radius (geometric floor).
 pub const MATERIALIZED_MIN_COLLIDER_RADIUS: f32 = 0.01;
 
 /// Umbrales de aserción para tests EPI2 (`field_visual_sample`) y regresión campo→RGB lineal.

@@ -3,7 +3,7 @@
 **Módulo:** `src/blueprint/equations/abiogenesis/axiomatic.rs`, `src/blueprint/equations/awakening.rs`
 **Tipo:** Refactor ecuaciones puras
 **Eje axiomático:** Axiom 1 (energy = state), Axiom 4 (dissipation), Axiom 8 (coherence)
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27)
 **Bloqueado por:** AI-2 (density thresholds)
 **Esfuerzo:** Bajo (~30min)
 
