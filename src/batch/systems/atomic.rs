@@ -6,7 +6,7 @@
 use crate::blueprint::{constants, equations};
 use crate::blueprint::equations::emergence::entrainment as entrainment_eq;
 use crate::batch::arena::SimWorldFlat;
-use crate::batch::constants::COLLISION_EXCHANGE_FRACTION;
+use crate::batch::constants::{COLLISION_EXCHANGE_FRACTION, TENSION_FORCE_SCALE, TENSION_RADIUS_MULTIPLIER};
 use crate::batch::scratch::ScratchPad;
 
 /// L3→L0: entropy drain per tick.
@@ -143,7 +143,7 @@ pub fn will_to_velocity(world: &mut SimWorldFlat) {
         let intent = glam::Vec2::new(e.will_intent[0], e.will_intent[1]);
         let force = equations::will_force(intent, e.engine_buffer, e.engine_max);
         let vel = glam::Vec2::new(e.velocity[0], e.velocity[1]);
-        let new_vel = equations::integrate_velocity(vel, force, e.qe.max(0.01), dt);
+        let new_vel = equations::integrate_velocity(vel, force, e.qe.max(crate::batch::constants::GUARD_EPSILON), dt);
         if new_vel.is_finite() {
             e.velocity[0] = new_vel.x;
             e.velocity[1] = new_vel.y;
@@ -223,7 +223,7 @@ pub fn tension_field_apply(world: &mut SimWorldFlat, _scratch: &mut ScratchPad) 
 
         // Only entities that have a tension field active (adapt_rate > 0 as proxy)
         // In batch, use pressure_dqe > 0 as indicator of active tension
-        let t_radius = world.entities[i].radius * 3.0; // influence range
+        let t_radius = world.entities[i].radius * TENSION_RADIUS_MULTIPLIER;
         let t_radius_sq = t_radius * t_radius;
 
         let mut mj = world.alive_mask & !((1u64 << i) | ((1u64 << i) - 1));
@@ -234,11 +234,11 @@ pub fn tension_field_apply(world: &mut SimWorldFlat, _scratch: &mut ScratchPad) 
             let dx = world.entities[j].position[0] - world.entities[i].position[0];
             let dy = world.entities[j].position[1] - world.entities[i].position[1];
             let dist_sq = dx * dx + dy * dy;
-            if dist_sq >= t_radius_sq || dist_sq < 0.01 { continue; }
+            if dist_sq >= t_radius_sq || dist_sq < crate::batch::constants::GUARD_EPSILON { continue; }
 
             let dist = dist_sq.sqrt();
             let force_mag = (world.entities[i].qe * world.entities[j].qe)
-                / (dist_sq * 100.0); // inverse square, scaled
+                / (dist_sq * TENSION_FORCE_SCALE);
             let force_mag = force_mag.min(1.0); // cap force
 
             let nx = dx / dist;

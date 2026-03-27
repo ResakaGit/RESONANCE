@@ -124,17 +124,16 @@ mod tests {
         let mut w = SimWorldFlat::new(0, 0.05);
         // Two entities close enough to collide, but below reproduction threshold
         let mut e1 = EntitySlot::default();
-        e1.qe = 40.0; // below REPRODUCTION_THRESHOLD
+        e1.qe = 15.0;
         e1.radius = 2.0;
         e1.position = [0.0, 0.0];
-        e1.frequency_hz = 800.0; // outside photosynthetic band (200-600)
+        e1.frequency_hz = 900.0; // far from SOLAR_FREQUENCY → no photosynthesis
         e1.phase = 0.0;
         e1.dissipation = 0.001;
-        e1.archetype = 2;
-        e1.trophic_class = 2;
+        e1.velocity = [3.0, 0.0]; // moving → no foraging
         let mut e2 = e1;
         e2.position = [1.0, 0.0];
-        e2.frequency_hz = 900.0; // very different freq → destructive interference, no coop bonus
+        e2.frequency_hz = 50.0;
         e2.phase = 1.5;
         w.spawn(e1);
         w.spawn(e2);

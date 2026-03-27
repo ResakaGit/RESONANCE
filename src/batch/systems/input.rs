@@ -4,7 +4,10 @@
 //! decide action via utility scoring, write intent to will_intent.
 
 use crate::batch::arena::SimWorldFlat;
-use crate::batch::constants::MAX_ENTITIES;
+use crate::batch::constants::{
+    BEHAVIOR_MOBILITY_MIN, FOOD_QE_RATIO, GUARD_EPSILON,
+    HUNT_MOBILITY_THRESHOLD, MAX_ENTITIES, THREAT_QE_RATIO,
+};
 use crate::batch::scratch::ScratchPad;
 use crate::blueprint::{constants, equations};
 
@@ -26,10 +29,10 @@ pub fn behavior_assess(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
         mi &= mi - 1;
         // Axiom 6: behavior emerges from composition, not top-down tags.
         // Entities with mobility capacity (mobility_bias > 0) exhibit behavior.
-        if world.entities[i].mobility_bias <= 0.01 { continue; }
+        if world.entities[i].mobility_bias <= BEHAVIOR_MOBILITY_MIN { continue; }
 
         let (hunger, _energy_ratio) = equations::assess_energy(
-            world.entities[i].engine_buffer, world.entities[i].engine_max.max(0.01),
+            world.entities[i].engine_buffer, world.entities[i].engine_max.max(GUARD_EPSILON),
         );
 
         let mut best_food_dist_sq = f32::MAX;
@@ -47,21 +50,15 @@ pub fn behavior_assess(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
             let dy = world.entities[i].position[1] - world.entities[j].position[1];
             let dist_sq = dx * dx + dy * dy;
 
-            // Axiom 6: food identified by trophic hierarchy, not archetype tag.
-            // Lower trophic class = potential food. Photosynthetic band (200-600 Hz) = plant-like.
-            if world.entities[j].trophic_class < world.entities[i].trophic_class
-                || (world.entities[j].frequency_hz >= 200.0
-                    && world.entities[j].frequency_hz <= 600.0
-                    && world.entities[j].trophic_class == 0)
-            {
+            // Axiom 6: food = entity with less energy (energy dominance).
+            if world.entities[j].qe < world.entities[i].qe * FOOD_QE_RATIO {
                 if dist_sq < best_food_dist_sq {
                     best_food_dist_sq = dist_sq;
                     best_food_idx = j as u8;
                 }
             }
-            if world.entities[j].trophic_class > world.entities[i].trophic_class
-                && world.entities[j].qe > world.entities[i].qe
-            {
+            // Axiom 6: threat = entity with significantly more energy.
+            if world.entities[j].qe > world.entities[i].qe * THREAT_QE_RATIO {
                 if dist_sq < best_threat_dist_sq {
                     best_threat_dist_sq = dist_sq;
                     best_threat_idx = j as u8;
@@ -81,7 +78,8 @@ pub fn behavior_assess(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
 
         if best_food_idx < MAX_ENTITIES as u8 {
             scores[1] = equations::utility_forage(hunger, food_dist, world.entities[i].mobility_bias);
-            if world.entities[i].trophic_class >= 3 {
+            // Axiom 6: hunt ability from mobility composition, not trophic tag.
+            if world.entities[i].mobility_bias > HUNT_MOBILITY_THRESHOLD {
                 scores[3] = equations::utility_hunt(
                     world.entities[best_food_idx as usize].qe,
                     food_dist, world.entities[i].qe, world.entities[i].mobility_bias,
@@ -121,13 +119,13 @@ pub fn behavior_assess(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
             1 if target < MAX_ENTITIES && world.alive_mask & (1 << target) != 0 => {
                 let dx = world.entities[target].position[0] - world.entities[i].position[0];
                 let dy = world.entities[target].position[1] - world.entities[i].position[1];
-                let len = (dx * dx + dy * dy).sqrt().max(0.01);
+                let len = (dx * dx + dy * dy).sqrt().max(GUARD_EPSILON);
                 world.entities[i].will_intent = [dx / len, dy / len];
             }
             2 if target < MAX_ENTITIES && world.alive_mask & (1 << target) != 0 => {
                 let dx = world.entities[i].position[0] - world.entities[target].position[0];
                 let dy = world.entities[i].position[1] - world.entities[target].position[1];
-                let len = (dx * dx + dy * dy).sqrt().max(0.01);
+                let len = (dx * dx + dy * dy).sqrt().max(GUARD_EPSILON);
                 world.entities[i].will_intent = [
                     dx / len * constants::BEHAVIOR_PANIC_FACTOR,
                     dy / len * constants::BEHAVIOR_PANIC_FACTOR,
@@ -136,7 +134,7 @@ pub fn behavior_assess(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
             3 if target < MAX_ENTITIES && world.alive_mask & (1 << target) != 0 => {
                 let dx = world.entities[target].position[0] - world.entities[i].position[0];
                 let dy = world.entities[target].position[1] - world.entities[i].position[1];
-                let len = (dx * dx + dy * dy).sqrt().max(0.01);
+                let len = (dx * dx + dy * dy).sqrt().max(GUARD_EPSILON);
                 world.entities[i].will_intent = [
                     dx / len * constants::BEHAVIOR_SPRINT_FACTOR,
                     dy / len * constants::BEHAVIOR_SPRINT_FACTOR,

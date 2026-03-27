@@ -1,6 +1,6 @@
 # Resonance — Arquitectura Completa (Estado Actual)
 
-> Actualizado: 2026-03-27 | Estado: SF ✅ · ET parcial (ET-2,3,5,6,7,8,9 wired; T3-T4 stubs) · AC ✅ 5/5 · GS parcial (3/9) · Batch ✅ · Stellar ✅ · Energy Cycle ✅ · Awakening ✅ · Bevy Decoupled (math_types) · Axiomatic Inference ✅ ARCHIVED (7/7) · 2472+ tests
+> Actualizado: 2026-03-27 | Estado: SF ✅ · ET parcial (ET-2,3,5,6,7,8,9 wired; T3-T4 stubs) · AC ✅ 5/5 · GS parcial (3/9) · Batch ✅ (34 systems, 165 tests) · Stellar ✅ · Energy Cycle ✅ · Awakening ✅ · Bevy Decoupled (math_types) · Axiomatic Inference ✅ ARCHIVED (7/7) · Internal Energy Field ✅ · Axiom-Pure Behavior ✅ · 2473+ tests
 
 ---
 
@@ -46,119 +46,70 @@
 ║  ┌──────────────────── Phase::Input ────────────────────────┐              ║
 ║  │                                                           │              ║
 ║  │  [GS-1 ✅] lockstep_input_gate                           │              ║
-║  │                                                           │              ║
-║  │  PlatformWill:                                            │              ║
-║  │    click ──→ PathRequestEvent ──→ pathfinding ──→ NavPath │              ║
-║  │                                                           │              ║
-║  │  D5 Sensory: SpatialIndex.query_radius() ──→ SensoryAwareness           ║
-║  │    freq matching + distance ──→ ThreatMemory              │              ║
-║  │    [SF-3 ✅] signal_latency(dist, medium) → delay         │              ║
-║  │                                                           │              ║
-║  │  [ET-2 ✅] theory_of_mind_update_system:                  │              ║
-║  │    OtherModelSet[4 slots] → observe neighbors → update    │              ║
-║  │    predictions → evict unprofitable → debit qe cost       │              ║
-║  │                                                           │              ║
-║  │  D1 Behavior (cooldown ──→ assess ──→ threats ──→ decide):│              ║
-║  │    BaseEnergy + TrophicState + Awareness + OtherModelSet  │              ║
-║  │      ──→ BehaviorMode (Idle|Hunt|Flee|Eat|Forage)         │              ║
-║  │      ──→ BehaviorIntent ──→ WillActuator                  │              ║
-║  │                                                           │              ║
-║  │  [GS-3 ✅] nash_target_select (BehaviorSet::Decide)       │              ║
-║  │  [ET-3 ✅] culture_transmission_spread (after D6)          │              ║
-║  │    MemeVector → spread if interference > threshold        │              ║
-║  │    [AC-3 ✅] × freq_imitation_affinity × coherence_bonus  │              ║
-║  │                                                           │              ║
-║  │  SimulationRest:                                          │              ║
-║  │    [SM-8G ✅] grimoire split → 3 SRP systems              │              ║
-║  │    ElementId ↔ frequency sync                             │              ║
+║  │  PlatformWill: click ──→ PathRequestEvent ──→ NavPath    │              ║
+║  │  D5 Sensory: SpatialIndex.query_radius() ──→ Awareness  │              ║
+║  │  [ET-2 ✅] theory_of_mind_update_system                  │              ║
+║  │  D1 Behavior (assess ──→ decide):                        │              ║
+║  │    Axiom 6: mobility_bias gates behavior (no tags)        │              ║
+║  │    Axiom 6: food = qe < self × FOOD_QE_RATIO             │              ║
+║  │    Axiom 6: threat = qe > self × THREAT_QE_RATIO         │              ║
+║  │    Axiom 6: hunt if mobility_bias > HUNT_MOBILITY_THRESHOLD│             ║
+║  │  [GS-3 ✅] nash_target_select                            │              ║
+║  │  [ET-3 ✅] culture_transmission_spread                   │              ║
+║  │    [AC-3 ✅] × freq_imitation_affinity × coherence_bonus │              ║
+║  │  SimulationRest: grimoire split, ElementId sync          │              ║
 ║  └──────────────────────────┬───────────────────────────────┘              ║
 ║                             ▼                                               ║
 ║  ┌──────────── Phase::ThermodynamicLayer ───────────────────┐              ║
-║  │                                                           │              ║
-║  │  Containment:  ContainedIn ──→ thermal equilibrium        │              ║
-║  │  Structural:   StructuralLink stress ──→ break event      │              ║
-║  │  Resonance:    ResonanceLink ──→ overlay (motor/therm/flow)│             ║
-║  │  Engine:       AlchemicalEngine buffer ──→ drain/overload  │              ║
-║  │  Irradiance:   sun + ambient ──→ photosynthesis budget     │              ║
-║  │  Spell resolve: CastPending ──→ spawn projectile entity    │              ║
-║  │  WaveFront:    PropagationMode::WaveFront (SF-6 ✅)        │              ║
-║  │  [GS-5 ✅] nucleus_intake_decay                           │              ║
-║  │  ✅ radiation_pressure_system: qe > threshold → push out  │              ║
-║  │  ✅ NucleusReservoir: finite fuel, drained per tick       │              ║
+║  │  Containment, Structural, Resonance, Engine              │              ║
+║  │  Irradiance (external solar source, SOLAR_FLUX_BASE)     │              ║
+║  │  radiation_pressure, NucleusReservoir                    │              ║
+║  │  [GS-5 ✅] nucleus_intake_decay                          │              ║
 ║  └──────────────────────────┬───────────────────────────────┘              ║
 ║                             ▼                                               ║
 ║  ┌──────────────── Phase::AtomicLayer ──────────────────────┐              ║
-║  │                                                           │              ║
-║  │  dissipation ──→ drag ──→ terrain_effects                 │              ║
-║  │  ──→ locomotion drain ──→ movement_integrate              │              ║
-║  │  ──→ update SpatialIndex                                  │              ║
-║  │  ──→ TensionField (attract/repel, InverseSquare for stellar)            ║
-║  │  ──→ collision_interference ──→ DeathEvent                │              ║
-║  │                                                           │              ║
-║  │  [AC-2 ✅] entrainment_system (Kuramoto freq sync)        │              ║
-║  │  integrate_velocity (forward Euler)                       │              ║
-║  │  integrate_velocity_verlet_half (symplectic, for orbits)  │              ║
-║  │  Transform.translation += FlowVector.velocity × dt        │              ║
+║  │  dissipation ──→ will_to_velocity ──→ velocity_cap       │              ║
+║  │  ──→ locomotion_drain ──→ movement_integrate             │              ║
+║  │  ──→ SpatialIndex ──→ TensionField ──→ collision         │              ║
+║  │  [AC-2 ✅] entrainment (Kuramoto)                        │              ║
 ║  └──────────────────────────┬───────────────────────────────┘              ║
 ║                             ▼                                               ║
 ║  ┌──────────────── Phase::ChemicalLayer ────────────────────┐              ║
-║  │                                                           │              ║
-║  │  Nutrient: osmosis ──→ regen ──→ uptake ──→ depletion     │              ║
-║  │  Photosynthesis: irradiance ──→ qe contribution           │              ║
-║  │  State transitions: density+temp ──→ Solid↔Liquid↔Gas     │              ║
-║  │  Catalysis chain: spatial_filter ──→ interference ──→ qe  │              ║
-║  │  Homeostasis: freq adaptation (L12) + cost                │              ║
+║  │  Nutrient: osmosis ──→ uptake (speed² < FORAGE_MAX)      │              ║
+║  │  Photosynthesis: Gaussian resonance con SOLAR_FREQUENCY   │              ║
+║  │    gain = irr × area × efficiency × solar_resonance       │              ║
+║  │    producers deposit NUTRIENT_DEPOSIT_FRACTION to soil    │              ║
+║  │  State transitions, Catalysis, Homeostasis                │              ║
 ║  └──────────────────────────┬───────────────────────────────┘              ║
 ║                             ▼                                               ║
 ║  ┌──────────────── Phase::MetabolicLayer ───────────────────┐              ║
-║  │                                                           │              ║
-║  │  ✅ basal_drain_system: passive qe drain ∝ radius^0.75     │              ║
-║  │  ✅ senescence_death_system: hard age limit + Gompertz    │              ║
-║  │  Growth: GrowthBudget (TL3 ✅) + Liebig Law               │              ║
-║  │  Stress: metabolic_stress ──→ DeathEvent if insolvent     │              ║
-║  │  Trophic: satiation ──→ forage ──→ predation              │              ║
-║  │    [AC-1 ✅] predation × metabolic_interference_factor    │              ║
-║  │  [AC-5 ✅] cooperation_evaluation (Nash alliance detect)  │              ║
-║  │  [ET-5 ✅] symbiosis_effect_system:                       │              ║
-║  │    SymbiosisLink → mutualism/parasitism qe transfer       │              ║
-║  │    unstable links auto-removed                            │              ║
-║  │  [ET-9 ✅] niche_adaptation_system:                       │              ║
-║  │    NicheProfile overlap → character displacement           │              ║
-║  │    competitive pressure separates overlapping niches       │              ║
-║  │  [ET-7] senescence_tick (SenescenceProfile age drain)     │              ║
-║  │  [ET-8 ✅] coalition_stability (BridgeCache Large 512)    │              ║
-║  │  [CE ✅] culture_observation (every 30 ticks)             │              ║
-║  │  MetabolicDAG: graph_step ──→ entropy_constraint ──→ ledger│             ║
-║  │  faction_identity ──→ bridge_metrics_collect              │              ║
+║  │  basal_drain, senescence_death, Growth, Stress            │              ║
+║  │  Trophic: energy dominance predation (no trophic tags)    │              ║
+║  │    Axiom 6: pred.qe > target.qe × PREDATION_DOMINANCE    │              ║
+║  │    Axiom 3: drain × interference().abs()                  │              ║
+║  │  [AC-5 ✅] cooperation (dissipation reduction, Axiom 5)  │              ║
+║  │  [ET-5,6,8,9 ✅] symbiosis, epigenetics, coalitions, niche║             ║
+║  │  Social pack: oscillatory affinity (no faction tags)      │              ║
+║  │  Culture: blend expression masks by freq affinity         │              ║
 ║  │  [GS-5 ✅] victory_check                                 │              ║
 ║  └──────────────────────────┬───────────────────────────────┘              ║
 ║                             ▼                                               ║
 ║  ┌──────────── Phase::MorphologicalLayer ───────────────────┐              ║
+║  │  senescence ──→ internal_diffusion (8-node qe field)     │              ║
+║  │  ──→ growth_inference ──→ morpho_adaptation               │              ║
+║  │  ──→ reproduction (genome inheritance + mutation)         │              ║
+║  │  ──→ abiogenesis (coherence > dissipation → spawn)        │              ║
+║  │  ──→ death_reap (nutrients return to grid)                │              ║
 ║  │                                                           │              ║
-║  │  Shape: shape_opt ──→ rugosity ──→ albedo inference        │              ║
-║  │  [ET-6 ✅] epigenetic_adaptation_system:                   │              ║
-║  │    AmbientPressure → EpigeneticState.expression_mask       │              ║
-║  │    silencing costs qe (Axiom 4)                            │              ║
-║  │  Constructal body plan (axiomatic):                        │              ║
-║  │    optimal_appendage_count(v, ρ, r) → N limbs             │              ║
-║  │    organ_slot_scale(slot, count, mobility) → proportions   │              ║
-║  │  Growth: intent ──→ allometric_growth (TL6 ✅)            │              ║
-║  │  Organs: viability ──→ lifecycle stage                     │              ║
-║  │  Reproduction (flora + fauna):                             │              ║
-║  │    Flora: BRANCH → seed + mutated InferenceProfile         │              ║
-║  │    Fauna: MOVE+REPRODUCE + qe>200 → offspring              │              ║
-║  │    All 4 biases mutate (growth, mobility, branch, resil.)  │              ║
-║  │  Abiogenesis (axiomatic):                                  │              ║
-║  │    coherence_gain(neighbors) > dissipation(local) → spawn  │              ║
-║  │    ANY frequency band, properties from energy density      │              ║
-║  │  ✅ nucleus_recycling_system: nutrient threshold → new nucleus            ║
-║  │  ✅ awakening_system: coherence > threshold → BehavioralAgent            ║
-║  │  D8 morpho adaptation (every 16 ticks)                     │              ║
-║  │  IWG: terrain_mesh_gen ──→ water_surface                   │              ║
-║  │  bridge_metrics_collect                                    │              ║
+║  │  Internal Energy Field (8 body-axis nodes):               │              ║
+║  │    genome_to_profile() → distribute_to_field()            │              ║
+║  │    → field_diffuse() per tick → emergent gradients        │              ║
+║  │    → field_to_radii() → variable-thickness geometry       │              ║
+║  │                                                           │              ║
+║  │  Constructal body plan, IWG terrain/water                 │              ║
 ║  └──────────────────────────┬───────────────────────────────┘              ║
 ║                             ▼                                               ║
-║  [SF-4 ✅] metrics_export: SimulationHealthDashboard → CSV/JSON             ║
+║  [SF-4 ✅] metrics_export: SimulationHealthDashboard → CSV/JSON           ║
 ╠═════════════════════════════════════════════════════════════════════════════╣
 ║                     SimWorld Boundary (sim_world.rs) ✅                     ║
 ║                                                                             ║
@@ -166,44 +117,39 @@
 ║  SimWorld::tick(&[InputCommand]) ──→ FixedUpdate schedule         ✅       ║
 ║  SimWorld::snapshot() ──→ WorldSnapshot (owned, no ECS types)     ✅       ║
 ║  SimWorld::energy_hash() ──→ u64  (determinism check)             ✅       ║
-║  checkpoint_save/load                                            ✅ SF-5  ║
 ║                                                                             ║
 ║  INV-1: zero render deps   INV-4: deterministic   INV-5: renderer read-only║
 ║  INV-6: events live 1 tick INV-7: conservation    INV-8: tick_id only clock║
 ╠═════════════════════════════════════════════════════════════════════════════╣
-║                     FixedUpdate → Update bridge                             ║
-║                                                                             ║
-║  V6RenderSnapshot ──→ sync_visual_from_sim_system                          ║
-║  TerrainMeshResource ──→ terrain_mesh_sync_system                          ║
-║  WaterMeshResource ──→ water_mesh_sync_system                              ║
-║  AtmosphereState ──→ atmosphere_sync_system (IWG-6 ✅)                     ║
-╠═════════════════════════════════════════════════════════════════════════════╣
 ║                                                                             ║
 ║  ┌──────────────────── Update (visual) ─────────────────────┐              ║
-║  │                                                           │              ║
-║  │  body_plan_layout_inference (fallback bilateral)          │              ║
-║  │  entity_shape_inference (compound mesh):                  │              ║
-║  │    torso = GF1 tube                                       │              ║
-║  │    + per organ in BodyPlanLayout: sub-spine → sub-mesh    │              ║
-║  │    → merge_meshes([torso, organs...]) → Mesh3d            │              ║
-║  │    rugosity → mesh detail, albedo → tint brightness       │              ║
-║  │  shape_color_inference (frequency → palette) ✅           │              ║
-║  │  growth_morphology (organ → mesh deformation) ✅          │              ║
-║  │  phenology_visual (seasonal tint) ✅                      │              ║
-║  │  terrain_mesh_sync + water_mesh_sync + atmosphere_sync    │              ║
+║  │  sync_visual_from_sim ──→ entity_shape_inference:         │              ║
+║  │    GF1 spine + variable-radius mesh (from qe_field)       │              ║
+║  │    + per organ sub-mesh ──→ merge_meshes → Mesh3d         │              ║
+║  │  shape_color_inference, growth_morphology, phenology      │              ║
 ║  └───────────────────────────────────────────────────────────┘              ║
 ╚═════════════════════════════════════════════════════════════════════════════╝
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │              BATCH SIMULATOR (src/batch/ — headless, no Bevy)               │
 │                                                                             │
-│  SimWorldFlat: 64 EntitySlots + EnergyFieldMini + NutrientFieldMini        │
-│  33 stateless systems (6 phases) — call blueprint/equations/ for math      │
+│  SimWorldFlat: 64 EntitySlots (qe_field[8] + freq_field[8] internal)      │
+│  34 stateless systems (6 phases) — call blueprint/equations/ for math      │
+│  internal_diffusion: 8-node energy field → emergent organ-like gradients  │
 │  GenomeBlob: 4 biases + archetype → mutate + crossover                     │
 │  GeneticHarness: evaluate → select → reproduce (tournament + elitism)      │
 │  WorldBatch: N worlds in parallel via rayon                                │
 │  GenomeBlob ↔ Bevy components (lossless round-trip via bridge.rs)          │
-│  156 tests · batch_benchmark                                               │
+│  creature_builder: genome + qe_field → GF1 variable-radius mesh + branches│
+│  165 tests · batch_benchmark (criterion)                                   │
+│                                                                             │
+│  100% axiom-pure behavior:                                                 │
+│    Predation: energy dominance (no trophic tags)                           │
+│    Photosynthesis: Gaussian resonance with SOLAR_FREQUENCY                 │
+│    Foraging: speed² < FORAGE_MAX_SPEED_SQ (slow = graze)                  │
+│    Behavior: mobility_bias gates (no archetype tags)                       │
+│    Social: oscillatory affinity (no faction tags)                          │
+│    All constants in batch/constants.rs (zero magic numbers in systems)     │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
@@ -213,8 +159,8 @@
 │  2. Pool Invariant          — Σ children ≤ parent                           │
 │  3. Competition as Primitive — magnitude = base × interference              │
 │  4. Dissipation (2nd Law)   — all processes lose energy                     │
-│  5. Conservation            — energy never created                          │
-│  6. Emergence at Scale      — N emerges from N-1                            │
+│  5. Conservation            — energy never created (only solar input)       │
+│  6. Emergence at Scale      — N emerges from N-1 (no top-down tags)        │
 │  7. Distance Attenuation    — interaction decays with distance              │
 │  8. Oscillatory Nature      — every qe oscillates at frequency f            │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -227,49 +173,28 @@
 │  DISSIPATION_PLASMA  = 0.25                                                │
 │  COHERENCE_BANDWIDTH = 50.0 Hz        (Axiom 8 — ventana de observación)   │
 │  DENSITY_SCALE       = 20.0           (Axiom 1 — geometría del grid)       │
-│                                                                             │
-│  Los 8 axiomas definen las REGLAS.                                         │
-│  Las 4 constantes son los PARÁMETROS.                                      │
-│  TODO lo demás se COMPUTA: derived_thresholds.rs (12 tests)               │
+│  SOLAR_FREQUENCY     = 400.0 Hz       (Axiom 8 — resonancia fotosintética) │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │              EMERGENCE PIPELINE (axiom-derived, bottom-up)                   │
 │                                                                             │
-│  ENERGY CYCLE (closed loop, validated at 5k ticks):                        │
-│    Nucleus (finite reservoir) → emit → field → diffusion + rad. pressure  │
-│    → reservoir depletes → zone cools → entities die (senescence/drain)    │
-│    → nutrients return → threshold → nucleus_recycling → NEW nucleus       │
-│    → cycle restarts                                                        │
+│  ENERGY CYCLE (closed loop):                                               │
+│    Solar (external) → resonant entities absorb (Gaussian around 400 Hz)   │
+│    → producers deposit nutrients → slow entities forage                    │
+│    → dominant entities drain weaker (energy ratio, not tags)              │
+│    → dead return nutrients to grid → cycle restarts                       │
 │                                                                             │
-│  Energy field (nuclei emit) ──→ coherence > dissipation ──→ ABIOGENESIS    │
-│    → entity with state/caps/profile derived from density                    │
-│  Trophic succession: sessile → herbivore → carnivore                       │
-│  Life systems: basal_drain + senescence + awakening (inert → alive)       │
-│  Reproduction: parent drains qe → offspring inherits mutated profile       │
-│  Selection: competition (Ax3) + dissipation (Ax4) → less fit die           │
-│  Entrainment (AC-2): neighbors sync frequency (Kuramoto)                   │
-│  Cooperation (AC-5): Nash alliance if benefit > solo                       │
-│  Theory of Mind (ET-2): predict neighbor behavior                          │
-│  Culture (ET-3): memes spread by imitation                                 │
-│  Symbiosis (ET-5): mutualism/parasitism energy exchange                    │
-│  Epigenetics (ET-6): environment modulates gene expression                 │
-│  Coalitions (ET-8): stable alliances with intake bonus                     │
-│  Niche displacement (ET-9): competitors diverge                            │
-│  [gap] T3-T4: timescales, institutions, language → stubs                   │
-└─────────────────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────────────────┐
-│              STELLAR MODE (same axioms, different scale)                     │
+│  Internal energy field (8 nodes):                                          │
+│    genome → distribution profile → diffusion → emergent gradients         │
+│    → variable-radius geometry (organ-like bulges where qe concentrates)   │
+│    → branching at qe peaks (branching_bias × field nodes)                 │
 │                                                                             │
-│  Star = BaseEnergy(1M) + TensionField(InverseSquare, 200 AU)              │
-│       + EnergyNucleus(Lux 1000Hz, emission 10K qe/s)                      │
-│  Planet = BaseEnergy(1K) + FlowVector(orbital) + AmbientPressure(surface)  │
-│  Habitable zone = emergent: where irradiance is moderate                   │
-│  Life on planets = axiomatic abiogenesis (same equations as arena)         │
-│  AmbientPressure::vacuum() for deep space (near-zero dissipation)          │
-│  integrate_velocity_verlet_half for orbital angular momentum               │
-│  Map: stellar_system.ron (128×128 AU)                                      │
+│  Trophic succession: NOT programmed — emerges from energy dominance       │
+│  Cooperation: reduces dissipation (Axiom 5), not free qe                  │
+│  Social packs: oscillatory affinity > 0.3, not faction tag                │
+│  Culture: expression mask blending by freq affinity                       │
+│  Morphology: growth_bias→tips, resilience→center, branching→lobes        │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -280,7 +205,7 @@
 ```
 L0  BaseEnergy ──────── qe (existencia)          ← TODO toca esto
 L1  SpatialVolume ───── radius (colisión)         ← allometric growth
-L2  OscillatorySignature freq, phase (resonancia) ← homeostasis, catalysis, Nash, cultura
+L2  OscillatorySignature freq, phase (resonancia) ← homeostasis, catalysis, solar resonance
 L3  FlowVector ──────── velocity, drag            ← physics, locomotion, orbital
 L4  MatterCoherence ─── state, bond_energy        ← state transitions
 L5  AlchemicalEngine ── buffer, valves             ← engine processing, nucleus
@@ -300,10 +225,8 @@ L13 StructuralLink ──── spring joint, stress       ← structural constr
   PackMembership, VictoryNucleus ✅, ControlNode ⏳ GS-6,
   InputPacket (SparseSet) ✅ GS-1
 
-+ ET layers (components):
-  OtherModelSet (4 models), SymbiosisLink, SenescenceProfile,
-  EpigeneticState (expression_mask[4]), NicheProfile (Hutchinson 4D),
-  LanguageCapacity, SelfModel, CulturalMemory
++ ET layers: OtherModelSet, SymbiosisLink, SenescenceProfile,
+  EpigeneticState, NicheProfile, LanguageCapacity, SelfModel, CulturalMemory
 ```
 
 ---
@@ -316,15 +239,21 @@ FixedUpdate / MorphologicalLayer:
   surface_rugosity_system       → MorphogenesisSurface.rugosity
   albedo_inference_system       → InferredAlbedo.albedo
   epigenetic_adaptation_system  → EpigeneticState.expression_mask (ET-6)
+  internal_diffusion_system     → qe_field[8] gradients (emergent organs)
   constructal_body_plan_system  → BodyPlanLayout (N limbs from cost minimization)
 
 Update / after sync_visual:
   entity_shape_inference_system:
-    torso = build_flow_spine → build_flow_mesh (main GF1 tube)
+    torso = build_flow_spine → build_flow_mesh_variable_radius (qe_field → radii)
     organs = for each slot in BodyPlanLayout:
-             organ_slot_scale(slot, count, mobility_bias) → sub-influence → sub-mesh
+             organ_slot_scale() → sub-influence → sub-mesh
     final = merge_meshes([torso, organs...]) → V6VisualRoot.Mesh3d
-    rugosity → mesh detail multiplier, albedo → tint brightness
+
+Batch viewer (creature_builder.rs):
+  genome biases + qe_field → trunk_params_from_genome() + branch_plan_from_genome()
+  → build_flow_spine() + build_flow_mesh_variable_radius(field_to_radii())
+  → merge_meshes([trunk, branches...])
+  Zero hardcoded shapes. All geometry from energy composition.
 ```
 
 ---
@@ -332,16 +261,17 @@ Update / after sync_visual:
 ## Test Coverage
 
 ```
-2472+ tests total:
+2473+ tests total:
   blueprint/equations/     → ~600+ pure math tests (all domains)
   simulation/              → ~800+ system tests (MinimalPlugins pattern)
   worldgen/                → ~300+ field/materialization tests
   layers/                  → ~200+ component tests
-  batch/                   → 156 headless simulator tests
-  tests/                   → ~100+ integration (probe_animal, probe_mono, property_conservation, etc.)
+  batch/                   → 165 headless simulator tests (34 systems)
+  tests/                   → ~100+ integration (probe_animal, property_conservation, etc.)
   emergence/               → ~100+ equations + system tests
+  internal_field/          → 22 diffusion + profile + radii tests
+  creature_builder/        → 6 mesh generation tests
   proptest                 → 19 property-based (conservation, pool equations)
-  headless_sim             → binary for headless simulation → PPM image (no GPU)
 ```
 
 ---
@@ -351,14 +281,24 @@ Update / after sync_visual:
 ```
 BEVY-FREE (ready to extract as resonance_core):
 ├── math_types.rs          ← glam 0.29 re-exports, 0 bevy imports
-├── blueprint/equations/   ← 178+ files, 0 bevy::math (2 use bevy::color/render)
+├── blueprint/equations/   ← 180+ files, 0 bevy::math
+│   ├── batch_fitness.rs   ← GA fitness + genome→geometry mapping
+│   ├── internal_field.rs  ← 8-node diffusion + radii + distribution
+│   └── determinism.rs     ← hashing + RNG (next_u64, gaussian_f32)
 ├── blueprint/constants/   ← 100% bevy-free
+├── batch/                 ← 100% bevy-free (34 systems, rayon parallel)
+│   ├── arena.rs           ← EntitySlot (qe_field[8], freq_field[8])
+│   ├── systems/           ← 34 stateless systems, axiom-pure
+│   ├── harness.rs         ← GeneticHarness (evolutionary loop)
+│   ├── bridge.rs          ← GenomeBlob ↔ Bevy (lossless round-trip)
+│   └── genome.rs          ← GenomeBlob (mutate, crossover, hash)
+├── geometry_flow/
+│   ├── creature_builder.rs ← genome + field → mesh (desacoplado)
+│   └── mod.rs             ← build_flow_mesh_variable_radius (new)
 ├── topology/ (pure math)  ← 6 files decoupled
-├── geometry_flow/ (math)  ← 3 files decoupled
-├── eco/ (math)            ← 2 files decoupled
-└── bridge/ (normalize)    ← 1 file decoupled
+└── eco/ (math)            ← 2 files decoupled
 
-BEVY-COUPLED (phase 2 — future extraction):
+BEVY-COUPLED (rendering + ECS):
 ├── layers/                ← #[derive(Component, Reflect)]
 ├── simulation/            ← Query<>, Res<>, Commands
 ├── plugins/               ← Bevy plugin registration
@@ -366,49 +306,17 @@ BEVY-COUPLED (phase 2 — future extraction):
 └── runtime_platform/      ← Input, windowing, navmesh
 ```
 
-## Headless Runner
+---
+
+## Headless Runners
 
 ```bash
-# Run simulation headless (no window, no GPU)
+# Batch evolution → view evolved creatures (GF1 inferred geometry)
+cargo run --release --bin evolve_and_view -- --worlds 500 --gens 300 --ticks 1000 --seed 77
+
+# Batch evolution only (headless, save genomes)
+cargo run --release --bin evolve -- --worlds 1000 --gens 500 --ticks 1000 --seed 42
+
+# Bevy simulation with specific map
 RESONANCE_MAP=genesis_validation cargo run --release --bin headless_sim -- --ticks 10000 --scale 8 --out world.ppm
-
-# Available validation maps:
-#   genesis_validation — 11 nuclei, optimized for abiogenesis + energy cycle
-#   visual_showcase    — 14 nuclei, all 6 frequency bands, max visual richness
-#   proving_grounds    — 7 nuclei, standard test environment
-#   headless_stress    — 256×256, high emission stress test
-#   optimal_inference  — 6 bands equal emission, calibrated for full cycle in 5k ticks
-```
-
-## Axiom-Derived Constants (`derived_thresholds.rs`)
-
-```
-4 FUNDAMENTALS (irreducible inputs):
-├── KLEIBER_EXPONENT = 0.75          (biological universal, Axiom 4)
-├── DISSIPATION_SOLID  = 0.005       (Second Law per state, Axiom 4)
-│   DISSIPATION_LIQUID = 0.02
-│   DISSIPATION_GAS    = 0.08
-│   DISSIPATION_PLASMA = 0.25
-├── COHERENCE_BANDWIDTH = 50.0 Hz    (observation window, Axiom 8)
-└── DENSITY_SCALE = 20.0             (grid geometry normalization)
-
-ALL DERIVED (12 functions, 12 tests):
-├── basal_drain_rate()                = SOLID × 200 = 1.0 qe/tick
-├── liquid_density_threshold()        = (LIQUID/SOLID)^(1/Kleiber) × scale ≈ 127
-├── gas_density_threshold()           = liquid + (GAS/LIQUID)^(1/Kleiber) × scale ≈ 254
-├── plasma_density_threshold()        = gas + (PLASMA/GAS)^(1/Kleiber) × scale ≈ 345
-├── move_density_min/max()            = liquid×0.5 / gas×1.5
-├── sense_coherence_min()             = SOLID / (SOLID + 0.01)
-├── branch_qe_min()                   = self_sustaining × 2
-├── spawn_potential_threshold()       = 1/3 (algebraic break-even)
-├── senescence_coeff_{mat,flora,fauna}() = dissipation rate per state
-├── max_age_{mat,flora,fauna}()       = 1/coeff (Gompertz inverse)
-├── radiation_pressure_threshold()    = gas_density_threshold
-├── radiation_pressure_transfer_rate()= DISSIPATION_GAS
-├── survival_probability_threshold()  = exp(-2) ≈ 0.135
-└── nutrient_retention_{mineral,water}() = 1 - dissipation × factor
-
-Sprint: AXIOMATIC_INFERENCE ✅ ARCHIVED (7/7 sprints completed).
-Physics: derived_thresholds.rs (12+ functions, 12 tests).
-Visual: visual_calibration.rs (6 rendering constants, explicitly non-axiom).
 ```

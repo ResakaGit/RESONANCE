@@ -1,7 +1,7 @@
 //! Phase::ThermodynamicLayer batch systems — engine processing, irradiance.
 
 use crate::batch::arena::SimWorldFlat;
-use crate::batch::constants::{GRID_CELLS, GRID_SIDE};
+use crate::batch::constants::*;
 use crate::blueprint::equations;
 
 /// L5 AlchemicalEngine: intake energy into buffer per tick.
@@ -39,7 +39,8 @@ pub fn irradiance_update(world: &mut SimWorldFlat) {
     // Slight variation by cell index for spatial heterogeneity.
     for cell in 0..GRID_CELLS {
         // Base irradiance + small deterministic variation per cell
-        let variation = ((cell as f32 * 0.1).sin() * 0.3 + 1.0).max(0.5);
+        let variation = ((cell as f32 * IRRADIANCE_VARIATION_FREQ).sin()
+            * IRRADIANCE_VARIATION_AMP + 1.0).max(IRRADIANCE_VARIATION_MIN);
         world.irradiance_grid[cell] = SOLAR_FLUX_BASE * variation;
     }
 }

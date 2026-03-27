@@ -20,6 +20,7 @@ use crate::layers::{
 use crate::layers::organ::LifecycleStageCache;
 use crate::layers::senescence::SenescenceProfile;
 use crate::runtime_platform::simulation_tick::SimulationClock;
+use crate::simulation::emergence::culture::CulturalMemory;
 use crate::worldgen::{EnergyFieldGrid, Materialized, WorldArchetype};
 
 pub use constants::{
@@ -95,6 +96,7 @@ pub fn reproduction_spawn_system(
     mut energy_ops: EnergyOps,
     grid: Option<Res<EnergyFieldGrid>>,
     query: ReproductionSpawnQuery,
+    culture_query: Query<&CulturalMemory>,
     clock: Res<SimulationClock>,
 ) {
     let mut eligible: Vec<Entity> = Vec::new();
@@ -170,8 +172,17 @@ pub fn reproduction_spawn_system(
                 LifecycleStageCache::default(),
                 MorphogenesisShapeParams::default(),
                 PerformanceCachePolicy { enabled: true, scope: CacheScope::StableWindow, version_tag: 1, dependency_signature: 0 },
-                SenescenceProfile { tick_birth: clock.tick_id, senescence_coeff: 0.0001, max_viable_age: 3_000, strategy: 0 },
+                SenescenceProfile {
+                    tick_birth: clock.tick_id,
+                    senescence_coeff: crate::blueprint::constants::senescence_coeff_fauna(),
+                    max_viable_age: crate::blueprint::constants::senescence_max_age_fauna(),
+                    strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
+                },
             ));
+            // Cultural inheritance: copy parent's memes to offspring (Axiom 6).
+            if let Ok(parent_culture) = culture_query.get(entity) {
+                commands.entity(child).insert(parent_culture.clone());
+            }
         } else {
             // ── Flora seed: sessile, simple ──────────────────────────────────
             let child = EntityBuilder::new()

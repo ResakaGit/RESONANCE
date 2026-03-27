@@ -27,18 +27,18 @@ pub fn pool_distribution(world: &mut SimWorldFlat) {
     }
 }
 
-/// Trophic forage: herbivores extract from nutrient grid.
+/// Trophic forage: slow entities extract from nutrient grid.
 ///
-/// Herbivores (trophic_class=1) drain nutrients at their position,
-/// gain qe and satiation. Calls `equations::satiation_gain_from_meal`.
+/// Axiom 6: foraging ability from being slow (composition), not trophic tag.
+/// Stationary or slow-moving entities can graze; fast ones cannot.
 pub fn trophic_forage(world: &mut SimWorldFlat) {
     use crate::batch::systems::thermodynamic::grid_cell;
     let mut mask = world.alive_mask;
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
-        let tc = world.entities[i].trophic_class;
-        if tc != 1 && tc != 2 { continue; } // herbivore or omnivore only
+        let spd_sq = world.entities[i].velocity[0].powi(2) + world.entities[i].velocity[1].powi(2);
+        if spd_sq > FORAGE_MAX_SPEED_SQ { continue; }
         let cell = grid_cell(world.entities[i].position);
         if cell >= GRID_CELLS { continue; }
         let available = world.nutrient_grid[cell];
@@ -50,28 +50,27 @@ pub fn trophic_forage(world: &mut SimWorldFlat) {
     }
 }
 
-/// Trophic predation: carnivores attack prey in range.
+/// Trophic predation: energy-dominant entities drain weaker ones in range.
 ///
-/// N² pair scan. Carnivore (trophic_class>=3) drains herbivore/omnivore.
-/// Conservation: prey loses exactly what predator gains / assimilation.
+/// Axiom 6: predation from energy dominance, not trophic tags.
+/// Axiom 3: drain modulated by interference. Axiom 8: oscillatory.
 pub fn trophic_predation(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
     let range_sq = PREDATION_RANGE * PREDATION_RANGE;
     scratch.pairs_len = 0;
 
-    // Collect predator-prey pairs
     let mut mi = world.alive_mask;
     while mi != 0 {
         let i = mi.trailing_zeros() as usize;
         mi &= mi - 1;
-        if world.entities[i].trophic_class < 3 { continue; } // only carnivores
-        if world.entities[i].satiation > 0.7 { continue; } // well-fed skip
+        if world.entities[i].satiation > 0.7 { continue; }
+        let pred_qe = world.entities[i].qe;
 
         let mut mj = world.alive_mask;
         while mj != 0 {
             let j = mj.trailing_zeros() as usize;
             mj &= mj - 1;
             if i == j { continue; }
-            if world.entities[j].trophic_class >= 3 { continue; } // not prey
+            if world.entities[j].qe >= pred_qe * PREDATION_DOMINANCE_RATIO { continue; }
 
             let dx = world.entities[i].position[0] - world.entities[j].position[0];
             let dy = world.entities[i].position[1] - world.entities[j].position[1];
@@ -146,7 +145,7 @@ pub fn social_pack(world: &mut SimWorldFlat, _scratch: &mut ScratchPad) {
             weight_sum += affinity;
         }
 
-        if weight_sum < 0.01 { continue; }
+        if weight_sum < GUARD_EPSILON { continue; }
         cx /= weight_sum;
         cy /= weight_sum;
 
@@ -232,7 +231,7 @@ pub fn culture_transmission(world: &mut SimWorldFlat, _scratch: &mut ScratchPad)
             if affinity <= 0.3 { continue; } // low affinity → no imitation
 
             // Blend expression masks toward each other (small step)
-            let blend = affinity * 0.01; // 1% per tick scaled by affinity
+            let blend = affinity * CULTURE_BLEND_RATE;
             for d in 0..4 {
                 let delta = world.entities[j].expression_mask[d]
                           - world.entities[i].expression_mask[d];
@@ -341,30 +340,30 @@ mod tests {
     }
 
     #[test]
-    fn trophic_forage_carnivore_skips() {
+    fn fast_entity_skips_foraging() {
         use crate::batch::systems::thermodynamic::grid_cell;
         let mut w = SimWorldFlat::new(0, 0.05);
-        carnivore(&mut w, 100.0, [3.0, 3.0]);
+        let idx = carnivore(&mut w, 100.0, [3.0, 3.0]);
+        w.entities[idx].velocity = [5.0, 5.0]; // fast → can't forage
         let cell = grid_cell([3.0, 3.0]);
         w.nutrient_grid[cell] = 20.0;
         trophic_forage(&mut w);
-        assert_eq!(w.nutrient_grid[cell], 20.0, "carnivore shouldn't forage");
+        assert_eq!(w.nutrient_grid[cell], 20.0, "fast entity can't forage");
     }
 
     // ── trophic_predation ───────────────────────────────────────────────────
 
     #[test]
-    fn predation_transfers_energy() {
+    fn dominant_entity_drains_weaker() {
         let mut w = SimWorldFlat::new(0, 0.05);
-        let pred = carnivore(&mut w, 100.0, [0.0, 0.0]);
-        let prey = herbivore(&mut w, 80.0, [1.0, 0.0]); // within range
-        let total_before = w.entities[pred].qe + w.entities[prey].qe;
+        let strong = carnivore(&mut w, 200.0, [0.0, 0.0]);
+        let weak = herbivore(&mut w, 50.0, [1.0, 0.0]); // qe < 200 * 0.7
+        let total_before = w.entities[strong].qe + w.entities[weak].qe;
         let mut scratch = ScratchPad::new();
         trophic_predation(&mut w, &mut scratch);
-        assert!(w.entities[pred].qe > 100.0, "predator should gain");
-        assert!(w.entities[prey].qe < 80.0, "prey should lose");
-        // Total decreases (assimilation < 1.0)
-        let total_after = w.entities[pred].qe + w.entities[prey].qe;
+        assert!(w.entities[strong].qe > 200.0, "dominant should gain");
+        assert!(w.entities[weak].qe < 50.0, "weak should lose");
+        let total_after = w.entities[strong].qe + w.entities[weak].qe;
         assert!(total_after <= total_before + 1e-3, "no energy creation");
     }
 

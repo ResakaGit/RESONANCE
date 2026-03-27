@@ -83,6 +83,17 @@ impl Plugin for InputPlugin {
                 .after(simulation::element_layer2::derive_frequency_from_element_id_system),
         );
 
+        // ET-3 + AC-3: Cultural Transmission — meme spread by oscillatory affinity.
+        app.init_resource::<simulation::emergence::culture::CultureConfig>();
+        app.add_event::<simulation::emergence::culture::MemeAdoptedEvent>();
+        app.add_systems(
+            FixedUpdate,
+            simulation::emergence::culture::cultural_transmission_system
+                .in_set(Phase::Input)
+                .after(simulation::behavior::BehaviorSet::Decide)
+                .run_if(simulation::behavior::has_behavioral_agents),
+        );
+
         // SM-8G: grimoire_cast_intent split into 3 SRP systems.
         app.add_event::<simulation::input::SlotActivatedEvent>();
         app.add_systems(

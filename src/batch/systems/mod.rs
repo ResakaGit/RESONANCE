@@ -28,7 +28,7 @@ pub use chemical::{homeostasis, nutrient_uptake, photosynthesis, state_transitio
 
 // Phase::MetabolicLayer
 pub use metabolic::{
-    cooperation_eval, culture_transmission, ecology_census, pool_distribution, social_pack,
+    cooperation_eval, culture_transmission, pool_distribution, social_pack,
     trophic_forage, trophic_predation,
 };
 

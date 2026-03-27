@@ -117,6 +117,23 @@ impl Plugin for MetabolicPlugin {
                 .before(faction_identity_system),
         );
 
+        // ET-4: Infrastructure — persistent field modification + intake bonus.
+        app.init_resource::<simulation::emergence::infrastructure::InfrastructureGrid>();
+        app.init_resource::<simulation::emergence::infrastructure::InfrastructureConfig>();
+        app.add_event::<simulation::emergence::infrastructure::InfrastructureInvestEvent>();
+        app.add_systems(
+            FixedUpdate,
+            (
+                simulation::emergence::infrastructure::infrastructure_update_system,
+                simulation::emergence::infrastructure::infrastructure_intake_bonus_system,
+            )
+                .chain()
+                .in_set(Phase::MetabolicLayer)
+                .run_if(run_gameplay.clone())
+                .after(simulation::trophic::trophic_decomposer_system)
+                .before(faction_identity_system),
+        );
+
         // AC-5: Cooperation Emergence — Nash alliance detection after trophic.
         app.add_systems(
             FixedUpdate,

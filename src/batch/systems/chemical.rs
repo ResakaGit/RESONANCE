@@ -2,7 +2,7 @@
 //! photosynthesis, nutrient uptake.
 
 use crate::batch::arena::SimWorldFlat;
-use crate::batch::constants::{GRID_CELLS, NUTRIENT_UPTAKE_RATE, PHOTOSYNTHESIS_EFFICIENCY};
+use crate::batch::constants::*;
 use crate::batch::systems::thermodynamic::grid_cell;
 use crate::blueprint::constants;
 use crate::blueprint::equations;
@@ -67,22 +67,22 @@ pub fn photosynthesis(world: &mut SimWorldFlat) {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
         let e = &mut world.entities[i];
-        // Axiom 6: no top-down archetype gate. Any entity with frequency in
-        // photosynthetic band (200-600 Hz) and radius > 0 can photosynthesize.
-        // Axiom 8: oscillatory nature determines capability.
-        if e.frequency_hz < 200.0 || e.frequency_hz > 600.0 { continue; }
+        // Axiom 8: photosynthesis = resonance with solar frequency.
+        // Axiom 7: attenuation with frequency distance.
+        // resonance = exp(-Δf² / (2 × bandwidth²)) — Gaussian around SOLAR_FREQUENCY.
+        let delta_f = (e.frequency_hz - SOLAR_FREQUENCY).abs();
+        let solar_resonance = (-delta_f * delta_f / (2.0 * 200.0 * 200.0)).exp();
+        if solar_resonance < SOLAR_RESONANCE_MIN { continue; }
         let cell = grid_cell(e.position);
         if cell >= GRID_CELLS { continue; }
         let irr = world.irradiance_grid[cell];
         if irr <= 0.0 { continue; }
-        // Absorption proportional to radius² (capture area) and irradiance
+        // Axiom 3: gain = base × interference_factor.
         let area = e.radius * e.radius;
-        let gain = irr * area * PHOTOSYNTHESIS_EFFICIENCY;
+        let gain = irr * area * PHOTOSYNTHESIS_EFFICIENCY * solar_resonance;
         e.qe += gain;
-        // Axiom 5: producers enrich soil — depositing a fraction of gained qe
-        // as nutrients. This creates the base of the trophic chain:
-        // solar → producer → soil nutrients → herbivore → carnivore.
-        world.nutrient_grid[cell] += gain * 0.3;
+        // Axiom 5: producers enrich soil via nutrient cycling.
+        world.nutrient_grid[cell] += gain * NUTRIENT_DEPOSIT_FRACTION;
     }
 }
 
@@ -191,18 +191,19 @@ mod tests {
     }
 
     #[test]
-    fn photosynthesis_skips_outside_lux_band() {
+    fn photosynthesis_low_resonance_minimal_gain() {
         let mut w = SimWorldFlat::new(0, 0.05);
         let mut e = EntitySlot::default();
         e.qe = 50.0;
         e.radius = 1.0;
         e.position = [3.0, 3.0];
-        e.frequency_hz = 800.0; // outside photosynthetic band (200-600)
+        e.frequency_hz = 1500.0; // very far from SOLAR_FREQUENCY (400) → near-zero resonance
         let idx = w.spawn(e).unwrap();
         let cell = grid_cell([3.0, 3.0]);
         w.irradiance_grid[cell] = 10.0;
+        let before = w.entities[idx].qe;
         photosynthesis(&mut w);
-        assert_eq!(w.entities[idx].qe, 50.0, "outside Lux band → no photosynthesis");
+        assert!(w.entities[idx].qe - before < 0.5, "low resonance → minimal gain");
     }
 
     // ── nutrient_uptake ─────────────────────────────────────────────────────

@@ -17,10 +17,6 @@ pub struct ScratchPad {
     /// Spatial neighbor indices for a single query.
     pub neighbors:    [u8; MAX_ENTITIES],
     pub neighbors_len: usize,
-
-    /// Death indices recorded during a tick.
-    pub deaths:       [u8; MAX_ENTITIES],
-    pub deaths_len:   usize,
 }
 
 impl ScratchPad {
@@ -30,17 +26,14 @@ impl ScratchPad {
             pairs_len:    0,
             neighbors:    [0; MAX_ENTITIES],
             neighbors_len: 0,
-            deaths:       [0; MAX_ENTITIES],
-            deaths_len:   0,
         }
     }
 
     /// Reset all logical lengths. O(1) — no array zeroing.
     #[inline]
     pub fn clear(&mut self) {
-        self.pairs_len    = 0;
+        self.pairs_len     = 0;
         self.neighbors_len = 0;
-        self.deaths_len   = 0;
     }
 }
 
@@ -57,7 +50,6 @@ mod tests {
         let s = ScratchPad::new();
         assert_eq!(s.pairs_len, 0);
         assert_eq!(s.neighbors_len, 0);
-        assert_eq!(s.deaths_len, 0);
     }
 
     #[test]
@@ -65,10 +57,8 @@ mod tests {
         let mut s = ScratchPad::new();
         s.pairs_len = 42;
         s.neighbors_len = 7;
-        s.deaths_len = 3;
         s.clear();
         assert_eq!(s.pairs_len, 0);
         assert_eq!(s.neighbors_len, 0);
-        assert_eq!(s.deaths_len, 0);
     }
 }
