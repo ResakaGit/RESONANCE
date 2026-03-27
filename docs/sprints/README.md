@@ -10,14 +10,29 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 
 | Métrica | Valor |
 |---------|-------|
-| Sprints pendientes | **7** |
-| Tracks activos | **1** |
-| Oleadas restantes | **3** |
+| Sprints pendientes | **13** |
+| Tracks activos | **2** |
+| Oleadas restantes | **4** |
 | Tracks archivados | **34** |
 
 ---
 
-## 7 sprints pendientes
+## 13 sprints pendientes
+
+### AXIOMATIC_INFERENCE (6 sprints — track nuevo)
+
+Eliminar 100% de constantes arbitrarias. Todo derivado de 4 fundamentales irreducibles.
+
+| Sprint | Descripción | Esfuerzo | Bloqueado por | Doc |
+|--------|-------------|----------|---------------|-----|
+| [AI-1](AXIOMATIC_INFERENCE/SPRINT_AI1_DERIVATION_MODULE.md) | Módulo de derivación axiomática | Bajo | — | |
+| [AI-2](AXIOMATIC_INFERENCE/SPRINT_AI2_MATTER_STATE_THRESHOLDS.md) | Density thresholds desde ratios de disipación | Bajo | AI-1 | |
+| [AI-3](AXIOMATIC_INFERENCE/SPRINT_AI3_CAPABILITY_THRESHOLDS.md) | MOVE/SENSE/BRANCH desde density + coherence | Bajo | AI-2 | |
+| [AI-4](AXIOMATIC_INFERENCE/SPRINT_AI4_SENESCENCE_DERIVED.md) | Senescence coeff + max_age desde metabolic rate | Medio | AI-1 | |
+| [AI-5](AXIOMATIC_INFERENCE/SPRINT_AI5_PRESSURE_AND_DRAIN.md) | Basal rate + pressure desde dissipation | Bajo | AI-2 | |
+| [AI-6](AXIOMATIC_INFERENCE/SPRINT_AI6_INLINE_EXTRACTION.md) | Magic numbers inline + duplicados | Bajo | AI-1 | |
+
+---
 
 ### GAMEPLAY_SYSTEMS (6 sprints pendientes)
 
@@ -102,11 +117,12 @@ Sprints archivados del track: [archive/GAMEPLAY_SYSTEMS/](archive/GAMEPLAY_SYSTE
 | **SF-7** | 1 | SF | 1 | ✅ COMPLETA | Oleada 1 ✅ |
 | **ET** | 16 | ET | 16 | ✅ COMPLETA | — |
 | **AC** | 5 | AC | 5 | ✅ COMPLETA | — |
+| **AI** | 6 | AXIOMATIC_INFERENCE | 4 → 2 | ⏳ Desbloqueada | — |
 | **2** | 3 | GS | 3 | ⏳ Desbloqueada | Oleada 1 ✅ |
 | **BS** | 7 | BATCH_SIMULATOR | 7 | ✅ COMPLETA | — |
 | **3** | 3 | GS | 2 → 1 | 🔒 | Oleada 2 |
 | **4** | 1 | DEMO | 1 | 🔒 | Oleada 3 |
-| **Total** | **45** | — | — | 38 ✅ · 7 ⏳ | |
+| **Total** | **51** | — | — | 38 ✅ · 13 ⏳ | |
 
 ---
 
