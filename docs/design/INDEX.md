@@ -10,6 +10,15 @@ Especificaciones de alto nivel del proyecto Resonance. Para contratos runtime po
 |-----------|-------------|
 | [BLUEPRINT.md](BLUEPRINT.md) | Axioma fundacional: 14 capas ortogonales, todo es energia, plano de composicion |
 
+## Fundamentos Axiomáticos
+
+| Concepto | Descripcion |
+|----------|-------------|
+| **8 Axiomas** | Reglas del universo (Everything is Energy, Pool Invariant, Competition, Dissipation, Conservation, Emergence, Distance Attenuation, Oscillatory Nature) |
+| **4 Constantes Fundamentales** | Parámetros irreducibles: `KLEIBER_EXPONENT` (0.75), `DISSIPATION_{SOLID,LIQUID,GAS,PLASMA}` (0.005–0.25), `COHERENCE_BANDWIDTH` (50 Hz), `DENSITY_SCALE` (20.0) |
+| **Derivación** | `blueprint/equations/derived_thresholds.rs` — computa todas las constantes de lifecycle desde los 4 fundamentales (12 tests). Cero hardcode en production. |
+| **Sprint** | `docs/sprints/AXIOMATIC_INFERENCE/` — 6 sprints (AI-1 ✅, AI-2 ✅, AI-3–AI-6 cubiertos en commit global) |
+
 ## Arquitectura
 
 | Documento | Modulo `src/` | Descripcion |

@@ -207,7 +207,7 @@
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│              8 AXIOMAS FUNDAMENTALES                                        │
+│              8 AXIOMAS (reglas del universo)                                │
 │                                                                             │
 │  1. Everything is Energy    — all entities are qe                           │
 │  2. Pool Invariant          — Σ children ≤ parent                           │
@@ -217,6 +217,20 @@
 │  6. Emergence at Scale      — N emerges from N-1                            │
 │  7. Distance Attenuation    — interaction decays with distance              │
 │  8. Oscillatory Nature      — every qe oscillates at frequency f            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│              4 CONSTANTES FUNDAMENTALES (parámetros irreducibles)           │
+│                                                                             │
+│  KLEIBER_EXPONENT = 0.75              (Axiom 4 — biológico universal)      │
+│  DISSIPATION_SOLID   = 0.005          (Axiom 4 — Segunda Ley por estado)   │
+│  DISSIPATION_LIQUID  = 0.02                                                │
+│  DISSIPATION_GAS     = 0.08                                                │
+│  DISSIPATION_PLASMA  = 0.25                                                │
+│  COHERENCE_BANDWIDTH = 50.0 Hz        (Axiom 8 — ventana de observación)   │
+│  DENSITY_SCALE       = 20.0           (Axiom 1 — geometría del grid)       │
+│                                                                             │
+│  Los 8 axiomas definen las REGLAS.                                         │
+│  Las 4 constantes son los PARÁMETROS.                                      │
+│  TODO lo demás se COMPUTA: derived_thresholds.rs (12 tests)               │
 └─────────────────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────────────────┐

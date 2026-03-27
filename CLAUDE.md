@@ -90,6 +90,32 @@ All simulation behavior MUST derive from these. No arbitrary constants, no per-e
 
 **Cross-axiom compositions:** `docs/design/AXIOMATIC_CLOSURE.md`. Runtime contracts: `docs/arquitectura/blueprint_axiomatic_closure.md`.
 
+## The 4 Fundamental Constants
+
+The 8 axioms define the **rules**. These 4 constants are the **parameters** — the only numeric values that cannot be derived further. Everything else is computed algebraically from these via `blueprint/equations/derived_thresholds.rs`.
+
+| Constant | Value | Axiom | Justification |
+|----------|-------|-------|---------------|
+| `KLEIBER_EXPONENT` | 0.75 | Axiom 4 | Biological universal: metabolic rate ∝ mass^0.75 (validated across 27 orders of magnitude) |
+| `DISSIPATION_{SOLID,LIQUID,GAS,PLASMA}` | 0.005, 0.02, 0.08, 0.25 | Axiom 4 | Second Law dissipation rate per matter state (empirical physics) |
+| `COHERENCE_BANDWIDTH` | 50.0 Hz | Axiom 8 | Observation window for frequency interference (defines elemental band width) |
+| `DENSITY_SCALE` | 20.0 | Axiom 1 | Spatial normalization factor (grid geometry → density thresholds) |
+
+**Derivation chain** (computed, not hardcoded):
+```
+Fundamentals (4)
+├── KLEIBER + DISSIPATION ratios → matter state thresholds (Solid→Liquid→Gas→Plasma)
+├── DISSIPATION_SOLID → basal_drain_rate, senescence_coeff_materialized, bond_energy_scale
+├── DISSIPATION_LIQUID → senescence_coeff_fauna, nutrient_retention_water
+├── DISSIPATION_GAS → radiation_pressure_threshold, radiation_pressure_transfer_rate
+├── Threshold ratios → move_density_min/max, sense_coherence_min, branch_qe_min
+├── 1/coeff → max_viable_age (Gompertz inverse)
+├── exp(-2) → survival_probability_threshold (Gompertz 1/e² point)
+└── 1/3 → spawn_potential_threshold (algebraic break-even)
+```
+
+See `docs/sprints/AXIOMATIC_INFERENCE/` for full sprint docs. Implementation: `src/blueprint/equations/derived_thresholds.rs` (12 tests).
+
 ## Morphogenesis Pipeline
 
 Shapes emerge from energy composition, not templates. Full pipeline:

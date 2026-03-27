@@ -2,7 +2,7 @@
 
 **Objetivo:** Eliminar todas las constantes arbitrarias y empíricamente calibradas de los sistemas de vida. Cada valor numérico debe derivarse algebraicamente de los 4 fundamentales irreducibles.
 
-**Estado:** ⏳ Pendiente (6 sprints)
+**Estado:** ✅ Cerrado (2026-03-27) — todos los sprints completados
 **Bloqueado por:** Nada (track independiente)
 **Desbloquea:** Validación axiomática del ciclo de vida completo
 
@@ -25,13 +25,13 @@ Todo lo demás es COMPUTABLE desde estos 4.
 
 ## Auditoría pre-sprint
 
-| Categoría | Antes | Después |
-|-----------|-------|---------|
-| AXIOM-DERIVED | 4 (6%) | 62 (100%) |
-| EMPIRICALLY-CALIBRATED | 35 (56%) | 0 |
-| ARBITRARY | 15 (24%) | 0 |
-| STRUCTURAL (algorítmico) | 5 (8%) | 5 (8%) — no cambian |
-| Magic numbers inline | 3 | 0 |
+| Categoría | Antes | Después | Estado |
+|-----------|-------|---------|--------|
+| AXIOM-DERIVED | 4 (6%) | 62 (100%) | ✅ |
+| EMPIRICALLY-CALIBRATED | 35 (56%) | 0 | ✅ Eliminados |
+| ARBITRARY | 15 (24%) | 0 | ✅ Eliminados |
+| STRUCTURAL (algorítmico) | 5 (8%) | 5 (8%) | No cambian |
+| Magic numbers inline | 3 | 0 | ✅ Eliminados |
 
 ---
 
