@@ -1,5 +1,5 @@
 use crate::math_types::Vec2;
-use bevy::prelude::{Reflect, Resource};
+use bevy::prelude::{Entity, Reflect, Resource};
 use serde::{Deserialize, Serialize};
 
 use crate::worldgen::contracts::Materialized;
@@ -222,6 +222,26 @@ impl EnergyFieldGrid {
             None
         };
         [left, right, down, up]
+    }
+
+    /// Seeds all cells with uniform energy and a frequency contribution.
+    /// Used for Big Bang scenarios: energy uniformly distributed, nuclei emerge later.
+    /// The frequency determines the initial elemental identity of the field.
+    pub fn seed_uniform(&mut self, qe: f32, frequency_hz: f32) {
+        let qe = if qe.is_finite() { qe.max(0.0) } else { return };
+        let freq = if frequency_hz.is_finite() { frequency_hz.max(0.0) } else { return };
+        let seed_entity = Entity::from_raw(u32::MAX); // placeholder, not a real entity
+        for y in 0..self.height {
+            for x in 0..self.width {
+                if let Some(cell) = self.cell_xy_mut(x, y) {
+                    cell.accumulated_qe = qe;
+                    cell.push_contribution_bounded(
+                        crate::worldgen::FrequencyContribution::new(seed_entity, freq, qe),
+                    );
+                }
+                self.mark_cell_dirty(x, y);
+            }
+        }
     }
 
     pub fn clear_frequency_contributions(&mut self) {

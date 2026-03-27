@@ -134,6 +134,17 @@ impl NutrientFieldGrid {
         self.cells.get_mut(idx)
     }
 
+    /// Seeds all cells with uniform nutrient values.
+    /// Used for Big Bang: initial nutrient substrate enables faster recycling.
+    pub fn seed_uniform(&mut self, carbon: f32, nitrogen: f32, phosphorus: f32, water: f32) {
+        for cell in &mut self.cells {
+            cell.carbon_norm = carbon.clamp(0.0, 1.0);
+            cell.nitrogen_norm = nitrogen.clamp(0.0, 1.0);
+            cell.phosphorus_norm = phosphorus.clamp(0.0, 1.0);
+            cell.water_norm = water.clamp(0.0, 1.0);
+        }
+    }
+
     pub fn iter_cells_mut(&mut self) -> impl Iterator<Item = &mut NutrientCell> {
         self.cells.iter_mut()
     }

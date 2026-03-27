@@ -42,6 +42,16 @@ pub struct MapConfig {
     /// Celdas de borde del grid con contexto eco Void (barrera lógica); clamp del jugador al interior.
     #[serde(default)]
     pub playfield_margin_cells: Option<u32>,
+    /// Big Bang mode: initial qe seeded uniformly in all cells (no nuclei required).
+    /// When set, field is pre-seeded with this qe + initial_field_freq before warmup.
+    #[serde(default)]
+    pub initial_field_qe: Option<f32>,
+    /// Frequency of the initial uniform field (Hz). Default: 85.0 (Terra band).
+    #[serde(default)]
+    pub initial_field_freq: Option<f32>,
+    /// Initial nutrient water saturation [0,1] for Big Bang bootstrap.
+    #[serde(default)]
+    pub initial_nutrient_water: Option<f32>,
 }
 
 fn default_fog_of_war_enabled() -> bool {
@@ -80,6 +90,9 @@ impl Default for MapConfig {
             ],
             seasons: Vec::new(),
             playfield_margin_cells: None,
+            initial_field_qe: None,
+            initial_field_freq: None,
+            initial_nutrient_water: None,
         }
     }
 }
@@ -162,7 +175,8 @@ pub fn validate_map_config(config: &MapConfig) -> Result<(), Vec<ValidationError
     if !config.cell_size.is_finite() || config.cell_size <= 0.0 {
         errors.push(ValidationError::InvalidCellSize);
     }
-    if config.nuclei.is_empty() {
+    // Empty nuclei allowed in Big Bang mode (initial_field_qe seeds the field instead).
+    if config.nuclei.is_empty() && config.initial_field_qe.is_none() {
         errors.push(ValidationError::EmptyNuclei);
     }
 

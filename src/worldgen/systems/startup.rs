@@ -106,6 +106,27 @@ pub fn load_map_config_startup_system(
     commands.insert_resource(config);
 }
 
+/// Big Bang: seeds the energy field and nutrient grid with uniform values if configured.
+/// Runs after grid creation, before nucleus spawn and warmup.
+pub fn seed_initial_field_system(
+    config: Option<Res<MapConfig>>,
+    mut grid: Option<ResMut<EnergyFieldGrid>>,
+    mut nutrients: Option<ResMut<NutrientFieldGrid>>,
+) {
+    let Some(config) = config else { return };
+    let Some(ref mut grid) = grid else { return };
+
+    if let Some(qe) = config.initial_field_qe {
+        let freq = config.initial_field_freq.unwrap_or(85.0);
+        grid.seed_uniform(qe, freq);
+    }
+
+    if let Some(water) = config.initial_nutrient_water {
+        let Some(ref mut nutrients) = nutrients else { return };
+        nutrients.seed_uniform(water * 0.3, water * 0.2, water * 0.15, water);
+    }
+}
+
 pub fn spawn_nuclei_from_map_config_system(
     mut commands: Commands,
     layout: Res<SimWorldTransformParams>,

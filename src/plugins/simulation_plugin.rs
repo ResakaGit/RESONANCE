@@ -70,6 +70,7 @@ impl Plugin for SimulationPlugin {
                 init_climate_config_system,
                 init_terrain_config_system,
                 load_map_config_startup_system,
+                crate::worldgen::systems::startup::seed_initial_field_system,
                 init_fog_of_war_from_energy_field_system,
                 insert_terrain_field_startup_system,
                 spawn_nuclei_from_map_config_system,

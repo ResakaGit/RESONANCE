@@ -1,0 +1,25 @@
+(
+  // ── Big Bang Map ───────────────────────────────────────────────────────────
+  //
+  // Zero nuclei. Energy seeded uniformly. Nuclei emerge from recycling.
+  // Tests: can life arise from uniform initial conditions + axioms alone?
+  //
+  // The initial energy is the "cosmic background radiation" — uniform qe in
+  // every cell with a Terra-band frequency. Dissipation creates asymmetry.
+  // Abiogenesis + materialization create the first entities. Their death
+  // returns nutrients. Nutrient threshold triggers nucleus recycling.
+  // The recycled nuclei are the first "stars" — emergent energy sources.
+  width_cells: 32,
+  height_cells: 32,
+  cell_size: 2.0,
+  origin: (-32.0, -32.0),
+  warmup_ticks: Some(60),
+  seed: Some(1),
+  fog_of_war: false,
+  playfield_margin_cells: None,
+  nuclei: [],
+  seasons: [],
+  initial_field_qe: Some(25.0),
+  initial_field_freq: Some(85.0),
+  initial_nutrient_water: Some(0.4),
+)
