@@ -10,30 +10,14 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 
 | Métrica | Valor |
 |---------|-------|
-| Sprints pendientes | **13** |
-| Tracks activos | **2** |
+| Sprints pendientes | **6** |
+| Tracks activos | **1** |
 | Oleadas restantes | **4** |
 | Tracks archivados | **34** |
 
 ---
 
-## 13 sprints pendientes
-
-### AXIOMATIC_INFERENCE (6 sprints — track nuevo)
-
-Eliminar 100% de constantes arbitrarias. Todo derivado de 4 fundamentales irreducibles.
-
-| Sprint | Descripción | Esfuerzo | Bloqueado por | Doc |
-|--------|-------------|----------|---------------|-----|
-| [AI-1](AXIOMATIC_INFERENCE/SPRINT_AI1_DERIVATION_MODULE.md) | Módulo de derivación axiomática | Bajo | — | |
-| [AI-2](AXIOMATIC_INFERENCE/SPRINT_AI2_MATTER_STATE_THRESHOLDS.md) | Density thresholds desde ratios de disipación | Bajo | AI-1 | |
-| [AI-3](AXIOMATIC_INFERENCE/SPRINT_AI3_CAPABILITY_THRESHOLDS.md) | MOVE/SENSE/BRANCH desde density + coherence | Bajo | AI-2 | |
-| [AI-4](AXIOMATIC_INFERENCE/SPRINT_AI4_SENESCENCE_DERIVED.md) | Senescence coeff + max_age desde metabolic rate | Medio | AI-1 | |
-| [AI-5](AXIOMATIC_INFERENCE/SPRINT_AI5_PRESSURE_AND_DRAIN.md) | Basal rate + pressure desde dissipation | Bajo | AI-2 | |
-| [AI-6](AXIOMATIC_INFERENCE/SPRINT_AI6_INLINE_EXTRACTION.md) | Magic numbers inline + duplicados | Bajo | AI-1 ✅ | |
-| [AI-7](AXIOMATIC_INFERENCE/SPRINT_AI7_WORLDGEN_CONSTANTS_MIGRATION.md) | Migrar 5 DEBT worldgen constants a derived fns | Alto | AI-1 ✅, AI-2 ✅ | |
-
----
+## 6 sprints pendientes
 
 ### GAMEPLAY_SYSTEMS (6 sprints pendientes)
 
@@ -118,12 +102,12 @@ Sprints archivados del track: [archive/GAMEPLAY_SYSTEMS/](archive/GAMEPLAY_SYSTE
 | **SF-7** | 1 | SF | 1 | ✅ COMPLETA | Oleada 1 ✅ |
 | **ET** | 16 | ET | 16 | ✅ COMPLETA | — |
 | **AC** | 5 | AC | 5 | ✅ COMPLETA | — |
-| **AI** | 6 | AXIOMATIC_INFERENCE | 4 → 2 | ⏳ Desbloqueada | — |
+| **AI** | 7 | AXIOMATIC_INFERENCE | 7 | ✅ COMPLETA | — |
 | **2** | 3 | GS | 3 | ⏳ Desbloqueada | Oleada 1 ✅ |
 | **BS** | 7 | BATCH_SIMULATOR | 7 | ✅ COMPLETA | — |
 | **3** | 3 | GS | 2 → 1 | 🔒 | Oleada 2 |
 | **4** | 1 | DEMO | 1 | 🔒 | Oleada 3 |
-| **Total** | **51** | — | — | 38 ✅ · 13 ⏳ | |
+| **Total** | **52** | — | — | 46 ✅ · 6 ⏳ | |
 
 ---
 
@@ -131,6 +115,7 @@ Sprints archivados del track: [archive/GAMEPLAY_SYSTEMS/](archive/GAMEPLAY_SYSTE
 
 Implementation in `src/`, contracts in `docs/design/` and `docs/arquitectura/`. Full list in [`archive/README.md`](archive/README.md):
 
+- **AXIOMATIC_INFERENCE** — AI-1–AI-7: derived_thresholds module (12 tests), matter state thresholds from dissipation ratios, capability thresholds from density+coherence, senescence from metabolic rate (Kleiber), basal drain+pressure from dissipation, inline extraction+duplicates, visual_calibration.rs separation. 0 DEBT, 0 hardcode. (2026-03-27) — [archive/AXIOMATIC_INFERENCE/](archive/AXIOMATIC_INFERENCE/)
 - **BATCH_SIMULATOR** — BS-0–BS-6: EntitySlot+SimWorldFlat arena, 33 batch systems (Tier 1/2/3), GeneticHarness+FitnessReport, GenomeBlob bridge (Batch↔Bevy), rayon parallelism, criterion benchmarks. 156 tests, 17 files (2026-03-26) — [archive/BATCH_SIMULATOR/](archive/BATCH_SIMULATOR/)
 - **AXIOMATIC_CLOSURE** — AC-1–AC-5: metabolic interference (Axiom 3×8), Kuramoto entrainment (Axiom 8), culture coherence (Axiom 6×8), frequency attenuation (Axiom 7×8), cooperation emergence (Axiom 3 game theory). 60+ tests (2026-03-25) — [archive/AXIOMATIC_CLOSURE/](archive/AXIOMATIC_CLOSURE/)
 - **EMERGENCE_TIERS** — ET-1–ET-16: associative memory, theory of mind, cultural transmission, infrastructure, symbiosis, epigenetics, senescence, coalitions, niche, timescales, multiscale, continental drift, geological LOD, institutions, language, consciousness (2026-03-25)

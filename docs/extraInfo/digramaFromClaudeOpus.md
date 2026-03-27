@@ -1,6 +1,6 @@
 # Resonance — Arquitectura Completa (Estado Actual)
 
-> Actualizado: 2026-03-27 | Estado: SF ✅ · ET parcial (ET-2,3,5,6,7,8,9 wired; T3-T4 stubs) · AC ✅ 5/5 · GS parcial (3/9) · Batch ✅ · Stellar ✅ · Energy Cycle ✅ · Awakening ✅ · Bevy Decoupled (math_types) · Derived Thresholds ✅ (AI-1 done) · 2472+ tests
+> Actualizado: 2026-03-27 | Estado: SF ✅ · ET parcial (ET-2,3,5,6,7,8,9 wired; T3-T4 stubs) · AC ✅ 5/5 · GS parcial (3/9) · Batch ✅ · Stellar ✅ · Energy Cycle ✅ · Awakening ✅ · Bevy Decoupled (math_types) · Axiomatic Inference ✅ ARCHIVED (7/7) · 2472+ tests
 
 ---
 
@@ -408,6 +408,7 @@ ALL DERIVED (12 functions, 12 tests):
 ├── survival_probability_threshold()  = exp(-2) ≈ 0.135
 └── nutrient_retention_{mineral,water}() = 1 - dissipation × factor
 
-Sprint: AXIOMATIC_INFERENCE (6 sprints) wires these into all consumers.
-Status: AI-1 ✅ (module + 12 tests), AI-2–AI-6 ⏳ pending.
+Sprint: AXIOMATIC_INFERENCE ✅ ARCHIVED (7/7 sprints completed).
+Physics: derived_thresholds.rs (12+ functions, 12 tests).
+Visual: visual_calibration.rs (6 rendering constants, explicitly non-axiom).
 ```

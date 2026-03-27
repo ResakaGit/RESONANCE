@@ -178,7 +178,8 @@ Zone cools down                            Live (basal_drain) → die (senescenc
 
 **Axiom-derived constants:** `blueprint/equations/derived_thresholds.rs` — ALL lifecycle constants computed from 4 fundamentals:
 - `KLEIBER_EXPONENT` (0.75), `DISSIPATION_{SOLID,LIQUID,GAS,PLASMA}`, `COHERENCE_BANDWIDTH`, `DENSITY_SCALE`
-- Sprint `AXIOMATIC_INFERENCE` (6 sprints) wires these into all consumers — see `docs/sprints/AXIOMATIC_INFERENCE/`
+- Sprint `AXIOMATIC_INFERENCE` ✅ ARCHIVED (7/7 sprints) — see `docs/sprints/archive/AXIOMATIC_INFERENCE/`
+- Visual calibration (rendering tuning, not physics): `src/worldgen/visual_calibration.rs`
 
 ## Evolution & Emergence Pipeline
 
