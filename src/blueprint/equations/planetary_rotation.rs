@@ -32,24 +32,26 @@ pub fn angular_velocity_from_period(period_ticks: f32) -> f32 {
 
 /// Solar irradiance factor at a cell position.
 ///
-/// `factor = max(0, cos(angle_between(cell_to_center, sun_direction)))`
-/// Cells facing the sun: factor ≈ 1.0 (full irradiance).
-/// Cells perpendicular: factor = 0.0 (terminator line).
-/// Cells on dark side: factor = 0.0 (night).
+/// Parallel light model: the terminator is a straight line perpendicular
+/// to sun_direction passing through grid_center. Cells on the sun side
+/// get irradiance proportional to their distance past the terminator.
+/// Cells on the dark side get zero.
 ///
-/// No energy created — this is a geometric mask on existing emission.
+/// This models a distant star (parallel rays), not a point source.
+/// No energy created — geometric mask only.
+/// `grid_half_extent`: half the grid width in world units (for normalization).
 #[inline]
 pub fn solar_irradiance_factor(
     cell_pos: Vec2,
     grid_center: Vec2,
     sun_dir: Vec2,
+    grid_half_extent: f32,
 ) -> f32 {
     let to_cell = cell_pos - grid_center;
-    let len = to_cell.length();
-    if len < 1e-6 { return 1.0; } // center gets full irradiance
-    let normalized = to_cell / len;
-    let cos_angle = normalized.dot(sun_dir);
-    cos_angle.max(0.0)
+    let projection = to_cell.dot(sun_dir);
+    let half = grid_half_extent.max(1.0);
+    // Smooth transition: fully lit at projection > half/2, fully dark at < 0.
+    (projection / half * 2.0).clamp(0.0, 1.0)
 }
 
 /// Minimum irradiance factor (ambient: scattered light, twilight).
@@ -96,30 +98,33 @@ mod tests {
     }
 
     #[test]
-    fn irradiance_facing_sun_is_one() {
+    fn irradiance_far_sun_side_is_one() {
         let sun = Vec2::new(1.0, 0.0);
-        let factor = solar_irradiance_factor(Vec2::new(10.0, 0.0), Vec2::ZERO, sun);
-        assert!((factor - 1.0).abs() < 1e-5);
+        let factor = solar_irradiance_factor(Vec2::new(40.0, 0.0), Vec2::ZERO, sun, 30.0);
+        assert!((factor - 1.0).abs() < 1e-3);
     }
 
     #[test]
-    fn irradiance_opposite_sun_is_zero() {
+    fn irradiance_dark_side_is_zero() {
         let sun = Vec2::new(1.0, 0.0);
-        let factor = solar_irradiance_factor(Vec2::new(-10.0, 0.0), Vec2::ZERO, sun);
+        let factor = solar_irradiance_factor(Vec2::new(-40.0, 0.0), Vec2::ZERO, sun, 30.0);
         assert_eq!(factor, 0.0);
     }
 
     #[test]
-    fn irradiance_perpendicular_is_zero() {
+    fn irradiance_terminator_is_mid() {
         let sun = Vec2::new(1.0, 0.0);
-        let factor = solar_irradiance_factor(Vec2::new(0.0, 10.0), Vec2::ZERO, sun);
-        assert!(factor.abs() < 1e-5);
+        // At center: projection = 0, factor should be near 0 (just past terminator).
+        let factor = solar_irradiance_factor(Vec2::ZERO, Vec2::ZERO, sun, 30.0);
+        assert!(factor < 0.1, "center ≈ terminator: {factor}");
     }
 
     #[test]
-    fn irradiance_center_is_full() {
-        let factor = solar_irradiance_factor(Vec2::ZERO, Vec2::ZERO, Vec2::X);
-        assert!((factor - 1.0).abs() < 1e-5);
+    fn irradiance_perpendicular_at_center() {
+        let sun = Vec2::new(1.0, 0.0);
+        // Cell directly above center: perpendicular to sun direction.
+        let factor = solar_irradiance_factor(Vec2::new(0.0, 10.0), Vec2::ZERO, sun, 30.0);
+        assert!(factor < 0.1, "perpendicular near terminator: {factor}");
     }
 
     #[test]

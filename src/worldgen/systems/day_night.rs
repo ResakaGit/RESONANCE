@@ -22,15 +22,18 @@ pub struct DayNightConfig {
     pub period_ticks: f32,
     /// Grid center for angular calculation.
     pub grid_center: crate::math_types::Vec2,
+    /// Half the grid extent in world units.
+    pub grid_half_extent: f32,
     /// Precomputed angular velocity.
     pub omega: f32,
 }
 
 impl DayNightConfig {
-    pub fn new(period_ticks: f32, grid_center: crate::math_types::Vec2) -> Self {
+    pub fn new(period_ticks: f32, grid_center: crate::math_types::Vec2, grid_half_extent: f32) -> Self {
         Self {
             period_ticks,
             grid_center,
+            grid_half_extent,
             omega: angular_velocity_from_period(period_ticks),
         }
     }
@@ -58,7 +61,7 @@ pub fn day_night_modulation_system(
     for y in 0..grid.height {
         for x in 0..grid.width {
             let Some(world_pos) = grid.world_pos(x, y) else { continue };
-            let solar_factor = solar_irradiance_factor(world_pos, center, sun_dir);
+            let solar_factor = solar_irradiance_factor(world_pos, center, sun_dir, config.grid_half_extent);
 
             if solar_factor >= 0.95 { continue; } // fully lit — no change needed
 

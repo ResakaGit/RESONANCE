@@ -137,13 +137,12 @@ pub fn init_day_night_config_system(
     let Some(config) = config else { return };
     let Some(period) = config.day_period_ticks else { return };
     let Some(grid) = grid else { return };
-    let center = grid.origin
-        + crate::math_types::Vec2::new(
-            grid.width as f32 * grid.cell_size * 0.5,
-            grid.height as f32 * grid.cell_size * 0.5,
-        );
+    let half_w = grid.width as f32 * grid.cell_size * 0.5;
+    let half_h = grid.height as f32 * grid.cell_size * 0.5;
+    let center = grid.origin + crate::math_types::Vec2::new(half_w, half_h);
+    let half_extent = half_w.min(half_h);
     commands.insert_resource(
-        crate::worldgen::systems::day_night::DayNightConfig::new(period, center),
+        crate::worldgen::systems::day_night::DayNightConfig::new(period, center, half_extent),
     );
 }
 

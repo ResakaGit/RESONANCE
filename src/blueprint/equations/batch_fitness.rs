@@ -84,6 +84,38 @@ pub fn crossover_uniform(a: &[f32; 4], b: &[f32; 4], rng_state: u64) -> [f32; 4]
     result
 }
 
+// ─── Self-adaptive mutation (Schwefel 1981) ─────────────────────────────────
+
+/// Tau parameter for self-adaptive sigma: `1 / sqrt(2 × d)` where d=4 biases.
+/// Schwefel (1981): controls the mutation rate of the mutation rate itself.
+pub const SELF_ADAPTIVE_TAU: f32 = 0.354; // 1/sqrt(8)
+
+/// Mutate sigma first, then biases. Schwefel self-adaptation.
+///
+/// `sigma' = sigma × exp(tau × N(0,1))`
+/// `bias'  = bias + sigma' × N(0,1)`
+/// Sigma is clamped to [min, max] to prevent collapse or explosion.
+pub fn self_adaptive_mutate(
+    biases: &[f32; 4],
+    sigma: f32,
+    rng_state: u64,
+    sigma_min: f32,
+    sigma_max: f32,
+) -> ([f32; 4], f32) {
+    let mut s = rng_state;
+    // Mutate sigma first (log-normal)
+    s = determinism::next_u64(s);
+    let new_sigma = (sigma * (SELF_ADAPTIVE_TAU * determinism::gaussian_f32(s, 1.0)).exp())
+        .clamp(sigma_min, sigma_max);
+    // Mutate biases with new sigma
+    let mut out = *biases;
+    for bias in &mut out {
+        s = determinism::next_u64(s);
+        *bias = (*bias + determinism::gaussian_f32(s, new_sigma)).clamp(0.0, 1.0);
+    }
+    (out, new_sigma)
+}
+
 // ─── Genome → Geometry Influence mapping ────────────────────────────────────
 
 /// Branching plan derived from genome biases.
