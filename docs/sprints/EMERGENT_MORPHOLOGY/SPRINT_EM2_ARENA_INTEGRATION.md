@@ -3,7 +3,7 @@
 **Modulo:** `src/batch/arena.rs`, `src/batch/systems/internal_field.rs`, `src/batch/constants.rs`
 **Tipo:** Data structure migration + system update.
 **Onda:** EM-1 → EM-2.
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27)
 
 ---
 

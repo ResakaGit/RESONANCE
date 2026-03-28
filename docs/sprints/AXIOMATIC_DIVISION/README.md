@@ -2,8 +2,8 @@
 
 **Objetivo:** Reemplazar el sistema de reproducción hardcodeado (`reproduction_spawn_system`) con división emergente derivada del campo de energía interno. La división ocurre cuando un valley en el campo interno llega a qe ≤ 0. Cero thresholds, cero flags, cero cooldowns.
 
-**Estado:** ⏳ Pendiente (5 sprints)
-**Bloqueado por:** Nada (track independiente)
+**Estado:** ⏳ Pendiente (5 sprints — AD-2 parcial en batch, 0/5 en Bevy ECS)
+**Bloqueado por:** Nada (track independiente). AD-2 batch implementation done (src/batch/systems/internal_field.rs).
 **Desbloquea:** División celular emergente (fisión, budding, fragmentación, esporulación)
 
 ---

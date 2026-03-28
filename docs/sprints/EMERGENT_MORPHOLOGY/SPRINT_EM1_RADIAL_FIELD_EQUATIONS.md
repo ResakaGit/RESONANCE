@@ -3,7 +3,7 @@
 **Modulo:** `src/blueprint/equations/radial_field.rs` (nuevo)
 **Tipo:** Ecuaciones puras. Zero Bevy. Zero side effects.
 **Onda:** Sin bloqueantes.
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27)
 
 ---
 

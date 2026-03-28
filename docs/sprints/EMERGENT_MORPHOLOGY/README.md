@@ -3,6 +3,8 @@
 2D radial energy field → bilateral organisms with extremities and joints.
 100% emergente desde los 8 axiomas. Zero labels top-down.
 
+**Estado:** EM-1 ✅, EM-2 ✅, EM-3 ⚠️ parcial, EM-4 ⚠️ parcial
+
 Design doc: [`docs/design/EMERGENT_MORPHOLOGY.md`](../../design/EMERGENT_MORPHOLOGY.md)
 
 ---
