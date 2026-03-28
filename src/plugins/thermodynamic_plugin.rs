@@ -62,12 +62,22 @@ impl Plugin for ThermodynamicPlugin {
         );
 
         // Radiation pressure: excess energy above threshold pushes outward.
-        // After dissipation (propagation system), before materialization.
         app.add_systems(
             FixedUpdate,
             crate::worldgen::systems::radiation_pressure::radiation_pressure_system
                 .in_set(Phase::ThermodynamicLayer)
-                .run_if(run_gameplay),
+                .run_if(run_gameplay.clone()),
+        );
+
+        // Day/night cycle: angular modulation of solar energy.
+        // After propagation + pressure, before materialization.
+        // Only runs if DayNightConfig resource exists.
+        app.add_systems(
+            FixedUpdate,
+            crate::worldgen::systems::day_night::day_night_modulation_system
+                .in_set(Phase::ThermodynamicLayer)
+                .run_if(run_gameplay)
+                .after(crate::worldgen::systems::radiation_pressure::radiation_pressure_system),
         );
     }
 }

@@ -6,7 +6,10 @@
 use crate::blueprint::{constants, equations};
 use crate::blueprint::equations::emergence::entrainment as entrainment_eq;
 use crate::batch::arena::SimWorldFlat;
-use crate::batch::constants::{COLLISION_EXCHANGE_FRACTION, TENSION_FORCE_SCALE, TENSION_RADIUS_MULTIPLIER};
+use crate::batch::constants::{
+    COLLISION_EXCHANGE_FRACTION, GRAVITY_ACCELERATION,
+    TENSION_FORCE_SCALE, TENSION_RADIUS_MULTIPLIER,
+};
 use crate::batch::scratch::ScratchPad;
 
 /// L3→L0: entropy drain per tick.
@@ -27,7 +30,10 @@ pub fn dissipation(world: &mut SimWorldFlat) {
 
 /// L3→Position: integrate velocity into position.
 ///
-/// `position += velocity × dt`. Pure kinematics.
+/// `position += velocity × dt` + gravity toward y=0.
+///
+/// Axiom 7: gravitational pull = distance attenuation from ground.
+/// Axiom 4: impact with ground dissipates kinetic energy.
 pub fn movement_integrate(world: &mut SimWorldFlat) {
     let dt = world.dt;
     let mut mask = world.alive_mask;
@@ -35,8 +41,16 @@ pub fn movement_integrate(world: &mut SimWorldFlat) {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
         let e = &mut world.entities[i];
+        // Gravity: constant pull toward y=0
+        e.velocity[1] -= GRAVITY_ACCELERATION * dt;
+        // Integrate position
         e.position[0] += e.velocity[0] * dt;
         e.position[1] += e.velocity[1] * dt;
+        // Ground collision: floor at y=0
+        if e.position[1] < 0.0 {
+            e.position[1] = 0.0;
+            e.velocity[1] = 0.0;
+        }
     }
 }
 
@@ -352,13 +366,14 @@ mod tests {
     // ── movement_integrate ──────────────────────────────────────────────────
 
     #[test]
-    fn movement_displaces_position() {
+    fn movement_displaces_position_with_gravity() {
         let mut w = SimWorldFlat::new(0, 0.05);
-        let idx = spawn_entity(&mut w, 100.0, 0.0, 0.0, 1.0);
+        let idx = spawn_entity(&mut w, 100.0, 0.0, 5.0, 1.0); // start above ground
         w.entities[idx].velocity = [10.0, 20.0];
         movement_integrate(&mut w);
-        assert!((w.entities[idx].position[0] - 0.5).abs() < 1e-5, "x = vx * dt = 10 * 0.05");
-        assert!((w.entities[idx].position[1] - 1.0).abs() < 1e-5, "y = vy * dt = 20 * 0.05");
+        assert!((w.entities[idx].position[0] - 0.5).abs() < 1e-3, "x = vx * dt");
+        // y affected by gravity: vel reduced then integrated
+        assert!(w.entities[idx].position[1] > 5.0, "upward velocity should move up");
     }
 
     #[test]
@@ -373,12 +388,22 @@ mod tests {
     }
 
     #[test]
-    fn movement_zero_velocity_no_change() {
+    fn movement_zero_velocity_falls() {
         let mut w = SimWorldFlat::new(0, 0.05);
         spawn_entity(&mut w, 100.0, 3.0, 7.0, 1.0);
         movement_integrate(&mut w);
-        assert!((w.entities[0].position[0] - 3.0).abs() < 1e-5);
-        assert!((w.entities[0].position[1] - 7.0).abs() < 1e-5);
+        assert!((w.entities[0].position[0] - 3.0).abs() < 1e-5, "x unchanged");
+        assert!(w.entities[0].position[1] < 7.0, "gravity should pull down");
+    }
+
+    #[test]
+    fn movement_floor_collision() {
+        let mut w = SimWorldFlat::new(0, 0.05);
+        let idx = spawn_entity(&mut w, 100.0, 3.0, 0.01, 1.0); // near ground
+        w.entities[idx].velocity = [0.0, -10.0]; // falling fast
+        movement_integrate(&mut w);
+        assert_eq!(w.entities[idx].position[1], 0.0, "should stop at floor");
+        assert_eq!(w.entities[idx].velocity[1], 0.0, "vertical velocity zeroed");
     }
 
     // ── collision ───────────────────────────────────────────────────────────

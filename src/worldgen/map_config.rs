@@ -52,6 +52,10 @@ pub struct MapConfig {
     /// Initial nutrient water saturation [0,1] for Big Bang bootstrap.
     #[serde(default)]
     pub initial_nutrient_water: Option<f32>,
+    /// Day/night cycle period in ticks. When set, solar energy rotates.
+    /// Derived from angular momentum conservation (Axiom 2/5).
+    #[serde(default)]
+    pub day_period_ticks: Option<f32>,
 }
 
 fn default_fog_of_war_enabled() -> bool {
@@ -95,6 +99,7 @@ impl Default for MapConfig {
             initial_field_qe: None,
             initial_field_freq: None,
             initial_nutrient_water: None,
+            day_period_ticks: None,
         }
     }
 }

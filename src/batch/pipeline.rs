@@ -60,6 +60,9 @@ impl SimWorldFlat {
         systems::reproduction(self);
         systems::abiogenesis(self);
 
+        // Environmental events
+        systems::asteroid_impact(self);
+
         // Post-tick bookkeeping
         systems::death_reap(self);
         self.update_total_qe();

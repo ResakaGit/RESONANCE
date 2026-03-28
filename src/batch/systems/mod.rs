@@ -37,5 +37,6 @@ pub use internal_field::internal_diffusion;
 
 // Phase::MorphologicalLayer
 pub use morphological::{
-    abiogenesis, death_reap, growth_inference, morpho_adaptation, reproduction, senescence,
+    abiogenesis, asteroid_impact, death_reap, growth_inference,
+    morpho_adaptation, reproduction, senescence,
 };

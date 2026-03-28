@@ -47,6 +47,39 @@ pub fn growth_inference(world: &mut SimWorldFlat) {
     }
 }
 
+/// Asteroid impact: periodic catastrophic dissipation in a localized area.
+///
+/// Axiom 4: extreme dissipation event. Axiom 7: localized by distance.
+/// Opens ecological niches for new species (Axiom 6: emergence from extinction).
+pub fn asteroid_impact(world: &mut SimWorldFlat) {
+    if ASTEROID_INTERVAL == 0 || world.tick_id % ASTEROID_INTERVAL != 0 { return; }
+    let rng = determinism::next_u64(world.seed ^ world.tick_id ^ 0xA57E);
+    let impact = [
+        determinism::range_f32(rng, 0.0, GRID_SIDE as f32),
+        determinism::range_f32(determinism::next_u64(rng), 0.0, GRID_SIDE as f32),
+    ];
+    let mut mask = world.alive_mask;
+    while mask != 0 {
+        let i = mask.trailing_zeros() as usize;
+        mask &= mask - 1;
+        let dx = world.entities[i].position[0] - impact[0];
+        let dy = world.entities[i].position[1] - impact[1];
+        if dx * dx + dy * dy < ASTEROID_RADIUS_SQ {
+            world.entities[i].qe *= ASTEROID_SURVIVAL_FRACTION;
+        }
+    }
+    // Devastate nutrient grid near impact
+    for cell in 0..GRID_CELLS {
+        let cx = (cell % GRID_SIDE) as f32;
+        let cy = (cell / GRID_SIDE) as f32;
+        let dx = cx - impact[0];
+        let dy = cy - impact[1];
+        if dx * dx + dy * dy < ASTEROID_RADIUS_SQ {
+            world.nutrient_grid[cell] *= ASTEROID_SURVIVAL_FRACTION;
+        }
+    }
+}
+
 /// Death reap: mark and kill entities below QE_MIN_EXISTENCE.
 ///
 /// Returns nutrients to grid (DEATH_NUTRIENT_RETURN fraction).

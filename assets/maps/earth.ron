@@ -44,6 +44,8 @@
   initial_field_qe: Some(8.0),
   initial_field_freq: Some(85.0),
   initial_nutrient_water: Some(0.3),
+  // Day/night: 600 ticks per rotation (10 seconds at 60Hz).
+  day_period_ticks: Some(600.0),
 
   nuclei: [
     // ── THE SUN — external energy source, never depletes ──────────────────

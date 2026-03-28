@@ -37,11 +37,14 @@ pub fn engine_processing(world: &mut SimWorldFlat) {
 pub fn irradiance_update(world: &mut SimWorldFlat) {
     // External source: constant solar flux. Not derived from entity energy.
     // Slight variation by cell index for spatial heterogeneity.
+    // Axiom 4: seasonal variation — dissipation rate oscillates with time.
+    let season = ((world.tick_id as f32) * SEASON_RATE).sin() * SEASON_AMPLITUDE + 1.0;
+    let seasonal_flux = SOLAR_FLUX_BASE * season.max(0.1);
+
     for cell in 0..GRID_CELLS {
-        // Base irradiance + small deterministic variation per cell
         let variation = ((cell as f32 * IRRADIANCE_VARIATION_FREQ).sin()
             * IRRADIANCE_VARIATION_AMP + 1.0).max(IRRADIANCE_VARIATION_MIN);
-        world.irradiance_grid[cell] = SOLAR_FLUX_BASE * variation;
+        world.irradiance_grid[cell] = seasonal_flux * variation;
     }
 }
 

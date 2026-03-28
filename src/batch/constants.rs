@@ -190,3 +190,23 @@ pub const ABIOGENESIS_DEFAULT_RESILIENCE: f32 = 0.5;
 
 /// Default dissipation for abiogenesis-spawned cells.
 pub const ABIOGENESIS_DEFAULT_DISSIPATION: f32 = 0.01;
+
+// ── Environmental pressures (Axiom 4 + 7) ──────────────────────────────────
+
+/// Gravitational acceleration toward y=0 (Axiom 7: distance attenuation from ground).
+pub const GRAVITY_ACCELERATION: f32 = 0.5;
+
+/// Seasonal irradiance oscillation rate (radians per tick).
+pub const SEASON_RATE: f32 = 0.001;
+
+/// Seasonal irradiance amplitude (0 = no seasons, 0.5 = ±50% flux).
+pub const SEASON_AMPLITUDE: f32 = 0.4;
+
+/// Ticks between asteroid impacts (Axiom 4: catastrophic dissipation).
+pub const ASTEROID_INTERVAL: u64 = 5000;
+
+/// Asteroid impact radius squared (Axiom 7: localized).
+pub const ASTEROID_RADIUS_SQ: f32 = 25.0;
+
+/// Fraction of qe surviving an asteroid impact (0.1 = 90% loss).
+pub const ASTEROID_SURVIVAL_FRACTION: f32 = 0.1;

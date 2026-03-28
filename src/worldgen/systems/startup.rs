@@ -127,6 +127,26 @@ pub fn seed_initial_field_system(
     }
 }
 
+/// Inserts DayNightConfig resource if map has day_period_ticks.
+/// Runs after grid creation, before simulation loop.
+pub fn init_day_night_config_system(
+    mut commands: Commands,
+    config: Option<Res<MapConfig>>,
+    grid: Option<Res<EnergyFieldGrid>>,
+) {
+    let Some(config) = config else { return };
+    let Some(period) = config.day_period_ticks else { return };
+    let Some(grid) = grid else { return };
+    let center = grid.origin
+        + crate::math_types::Vec2::new(
+            grid.width as f32 * grid.cell_size * 0.5,
+            grid.height as f32 * grid.cell_size * 0.5,
+        );
+    commands.insert_resource(
+        crate::worldgen::systems::day_night::DayNightConfig::new(period, center),
+    );
+}
+
 pub fn spawn_nuclei_from_map_config_system(
     mut commands: Commands,
     layout: Res<SimWorldTransformParams>,
