@@ -216,10 +216,10 @@ fn try_spawn_fauna_at_cell(
     cy: u32,
     tick_birth: u64,
 ) -> bool {
-    let cell_qe = {
+    let (cell_qe, cell_hz) = {
         let Some(cell_ref) = energy.cell_xy(cx, cy) else { return false };
         if cell_ref.materialized_entity.is_some() { return false; }
-        cell_ref.accumulated_qe
+        (cell_ref.accumulated_qe, cell_ref.dominant_frequency_hz)
     };
 
     let nutrient_density = nutrients
@@ -250,9 +250,12 @@ fn try_spawn_fauna_at_cell(
     let qe_spawn = equations::fauna_spawn_entity_qe(cell_qe);
     let bond = equations::fauna_spawn_matter_bond(cell_qe);
 
-    let (element_sym, trophic_class, intake_rate, profile, caps_bits) = if is_carnivore {
+    // Element derived from local frequency (Axiom 8: frequency = identity).
+    let element_sym = equations::element_symbol_from_frequency(cell_hz);
+
+    let (trophic_class, intake_rate, profile, caps_bits) = if is_carnivore {
         (
-            "Ig", TrophicClass::Carnivore, ABIOGENESIS_CARNIVORE_INTAKE_RATE,
+            TrophicClass::Carnivore, ABIOGENESIS_CARNIVORE_INTAKE_RATE,
             InferenceProfile::new(
                 ABIOGENESIS_CARNIVORE_GROWTH, ABIOGENESIS_CARNIVORE_MOBILITY,
                 ABIOGENESIS_CARNIVORE_BRANCHING, ABIOGENESIS_CARNIVORE_RESILIENCE,
@@ -261,7 +264,7 @@ fn try_spawn_fauna_at_cell(
         )
     } else {
         (
-            "Te", TrophicClass::Herbivore, ABIOGENESIS_HERBIVORE_INTAKE_RATE,
+            TrophicClass::Herbivore, ABIOGENESIS_HERBIVORE_INTAKE_RATE,
             InferenceProfile::new(
                 ABIOGENESIS_HERBIVORE_GROWTH, ABIOGENESIS_HERBIVORE_MOBILITY,
                 ABIOGENESIS_HERBIVORE_BRANCHING, ABIOGENESIS_HERBIVORE_RESILIENCE,

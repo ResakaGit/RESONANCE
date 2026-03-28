@@ -176,6 +176,24 @@ pub fn dissipation_from_state(state: MatterState) -> f32 {
     }
 }
 
+/// Element symbol from dominant frequency (Axiom 8: frequency = identity).
+///
+/// Buckets by COHERENCE_BANDWIDTH_HZ (50 Hz) bands. Returns a static str
+/// suitable for `ElementId::from_name`. Used by both abiogenesis and EntityBuilder.
+#[inline]
+pub fn element_symbol_from_frequency(frequency_hz: f32) -> &'static str {
+    let band = (frequency_hz / COHERENCE_BANDWIDTH_HZ) as u32;
+    match band {
+        0       => "Um",  // Umbra    ~0–50 Hz
+        1       => "Te",  // Terra    ~50–100 Hz
+        2..=4   => "Fl",  // Flora    ~100–250 Hz
+        5..=6   => "Aq",  // Aqua     ~250–350 Hz
+        7..=10  => "Ig",  // Ignis    ~350–550 Hz
+        11..=15 => "Ve",  // Ventus   ~550–800 Hz
+        _       => "Lx",  // Lux      ~800+ Hz
+    }
+}
+
 /// Initial radius from energy budget (Axiom 1 + 4).
 ///
 /// `radius = sqrt(qe) × DISSIPATION_SOLID` — higher energy = larger extent, scaled by base dissipation.

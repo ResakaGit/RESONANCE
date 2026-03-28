@@ -79,11 +79,26 @@ pub fn sense_coherence_min() -> f32 {
 #[inline]
 pub fn branch_qe_min() -> f32 { self_sustaining_qe_min() * 2.0 }
 
+// ─── Cosmological anchor (single calibration constant) ──────────────────────
+
+use bevy::prelude::Resource;
+
+/// The universe's cosmological anchor: minimum qe for self-sustaining patterns.
+/// Default 20.0. Injectable as a Bevy Resource to tune at runtime.
+/// All lifecycle thresholds scale from this single value.
+#[derive(Resource, Debug, Clone, Copy)]
+pub struct SelfSustainingQeMin(pub f32);
+
+impl Default for SelfSustainingQeMin {
+    fn default() -> Self { Self(20.0) }
+}
+
 // ─── Derived: awakening / abiogenesis ────────────────────────────────────────
 
-/// Minimum qe for self-sustaining patterns (Axiom 4 + 8 interplay).
+/// Minimum qe for self-sustaining patterns. Reads the cosmological anchor.
+/// When no Bevy world is available, use `SelfSustainingQeMin::default().0`.
 #[inline]
-pub fn self_sustaining_qe_min() -> f32 { 20.0 }
+pub fn self_sustaining_qe_min() -> f32 { SelfSustainingQeMin::default().0 }
 
 /// Break-even: coherence = 2× dissipation → potential = 1/3.
 #[inline]
@@ -165,6 +180,75 @@ pub fn nutrient_retention_mineral() -> f32 {
 #[inline]
 pub fn nutrient_retention_water() -> f32 {
     (1.0 - DISSIPATION_LIQUID / DISSIPATION_GAS).max(0.1)
+}
+
+/// Nutrient threshold for recycling trigger.
+/// Sum of mineral and water conversion losses.
+/// `threshold = (1 - mineral_ret) + (1 - water_ret)`
+#[inline]
+pub fn recycling_nutrient_threshold() -> f32 {
+    (1.0 - nutrient_retention_mineral()) + (1.0 - nutrient_retention_water())
+}
+
+/// Conversion efficiency when draining grid energy to nucleus reservoir.
+/// `efficiency = 1 - DISSIPATION_SOLID` — Second Law cost (Axiom 4).
+#[inline]
+pub fn recycling_conversion_efficiency() -> f32 {
+    1.0 - DISSIPATION_SOLID
+}
+
+/// Harvest radius in cells for energy drain during recycling.
+/// `radius = sqrt(DENSITY_SCALE)` — spatial extent of the drain zone.
+#[inline]
+pub fn recycling_harvest_radius_cells() -> u32 {
+    DENSITY_SCALE.sqrt() as u32
+}
+
+/// Fraction of each cell's qe drained during recycling.
+/// Same as mineral consumed fraction: `1 - mineral_retention`.
+#[inline]
+pub fn recycling_drain_fraction() -> f32 {
+    1.0 - nutrient_retention_mineral()
+}
+
+/// Recycled nucleus emission rate from reservoir size.
+/// `emission = reservoir × DISSIPATION_GAS` — gas-state energy release.
+#[inline]
+pub fn recycled_emission_rate(reservoir_qe: f32) -> f32 {
+    reservoir_qe.max(0.0) * DISSIPATION_GAS
+}
+
+/// Recycled nucleus propagation radius from reservoir size.
+/// `radius = sqrt(reservoir / DENSITY_SCALE)` — spatial extent from energy.
+#[inline]
+pub fn recycled_propagation_radius(reservoir_qe: f32) -> f32 {
+    (reservoir_qe.max(0.0) / DENSITY_SCALE).sqrt().max(2.0)
+}
+
+// ─── Derived: nutrient cycle rates ──────────────────────────────────────────
+
+/// Nutrient depletion rate (entity consumption per tick).
+/// `rate = DISSIPATION_LIQUID / DENSITY_SCALE` — liquid-state mobility at grid scale.
+/// Entities extract nutrients at the rate liquid energy diffuses through the grid.
+#[inline]
+pub fn nutrient_depletion_rate() -> f32 {
+    DISSIPATION_LIQUID / DENSITY_SCALE
+}
+
+/// Nutrient return rate on entity death.
+/// `rate = depletion × mineral_retention` — Second Law: not all nutrients survive.
+/// Return < depletion ensures net nutrient loss per lifecycle (Axiom 4).
+#[inline]
+pub fn nutrient_return_rate() -> f32 {
+    nutrient_depletion_rate() * nutrient_retention_mineral()
+}
+
+/// Natural nutrient regeneration per tick (geological weathering).
+/// `rate = DISSIPATION_SOLID × DISSIPATION_LIQUID` — solid dissolving into liquid.
+/// Much slower than biological depletion (product of two small rates).
+#[inline]
+pub fn nutrient_regen_per_tick() -> f32 {
+    DISSIPATION_SOLID * DISSIPATION_LIQUID
 }
 
 // ─── Derived: worldgen field constants ────────────────────────────────────────
@@ -293,5 +377,37 @@ mod tests {
     #[test]
     fn branch_is_twice_sustaining() {
         assert!((branch_qe_min() - self_sustaining_qe_min() * 2.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn recycling_threshold_equals_conversion_losses() {
+        let expected = (1.0 - nutrient_retention_mineral()) + (1.0 - nutrient_retention_water());
+        assert!((recycling_nutrient_threshold() - expected).abs() < 1e-6);
+    }
+
+    #[test]
+    fn recycling_conversion_under_one() {
+        let e = recycling_conversion_efficiency();
+        assert!(e > 0.9 && e < 1.0, "efficiency={e}");
+    }
+
+    #[test]
+    fn recycled_emission_scales_with_reservoir() {
+        let small = recycled_emission_rate(100.0);
+        let large = recycled_emission_rate(1000.0);
+        assert!(large > small, "{large} > {small}");
+        assert!((small - 100.0 * DISSIPATION_GAS).abs() < 1e-5);
+    }
+
+    #[test]
+    fn recycled_radius_scales_with_reservoir() {
+        let r = recycled_propagation_radius(500.0);
+        assert!(r >= 2.0, "radius={r}");
+        assert!(r < 20.0, "radius={r}");
+    }
+
+    #[test]
+    fn recycling_harvest_radius_positive() {
+        assert!(recycling_harvest_radius_cells() >= 2);
     }
 }

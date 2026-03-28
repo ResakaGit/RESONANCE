@@ -53,9 +53,11 @@ pub struct MapConfig {
     #[serde(default)]
     pub initial_nutrient_water: Option<f32>,
     /// Day/night cycle period in ticks. When set, solar energy rotates.
-    /// Derived from angular momentum conservation (Axiom 2/5).
     #[serde(default)]
     pub day_period_ticks: Option<f32>,
+    /// Cosmological anchor override. None = default (20.0).
+    #[serde(default)]
+    pub self_sustaining_qe: Option<f32>,
 }
 
 fn default_fog_of_war_enabled() -> bool {
@@ -100,6 +102,7 @@ impl Default for MapConfig {
             initial_field_freq: None,
             initial_nutrient_water: None,
             day_period_ticks: None,
+            self_sustaining_qe: None,
         }
     }
 }
@@ -119,8 +122,7 @@ pub struct NucleusConfig {
     pub propagation_radius: f32,
     pub decay: PropagationDecay,
     pub ambient_pressure: Option<AmbientPressureConfig>,
-    /// Per-nucleus fuel reservoir (qe). Overrides NUCLEUS_DEFAULT_RESERVOIR_QE.
-    /// Use very large values for stars (effectively infinite emission).
+    /// Per-nucleus fuel reservoir (qe). None = infinite emission (no NucleusReservoir).
     #[serde(default)]
     pub reservoir: Option<f32>,
 }
@@ -281,7 +283,7 @@ pub struct SpawnedNucleusSpec {
     pub position: Vec2,
     /// Capa 6 opcional: volumen de presión compartido con el radio de propagación (bioma del emisor).
     pub ambient_pressure: Option<AmbientPressureConfig>,
-    /// Per-nucleus reservoir override (None = use NUCLEUS_DEFAULT_RESERVOIR_QE).
+    /// Per-nucleus reservoir override (None = infinite emission).
     pub reservoir: Option<f32>,
 }
 

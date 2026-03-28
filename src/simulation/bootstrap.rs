@@ -40,6 +40,7 @@ use crate::worldgen::{EnergyFieldGrid, FIELD_CELL_SIZE, NutrientFieldGrid};
 pub fn init_simulation_bootstrap(app: &mut App) {
     app.init_resource::<V6RuntimeConfig>()
         .init_resource::<CameraBasisForSim>()
+        .init_resource::<crate::blueprint::equations::derived_thresholds::SelfSustainingQeMin>()
         .init_state::<GameState>()
         .add_sub_state::<PlayState>()
         .init_resource::<WorldgenWarmupConfig>();

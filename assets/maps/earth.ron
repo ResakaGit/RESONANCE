@@ -48,10 +48,10 @@
   day_period_ticks: Some(600.0),
 
   nuclei: [
-    // ── THE SUN — external energy source, never depletes ──────────────────
+    // ── THE SUN — external energy source, truly infinite ──────────────────
     // Positioned at top edge (north). Solar radiation falls on the surface.
     // Frequency 400 Hz — Ignis band. Photosynthesis resonates with this.
-    // Massive reservoir (500k) — effectively infinite for sim timescale.
+    // No reservoir = infinite emission (star never depletes).
     // InverseSquare decay — intensity drops fast with distance (realistic).
     (
       name: "sol",
@@ -61,7 +61,6 @@
       propagation_radius: 45.0,
       decay: InverseSquare,
       ambient_pressure: None,
-      reservoir: Some(999999.0),
     ),
 
     // ── GEOTHERMAL CORE — internal heat engine ────────────────────────────

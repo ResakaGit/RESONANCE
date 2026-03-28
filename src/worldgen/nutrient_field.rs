@@ -6,9 +6,6 @@ use crate::worldgen::{EnergyFieldGrid, EnergyNucleus};
 
 /// Máxima diferencia por canal para evitar escrituras ruidosas.
 pub const NUTRIENT_WRITE_EPS: f32 = 1e-4;
-pub const NUTRIENT_DEPLETION_RATE: f32 = 0.001;
-pub const NUTRIENT_RETURN_RATE: f32 = 0.0008;
-pub const NUTRIENT_REGEN_PER_TICK: f32 = 0.0001;
 
 /// EA7: presión por celda materializada (misma rejilla que nutrientes); qe por tick y por competidor extra.
 pub const COMPETITION_BASE_DRAIN_PER_EXTRA_COMPETITOR_QE: f32 = 0.5;

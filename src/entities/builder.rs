@@ -92,20 +92,10 @@ impl EntityBuilder {
 
     /// Capa 2 from frequency Hz (axiomatic abiogenesis — no element lookup).
     ///
-    /// Sets OscillatorySignature directly from Hz. ElementId derived from frequency hash.
+    /// Sets OscillatorySignature directly from Hz. ElementId derived from frequency band.
     pub fn wave_from_hz(mut self, frequency_hz: f32) -> Self {
-        // Deterministic ElementId from frequency: hash the Hz band as a string.
-        // This ensures entities at similar frequencies share an ElementId.
-        let band_key = (frequency_hz / 50.0) as u32; // bucket by 50Hz bands
-        let sym = match band_key {
-            0       => "Um",  // Umbra ~0-50
-            1       => "Te",  // Terra ~50-100
-            2..=4   => "Fl",  // Flora/low Terra ~100-250
-            5..=6   => "Aq",  // Aqua ~250-350
-            7..=10  => "Ig",  // Ignis ~350-550
-            11..=15 => "Ve",  // Ventus ~550-800
-            _       => "Lx",  // Lux ~800+
-        };
+        use crate::blueprint::equations::element_symbol_from_frequency;
+        let sym = element_symbol_from_frequency(frequency_hz);
         self.wave = Some((ElementId::from_name(sym), OscillatorySignature::new(frequency_hz, 0.0)));
         self
     }

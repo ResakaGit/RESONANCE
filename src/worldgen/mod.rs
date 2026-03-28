@@ -47,8 +47,7 @@ pub use propagation_mode::{
     diffuse_propagation_system, insert_nucleus_emission_state_system,
 };
 pub use nutrient_field::{
-    COMPETITION_BASE_DRAIN_PER_EXTRA_COMPETITOR_QE, NUTRIENT_DEPLETION_RATE,
-    NUTRIENT_REGEN_PER_TICK, NUTRIENT_RETURN_RATE, NUTRIENT_WRITE_EPS, NutrientCell,
+    COMPETITION_BASE_DRAIN_PER_EXTRA_COMPETITOR_QE, NUTRIENT_WRITE_EPS, NutrientCell,
     NutrientFieldGrid, apply_nucleus_bias, nutrient_bias_from_frequency,
     seed_nutrient_field_from_nuclei_system, sync_nutrient_field_len_system,
 };

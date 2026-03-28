@@ -135,14 +135,17 @@ pub fn init_day_night_config_system(
     grid: Option<Res<EnergyFieldGrid>>,
 ) {
     let Some(config) = config else { return };
+    // Cosmological anchor override from map config.
+    if let Some(qe) = config.self_sustaining_qe {
+        commands.insert_resource(
+            crate::blueprint::equations::derived_thresholds::SelfSustainingQeMin(qe),
+        );
+    }
     let Some(period) = config.day_period_ticks else { return };
     let Some(grid) = grid else { return };
-    let half_w = grid.width as f32 * grid.cell_size * 0.5;
-    let half_h = grid.height as f32 * grid.cell_size * 0.5;
-    let center = grid.origin + crate::math_types::Vec2::new(half_w, half_h);
-    let half_extent = half_w.min(half_h);
+    let grid_width_world = grid.width as f32 * grid.cell_size;
     commands.insert_resource(
-        crate::worldgen::systems::day_night::DayNightConfig::new(period, center, half_extent),
+        crate::worldgen::systems::day_night::DayNightConfig::new(period, grid_width_world),
     );
 }
 
@@ -168,14 +171,16 @@ pub fn spawn_nuclei_from_map_config_system(
             StartupNucleus,
             Name::new(format!("nucleus::{}", spawn.name)),
             spawn.nucleus,
-            NucleusReservoir {
-                qe: spawn.reservoir.unwrap_or(crate::blueprint::constants::NUCLEUS_DEFAULT_RESERVOIR_QE),
-            },
             transform,
             GlobalTransform::default(),
             Visibility::default(),
             InheritedVisibility::default(),
         ));
+        // Finite reservoir only when map config specifies one.
+        // No component = infinite emission (SparseSet opt-in).
+        if let Some(qe) = spawn.reservoir {
+            ec.insert(NucleusReservoir { qe });
+        }
         if let Some(cfg) = spawn.ambient_pressure.as_ref() {
             // Capa 1 + 6: burbuja alineada al radio; `collision_interference` ignora `AmbientPressure`.
             ec.insert((

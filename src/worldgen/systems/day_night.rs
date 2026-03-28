@@ -1,46 +1,44 @@
-//! Day/night cycle: angular modulation of solar nucleus emission.
+//! Day/night cycle: solar meridian sweeps across the grid X axis.
 //!
-//! The Sun doesn't move. The surface rotates under it (frame of reference).
-//! Each cell's accumulated solar energy is scaled by cos(angle_to_sun_direction).
-//! Dark side gets near-zero. Lit side gets full emission.
+//! The planet rotates on its axis. The illuminated band advances from
+//! left to right, wrapping cyclically. Cosine falloff from meridian.
 //!
-//! Stateless: reads tick_id + grid + nucleus positions, writes grid qe.
-//! Phase: ThermodynamicLayer, AFTER propagation (modulates what propagation deposited).
+//! Night cooling follows Newton's law: proportional drain (hot cells cool
+//! faster, cold cells approach zero asymptotically — never empty).
+//!
+//! Stateless: reads tick_id + config, writes grid qe.
+//! Phase: ThermodynamicLayer, after propagation.
 
 use bevy::prelude::*;
 
 use crate::blueprint::equations::planetary_rotation::{
-    angular_velocity_from_period, solar_irradiance_factor, sun_direction,
+    angular_velocity_from_period, night_cooling_fraction, solar_irradiance_factor, solar_meridian_x,
+    AMBIENT_IRRADIANCE,
 };
 use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::worldgen::EnergyFieldGrid;
 
-/// Resource: day/night cycle configuration. Inserted from MapConfig.
+/// Resource: day/night cycle configuration.
 #[derive(Resource, Debug, Clone)]
 pub struct DayNightConfig {
-    /// Ticks per full rotation (day period).
     pub period_ticks: f32,
-    /// Grid center for angular calculation.
-    pub grid_center: crate::math_types::Vec2,
-    /// Half the grid extent in world units.
-    pub grid_half_extent: f32,
-    /// Precomputed angular velocity.
+    pub grid_width_world: f32,
     pub omega: f32,
 }
 
 impl DayNightConfig {
-    pub fn new(period_ticks: f32, grid_center: crate::math_types::Vec2, grid_half_extent: f32) -> Self {
+    pub fn new(period_ticks: f32, grid_width_world: f32) -> Self {
         Self {
             period_ticks,
-            grid_center,
-            grid_half_extent,
+            grid_width_world,
             omega: angular_velocity_from_period(period_ticks),
         }
     }
 }
 
-/// Modulates field energy by solar angle. Cells on the dark side lose energy.
-/// Stateless: reads clock + config + grid, writes grid cells.
+/// Drains energy on the dark side of the rotating planet (Newton's law).
+/// Day side: no change (propagation handles solar emission).
+/// Night side: proportional drain `cell_qe × cooling_fraction × shadow`.
 pub fn day_night_modulation_system(
     config: Option<Res<DayNightConfig>>,
     clock: Res<SimulationClock>,
@@ -50,29 +48,25 @@ pub fn day_night_modulation_system(
     let Some(ref mut grid) = grid else { return };
     if config.omega == 0.0 { return; }
 
-    let sun_dir = sun_direction(clock.tick_id, config.omega);
-    let center = config.grid_center;
-
-    // Compute the maximum solar contribution this tick (from propagation).
-    // We subtract a fraction of energy on the dark side, not multiply the total.
-    // Night doesn't destroy accumulated energy — it only reduces the solar input rate.
-    let max_solar_drain_per_tick = 2.0; // small drain on dark side per tick (not exponential)
+    let grid_w = config.grid_width_world;
+    let meridian = solar_meridian_x(clock.tick_id, config.period_ticks, grid_w);
+    let cooling = night_cooling_fraction();
 
     for y in 0..grid.height {
         for x in 0..grid.width {
-            let Some(world_pos) = grid.world_pos(x, y) else { continue };
-            let solar_factor = solar_irradiance_factor(world_pos, center, sun_dir, config.grid_half_extent);
+            let cell_x_world = x as f32 * grid.cell_size;
+            let solar_factor = solar_irradiance_factor(cell_x_world, meridian, grid_w);
 
-            if solar_factor >= 0.95 { continue; } // fully lit — no change needed
+            // Fully lit: solar factor above ambient threshold → no cooling.
+            if solar_factor >= 1.0 - AMBIENT_IRRADIANCE { continue; }
 
             if let Some(cell) = grid.cell_xy_mut(x, y) {
                 if cell.accumulated_qe <= 0.0 { continue; }
-                // Dark side: drain a small fixed amount (not multiplicative).
-                // Represents cooling without solar input. Axiom 4: dissipation.
-                let shadow_strength = 1.0 - solar_factor; // 0=lit, 1=dark
-                let drain = max_solar_drain_per_tick * shadow_strength;
-                let new_qe = (cell.accumulated_qe - drain).max(0.0);
-                if (cell.accumulated_qe - new_qe).abs() > 0.01 {
+                let shadow = 1.0 - solar_factor;
+                // Newton's law: drain ∝ current energy × shadow depth.
+                let drain = cell.accumulated_qe * cooling * shadow;
+                let new_qe = cell.accumulated_qe - drain;
+                if drain > 0.01 {
                     cell.accumulated_qe = new_qe;
                     grid.mark_cell_dirty(x, y);
                 }

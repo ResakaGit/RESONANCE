@@ -3,14 +3,18 @@
 //! a new nucleus spawns there. This closes the energy cycle:
 //! nucleus → field → entities → death → nutrients → nucleus.
 //!
+//! Conservation: the recycled nucleus's reservoir is drained FROM the grid.
+//! No energy is created — it is concentrated from a zone into a point source.
+//! Second Law (Axiom 4): conversion efficiency < 1.0.
+//!
 //! Phase: [`Phase::MorphologicalLayer`], after abiogenesis.
 
 use bevy::prelude::*;
 
 use crate::blueprint::constants::{
-    NUCLEUS_RECYCLING_EMISSION_RATE, NUCLEUS_RECYCLING_NUTRIENT_THRESHOLD,
-    NUCLEUS_RECYCLING_RADIUS, NUCLEUS_RECYCLING_RESERVOIR_QE, NUCLEUS_RECYCLING_SCAN_BUDGET,
+    nucleus_recycling_nutrient_threshold, NUCLEUS_RECYCLING_SCAN_BUDGET,
 };
+use crate::blueprint::equations::derived_thresholds as dt;
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::worldgen::{
     EnergyFieldGrid, EnergyNucleus, NucleusReservoir, NutrientFieldGrid, PropagationDecay,
@@ -23,17 +27,17 @@ pub struct NucleusRecyclingCursor {
 }
 
 /// Scans nutrient grid for cells with high nutrient density. Spawns a finite
-/// nucleus there, draining nutrients to fuel it. Max 1 nucleus per tick.
+/// nucleus there, draining energy from the zone to fuel it. Max 1 nucleus per tick.
 pub fn nucleus_recycling_system(
     mut commands: Commands,
     nutrient_grid: Option<ResMut<NutrientFieldGrid>>,
-    energy_grid: Option<Res<EnergyFieldGrid>>,
+    mut energy_grid: Option<ResMut<EnergyFieldGrid>>,
     layout: Res<SimWorldTransformParams>,
     existing_nuclei: Query<&Transform, With<EnergyNucleus>>,
     mut cursor: ResMut<NucleusRecyclingCursor>,
 ) {
     let Some(mut nutrients) = nutrient_grid else { return };
-    let Some(grid) = energy_grid else { return };
+    let Some(ref mut grid) = energy_grid else { return };
 
     let total_cells = (nutrients.width * nutrients.height) as usize;
     if total_cells == 0 {
@@ -42,6 +46,7 @@ pub fn nucleus_recycling_system(
 
     let scan = total_cells.min(NUCLEUS_RECYCLING_SCAN_BUDGET);
     let xz = layout.use_xz_ground;
+    let nutrient_threshold = nucleus_recycling_nutrient_threshold();
 
     for _ in 0..scan {
         let idx = cursor.next_cell % total_cells;
@@ -55,19 +60,23 @@ pub fn nucleus_recycling_system(
         let avg_nutrient = (cell.carbon_norm + cell.nitrogen_norm
             + cell.phosphorus_norm + cell.water_norm) * 0.25;
 
-        if avg_nutrient < NUCLEUS_RECYCLING_NUTRIENT_THRESHOLD {
+        if avg_nutrient < nutrient_threshold {
             continue;
         }
 
-        // Don't spawn if existing nucleus is already nearby.
         let Some(world_pos) = grid.world_pos(cx, cy) else { continue };
+
+        // Estimate propagation radius for proximity check (before draining).
+        let center_qe = grid.cell_xy(cx, cy).map(|c| c.accumulated_qe).unwrap_or(0.0);
+        let est_radius = dt::recycled_propagation_radius(center_qe * 4.0);
+
         let too_close = existing_nuclei.iter().any(|tr| {
             let npos = if xz {
                 crate::math_types::Vec2::new(tr.translation.x, tr.translation.z)
             } else {
-                    crate::math_types::Vec2::new(tr.translation.x, tr.translation.y)
+                crate::math_types::Vec2::new(tr.translation.x, tr.translation.y)
             };
-            npos.distance(world_pos) < NUCLEUS_RECYCLING_RADIUS * 2.0
+            npos.distance(world_pos) < est_radius * 2.0
         });
         if too_close {
             continue;
@@ -80,8 +89,8 @@ pub fn nucleus_recycling_system(
             .unwrap_or(crate::blueprint::constants::ABIOGENESIS_FLORA_PEAK_HZ);
 
         // Drain nutrients proportional to dissipation ratios (Axiom 4).
-        let mineral_ret = crate::blueprint::equations::derived_thresholds::nutrient_retention_mineral();
-        let water_ret = crate::blueprint::equations::derived_thresholds::nutrient_retention_water();
+        let mineral_ret = dt::nutrient_retention_mineral();
+        let water_ret = dt::nutrient_retention_water();
         if let Some(ncell) = nutrients.cell_xy_mut(cx, cy) {
             ncell.carbon_norm = (ncell.carbon_norm * mineral_ret).max(0.0);
             ncell.nitrogen_norm = (ncell.nitrogen_norm * mineral_ret).max(0.0);
@@ -89,15 +98,47 @@ pub fn nucleus_recycling_system(
             ncell.water_norm = (ncell.water_norm * water_ret).max(0.0);
         }
 
-        // Spawn recycled nucleus with finite reservoir.
+        // Harvest energy from grid zone (conservation: energy moves, not created).
+        let harvest_r = dt::recycling_harvest_radius_cells() as i32;
+        let drain_frac = dt::recycling_drain_fraction();
+        let gw = grid.width as i32;
+        let gh = grid.height as i32;
+        let mut harvested_qe = 0.0_f32;
+
+        for dy in -harvest_r..=harvest_r {
+            for dx in -harvest_r..=harvest_r {
+                let nx = cx as i32 + dx;
+                let ny = cy as i32 + dy;
+                if nx < 0 || ny < 0 || nx >= gw || ny >= gh { continue; }
+                if let Some(cell) = grid.cell_xy_mut(nx as u32, ny as u32) {
+                    let drained = cell.accumulated_qe * drain_frac;
+                    if drained > 0.01 {
+                        cell.accumulated_qe -= drained;
+                        harvested_qe += drained;
+                    }
+                }
+                grid.mark_cell_dirty(nx as u32, ny as u32);
+            }
+        }
+
+        // Apply conversion efficiency (Axiom 4: Second Law loss).
+        let reservoir = harvested_qe * dt::recycling_conversion_efficiency();
+        if reservoir < dt::self_sustaining_qe_min() {
+            continue; // Too little energy to form a viable nucleus.
+        }
+
+        // Derive emission and radius from reservoir (axiom-derived scaling).
+        let emission = dt::recycled_emission_rate(reservoir);
+        let radius = dt::recycled_propagation_radius(reservoir);
+
         let translation = if xz {
             Vec3::new(world_pos.x, 0.0, world_pos.y)
         } else {
             Vec3::new(world_pos.x, world_pos.y, 0.0)
         };
         commands.spawn((
-            EnergyNucleus::new(freq, NUCLEUS_RECYCLING_EMISSION_RATE, NUCLEUS_RECYCLING_RADIUS, PropagationDecay::InverseLinear),
-            NucleusReservoir { qe: NUCLEUS_RECYCLING_RESERVOIR_QE },
+            EnergyNucleus::new(freq, emission, radius, PropagationDecay::InverseLinear),
+            NucleusReservoir { qe: reservoir },
             Transform::from_translation(translation),
             GlobalTransform::default(),
         ));
@@ -112,12 +153,27 @@ mod tests {
     use super::*;
 
     #[test]
-    fn recycling_constants_valid() {
-        assert!(NUCLEUS_RECYCLING_NUTRIENT_THRESHOLD > 0.0);
-        assert!(NUCLEUS_RECYCLING_NUTRIENT_THRESHOLD <= 1.0);
-        assert!(NUCLEUS_RECYCLING_EMISSION_RATE > 0.0);
-        assert!(NUCLEUS_RECYCLING_RESERVOIR_QE > 0.0);
-        assert!(NUCLEUS_RECYCLING_RADIUS > 0.0);
-        assert!(NUCLEUS_RECYCLING_SCAN_BUDGET > 0);
+    fn recycling_threshold_derived_and_valid() {
+        let t = nucleus_recycling_nutrient_threshold();
+        assert!(t > 0.0 && t <= 1.0, "threshold={t}");
+    }
+
+    #[test]
+    fn recycled_nucleus_scales_with_energy() {
+        let small = dt::recycled_emission_rate(50.0);
+        let large = dt::recycled_emission_rate(500.0);
+        assert!(large > small);
+        assert!(small > 0.0);
+    }
+
+    #[test]
+    fn conversion_efficiency_subunit() {
+        let e = dt::recycling_conversion_efficiency();
+        assert!(e > 0.0 && e < 1.0);
+    }
+
+    #[test]
+    fn minimum_reservoir_check() {
+        assert!(dt::self_sustaining_qe_min() > 0.0);
     }
 }

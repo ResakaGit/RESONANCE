@@ -1,11 +1,11 @@
 use bevy::prelude::*;
 
 use crate::blueprint::equations;
+use crate::blueprint::equations::derived_thresholds as dt;
 use crate::events::DeathEvent;
 use crate::layers::{BaseEnergy, NutrientProfile};
 use crate::worldgen::{
-    Materialized, NUTRIENT_DEPLETION_RATE, NUTRIENT_REGEN_PER_TICK, NUTRIENT_RETURN_RATE,
-    NUTRIENT_WRITE_EPS, NutrientCell, NutrientFieldGrid,
+    Materialized, NUTRIENT_WRITE_EPS, NutrientCell, NutrientFieldGrid,
 };
 
 pub const MAX_NUTRIENT_UPTAKE_PER_FRAME: u32 = 128;
@@ -142,7 +142,7 @@ pub fn nutrient_regen_system(nutrient_grid: Option<ResMut<NutrientFieldGrid>>) {
         return;
     };
     for cell in nutrient_grid.iter_cells_mut() {
-        cell.regenerate(NUTRIENT_REGEN_PER_TICK);
+        cell.regenerate(dt::nutrient_regen_per_tick());
     }
 }
 
@@ -154,7 +154,7 @@ pub fn nutrient_depletion_system(
         return;
     };
     for (mat, profile, energy) in &mut entities {
-        let scale = equations::nutrient_depletion_scale(energy.qe(), NUTRIENT_DEPLETION_RATE);
+        let scale = equations::nutrient_depletion_scale(energy.qe(), dt::nutrient_depletion_rate());
         let Some((x, y)) = valid_materialized_coords(mat) else {
             continue;
         };
@@ -177,7 +177,7 @@ pub fn nutrient_return_on_death_system(
         let Ok((mat, profile, energy)) = entities.get(death.entity) else {
             continue;
         };
-        let returned = equations::nutrient_return_scale(energy.qe(), NUTRIENT_RETURN_RATE);
+        let returned = equations::nutrient_return_scale(energy.qe(), dt::nutrient_return_rate());
         let Some((x, y)) = valid_materialized_coords(mat) else {
             continue;
         };
