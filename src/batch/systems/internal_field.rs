@@ -37,10 +37,29 @@ pub fn internal_diffusion(world: &mut SimWorldFlat) {
             radial_field::radial_rescale(&mut e.qe_field, e.qe);
         }
 
+        // AS-2: Skip diffusion if field already converged
+        if e.field_converged {
+            let field_sum = radial_field::radial_total(&e.qe_field);
+            if (field_sum - e.qe).abs() > GUARD_EPSILON {
+                // qe changed externally → reconverge
+                radial_field::radial_rescale(&mut e.qe_field, e.qe);
+                e.field_converged = false;
+            } else {
+                e.qe = field_sum;
+                continue;
+            }
+        }
+
         // 2D diffusion (axial + radial neighbors)
+        let before = e.qe_field;
         e.qe_field = radial_field::radial_diffuse(
             &e.qe_field, INTERNAL_DIFFUSION_CONDUCTIVITY, dt,
         );
+
+        // Convergence check
+        if radial_field::radial_converged(&before, &e.qe_field, CONVERGENCE_EPSILON) {
+            e.field_converged = true;
+        }
 
         // 2D frequency entrainment
         e.freq_field = radial_field::radial_freq_entrain(

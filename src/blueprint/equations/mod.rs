@@ -53,6 +53,7 @@ pub mod emergence;
 pub mod inferred_world_geometry;
 pub mod calibration;
 pub mod batch_fitness;
+pub mod batch_stepping;
 pub mod determinism;
 pub mod radial_field;
 pub mod internal_field;

@@ -68,6 +68,7 @@ pub fn components_to_genome(
         mobility_bias:  profile.mobility_bias,
         branching_bias: profile.branching_bias,
         resilience:     profile.resilience,
+        sigma:          0.15,
     }
 }
 
@@ -108,10 +109,10 @@ fn frequency_for_archetype(archetype: u8) -> f32 {
 
 /// Serialize genomes to binary: `[u32 LE count][fields × count]`.
 ///
-/// Each genome: archetype(1) + trophic(1) + growth(4) + mobility(4) + branching(4) + resilience(4) = 18 bytes.
+/// Each genome: archetype(1) + trophic(1) + 4 biases(16) + sigma(4) = 22 bytes.
 pub fn save_genomes(genomes: &[GenomeBlob], path: &std::path::Path) -> std::io::Result<()> {
     let count = genomes.len() as u32;
-    let mut buf = Vec::with_capacity(4 + genomes.len() * 18);
+    let mut buf = Vec::with_capacity(4 + genomes.len() * 22);
     buf.extend_from_slice(&count.to_le_bytes());
     for g in genomes {
         buf.push(g.archetype);
@@ -120,6 +121,7 @@ pub fn save_genomes(genomes: &[GenomeBlob], path: &std::path::Path) -> std::io::
         buf.extend_from_slice(&g.mobility_bias.to_le_bytes());
         buf.extend_from_slice(&g.branching_bias.to_le_bytes());
         buf.extend_from_slice(&g.resilience.to_le_bytes());
+        buf.extend_from_slice(&g.sigma.to_le_bytes());
     }
     std::fs::write(path, buf)
 }
@@ -147,11 +149,14 @@ pub fn load_genomes(path: &std::path::Path) -> std::io::Result<Vec<GenomeBlob>> 
         let mobility_bias = f32::from_le_bytes([data[offset+6], data[offset+7], data[offset+8], data[offset+9]]);
         let branching_bias = f32::from_le_bytes([data[offset+10], data[offset+11], data[offset+12], data[offset+13]]);
         let resilience    = f32::from_le_bytes([data[offset+14], data[offset+15], data[offset+16], data[offset+17]]);
+        let sigma = if offset + 21 < data.len() {
+            f32::from_le_bytes([data[offset+18], data[offset+19], data[offset+20], data[offset+21]])
+        } else { 0.15 };
         genomes.push(GenomeBlob {
             archetype, trophic_class,
-            growth_bias, mobility_bias, branching_bias, resilience,
+            growth_bias, mobility_bias, branching_bias, resilience, sigma,
         });
-        offset += 18;
+        offset += 22;
     }
     Ok(genomes)
 }
@@ -170,6 +175,7 @@ mod tests {
             archetype: 1, trophic_class: 0,
             growth_bias: 0.73, mobility_bias: 0.21,
             branching_bias: 0.88, resilience: 0.45,
+            ..Default::default()
         };
         let (_, _, _, _, _, _, profile) = genome_to_components(&original);
         let trophic = genome_to_trophic(&original);
@@ -237,8 +243,8 @@ mod tests {
     #[test]
     fn save_load_round_trip() {
         let genomes = vec![
-            GenomeBlob { archetype: 1, trophic_class: 0, growth_bias: 0.5, mobility_bias: 0.3, branching_bias: 0.7, resilience: 0.9 },
-            GenomeBlob { archetype: 2, trophic_class: 3, growth_bias: 0.1, mobility_bias: 0.8, branching_bias: 0.2, resilience: 0.4 },
+            GenomeBlob { archetype: 1, trophic_class: 0, growth_bias: 0.5, mobility_bias: 0.3, branching_bias: 0.7, resilience: 0.9, ..Default::default() },
+            GenomeBlob { archetype: 2, trophic_class: 3, growth_bias: 0.1, mobility_bias: 0.8, branching_bias: 0.2, resilience: 0.4, ..Default::default() },
         ];
         let dir = std::env::temp_dir();
         let path = dir.join("test_genomes_bs5.bin");
@@ -281,6 +287,7 @@ mod tests {
             mobility_bias: std::f32::consts::E / 3.0,
             branching_bias: 0.123_456_78,
             resilience: 0.987_654_3,
+            ..Default::default()
         };
         let dir = std::env::temp_dir();
         let path = dir.join("test_genomes_bitexact_bs5.bin");

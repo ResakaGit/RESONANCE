@@ -10,14 +10,14 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 
 | Métrica | Valor |
 |---------|-------|
-| Sprints pendientes | **11** |
+| Sprints pendientes | **8** |
 | Tracks activos | **2** |
-| Oleadas restantes | **5** |
-| Tracks archivados | **34** |
+| Oleadas restantes | **3** |
+| Tracks archivados | **39** |
 
 ---
 
-## 6 sprints pendientes
+## 8 sprints pendientes
 
 ### GAMEPLAY_SYSTEMS (6 sprints pendientes)
 
@@ -34,16 +34,16 @@ Sprints archivados del track: [archive/GAMEPLAY_SYSTEMS/](archive/GAMEPLAY_SYSTE
 
 ---
 
-### EMERGENT_MORPHOLOGY (4 sprints pendientes)
+### SURVIVAL_MODE (2 sprints pendientes)
 
 | Sprint | Descripción | Esfuerzo | Bloqueado por | Doc |
 |--------|-------------|----------|---------------|-----|
-| [EM-1](EMERGENT_MORPHOLOGY/SPRINT_EM1_RADIAL_FIELD_EQUATIONS.md) | Radial field equations: 2D diffusion, peak detection, gradients | Medio | — | [Design](../design/EMERGENT_MORPHOLOGY.md) |
-| [EM-2](EMERGENT_MORPHOLOGY/SPRINT_EM2_ARENA_INTEGRATION.md) | EntitySlot 2D fields, internal_diffusion 2D, pipeline | Medio | EM-1 | |
-| [EM-3](EMERGENT_MORPHOLOGY/SPRINT_EM3_APPENDAGE_INFERENCE.md) | Peaks → sub-meshes, bilateral emergence, creature_builder 2D | Alto | EM-2 | |
-| [EM-4](EMERGENT_MORPHOLOGY/SPRINT_EM4_JOINT_ARTICULATION.md) | Valley detection → joints, segmented appendages | Alto | EM-3 | |
+| [SV-2](SURVIVAL_MODE/SPRINT_SV2_SURVIVAL_BINARY.md) | Survival binary: load genomes + spawn + play | Medio | SV-1 ✅ | |
+| [SV-3](SURVIVAL_MODE/SPRINT_SV3_GAME_OVER.md) | Game over: death detection + score + restart | Bajo | SV-2 | |
 
-Track README: [EMERGENT_MORPHOLOGY/](EMERGENT_MORPHOLOGY/)
+Sprints archivados del track: [archive/SURVIVAL_MODE/](archive/SURVIVAL_MODE/) (SV-1 ✅)
+
+Track README: [SURVIVAL_MODE/](SURVIVAL_MODE/)
 
 ---
 
@@ -116,11 +116,22 @@ Track README: [EMERGENT_MORPHOLOGY/](EMERGENT_MORPHOLOGY/)
 | **ET** | 16 | ET | 16 | ✅ COMPLETA | — |
 | **AC** | 5 | AC | 5 | ✅ COMPLETA | — |
 | **AI** | 7 | AXIOMATIC_INFERENCE | 7 | ✅ COMPLETA | — |
-| **2** | 3 | GS | 3 | ⏳ Desbloqueada | Oleada 1 ✅ |
 | **BS** | 7 | BATCH_SIMULATOR | 7 | ✅ COMPLETA | — |
+| **EM** | 4 | EMERGENT_MORPHOLOGY | 4 | ✅ COMPLETA | — |
+| **AS** | 3 | ANALYTICAL_STEPPING | 3 | ✅ COMPLETA | — |
+| **SV** | 3 | SURVIVAL_MODE | 1 ✅ → 1 → 1 | ⏳ SV-1 done | — (independiente) |
+| **2** | 3 | GS | 3 | ⏳ Desbloqueada | Oleada 1 ✅ |
 | **3** | 3 | GS | 2 → 1 | 🔒 | Oleada 2 |
 | **4** | 1 | DEMO | 1 | 🔒 | Oleada 3 |
-| **Total** | **52** | — | — | 46 ✅ · 6 ⏳ | |
+| **Total** | **55** | — | — | 47 ✅ · 8 ⏳ | |
+
+### Tracks por estado
+
+| Estado | Tracks | Sprints |
+|--------|--------|---------|
+| ✅ Archivados | 39 tracks | 47 sprints |
+| ⏳ Activos | GAMEPLAY_SYSTEMS (6), SURVIVAL_MODE (2) | 8 sprints |
+| 🔒 Bloqueados | DEMO (1) | 1 sprint |
 
 ---
 
@@ -128,6 +139,9 @@ Track README: [EMERGENT_MORPHOLOGY/](EMERGENT_MORPHOLOGY/)
 
 Implementation in `src/`, contracts in `docs/design/` and `docs/arquitectura/`. Full list in [`archive/README.md`](archive/README.md):
 
+- **SURVIVAL_MODE (parcial)** — SV-1: apply_input() wiring (InputCommand → WillActuator via WorldEntityId lookup). 5 LOC in sim_world.rs (2026-03-28) — [archive/SURVIVAL_MODE/](archive/SURVIVAL_MODE/)
+- **ANALYTICAL_STEPPING** — AS-1–AS-3: O(1) analytical equations (dissipation_n, growth_n, senescence_n, locomotion_n), convergence detection (radial_max_delta, field_converged), tick_fast pipeline. 16 tests (2026-03-28) — [archive/ANALYTICAL_STEPPING/](archive/ANALYTICAL_STEPPING/)
+- **EMERGENT_MORPHOLOGY** — EM-1–EM-4: 2D radial field (16×8=128 nodes), peak detection, bilateral emergence, appendage inference, joint articulation. Gravity + climate + asteroids. 30+ tests (2026-03-28) — [archive/EMERGENT_MORPHOLOGY/](archive/EMERGENT_MORPHOLOGY/)
 - **AXIOMATIC_INFERENCE** — AI-1–AI-7: derived_thresholds module (12 tests), matter state thresholds from dissipation ratios, capability thresholds from density+coherence, senescence from metabolic rate (Kleiber), basal drain+pressure from dissipation, inline extraction+duplicates, visual_calibration.rs separation. 0 DEBT, 0 hardcode. (2026-03-27) — [archive/AXIOMATIC_INFERENCE/](archive/AXIOMATIC_INFERENCE/)
 - **BATCH_SIMULATOR** — BS-0–BS-6: EntitySlot+SimWorldFlat arena, 33 batch systems (Tier 1/2/3), GeneticHarness+FitnessReport, GenomeBlob bridge (Batch↔Bevy), rayon parallelism, criterion benchmarks. 156 tests, 17 files (2026-03-26) — [archive/BATCH_SIMULATOR/](archive/BATCH_SIMULATOR/)
 - **AXIOMATIC_CLOSURE** — AC-1–AC-5: metabolic interference (Axiom 3×8), Kuramoto entrainment (Axiom 8), culture coherence (Axiom 6×8), frequency attenuation (Axiom 7×8), cooperation emergence (Axiom 3 game theory). 60+ tests (2026-03-25) — [archive/AXIOMATIC_CLOSURE/](archive/AXIOMATIC_CLOSURE/)

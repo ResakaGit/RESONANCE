@@ -231,7 +231,7 @@ impl GeneticHarness {
                 let fitnesses: Vec<f32> = flat_elite.iter()
                     .map(|g| g.growth_bias + g.resilience)
                     .collect();
-                let p1_idx = batch_fitness::tournament_select(&fitnesses, 3, e_seed);
+                let p1_idx = batch_fitness::tournament_select(&fitnesses, self.config.tournament_k, e_seed);
                 let parent1 = flat_elite[p1_idx];
 
                 // Crossover or clone+mutate

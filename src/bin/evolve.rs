@@ -6,6 +6,7 @@
 use resonance::batch::batch::BatchConfig;
 use resonance::batch::bridge;
 use resonance::batch::harness::GeneticHarness;
+use resonance::use_cases::cli::{parse_arg, archetype_label, trophic_label};
 use std::path::Path;
 use std::time::Instant;
 
@@ -75,25 +76,10 @@ fn main() {
     println!("   # │ Arch │ Troph │ Growth │ Mobile │ Branch │ Resil");
     println!("  ───┼──────┼───────┼────────┼────────┼────────┼───────");
     for (i, g) in top.iter().enumerate() {
-        let arch = match g.archetype {
-            0 => "inert",
-            1 => "flora",
-            2 => "fauna",
-            3 => "cell ",
-            4 => "virus",
-            _ => "?    ",
-        };
-        let troph = match g.trophic_class {
-            0 => "prod ",
-            1 => "herb ",
-            2 => "omni ",
-            3 => "carn ",
-            4 => "detr ",
-            _ => "?    ",
-        };
         println!(
-            "  {:>2} │ {arch} │ {troph} │ {:>6.3} │ {:>6.3} │ {:>6.3} │ {:>5.3}",
-            i + 1, g.growth_bias, g.mobility_bias, g.branching_bias, g.resilience,
+            "  {:>2} │ {:<5} │ {:<5} │ {:>6.3} │ {:>6.3} │ {:>6.3} │ {:>5.3}",
+            i + 1, archetype_label(g.archetype), trophic_label(g.trophic_class),
+            g.growth_bias, g.mobility_bias, g.branching_bias, g.resilience,
         );
     }
 
@@ -118,9 +104,8 @@ fn main() {
         println!();
         println!("  Archetype distribution:");
         for (i, &c) in arch_counts.iter().enumerate() {
-            let name = ["inert", "flora", "fauna", "cell", "virus"][i];
             let pct = c as f32 / top.len() as f32 * 100.0;
-            println!("    {name}: {c} ({pct:.0}%)");
+            println!("    {}: {c} ({pct:.0}%)", archetype_label(i as u8));
         }
     }
 
@@ -170,9 +155,3 @@ fn bar(value: f32) -> String {
     format!("[{}{}]", "█".repeat(width), "░".repeat(30 - width))
 }
 
-fn parse_arg(args: &[String], flag: &str, default: i64) -> i64 {
-    args.windows(2)
-        .find(|w| w[0] == flag)
-        .and_then(|w| w[1].parse().ok())
-        .unwrap_or(default)
-}

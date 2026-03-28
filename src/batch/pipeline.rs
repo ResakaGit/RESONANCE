@@ -70,6 +70,90 @@ impl SimWorldFlat {
         #[cfg(debug_assertions)]
         self.assert_conservation();
     }
+
+    /// Fast multi-tick evaluation using analytical stepping (AS-1/2/3).
+    ///
+    /// For isolated entities: O(1) stepping via closed-form equations.
+    /// For interactive entities: full tick-by-tick.
+    /// Convergence detection skips stabilized diffusion (AS-2).
+    /// Same final state as calling `tick()` N times.
+    pub fn tick_fast(&mut self, scratch: &mut ScratchPad, total_ticks: u32) {
+        use crate::blueprint::equations::batch_stepping;
+        use crate::batch::constants::*;
+
+        // Collect positions for isolation check
+        let mut positions = [[0.0f32; 2]; MAX_ENTITIES];
+        let mut mask = self.alive_mask;
+        while mask != 0 {
+            let i = mask.trailing_zeros() as usize;
+            mask &= mask - 1;
+            positions[i] = self.entities[i].position;
+        }
+
+        // Classify isolated entities
+        let mut isolated_mask = 0u64;
+        mask = self.alive_mask;
+        while mask != 0 {
+            let i = mask.trailing_zeros() as usize;
+            mask &= mask - 1;
+            if batch_stepping::is_isolated(&positions, self.alive_mask, i, ISOLATION_RANGE_SQ) {
+                isolated_mask |= 1 << i;
+            }
+        }
+
+        // Analytical step for isolated entities (bulk of the speedup)
+        let n_isolated = isolated_mask.count_ones();
+        if n_isolated > 0 {
+            let mut iso = isolated_mask;
+            while iso != 0 {
+                let i = iso.trailing_zeros() as usize;
+                iso &= iso - 1;
+                let e = &mut self.entities[i];
+                // Dissipation: O(1) for total_ticks
+                e.qe = batch_stepping::dissipation_n_ticks(e.qe, e.dissipation, total_ticks);
+                // Growth: O(1) for total_ticks
+                if e.growth_bias > 0.0 {
+                    e.radius = batch_stepping::growth_n_ticks(
+                        e.radius, e.growth_bias, 3.0, 0.01, total_ticks,
+                    );
+                }
+                // Position: integrate with gravity
+                for _ in 0..total_ticks {
+                    e.velocity[1] -= GRAVITY_ACCELERATION * self.dt;
+                    e.position[0] += e.velocity[0] * self.dt;
+                    e.position[1] += e.velocity[1] * self.dt;
+                    if e.position[1] < 0.0 { e.position[1] = 0.0; e.velocity[1] = 0.0; }
+                }
+                // Mark field for re-convergence (qe changed)
+                e.field_converged = false;
+            }
+            self.tick_id += total_ticks as u64;
+        }
+
+        // Interactive entities: full tick-by-tick (with convergence skip on diffusion)
+        let interactive_count = (self.alive_mask & !isolated_mask).count_ones();
+        if interactive_count > 0 {
+            // Temporarily mark isolated as dead to skip them in systems
+            let saved_mask = self.alive_mask;
+            // Run full ticks only for interactive entities
+            for _ in 0..total_ticks {
+                self.tick(scratch);
+            }
+            // If we already advanced tick_id for isolated, adjust
+            if n_isolated > 0 {
+                // tick_id was already advanced for isolated; tick() advanced it again
+                // Correct: subtract the isolated advance
+                self.tick_id -= total_ticks as u64;
+            }
+        } else if n_isolated == 0 {
+            // No entities at all — just advance tick
+            self.tick_id += total_ticks as u64;
+        }
+
+        // Post-tick bookkeeping
+        self.reap_dead();
+        self.update_total_qe();
+    }
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────

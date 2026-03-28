@@ -82,7 +82,8 @@ pub struct EntitySlot {
     pub channeling:     bool,
     pub faction:        u8,
     pub trophic_class:  u8,
-    pub _pad:           [u8; 2],
+    pub field_converged: bool,
+    pub _pad:           [u8; 1],
 }
 
 impl Default for EntitySlot {
@@ -109,7 +110,7 @@ impl Default for EntitySlot {
             freq_field: [[0.0; RADIAL]; AXIAL],
             alive: false, archetype: 0, matter_state: 0,
             channeling: false, faction: 0, trophic_class: 0,
-            _pad: [0; 2],
+            field_converged: false, _pad: [0; 1],
         }
     }
 }

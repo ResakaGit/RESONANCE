@@ -156,6 +156,12 @@ pub const FIELD_RADIUS_MAX_RATIO: f32 = 2.5;
 /// Numeric guard epsilon for division/normalization.
 pub const GUARD_EPSILON: f32 = 0.01;
 
+/// Convergence epsilon for radial field diffusion (AS-2).
+pub const CONVERGENCE_EPSILON: f32 = 0.001;
+
+/// Maximum interaction range for isolation detection (AS-1).
+pub const ISOLATION_RANGE_SQ: f32 = 64.0; // 8.0²
+
 /// Satiation level above which entity stops hunting.
 pub const SATIATION_WELL_FED: f32 = 0.7;
 

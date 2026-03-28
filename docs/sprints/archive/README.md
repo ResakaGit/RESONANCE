@@ -8,6 +8,9 @@ Live contracts: `docs/design/` (specs) and `docs/arquitectura/` (runtime bluepri
 
 | Track | Description | Closed |
 |-------|-------------|--------|
+| **SURVIVAL_MODE (parcial)** | SV-1: apply_input() wiring (InputCommand → WillActuator via WorldEntityId). SV-2/SV-3 pending. | 2026-03-28 |
+| **ANALYTICAL_STEPPING** | AS-1–AS-3: O(1) analytical stepping (dissipation, growth, senescence), convergence detection, tick_fast pipeline (16 tests) | 2026-03-28 |
+| **EMERGENT_MORPHOLOGY** | EM-1–EM-4: 2D radial field (16×8=128 nodes), peak detection, bilateral emergence, appendage inference, joints, gravity+climate+asteroids (30+ tests) | 2026-03-28 |
 | **BATCH_SIMULATOR** | BS-0–BS-6: batch arena (EntitySlot, SimWorldFlat), 33 systems (Tier 1/2/3), GeneticHarness, GenomeBlob bridge, rayon parallelism, criterion benchmarks (156 tests, 17 files) | 2026-03-26 |
 | **EMERGENCE_TIERS** | ET-1–ET-16: associative memory, theory of mind, cultural transmission, infrastructure, obligate symbiosis, epigenetics, senescence, coalitions, multidimensional niche, timescales, multiscale info, continental drift, geological LOD, institutions, language, consciousness (127 unit tests) | 2026-03-25 |
 | **GAMEPLAY_SYSTEMS (parcial)** | GS-1 lockstep determinista, GS-3 Nash targeting, GS-5 victory nucleus (Onda 0 completa) | 2026-03-25 |

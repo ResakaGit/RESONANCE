@@ -25,6 +25,25 @@ pub fn radial_total(field: &RadialField) -> f32 {
     field.iter().flat_map(|row| row.iter()).sum()
 }
 
+/// Maximum absolute change between two field states.
+#[inline]
+pub fn radial_max_delta(a: &RadialField, b: &RadialField) -> f32 {
+    let mut max = 0.0_f32;
+    for ax in 0..AXIAL {
+        for rad in 0..RADIAL {
+            let d = (a[ax][rad] - b[ax][rad]).abs();
+            if d > max { max = d; }
+        }
+    }
+    max
+}
+
+/// Check if field has converged: max delta < epsilon.
+#[inline]
+pub fn radial_converged(before: &RadialField, after: &RadialField, epsilon: f32) -> bool {
+    radial_max_delta(before, after) < epsilon
+}
+
 // ─── Diffusion ──────────────────────────────────────────────────────────────
 
 /// 2D diffusion: axial (i±1, same sector) + radial (same i, sector±1 mod 4).
@@ -429,6 +448,52 @@ pub fn peak_to_spine_params(
     let app_radius = (base_radius * qe_share * 0.6).max(base_radius * 0.15);
     let detail = 0.7; // relative to trunk detail
     (app_length, app_radius, detail)
+}
+
+// ─── Viewer calibration (NOT simulation physics) ────────────────────────────
+//
+// These parameters tune mesh rendering visualization only. They do NOT affect
+// simulation spawning, energy conservation, or axiom-derived thresholds.
+// Equivalent to camera FOV or render resolution — presentation, not physics.
+
+/// Diffusion iterations for viewer/export field maturation.
+const VIEWER_DIFFUSION_STEPS: usize = 30;
+/// Diffusion rate for viewer field maturation (α parameter).
+const VIEWER_DIFFUSION_ALPHA: f32 = 0.1;
+/// Diffusion coupling for viewer field maturation (β parameter).
+const VIEWER_DIFFUSION_BETA: f32 = 0.05;
+/// Axial frequency gradient multiplier (Hz per station from center).
+const VIEWER_FREQ_AXIAL_GRAD: f32 = 20.0;
+/// Radial frequency gradient multiplier (Hz per sector from center).
+const VIEWER_FREQ_RADIAL_GRAD: f32 = 10.0;
+
+/// Build a mature radial field from genome parameters.
+///
+/// Applies isotropic distribution + diffusion steps to develop emergent
+/// bilateral peaks. Used by viewer/export binaries for mesh construction.
+pub fn build_viewer_field(
+    growth: f32, resilience: f32, branching: f32, base_qe: f32,
+) -> RadialField {
+    let mut field = distribute_to_radial(base_qe, growth, resilience, branching);
+    for _ in 0..VIEWER_DIFFUSION_STEPS {
+        field = radial_diffuse(&field, VIEWER_DIFFUSION_ALPHA, VIEWER_DIFFUSION_BETA);
+    }
+    field
+}
+
+/// Build a frequency field centered on `center_freq` with axial+radial gradients.
+pub fn build_viewer_freq_field(center_freq: f32) -> RadialField {
+    let mut freq_field = [[0.0f32; RADIAL]; AXIAL];
+    let ax_center = (AXIAL as f32 - 1.0) / 2.0;
+    let rad_center = (RADIAL as f32 - 1.0) / 2.0;
+    for a in 0..AXIAL {
+        for r in 0..RADIAL {
+            freq_field[a][r] = center_freq
+                + (a as f32 - ax_center) * VIEWER_FREQ_AXIAL_GRAD
+                + (r as f32 - rad_center) * VIEWER_FREQ_RADIAL_GRAD;
+        }
+    }
+    freq_field
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────

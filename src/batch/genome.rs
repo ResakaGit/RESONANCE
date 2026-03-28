@@ -15,6 +15,8 @@ pub struct GenomeBlob {
     pub mobility_bias:  f32,
     pub branching_bias: f32,
     pub resilience:     f32,
+    /// Self-adaptive mutation step (Schwefel 1981). Evolves with the genome.
+    pub sigma:          f32,
 }
 
 impl GenomeBlob {
@@ -57,6 +59,7 @@ impl GenomeBlob {
             mobility_bias:  determinism::unit_f32(s3),
             branching_bias: determinism::unit_f32(s4),
             resilience:     determinism::unit_f32(determinism::next_u64(s4)),
+            sigma:          0.15,
         }
     }
 
@@ -69,6 +72,7 @@ impl GenomeBlob {
             mobility_bias:  slot.mobility_bias,
             branching_bias: slot.branching_bias,
             resilience:     slot.resilience,
+            sigma:          0.15,
         }
     }
 
@@ -82,20 +86,23 @@ impl GenomeBlob {
         slot.resilience     = self.resilience;
     }
 
-    /// Deterministic gaussian mutation on all 4 biases.
-    pub fn mutate(&self, rng_state: u64, sigma: f32) -> Self {
+    /// Self-adaptive mutation (Schwefel 1981).
+    ///
+    /// Sigma mutates first (log-normal), then biases mutate with new sigma.
+    /// If `sigma_override > 0`, uses that instead of self.sigma.
+    pub fn mutate(&self, rng_state: u64, sigma_override: f32) -> Self {
+        use crate::blueprint::equations::batch_fitness;
         let mut g = *self;
-        let mut s = rng_state;
-        for bias in [
-            &mut g.growth_bias,
-            &mut g.mobility_bias,
-            &mut g.branching_bias,
-            &mut g.resilience,
-        ] {
-            s = determinism::next_u64(s);
-            let delta = determinism::gaussian_f32(s, sigma);
-            *bias = (*bias + delta).clamp(0.0, 1.0);
-        }
+        let effective_sigma = if sigma_override > 0.0 { sigma_override } else { g.sigma };
+        let biases = [g.growth_bias, g.mobility_bias, g.branching_bias, g.resilience];
+        let (new_biases, new_sigma) = batch_fitness::self_adaptive_mutate(
+            &biases, effective_sigma, rng_state, 0.001, 0.3,
+        );
+        g.growth_bias    = new_biases[0];
+        g.mobility_bias  = new_biases[1];
+        g.branching_bias = new_biases[2];
+        g.resilience     = new_biases[3];
+        g.sigma          = new_sigma;
         g
     }
 
@@ -121,6 +128,7 @@ impl GenomeBlob {
             mobility_bias:  child_biases[1],
             branching_bias: child_biases[2],
             resilience:     child_biases[3],
+            sigma:          (self.sigma + other.sigma) * 0.5,
         }
     }
 
@@ -155,6 +163,7 @@ impl Default for GenomeBlob {
             archetype: 0, trophic_class: 0,
             growth_bias: 0.5, mobility_bias: 0.5,
             branching_bias: 0.5, resilience: 0.5,
+            sigma: 0.15,
         }
     }
 }
@@ -182,10 +191,11 @@ mod tests {
     }
 
     #[test]
-    fn mutate_zero_sigma_identity() {
-        let g = GenomeBlob::default();
-        let m = g.mutate(42, 0.0);
-        assert_eq!(g, m);
+    fn mutate_self_adaptive_uses_genome_sigma() {
+        let g = GenomeBlob::default(); // sigma=0.15
+        let m = g.mutate(42, 0.0); // sigma_override=0 → use self.sigma
+        // With self-adaptive, genome changes (sigma mutates first)
+        assert_ne!(g.sigma, m.sigma, "sigma should self-adapt");
     }
 
     #[test]

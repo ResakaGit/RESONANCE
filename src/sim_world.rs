@@ -244,10 +244,35 @@ impl SimWorld {
         q.iter(world).map(|e| e.qe()).sum()
     }
 
-    fn apply_input(&mut self, _commands: &[InputCommand]) {
-        // Routes InputCommand → WillActuator / Grimoire via EntityLookup.
-        // TODO(sim-decoupling): resolve entity_id → Bevy Entity via IdGenerator/EntityLookup.
-        // Currently a no-op; Phase::Input systems handle default behavior.
+    fn apply_input(&mut self, commands: &[InputCommand]) {
+        use crate::layers::WillActuator;
+        let world = self.app.world_mut();
+        for cmd in commands {
+            match *cmd {
+                InputCommand::MoveToward { entity_id, goal } => {
+                    // First pass: find position of target entity (read-only).
+                    let mut q_read = world.query::<(&WorldEntityId, &Transform)>();
+                    let pos = q_read.iter(world)
+                        .find(|(wid, _)| wid.0 as u64 == entity_id)
+                        .map(|(_, t)| [t.translation.x, t.translation.z]);
+                    let Some(pos) = pos else { continue; };
+                    // Second pass: write intent (mutable).
+                    let mut q_write = world.query::<(&WorldEntityId, &mut WillActuator)>();
+                    for (wid, mut will) in q_write.iter_mut(world) {
+                        if wid.0 as u64 == entity_id {
+                            let dx = goal[0] - pos[0];
+                            let dy = goal[1] - pos[1];
+                            let len = (dx * dx + dy * dy).sqrt().max(0.01);
+                            will.set_movement_intent(Vec2::new(dx / len, dy / len));
+                            break;
+                        }
+                    }
+                }
+                InputCommand::CastAbility { .. } => {
+                    // Future SV-2+: route to Grimoire via entity lookup
+                }
+            }
+        }
     }
 
     /// Build a headless Bevy App — no render, no window, no display server.

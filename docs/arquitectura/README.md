@@ -1,6 +1,8 @@
 # Arquitectura de Resonance (`src/`)
 
-Referencia canónica. 16 módulos top-level, 14 capas ECS, 6 fases de pipeline.
+> 94K LOC · 2567+ tests · 55 sprints (46 ✅) · Última actualización: 2026-03-28
+
+Referencia canónica. 17 módulos top-level, 14 capas ECS, 6 fases de pipeline.
 Código = Rust 2024 / Bevy 0.15. Todo es energía (qe).
 
 ---
@@ -362,7 +364,7 @@ RESONANCE_MAP=proving_grounds cargo run      # stress test
 RESONANCE_MAP=four_flowers cargo run         # V7 grid 32x32
 ```
 
-**Tests:** `cargo test` (~920+ tests). Integration tests en `tests/`.
+**Tests:** `cargo test` (~2567+ tests). Integration tests en `tests/`. Batch: 156 tests en `src/batch/`.
 
 **Eventos:** `simulation/bootstrap.rs` registra 15+ Event types. `PathRequestEvent` aparte en `Compat2d3dPlugin`.
 

@@ -120,24 +120,13 @@ fn spawn_creatures(
         let z = angle.sin() * 7.0;
         let freq = bridge::genome_to_components(genome).2.frequency_hz();
 
-        // Initialize 2D radial field from genome (isotropic → bilateral emerges)
         use resonance::blueprint::equations::radial_field;
+        // Viewer normalization: growth ∈ [0,1] → qe ∈ [20, 100] for stable mesh rendering
         let qe = 20.0 + genome.growth_bias * 80.0;
-        let mut field = radial_field::distribute_to_radial(
-            qe, genome.growth_bias, genome.resilience, genome.branching_bias,
+        let field = radial_field::build_viewer_field(
+            genome.growth_bias, genome.resilience, genome.branching_bias, qe,
         );
-        // Run diffusion steps to develop emergent gradients + bilateral peaks
-        for _ in 0..30 {
-            field = radial_field::radial_diffuse(&field, 0.1, 0.05);
-        }
-        let mut freq_field = [[0.0f32; radial_field::RADIAL]; radial_field::AXIAL];
-        for a in 0..radial_field::AXIAL {
-            for r in 0..radial_field::RADIAL {
-                let ax_center = (radial_field::AXIAL as f32 - 1.0) / 2.0;
-                let rad_center = (radial_field::RADIAL as f32 - 1.0) / 2.0;
-                freq_field[a][r] = freq + (a as f32 - ax_center) * 20.0 + (r as f32 - rad_center) * 10.0;
-            }
-        }
+        let freq_field = radial_field::build_viewer_freq_field(freq);
 
         // Geometry: genome + field → creature_builder (desacoplado)
         let mesh = creature_builder::build_creature_mesh_with_field(

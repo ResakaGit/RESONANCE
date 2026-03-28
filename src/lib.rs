@@ -14,6 +14,7 @@ pub mod entities;
 pub mod layers;
 pub mod simulation;
 pub mod topology;
+pub mod use_cases;
 pub mod viewer;
 pub mod world;
 pub mod worldgen;

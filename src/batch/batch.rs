@@ -18,6 +18,8 @@ pub struct BatchConfig {
     pub seed:            u64,
     pub initial_entities: u8,
     pub fitness_weights: [f32; 6],
+    /// Tournament selection size (Blickle 1996). k=2 for diversity.
+    pub tournament_k: usize,
 }
 
 impl Default for BatchConfig {
@@ -26,14 +28,15 @@ impl Default for BatchConfig {
             world_count:      100,
             ticks_per_eval:   500,
             tick_rate_hz:     20.0,
-            mutation_sigma:   0.05,
-            elite_fraction:   0.10,
+            mutation_sigma:   0.0,  // 0 = self-adaptive (Schwefel 1981)
+            elite_fraction:   0.03, // 3% elite (Eiben & Smith 2015)
             crossover_rate:   0.30,
             max_generations:  100,
             seed:             42,
             initial_entities: 8,
             // weights: survivors, reproductions, species, trophic_depth, memes, coalitions
             fitness_weights:  [1.0, 1.0, 4.0, 3.0, 1.0, 1.0],
+            tournament_k:    2,
         }
     }
 }
@@ -105,17 +108,16 @@ impl WorldBatch {
         }
     }
 
-    /// Run `ticks` ticks across all worlds (parallel).
+    /// Run `ticks` ticks across all worlds (parallel, analytical stepping).
     pub fn run_evaluation(&mut self, ticks: u32) {
         use rayon::prelude::*;
-        for _ in 0..ticks {
-            self.worlds.par_iter_mut().for_each(|world| {
-                THREAD_SCRATCH.with(|cell| {
-                    let mut scratch = cell.borrow_mut();
-                    world.tick(&mut scratch);
-                });
+        // Use tick_fast for analytical acceleration
+        self.worlds.par_iter_mut().for_each(|world| {
+            THREAD_SCRATCH.with(|cell| {
+                let mut scratch = cell.borrow_mut();
+                world.tick_fast(&mut scratch, ticks);
             });
-        }
+        });
     }
 }
 

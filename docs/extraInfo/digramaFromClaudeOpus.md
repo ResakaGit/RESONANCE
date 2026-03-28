@@ -194,16 +194,26 @@
 │    → dominant entities drain weaker (energy ratio, not tags)              │
 │    → dead return nutrients to grid → cycle restarts                       │
 │                                                                             │
-│  Internal energy field (8 nodes):                                          │
-│    genome → distribution profile → diffusion → emergent gradients         │
-│    → variable-radius geometry (organ-like bulges where qe concentrates)   │
-│    → branching at qe peaks (branching_bias × field nodes)                 │
+│  Internal energy field (16×8 = 128 nodes, 2D radial):                     │
+│    genome → distribute_to_radial → radial_diffuse → emergent peaks       │
+│    → detect_peaks → appendage sub-meshes (bilateral from isotropy)        │
+│    → detect_joints → segmented appendages (valleys = joints)              │
+│    → convergence detection (skip stable diffusion — AS-2)                 │
 │                                                                             │
-│  Trophic succession: NOT programmed — emerges from energy dominance       │
-│  Cooperation: reduces dissipation (Axiom 5), not free qe                  │
-│  Social packs: oscillatory affinity > 0.3, not faction tag                │
-│  Culture: expression mask blending by freq affinity                       │
-│  Morphology: growth_bias→tips, resilience→center, branching→lobes        │
+│  Environmental pressures:                                                  │
+│    Gravity: velocity[1] -= GRAVITY_ACCELERATION × dt + floor at y=0      │
+│    Climate: seasonal irradiance = sin(tick × SEASON_RATE) × AMPLITUDE    │
+│    Asteroids: every ASTEROID_INTERVAL ticks, qe × 0.1 in impact radius   │
+│                                                                             │
+│  Analytical stepping (AS-1/2/3):                                          │
+│    dissipation_n_ticks: qe × (1-rate)^N — O(1) for N ticks               │
+│    growth_n_ticks: allometric_radius(r, rmax, k, N) — O(1)               │
+│    tick_fast: isolated entities step analytically, interactive tick-by-tick│
+│                                                                             │
+│  Trophic: energy dominance, NOT trophic tags                              │
+│  Cooperation: reduces dissipation (Axiom 5)                               │
+│  Self-adaptive sigma (Schwefel 1981): genome carries own mutation rate    │
+│  Elite 3%, tournament k=2 (Eiben 2015, Blickle 1996)                     │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
