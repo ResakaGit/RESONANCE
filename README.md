@@ -128,6 +128,31 @@ Energy field accumulates → coherence > dissipation → abiogenesis (entity spa
 
 No step is programmed. Each emerges from the previous via axiom-derived thresholds.
 
+## Use Cases (10/16 implemented)
+
+| ID | Use Case | Command | Status |
+|----|----------|---------|--------|
+| A1 | Versus Arena | `cargo run --bin versus` | Done |
+| A2 | Universe Lab | `cargo run --bin universe_lab -- --preset jupiter` | Done |
+| A4 | Survival Mode | — | SV-1 done |
+| B1 | Fermi Paradox | `cargo run --bin fermi` | Done |
+| B2 | Allopatric Speciation | `cargo run --bin speciation` | Done |
+| B3 | Cambrian Explosion | `cargo run --bin cambrian` | Done |
+| B4 | Debate Settler | `cargo run --bin debate` | Done |
+| C3 | Museum Mode | `cargo run --bin museum` | Done |
+| C4 | Mesh Export (OBJ) | `cargo run --bin mesh_export` | Done |
+| D1 | Personal Universe | `cargo run --bin personal_universe -- "your name"` | Done |
+| D2 | Convergent Evolution | `cargo run --bin convergence` | Done |
+
+**Additional binaries:**
+
+```bash
+cargo run --bin evolve              # Headless evolution with stats
+cargo run --bin evolve_and_view     # Evolution + 3D GF1 visualization
+cargo run --bin headless_sim        # Full sim → PPM image (no GPU)
+cargo run --bin sim_viewer          # Real-time viewer (terminal or pixel window)
+```
+
 ## Tests
 
 ```bash
