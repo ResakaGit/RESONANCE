@@ -74,10 +74,14 @@ impl Plugin for ThermodynamicPlugin {
         // Only runs if DayNightConfig resource exists.
         app.add_systems(
             FixedUpdate,
-            crate::worldgen::systems::day_night::day_night_modulation_system
+            (
+                crate::worldgen::systems::day_night::day_night_modulation_system
+                    .after(crate::worldgen::systems::radiation_pressure::radiation_pressure_system),
+                crate::worldgen::systems::water_cycle::water_cycle_system
+                    .after(crate::worldgen::systems::day_night::day_night_modulation_system),
+            )
                 .in_set(Phase::ThermodynamicLayer)
-                .run_if(run_gameplay)
-                .after(crate::worldgen::systems::radiation_pressure::radiation_pressure_system),
+                .run_if(run_gameplay),
         );
     }
 }

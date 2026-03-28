@@ -120,7 +120,9 @@ pub fn trophic_predation_attempt_system(
         &mut TrophicState,
         &Transform,
         Option<&OscillatorySignature>,
+        Option<&crate::layers::StructuralLink>,
     )>,
+    link_count_query: Query<(), With<crate::layers::StructuralLink>>,
     prey_query: Query<(Option<&MatterCoherence>, Option<&OscillatorySignature>), With<BaseEnergy>>,
     mut prey_consumed: EventWriter<PreyConsumedEvent>,
     mut cursor: ResMut<TrophicScanCursor>,
@@ -131,15 +133,20 @@ pub fn trophic_predation_attempt_system(
     let remaining_budget = TROPHIC_SCAN_BUDGET.saturating_sub(cursor.scans_this_frame);
     let predators: Vec<_> = predator_query
         .iter()
-        .filter(|(_, consumer, state, _, _)| consumer.is_predator() && state.satiation <= PREDATION_WELL_FED_THRESHOLD)
+        .filter(|(_, consumer, state, _, _, _)| consumer.is_predator() && state.satiation <= PREDATION_WELL_FED_THRESHOLD)
         .take(remaining_budget)
-        .map(|(e, consumer, _state, transform, osc)| {
+        .map(|(e, consumer, _state, transform, osc, link)| {
             let (freq, phase) = osc.map(|o| (o.frequency_hz(), o.phase())).unwrap_or((0.0, 0.0));
-            (e, consumer.intake_rate, transform.translation, freq, phase)
+            // Pack size: count linked neighbors (cluster = multicelular organism).
+            let pack_size = link
+                .filter(|l| link_count_query.get(l.target).is_ok())
+                .map(|_| 2u32)
+                .unwrap_or(1);
+            (e, consumer.intake_rate, transform.translation, freq, phase, pack_size)
         })
         .collect();
 
-    for (pred_entity, intake_rate, pred_pos_3d, pred_freq, pred_phase) in &predators {
+    for (pred_entity, intake_rate, pred_pos_3d, pred_freq, pred_phase, pack_size) in &predators {
         if cursor.scans_this_frame >= TROPHIC_SCAN_BUDGET {
             break;
         }
@@ -183,7 +190,9 @@ pub fn trophic_predation_attempt_system(
 
             // Energy model: drain raw amount, predator receives fraction scaled by
             // oscillatory alignment (AC-1: Axiom 3 × Axiom 8). Waste heat = drained - assimilated.
-            let raw_drain = equations::predation_raw_drain(prey_qe, bond_energy);
+            // Pack hunt bonus: linked clusters drain more (cooperative predation).
+            let hunt_bonus = equations::pack_hunt_bonus(*pack_size, prey_qe);
+            let raw_drain = equations::predation_raw_drain(prey_qe, bond_energy) * hunt_bonus;
             if raw_drain <= 0.0 {
                 continue;
             }
@@ -200,7 +209,7 @@ pub fn trophic_predation_attempt_system(
                 qe_transferred: assimilated,
             });
 
-            if let Ok((_, _, mut state, _, _)) = predator_query.get_mut(*pred_entity) {
+            if let Ok((_, _, mut state, _, _, _)) = predator_query.get_mut(*pred_entity) {
                 let new_satiation = (state.satiation + MEAL_SATIATION_GAIN).min(1.0);
                 if state.satiation != new_satiation {
                     state.satiation = new_satiation;

@@ -208,20 +208,16 @@ impl EnergyFieldGrid {
         self.cells.get(idx)
     }
 
+    /// 4-neighbors with toroidal wrapping (planetary surface has no edges).
     pub fn neighbors4(&self, x: u32, y: u32) -> [Option<(u32, u32)>; 4] {
-        let left = if x > 0 { Some((x - 1, y)) } else { None };
-        let right = if x + 1 < self.width {
-            Some((x + 1, y))
-        } else {
-            None
-        };
-        let down = if y > 0 { Some((x, y - 1)) } else { None };
-        let up = if y + 1 < self.height {
-            Some((x, y + 1))
-        } else {
-            None
-        };
-        [left, right, down, up]
+        let w = self.width;
+        let h = self.height;
+        [
+            Some(((x + w - 1) % w, y)),
+            Some(((x + 1) % w, y)),
+            Some((x, (y + h - 1) % h)),
+            Some((x, (y + 1) % h)),
+        ]
     }
 
     /// Seeds all cells with uniform energy and a frequency contribution.

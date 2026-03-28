@@ -58,6 +58,16 @@ pub struct MapConfig {
     /// Cosmological anchor override. None = default (20.0).
     #[serde(default)]
     pub self_sustaining_qe: Option<f32>,
+    /// Emission scaling for all nuclei. None = no scaling (1.0).
+    /// Use grid_area / reference_area for proportional scaling on larger grids.
+    #[serde(default)]
+    pub emission_scale: Option<f32>,
+    /// Orbital year period in ticks. Enables seasonal irradiance modulation.
+    #[serde(default)]
+    pub year_period_ticks: Option<f32>,
+    /// Axial tilt [0, 1]. 0 = no seasons, 0.4 ≈ Earth-like (23.5°/90° ≈ 0.26).
+    #[serde(default)]
+    pub axial_tilt: Option<f32>,
 }
 
 fn default_fog_of_war_enabled() -> bool {
@@ -103,6 +113,9 @@ impl Default for MapConfig {
             initial_nutrient_water: None,
             day_period_ticks: None,
             self_sustaining_qe: None,
+            emission_scale: None,
+            year_period_ticks: None,
+            axial_tilt: None,
         }
     }
 }

@@ -144,9 +144,11 @@ pub fn init_day_night_config_system(
     let Some(period) = config.day_period_ticks else { return };
     let Some(grid) = grid else { return };
     let grid_width_world = grid.width as f32 * grid.cell_size;
-    commands.insert_resource(
-        crate::worldgen::systems::day_night::DayNightConfig::new(period, grid_width_world),
-    );
+    let mut day_night = crate::worldgen::systems::day_night::DayNightConfig::new(period, grid_width_world);
+    if let (Some(year), Some(tilt)) = (config.year_period_ticks, config.axial_tilt) {
+        day_night = day_night.with_seasons(year, tilt);
+    }
+    commands.insert_resource(day_night);
 }
 
 pub fn spawn_nuclei_from_map_config_system(
@@ -161,16 +163,23 @@ pub fn spawn_nuclei_from_map_config_system(
     let Some(config) = config else {
         return;
     };
+    // Emission scaling: None = no scaling (backward compat). Some(x) = multiply all emissions.
+    // For area-proportional scaling on larger grids, set to grid_area / reference_area in the map.
+    let emission_scale = config.emission_scale.unwrap_or(1.0);
+
     for spawn in resolve_nuclei_for_spawn(config.as_ref()) {
         let transform = if layout.use_xz_ground {
             Transform::from_xyz(spawn.position.x, layout.standing_y, spawn.position.y)
         } else {
             Transform::from_xyz(spawn.position.x, spawn.position.y, 0.0)
         };
+        // Scale emission by grid area ratio (bigger planet = proportionally stronger nuclei).
+        let mut nucleus = spawn.nucleus;
+        nucleus.emission_rate_qe_s = (nucleus.emission_rate_qe_s * emission_scale).max(0.0);
         let mut ec = commands.spawn((
             StartupNucleus,
             Name::new(format!("nucleus::{}", spawn.name)),
-            spawn.nucleus,
+            nucleus,
             transform,
             GlobalTransform::default(),
             Visibility::default(),

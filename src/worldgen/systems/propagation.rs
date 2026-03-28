@@ -239,8 +239,8 @@ pub fn dissipate_field_system(
             let idx = y * width + x;
             let current = after_dissipation[idx];
 
-            if x + 1 < width {
-                let right_idx = y * width + (x + 1);
+            {
+                let right_idx = y * width + ((x + 1) % width);
                 let flow_dir = if current >= after_dissipation[right_idx] {
                     Vec2::X
                 } else {
@@ -251,7 +251,7 @@ pub fn dissipate_field_system(
                     .and_then(|t| {
                         let x0 = x as u32;
                         let y0 = y as u32;
-                        let x1 = (x + 1) as u32;
+                        let x1 = ((x + 1) % width) as u32;
                         if t.is_valid(x0, y0) && t.is_valid(x1, y0) {
                             let a = t.sample_at(x0, y0);
                             let b = t.sample_at(x1, y0);
@@ -292,8 +292,8 @@ pub fn dissipate_field_system(
                 }
             }
 
-            if y + 1 < height {
-                let up_idx = (y + 1) * width + x;
+            {
+                let up_idx = ((y + 1) % height) * width + x;
                 let flow_dir = if current >= after_dissipation[up_idx] {
                     Vec2::Y
                 } else {
@@ -304,7 +304,7 @@ pub fn dissipate_field_system(
                     .and_then(|t| {
                         let x0 = x as u32;
                         let y0 = y as u32;
-                        let y1 = (y + 1) as u32;
+                        let y1 = ((y + 1) % height) as u32;
                         if t.is_valid(x0, y0) && t.is_valid(x0, y1) {
                             let a = t.sample_at(x0, y0);
                             let b = t.sample_at(x0, y1);

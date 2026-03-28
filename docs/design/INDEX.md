@@ -1,5 +1,9 @@
 # Design Docs — Index
 
+> 94K LOC · 2567+ tests · 55 sprints (46 ✅) · 2 tracks activos · 38 archivados
+>
+> Última actualización: 2026-03-28
+
 Especificaciones de alto nivel del proyecto Resonance. Para contratos runtime por modulo ver `docs/arquitectura/`. Para backlog de sprints ver `docs/sprints/`.
 
 ---
@@ -46,6 +50,7 @@ Especificaciones de alto nivel del proyecto Resonance. Para contratos runtime po
 | [MACRO_STEPPING.md](MACRO_STEPPING.md) | `simulation/` | Temporal LOD: analytical solvers O(1) para entidades lejanas |
 | [BATCH_SIMULATOR.md](../arquitectura/blueprint_batch_simulator.md) | `batch/` | Simulador masivo sin Bevy: SimWorldFlat, WorldBatch ×1M, GeneticHarness, evolucion real |
 | [EMERGENT_MORPHOLOGY.md](EMERGENT_MORPHOLOGY.md) | `batch/`, `equations/`, `geometry_flow/` | 2D radial energy field → bilateral organisms emergentes. 100% axiom-pure. |
+| [USE_CASE_ARCHITECTURE.md](USE_CASE_ARCHITECTURE.md) | `use_cases/` (nuevo) | HOFs + Traits + Presets: Experiment/Presenter contracts, UniversePreset, evolve_with() |
 
 ## Gameplay
 
@@ -56,6 +61,7 @@ Especificaciones de alto nivel del proyecto Resonance. Para contratos runtime po
 | [AXIOMATIC_CLOSURE.md](AXIOMATIC_CLOSURE.md) | 5 dinamicas cross-axiom: interference, Kuramoto, culture, purity, cooperation |
 | [EMERGENCE_TIERS.md](EMERGENCE_TIERS.md) | 16 modulos de emergencia organizados en tiers |
 | [EVOLUTION_GROUP_BEHAVIOR.md](EVOLUTION_GROUP_BEHAVIOR.md) | Evolucion, seleccion natural, dinamicas grupales |
+| [PLANETARY_SIMULATION.md](PLANETARY_SIMULATION.md) | Toroidal topology, day/night, seasons, water cycle, emission scaling |
 
 ## Ciclo de Energia
 
@@ -76,6 +82,23 @@ Especificaciones de alto nivel del proyecto Resonance. Para contratos runtime po
 | `topology/`, `geometry_flow/`, `eco/`, `bridge/` | ✅ Pure math decoupled |
 | `layers/`, `simulation/`, `plugins/` | Pending — #[derive(Component)] coupled |
 | Headless runner (`src/bin/headless_sim.rs`) | ✅ Full sim → PPM without GPU |
+
+## Producto — Casos de Uso
+
+| Documento | Ubicación | Descripcion |
+|-----------|-----------|-------------|
+| [FEATURE_ROADMAP.md](../sprints/FEATURE_ROADMAP.md) | sprints/ | 16 use cases curados: 4 revenue, 4 research, 4 visual, 4 interesting. Esfuerzo + LOC + viabilidad |
+| [USE_CASES_VALIDATED.md](../sprints/USE_CASES_VALIDATED.md) | sprints/ | Audit component-by-component: 13/16 ✅ hoy, 3 🔧, 1 ❌. Sprint track SURVIVAL_MODE diseñado |
+| [SURVIVAL_MODE/](../sprints/SURVIVAL_MODE/) | sprints/ | 3 sprints: SV-1 input wiring, SV-2 survival binary, SV-3 game over. Zero contamination |
+
+### Quick Reference — Use Case Cost
+
+| Tier | Features | Esfuerzo | LOC |
+|------|----------|----------|-----|
+| Quick wins (7) | A2, A4, B1, B4, C3, D1, D2 | 4 días | ~275 |
+| Medio (5) | A1, B2, B3, C1, C2 | 12 días | ~500 |
+| Sprint (3) | A3, D3, C4 | 4 semanas | ~1000 |
+| Heavy (2) | A3-web, D4 | 6+ semanas | ~1200+ |
 
 ## Propuestas
 

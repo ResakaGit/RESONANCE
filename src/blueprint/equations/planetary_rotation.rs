@@ -76,6 +76,32 @@ pub fn effective_irradiance(solar_factor: f32) -> f32 {
     AMBIENT_IRRADIANCE + (1.0 - AMBIENT_IRRADIANCE) * solar_factor
 }
 
+/// Seasonal irradiance modifier based on axial tilt.
+///
+/// The sub-solar latitude oscillates over the year: `center ± tilt × half_height × sin(year_angle)`.
+/// Returns a multiplier [0.5, 1.5] — poles get less light in winter, more in summer.
+/// `tilt = 0` → no seasons (1.0 everywhere).
+#[inline]
+pub fn seasonal_irradiance_modifier(
+    cell_y: f32,
+    grid_height: f32,
+    tick: u64,
+    year_period_ticks: f32,
+    axial_tilt: f32,
+) -> f32 {
+    if year_period_ticks <= 0.0 || axial_tilt.abs() < 1e-6 { return 1.0; }
+    let half_h = grid_height * 0.5;
+    let year_progress = (tick as f32 / year_period_ticks).fract();
+    // Sub-solar latitude oscillates with the year.
+    let sub_solar_y = half_h + axial_tilt * half_h * (std::f32::consts::TAU * year_progress).sin();
+    // Distance from sub-solar latitude (wrapped).
+    let dy = (cell_y - sub_solar_y).abs();
+    let wrapped_dy = dy.min(grid_height - dy);
+    // Gentle cosine modulation: near sub-solar → boost, far → reduction.
+    let angle = std::f32::consts::PI * wrapped_dy / grid_height;
+    0.5 + 0.5 * angle.cos()
+}
+
 /// Fractional radiative cooling per tick on the dark side (Newton's law).
 /// `cooling_fraction = DISSIPATION_SOLID` — solid ground dissipation rate.
 /// Applied proportionally: `drain = cell_qe × fraction × shadow`.

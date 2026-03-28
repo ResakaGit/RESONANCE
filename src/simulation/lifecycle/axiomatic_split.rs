@@ -13,8 +13,10 @@ use crate::blueprint::equations::field_division::{
     child_viable, find_valleys, is_split_viable, split_field_at, valley_count,
 };
 use crate::entities::component_groups as cg;
+use crate::blueprint::equations::derived_thresholds as dt;
 use crate::layers::{
-    BaseEnergy, InternalEnergyField, MatterCoherence, OscillatorySignature, SpatialVolume,
+    BaseEnergy, InferenceProfile, InternalEnergyField, MatterCoherence, OscillatorySignature,
+    SpatialVolume, StructuralLink,
 };
 use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::simulation::emergence::culture::CulturalMemory;
@@ -86,12 +88,21 @@ pub fn axiomatic_split_system(
 
         let is_mobile = left_qe > 30.0; // enough energy for behavior
 
+        // Specialization: larger child → growth (interior), smaller → mobility (exterior).
+        // Bias = energy fraction: dominant child grows, minor child moves (Axiom 1 + 4).
+        let total = (left_qe + right_qe).max(1e-6);
+        let left_frac = left_qe / total;
+        let right_frac = right_qe / total;
+        let profile_left = InferenceProfile::new(left_frac, 1.0 - left_frac, 0.5, left_frac);
+        let profile_right = InferenceProfile::new(right_frac, 1.0 - right_frac, 0.5, right_frac);
+
         // Spawn child A (left nodes).
         let child_a = commands.spawn((
             cg::physical_components(left_qe, radius_left, freq_left,
                 crate::math_types::Vec2::new(pos_left.x, pos_left.z)),
             InternalEnergyField { nodes: left_nodes },
             cg::lifecycle_components(clock.tick_id, is_mobile),
+            profile_left,
         )).id();
 
         // Spawn child B (right nodes).
@@ -100,7 +111,16 @@ pub fn axiomatic_split_system(
                 crate::math_types::Vec2::new(pos_right.x, pos_right.z)),
             InternalEnergyField { nodes: right_nodes },
             cg::lifecycle_components(clock.tick_id, is_mobile),
+            profile_right,
         )).id();
+
+        // Multicelularity: structural bond between siblings (Axiom 7: spring at distance).
+        // rest_length = sum of radii, stiffness = thermal conductivity, break = bond energy.
+        let rest_len = radius_left + radius_right;
+        let stiffness = dt::materialized_thermal_conductivity();
+        let break_stress = dt::materialized_bond_energy();
+        commands.entity(child_a).insert(StructuralLink::new(child_b, rest_len, stiffness, break_stress));
+        commands.entity(child_b).insert(StructuralLink::new(child_a, rest_len, stiffness, break_stress));
 
         // Cultural inheritance: larger child gets parent's memes.
         if let Some(culture) = culture {
@@ -108,7 +128,7 @@ pub fn axiomatic_split_system(
             commands.entity(heir).insert(culture.clone());
         }
 
-        // Despawn parent (Axiom 2: parent ceases to exist).
+        // Despawn parent (Axiom 2: parent ceases to exist, children persist as linked pair).
         commands.entity(entity).despawn();
         splits += 1;
     }

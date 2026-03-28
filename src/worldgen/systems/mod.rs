@@ -11,4 +11,5 @@ pub mod startup;
 pub mod terrain;
 pub mod terrain_visual_mesh;
 pub mod visual;
+pub mod water_cycle;
 pub mod water_surface;
