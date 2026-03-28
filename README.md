@@ -1,155 +1,153 @@
-# Resonance — Alchemical Simulation Engine
+# Resonance — Emergent Life Simulation Engine
 
-Wave-resonance physics simulation for an alchemical MOBA, built with **Rust** and **Bevy 0.15 ECS**.
+Energy-first simulation where life, behavior, and ecosystems emerge from **8 axioms** and **4 fundamental constants**. Built with **Rust** and **Bevy 0.15 ECS**.
 
-## Concept
+## What It Does
 
-Every entity in the world is an assembly of **14 orthogonal layers** (L0 BaseEnergy — L13 StructuralLink). Layers are independent of each other, but their cross-interactions produce emergent behavior: elements, matter states, spells, collisions, and life all arise from the same thermodynamic equations.
+Define the laws of physics. Press play. Watch life emerge.
 
-There are no hardcoded stats like "HP", "ATK", or "DEF". Everything is energy (`qe`), frequency (`Hz`), phase (`φ`), density (`ρ`), and coherence (`Eb`).
+- **253 entities** materialize from energy fields — no templates, no scripting
+- **17 behavioral agents** gain agency when coherence exceeds dissipation
+- **Multicelular clusters** form via axiomatic cell division + structural bonds
+- **Day/night rotation**, seasonal tilt, water cycle — all axiom-derived
+- **Zero hardcoded behavior** — everything is energy (`qe`), frequency (`Hz`), and interference
+
+## The 8 Axioms
+
+1. **Everything is Energy** — All entities are qe. No HP/mana/stats.
+2. **Pool Invariant** — `Σ energy(children) ≤ energy(parent)`.
+3. **Competition** — Derived from oscillatory interference.
+4. **Dissipation (2nd Law)** — All processes lose energy.
+5. **Conservation** — Energy never created, only transferred/dissipated.
+6. **Emergence at Scale** — No top-down programming.
+7. **Distance Attenuation** — Interaction decays with distance.
+8. **Oscillatory Nature** — Every concentration oscillates at frequency f.
+
+## The 4 Fundamental Constants
+
+| Constant | Value | Source |
+|----------|-------|--------|
+| `KLEIBER_EXPONENT` | 0.75 | Biological universal (metabolic scaling) |
+| `DISSIPATION_{SOLID→PLASMA}` | 0.005 → 0.25 | Second Law (empirical ratios 1:4:16:50) |
+| `COHERENCE_BANDWIDTH` | 50.0 Hz | Frequency observation window |
+| `DENSITY_SCALE` | 20.0 | Spatial normalization |
+
+All ~40 lifecycle constants are **algebraically derived** from these 4 via `blueprint/equations/derived_thresholds.rs`.
+
+## Quick Start
+
+```bash
+# Default demo
+cargo run
+
+# Earth simulation (48×48, day/night, infinite sun)
+RESONANCE_MAP=earth cargo run --release
+
+# Planetary simulation (128×128, seasons, water cycle)
+RESONANCE_MAP=earth_128 cargo run --release
+
+# Real-time viewer (pixel window)
+RESONANCE_MAP=earth cargo run --release --features pixel_viewer --bin sim_viewer -- --render window --scale 10
+
+# Terminal viewer (no GPU)
+RESONANCE_MAP=earth cargo run --release --bin sim_viewer -- --render terminal
+
+# Headless (sim → PPM image)
+cargo run --bin headless_sim -- --ticks 5000 --scale 8 --out world.ppm
+```
 
 ## Architecture
 
 ```
 src/
-├── layers/          14 ECS layers + auxiliaries (24 files)
-├── simulation/      FixedUpdate pipeline: Input → Thermo → Atomic → Chemical → Metabolic → Morphological
-├── entities/        EntityBuilder, archetypes (spawn_*)
-├── blueprint/       Pure math engine (equations/, constants/, almanac/)
-├── bridge/          Cache optimizer (BridgeCache<B>, 12 equation kinds)
-├── eco/             Eco-boundaries, zones, climate
-├── geometry_flow/   GF1 flora-tube (stateless branching)
-├── topology/        Terrain: noise, slope, drainage, hydraulics
-├── worldgen/        V7: field_grid, nucleus, propagation, materialization/
-├── rendering/       quantized_color
-├── runtime_platform/ 17 sub-modules (compat 2D/3D, tick, input, camera, HUD, fog)
-├── plugins/         SimulationPlugin + 6 domain plugins, LayersPlugin, DebugPlugin
-└── events.rs        Bevy events (system contracts)
+├── blueprint/       Pure math: equations/, constants/, derived_thresholds.rs
+│   └── equations/   45+ domain files — ALL simulation math lives here
+├── layers/          14 ECS layers (L0 BaseEnergy → L13 StructuralLink)
+├── simulation/      FixedUpdate pipeline (6 phases), abiogenesis, lifecycle, metabolic, emergence
+├── worldgen/        Field grid, nucleus propagation, materialization, day/night, water cycle
+├── entities/        Component group factories, archetypes
+├── batch/           Headless batch simulator (millions of worlds, genetic evolution)
+├── viewer/          Terminal + pixel window real-time visualization
+├── plugins/         SimulationPlugin + 6 domain plugins
+├── eco/             Eco-boundaries, climate
+├── topology/        Procedural terrain
+└── rendering/       Quantized color engine
 ```
 
-- **Design:** [docs/design/](./docs/design/) — High-level specs, index at [INDEX.md](./docs/design/INDEX.md).
-- **Module contracts:** [docs/arquitectura/](./docs/arquitectura/) — 30 runtime blueprints.
-- **Active backlog:** [docs/sprints/](./docs/sprints/) — Open sprint tracks.
-- **Full diagram:** [docs/extraInfo/digramaFromClaudeOpus.md](./docs/extraInfo/digramaFromClaudeOpus.md) — Architecture flow, 14 layers, event map, scorecard.
+## Planetary Simulation
 
-## Requirements
-
-- Rust 1.85+ (`rustup update stable`) — edition 2024
-- macOS / Linux / Windows
-
-## Run
-
-```bash
-cargo run
+```ron
+// assets/maps/earth_128.ron
+(
+  width_cells: 128,
+  height_cells: 128,
+  day_period_ticks: Some(1200.0),
+  year_period_ticks: Some(24000.0),
+  axial_tilt: Some(0.26),
+  self_sustaining_qe: Some(10.0),
+  emission_scale: Some(7.0),
+  // ...
+)
 ```
 
-Startup loads worldgen from `assets/maps/default.ron` (or the map set via env), completes warmup, then spawns **one hero** (`demo_level.rs`). **Field colors** are the V7 materialized cells (3D bridge / 2D sprites); debug gizmos **do not** draw those cells to keep the mosaic visible.
+Features:
+- **Toroidal topology** — grid wraps in both axes (planetary surface)
+- **Day/night** — solar meridian sweeps X axis, cosine falloff
+- **Seasons** — axial tilt oscillates sub-solar latitude over year period
+- **Water cycle** — evaporation from hot cells, precipitation on cold
+- **Emission scaling** — nucleus power scales with grid area
+- **Injectable anchor** — `self_sustaining_qe` tunes the threshold of life per map
 
-**Minimal map (small grid, short warmup):**
+## Energy Cycle (Closed Loop)
 
-```bash
-RESONANCE_MAP=demo_minimal cargo run
+```
+Nucleus (finite/infinite) → emits to field → diffusion + radiation pressure
+    ↓                                                    ↓
+Reservoir depletes                          Entities materialize
+    ↓                                                    ↓
+Zone cools                                 Live (Kleiber drain) → die (Gompertz)
+    ↓                                                    ↓
+                    Nutrients return to grid (conservation)
+                                 ↓
+                    Threshold → nucleus recycling → new nucleus
+                                 ↓
+                           Cycle restarts
 ```
 
-**Guided demo (Terra + pressure + small grid):** see [docs/guides/DEMO_FLOW.md](./docs/guides/DEMO_FLOW.md).
+## Emergence Pipeline
 
-```bash
-RESONANCE_MAP=demo_floor cargo run
+```
+Energy field accumulates → coherence > dissipation → abiogenesis (entity spawns)
+    → awakening (BehavioralAgent when potential > 1/3)
+    → axiomatic cell division (valley ≤ 0 in internal field)
+    → StructuralLink between children (multicelularity)
+    → specialization (InferenceProfile diverges by energy fraction)
+    → pack formation + cooperative hunting (√N bonus)
+    → cultural transmission + coalition stability
 ```
 
-**Strata demo (Terra floor + Ventus atmosphere, orbs + sky slab, color mosaic):**
-
-```bash
-RESONANCE_MAP=demo_strata cargo run
-```
-
-**Four flowers (32×32 grid, four Terra-band nuclei, V7 interference visible):**
-
-```bash
-RESONANCE_MAP=four_flowers cargo run
-```
-
-**Procedural flower (geometry_flow + pistil, `flower_demo` map):**
-
-```bash
-RESONANCE_MAP=flower_demo cargo run
-```
-
-**Core 3D demo (default):** `cargo run` with no env vars → **`full3d`** profile (3D rig, bridge, `CameraRigTarget` on demo hero). Run from crate root for assets.
-
-**2D / hybrid:** `RESONANCE_RENDER_COMPAT_PROFILE=legacy2d` or `=hybrid` (2D camera with zoom in legacy; `EnergyVisual` sprite sync in hybrid).
-
-Values: `legacy2d`, `hybrid`, `full3d` (also `RESONANCE_V6_PROFILE` as alias). Standalone binary without `CARGO_MANIFEST_DIR`: set `BEVY_ASSET_ROOT` to the crate path.
+No step is programmed. Each emerges from the previous via axiom-derived thresholds.
 
 ## Tests
 
 ```bash
-cargo test
+cargo test    # 2500+ tests
+cargo bench   # batch + bridge benchmarks
 ```
 
-2150 unit tests, 0 failures.
+## Docs
+
+- **Design specs:** [docs/design/INDEX.md](./docs/design/INDEX.md)
+- **Module contracts:** [docs/arquitectura/](./docs/arquitectura/)
+- **Sprint backlog:** [docs/sprints/](./docs/sprints/)
+- **Planetary simulation:** [docs/design/PLANETARY_SIMULATION.md](./docs/design/PLANETARY_SIMULATION.md)
+
+## Requirements
+
+- Rust 1.85+ (edition 2024)
+- macOS / Linux / Windows
+- Optional: `--features pixel_viewer` for real-time window (uses `minifb`)
 
 ## License
 
 Private — All rights reserved.
-
----
-
-## Changelog
-
-### 2026-03-25
-
-**AC-1–AC-5 — Axiomatic Closure (cross-axiom dynamics)**
-- AC-1: Metabolic interference factor (Axiom 3×8) — predation assimilation modulated by oscillatory alignment
-- AC-2: Kuramoto entrainment system — neighbours align frequencies via distance-weighted coupling
-- AC-3: Culture coherence × frequency — imitation gated by oscillatory affinity (Axiom 6×8)
-- AC-4: Frequency purity attenuation — `exp(-d/λ)` spatial decay for entrainment coupling
-- AC-5: Cooperation emergence — Nash-stable alliance detection with interference cost
-- 60+ equation tests, 7 integration tests; all wired to `Phase::AtomicLayer` / `Phase::MetabolicLayer`
-- New events: `AllianceProposedEvent`, `AllianceDefectEvent`
-
-**Q5 — SimulationPlugin domain split**
-- Extracted 6 domain plugins from `SimulationPlugin`: `ThermodynamicPlugin`, `AtomicPlugin`, `ChemicalPlugin`, `InputPlugin`, `MetabolicPlugin`, `MorphologicalPlugin`
-- `simulation/pipeline.rs` reduced from 554 → 126 LOC (pure phase ordering + clock wiring)
-- Each plugin owns exactly one Phase slice; all `.chain()`/`.after()` ordering preserved
-
-**SM-1 — worldgen materialization split**
-- `worldgen/systems/materialization.rs` (1851 LOC) split into `spawn.rs` (cell delta machinery) + `season.rs` (nucleus/season lifecycle) + `mod.rs` (re-exports)
-- Public API unchanged; two orthogonal concerns now in separate files ≤370 LOC each
-
-**SM-5 — CompetitionNormBridge wired**
-- Added `CompetitionNormBridge` to bridge infrastructure via `impl_bridgeable_scalar_io!`
-- `CompetitionNormEquationInput { raw_score, midpoint, k }` — quantized normalize using logistic bands
-- Wired in `bridge/presets/ecosystem.rs`, registered in all 4 preset fns, exported from `bridge/mod.rs`
-- 4 new unit tests; 97 bridge tests total
-
-**SM-6 — Constants consolidation**
-- Deleted orphan aggregate files (`math_and_ids.rs`, `layer_defaults.rs`) that duplicated constants already registered in their domain shards
-
-**SM-7 — Sprint docs cleanup**
-- Archived completed tracks: ENERGY_COMPETITION, STRUCTURE_MIGRATION, CODE_QUALITY
-- Updated sprint status tables (MG-1–MG-7 ✅, EC-1–EC-8 ✅, SM-1–SM-7 ✅, Q2/Q3/Q5/Q8 ✅)
-- Fixed broken `docs/arquitectura/` links; added `blueprint_sensory_lod.md` to index
-
-**Q2 — Named constants**
-- 11 magic numbers named in `energy_competition_ec.rs` + `organ_inference_li3.rs`
-- `dynamics.rs` and `scale.rs` wired into `blueprint/equations/energy_competition/mod.rs`
-
-**Q3 — PoolConservationLedger encapsulation**
-- All public fields privatized; `new()` constructor + typed getters added
-- All call sites updated (`pool_distribution.rs`, `pool_conservation.rs`, `scale_composition.rs`)
-
-**Q8 — Color extraction from mesh generators**
-- `vertex_along_flow_color` extracted to `blueprint/equations/field_color/`
-- Inline petal shading in `build_petal_fan` extracted to `petal_shaded_flow_color`
-
-**EC-1–EC-8 — Energy competition system**
-- Hierarchical energy pools with extraction registry and conservation ledger
-- Scale-invariant pool composition; competition dynamics and trajectory classification
-- `PoolConservationLedger`, `EnergyPoolComponent`, `PoolDistributionSystem` implemented
-
-**MG-1–MG-7 — Inferred morphogenesis**
-- Thermodynamic equations (Carnot efficiency, exergy, entropy production)
-- `MetabolicGraph` DAG with temporal step, entropy constraint, writer-monad ledger
-- Shape optimization (MG-4), surface rugosity (MG-7), albedo inference (MG-5)
-- `MorphologicalPlugin` registers all morphogenesis systems in `Phase::MorphologicalLayer`
