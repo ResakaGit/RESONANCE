@@ -44,7 +44,6 @@ pub fn scale_composition_system(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::blueprint::constants::FITNESS_BLEND_RATE;
     use crate::layers::{BaseEnergy, ExtractionType};
     use crate::simulation::metabolic::pool_distribution::{
         pool_dissipation_system, pool_distribution_system, pool_intake_system,

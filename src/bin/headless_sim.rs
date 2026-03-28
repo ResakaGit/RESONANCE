@@ -65,7 +65,7 @@ fn main() {
     let sample_interval = (ticks / 20).max(1) as u64;
     let start = std::time::Instant::now();
     let mut last_printed_tick = 0_u64;
-    let mut prev_clk = 0_u64;
+    let mut _prev_clk = 0_u64;
 
     eprintln!("\n{:>6} {:>6} {:>10} {:>8} {:>8} {:>8} {:>6}",
         "tick", "alive", "total_qe", "avg_qe", "avg_rad", "avg_age", "sen");

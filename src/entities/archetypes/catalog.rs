@@ -365,7 +365,6 @@ mod catalog_spawn_tests {
         TrophicState, WillActuator,
     };
     use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
-    use bevy::prelude::*;
 
     fn test_app() -> App {
         let mut app = App::new();

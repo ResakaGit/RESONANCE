@@ -212,7 +212,7 @@ mod tests {
             OscillatorySignature::new(70.0, 0.0),
             Transform::from_xyz(0.0, 0.0, 0.0),
         )).id();
-        let e2 = app.world_mut().spawn((
+        let _e2 = app.world_mut().spawn((
             OscillatorySignature::new(80.0, 0.0),
             Transform::from_xyz(100.0, 0.0, 0.0), // way outside ENTRAINMENT_SCAN_RADIUS
         )).id();

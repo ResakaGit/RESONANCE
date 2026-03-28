@@ -10,7 +10,7 @@
 
 use bevy::prelude::*;
 
-use resonance::layers::{BaseEnergy, BehavioralAgent, OscillatorySignature, SpatialVolume};
+use resonance::layers::{BaseEnergy, BehavioralAgent, OscillatorySignature};
 use resonance::plugins::{LayersPlugin, SimulationPlugin};
 use resonance::rendering::quantized_color::PaletteRegistry;
 use resonance::runtime_platform::compat_2d3d::SimWorldTransformParams;
@@ -143,6 +143,7 @@ fn run_window(app: &mut App) {
 
 // ─── Arg parsing ─────────────────────────────────────────────────────────────
 
+#[allow(dead_code)]
 fn parse_arg(flag: &str) -> Option<u32> {
     let args: Vec<String> = std::env::args().collect();
     args.iter().position(|a| a == flag).and_then(|i| args.get(i + 1)).and_then(|v| v.parse().ok())

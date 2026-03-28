@@ -204,7 +204,7 @@ mod tests {
     use bevy::prelude::*;
 
     use crate::blueprint::IdGenerator;
-    use crate::layers::{EnergyAssessment, HasInferredShape, MorphogenesisShapeParams, SensoryAwareness};
+    use crate::layers::{EnergyAssessment, SensoryAwareness};
     use crate::runtime_platform::render_bridge_3d::V6VisualRoot;
     use crate::worldgen::ShapeInferred;
 

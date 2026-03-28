@@ -16,14 +16,9 @@ use crate::simulation::abiogenesis::constants::{
 use crate::blueprint::equations::awakening::{AWAKENING_BUDGET_PER_TICK, AWAKENING_SCAN_INTERVAL};
 use crate::blueprint::equations::derived_thresholds as dt;
 use crate::layers::{
-    BaseEnergy, BehaviorCooldown, BehaviorIntent, BehavioralAgent, CapabilitySet, Homeostasis,
+    BaseEnergy, BehavioralAgent, CapabilitySet, Homeostasis,
     InferenceProfile, MatterCoherence, OscillatorySignature, SpatialVolume, TrophicClass,
-    TrophicConsumer, TrophicState,
 };
-use crate::layers::has_inferred_shape::HasInferredShape;
-use crate::layers::organ::LifecycleStageCache;
-use crate::layers::senescence::SenescenceProfile;
-use crate::layers::shape_params::MorphogenesisShapeParams;
 use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::worldgen::EnergyFieldGrid;
 

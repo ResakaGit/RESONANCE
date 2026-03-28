@@ -7,7 +7,7 @@ use super::propagation::{
 use crate::blueprint::AlchemicalAlmanac;
 use crate::eco::context_lookup::EcoPlayfieldMargin;
 use crate::layers::{
-    AmbientPressure, BaseEnergy, MatterCoherence, OscillatorySignature, SenescenceProfile, SpatialVolume,
+    AmbientPressure, BaseEnergy, MatterCoherence, OscillatorySignature, SpatialVolume,
 };
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::topology::TerrainField;

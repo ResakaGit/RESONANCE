@@ -136,7 +136,6 @@ mod tests {
     use bevy::math::Vec3;
 
     use super::*;
-    use crate::blueprint::equations::BranchRole;
     use crate::geometry_flow::SpineNode;
 
     fn make_spine(n: usize) -> Vec<SpineNode> {

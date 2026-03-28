@@ -397,7 +397,7 @@ mod tests {
 
         // Non-leader gets StructuralLink to leader
         let pm1 = app.world().get::<PackMembership>(e1).unwrap();
-        let pm2 = app.world().get::<PackMembership>(e2).unwrap();
+        let _pm2 = app.world().get::<PackMembership>(e2).unwrap();
         let leader = if pm1.role == PackRole::Leader { e1 } else { e2 };
         let member = if leader == e1 { e2 } else { e1 };
 
@@ -566,7 +566,7 @@ mod tests {
     #[test]
     fn social_bond_breaks_when_too_far() {
         // This validates that StructuralLink with social parameters has correct break_stress
-        let link = StructuralLink::new(
+        let _link = StructuralLink::new(
             Entity::from_raw(1),
             SOCIAL_BOND_REST_LENGTH,
             SOCIAL_BOND_STIFFNESS,

@@ -138,7 +138,7 @@ mod tests {
         w.spawn(e1);
         w.spawn(e2);
         w.update_total_qe();
-        let before = w.total_qe;
+        let _before = w.total_qe;
 
         let mut s = ScratchPad::new();
         for _ in 0..10 {

@@ -387,11 +387,10 @@ pub fn abiogenesis_system(
 mod tests {
     use super::*;
     use crate::blueprint::constants::{
-        ABIOGENESIS_FIELD_MIN_QE, ABIOGENESIS_FLORA_BAND_HZ_HIGH, ABIOGENESIS_FLORA_BAND_HZ_LOW,
-        ABIOGENESIS_FLORA_PEAK_HZ, ABIOGENESIS_POTENTIAL_SCORE_THRESHOLD,
+        ABIOGENESIS_FIELD_MIN_QE,
+        ABIOGENESIS_FLORA_PEAK_HZ,
         ABIOGENESIS_TEST_CELL_QE_FACTOR_OVER_MIN, ABIOGENESIS_TEST_FIXTURE_WATER_NORM,
     };
-    use crate::blueprint::equations;
     use crate::simulation::test_support::count_base_energy;
 
     fn test_app_with_grids(grid: EnergyFieldGrid, ngrid: NutrientFieldGrid) -> App {

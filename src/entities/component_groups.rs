@@ -18,7 +18,6 @@ use crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY;
 use crate::blueprint::equations::{
     bond_from_energy, conductivity_from_state, dissipation_from_state, matter_state_from_density,
 };
-use crate::blueprint::equations::derived_thresholds as dt;
 use crate::layers::{
     AlchemicalEngine, BaseEnergy, BehaviorCooldown, BehaviorIntent, BehavioralAgent, CacheScope,
     CapabilitySet, FlowVector, HasInferredShape, InferenceProfile, MatterCoherence,
@@ -48,7 +47,7 @@ pub fn physical_components(
     GlobalTransform,
 ) {
     let volume = radius.max(0.01);
-    let density = qe / (volume * volume);
+    let _density = qe / (volume * volume);
     let state = matter_state_from_density(qe, volume * volume);
     let bond = bond_from_energy(qe);
     let conductivity = conductivity_from_state(state);

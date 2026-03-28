@@ -1,9 +1,9 @@
 //! Verifies that materialization_incremental_system inserts SenescenceProfile.
 
 use bevy::prelude::*;
-use resonance::layers::{BaseEnergy, MatterCoherence, MatterState, OscillatorySignature, SenescenceProfile, SpatialVolume};
+use resonance::layers::{BaseEnergy, MatterState, SenescenceProfile};
 use resonance::runtime_platform::simulation_tick::SimulationClock;
-use resonance::worldgen::{EnergyFieldGrid, Materialized, WorldArchetype};
+use resonance::worldgen::{EnergyFieldGrid, Materialized};
 use resonance::worldgen::systems::materialization_delta::materialization_incremental_system;
 use resonance::runtime_platform::compat_2d3d::SimWorldTransformParams;
 

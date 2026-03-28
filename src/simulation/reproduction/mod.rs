@@ -13,7 +13,7 @@ use crate::entities::builder::EntityBuilder;
 use crate::events::DeathCause;
 use crate::layers::{
     AllometricRadiusAnchor, BaseEnergy, BehavioralAgent, BehaviorCooldown, BehaviorIntent,
-    CacheScope, CapabilitySet, EnergyOps, HasInferredShape, Homeostasis, InferenceProfile,
+    CacheScope, CapabilitySet, EnergyOps, HasInferredShape, InferenceProfile,
     MatterState, MorphogenesisShapeParams, PerformanceCachePolicy, SpatialVolume, TrophicClass,
     TrophicConsumer, TrophicState,
 };

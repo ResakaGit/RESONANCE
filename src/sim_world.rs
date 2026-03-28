@@ -237,6 +237,7 @@ impl SimWorld {
 
     // ─── Private ──────────────────────────────────────────────────────────────
 
+    #[allow(dead_code)]
     fn total_qe(&mut self) -> f32 {
         let world = self.app.world_mut();
         let mut q = world.query::<&BaseEnergy>();

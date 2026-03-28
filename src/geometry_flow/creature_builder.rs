@@ -113,8 +113,8 @@ pub fn build_creature_mesh_with_field(
     branching_bias: f32,
     resilience: f32,
     frequency_hz: f32,
-    qe_field: &[[f32; 4]; 8],
-    freq_field: &[[f32; 4]; 8],
+    qe_field: &radial_field::RadialField,
+    freq_field: &radial_field::RadialField,
 ) -> Mesh {
     let tint = frequency_to_tint_rgb(frequency_hz);
     let (length, radius, tilt, resistance, detail, segments) =
@@ -223,18 +223,20 @@ pub fn build_creature_mesh_with_field(
     merge_meshes(&all_meshes)
 }
 
-/// Linearly interpolate 8 radii values to match spine node count.
-fn interpolate_radii_to_spine(radii_8: &[f32; 8], spine_len: usize) -> Vec<f32> {
-    if spine_len == 0 { return Vec::new(); }
-    if spine_len == 1 { return vec![radii_8[0]]; }
+/// Linearly interpolate N radii values to match spine node count.
+fn interpolate_radii_to_spine(radii: &[f32], spine_len: usize) -> Vec<f32> {
+    let n = radii.len();
+    if spine_len == 0 || n == 0 { return Vec::new(); }
+    if spine_len == 1 { return vec![radii[0]]; }
+    if n == 1 { return vec![radii[0]; spine_len]; }
     let mut result = Vec::with_capacity(spine_len);
     for i in 0..spine_len {
         let t = i as f32 / (spine_len - 1).max(1) as f32;
-        let field_pos = t * 7.0;
-        let lo = (field_pos as usize).min(6);
+        let field_pos = t * (n - 1) as f32;
+        let lo = (field_pos as usize).min(n - 2);
         let hi = lo + 1;
         let frac = field_pos - lo as f32;
-        result.push(radii_8[lo] * (1.0 - frac) + radii_8[hi] * frac);
+        result.push(radii[lo] * (1.0 - frac) + radii[hi] * frac);
     }
     result
 }
@@ -269,20 +271,21 @@ mod tests {
     #[test]
     fn radial_field_mesh_has_vertices() {
         let field = radial_field::distribute_to_radial(100.0, 0.8, 0.5, 0.6);
-        let freq = [[440.0; 4]; 8];
+        let freq = [[440.0; radial_field::RADIAL]; radial_field::AXIAL];
         let mesh = build_creature_mesh_with_field(0.8, 0.5, 0.6, 0.5, 440.0, &field, &freq);
         assert!(vertex_count(&mesh) > 0);
     }
 
     #[test]
     fn radial_field_with_peaks_has_appendages() {
-        let mut field = [[2.0; 4]; 8];
-        field[3][1] = 30.0; // strong lateral peak → appendage
-        field[3][3] = 30.0; // bilateral
-        let freq = [[440.0; 4]; 8];
+        let mut field = [[2.0; radial_field::RADIAL]; radial_field::AXIAL];
+        let mid = radial_field::AXIAL / 4;
+        field[mid][1] = 30.0;
+        field[mid][radial_field::RADIAL - 1] = 30.0; // bilateral
+        let freq = [[440.0; radial_field::RADIAL]; radial_field::AXIAL];
         let with_peaks = build_creature_mesh_with_field(0.8, 0.5, 0.8, 0.5, 440.0, &field, &freq);
-        let without = build_creature_mesh_with_field(0.8, 0.5, 0.0, 0.5, 440.0,
-            &[[3.0; 4]; 8], &freq);
+        let uniform = [[3.0; radial_field::RADIAL]; radial_field::AXIAL];
+        let without = build_creature_mesh_with_field(0.8, 0.5, 0.0, 0.5, 440.0, &uniform, &freq);
         assert!(vertex_count(&with_peaks) > vertex_count(&without),
             "peaks should add appendage vertices");
     }

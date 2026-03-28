@@ -6,7 +6,7 @@ use resonance::blueprint::equations::conservation::{
     conservation_error, global_conservation_error, has_invalid_values, is_valid_qe,
 };
 use resonance::blueprint::equations::{
-    available_for_extraction, dissipation_loss, extract_aggressive, extract_competitive,
+    dissipation_loss, extract_aggressive, extract_competitive,
     extract_greedy, extract_proportional, extract_regulated, pool_next_tick, relative_fitness,
     scale_extractions_to_available, ticks_to_collapse,
 };
@@ -20,6 +20,7 @@ fn qe_value() -> impl Strategy<Value = f32> {
     ]
 }
 
+#[allow(dead_code)]
 fn rate_value() -> impl Strategy<Value = f32> {
     0.0_f32..1.0
 }

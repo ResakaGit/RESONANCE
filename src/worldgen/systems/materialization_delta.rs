@@ -2,7 +2,7 @@
 
 use bevy::prelude::*;
 
-use crate::layers::{BaseEnergy, MatterCoherence, OscillatorySignature, SenescenceProfile, SpatialVolume};
+use crate::layers::{BaseEnergy, MatterCoherence, OscillatorySignature, SpatialVolume};
 use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::worldgen::constants::{

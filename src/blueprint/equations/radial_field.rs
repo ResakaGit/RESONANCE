@@ -732,12 +732,13 @@ mod tests {
     // ── peak_to_3d_offset ────────────────────────────────────────────────────
 
     #[test]
-    fn peak_3d_offset_center_attaches_mid_spine() {
-        let spine: Vec<crate::math_types::Vec3> = (0..8)
+    fn peak_3d_offset_mid_attaches_mid_spine() {
+        let spine: Vec<crate::math_types::Vec3> = (0..10)
             .map(|i| crate::math_types::Vec3::new(0.0, i as f32, 0.0))
             .collect();
-        let (pos, _dir) = peak_to_3d_offset(4, 1, &spine); // ax=4 of 8 = mid
-        assert!(pos.y > 2.0, "should attach near middle: {pos:?}");
+        let mid_ax = (AXIAL / 2) as u8;
+        let (pos, _dir) = peak_to_3d_offset(mid_ax, 1, &spine);
+        assert!(pos.y > 2.0, "mid axial should attach mid spine: {pos:?}");
     }
 
     #[test]

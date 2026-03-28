@@ -9,8 +9,11 @@ pub const MAX_ABIOGENESIS_PER_FRAME: usize = 2;
 pub const SCAN_BUDGET_CELLS: usize = 64;
 
 // ── Valores iniciales del `EntityBuilder` (alineado a EA5 / demo flora) ──
+#[allow(dead_code)]
 pub const EMERGENT_INITIAL_RADIUS: f32 = 0.05;
+#[allow(dead_code)]
 pub const EMERGENT_FLOW_DISSIPATION: f32 = 0.005;
+#[allow(dead_code)]
 pub const EMERGENT_MATTER_THERMAL_CONDUCTIVITY: f32 = 0.05;
 pub const EMERGENT_GROWTH_BIOMASS: f32 = 0.05;
 pub const EMERGENT_GROWTH_LIMITER: u8 = 0;

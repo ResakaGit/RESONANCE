@@ -52,7 +52,7 @@ pub fn render_frame(
     }
 
     // Entity dots.
-    for &(cx, cy, freq) in entity_positions {
+    for &(cx, cy, _freq) in entity_positions {
         let idx = (grid.height - 1 - cy) as usize * w + cx as usize;
         if idx < pixels.len() {
             pixels[idx] = [255, 255, 255, 255];

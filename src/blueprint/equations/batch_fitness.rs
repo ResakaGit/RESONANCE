@@ -127,7 +127,7 @@ pub fn trunk_params_from_genome(
 /// Branches are evenly distributed azimuthally.
 pub fn branch_plan_from_genome(
     branching_bias: f32,
-    growth_bias: f32,
+    _growth_bias: f32,
     resilience: f32,
 ) -> BranchPlan {
     let count = (branching_bias * 5.0) as usize;

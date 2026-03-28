@@ -3,6 +3,7 @@
 //! Zero heap allocation. Zero Bevy dependency. `repr(C)` for predictable layout.
 
 use crate::blueprint::equations;
+use crate::blueprint::equations::radial_field::{AXIAL, RADIAL};
 
 use super::constants::{GRID_CELLS, MAX_ENTITIES, QE_MIN_EXISTENCE};
 use super::events::EventBuffer;
@@ -70,9 +71,9 @@ pub struct EntitySlot {
     // ── Epigenetic mask ────────────────────
     pub expression_mask: [f32; 4],
 
-    // ── Internal energy field (8 axial × 4 radial = 32 nodes)
-    pub qe_field:   [[f32; 4]; 8],
-    pub freq_field:  [[f32; 4]; 8],
+    // ── Internal energy field (AXIAL × RADIAL nodes)
+    pub qe_field:   [[f32; RADIAL]; AXIAL],
+    pub freq_field:  [[f32; RADIAL]; AXIAL],
 
     // ── Flags (packed) ─────────────────────
     pub alive:          bool,
@@ -104,8 +105,8 @@ impl Default for EntitySlot {
             branching_bias: 0.0, resilience: 0.0,
             satiation: 0.0,
             expression_mask: [0.0; 4],
-            qe_field: [[0.0; 4]; 8],
-            freq_field: [[0.0; 4]; 8],
+            qe_field: [[0.0; RADIAL]; AXIAL],
+            freq_field: [[0.0; RADIAL]; AXIAL],
             alive: false, archetype: 0, matter_state: 0,
             channeling: false, faction: 0, trophic_class: 0,
             _pad: [0; 2],
@@ -246,7 +247,7 @@ mod tests {
     #[test]
     fn entity_slot_size_is_reasonable() {
         let size = std::mem::size_of::<EntitySlot>();
-        assert!(size <= 448, "EntitySlot too large: {size} bytes");
+        assert!(size <= 1200, "EntitySlot too large: {size} bytes");
         assert!(size >= 100, "EntitySlot too small: {size} bytes — fields missing?");
     }
 

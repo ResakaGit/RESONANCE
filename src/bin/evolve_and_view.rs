@@ -130,10 +130,12 @@ fn spawn_creatures(
         for _ in 0..30 {
             field = radial_field::radial_diffuse(&field, 0.1, 0.05);
         }
-        let mut freq_field = [[0.0f32; 4]; 8];
-        for a in 0..8 {
-            for r in 0..4 {
-                freq_field[a][r] = freq + (a as f32 - 3.5) * 20.0 + (r as f32 - 1.5) * 10.0;
+        let mut freq_field = [[0.0f32; radial_field::RADIAL]; radial_field::AXIAL];
+        for a in 0..radial_field::AXIAL {
+            for r in 0..radial_field::RADIAL {
+                let ax_center = (radial_field::AXIAL as f32 - 1.0) / 2.0;
+                let rad_center = (radial_field::RADIAL as f32 - 1.0) / 2.0;
+                freq_field[a][r] = freq + (a as f32 - ax_center) * 20.0 + (r as f32 - rad_center) * 10.0;
             }
         }
 
