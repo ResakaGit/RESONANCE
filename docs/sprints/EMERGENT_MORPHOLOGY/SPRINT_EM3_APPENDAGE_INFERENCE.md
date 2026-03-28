@@ -3,7 +3,7 @@
 **Modulo:** `src/geometry_flow/creature_builder.rs`, `src/blueprint/equations/radial_field.rs`
 **Tipo:** Geometry generation from 2D field peaks.
 **Onda:** EM-2 → EM-3.
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27)
 
 ---
 

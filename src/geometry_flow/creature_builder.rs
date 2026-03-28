@@ -159,32 +159,23 @@ pub fn build_creature_mesh_with_field(
         return trunk_mesh;
     }
 
+    let spine_positions: Vec<Vec3> = trunk_spine.iter().map(|n| n.position).collect();
+    let total_field_qe = radial_field::radial_total(qe_field);
+
     let mut all_meshes = vec![trunk_mesh];
     for p in 0..n_peaks {
         let (peak_ax, peak_rad, peak_qe) = peaks[p];
         if peak_qe < crate::batch::constants::APPENDAGE_QE_MIN { continue; }
 
-        // 3D offset: axial position along trunk + radial sector direction
-        let ax_t = peak_ax as f32 / (radial_field::AXIAL - 1).max(1) as f32;
-        let attach_idx = (ax_t * (trunk_spine.len() - 1) as f32) as usize;
-        let attach_idx = attach_idx.clamp(1, trunk_spine.len() - 1);
-        let attach_pos = trunk_spine[attach_idx].position;
-
-        // Sector → 3D direction (0=up, 1=right, 2=down, 3=left)
-        let sector_angle = peak_rad as f32 * std::f32::consts::FRAC_PI_2;
-        let branch_dir = Vec3::new(
-            sector_angle.sin(),
-            sector_angle.cos() * 0.3,
-            0.0,
-        ).normalize_or_zero();
-
-        // Aspect ratio → shape: high=tube, low=bulb
+        // Pure functions: 2D field peak → 3D geometry params (EM-3A + EM-3B)
+        let (attach_pos, branch_dir) = radial_field::peak_to_3d_offset(
+            peak_ax, peak_rad, &spine_positions,
+        );
         let ar = radial_field::peak_aspect_ratio(qe_field, peak_ax, peak_rad);
-        let app_length = length * 0.3 * ar.min(3.0);
-        let app_radius = radius * (peak_qe / radial_field::radial_total(qe_field).max(1e-6)).sqrt() * 0.6;
-        let local_radius = app_radius.max(radius * 0.15);
+        let (app_length, local_radius, _) = radial_field::peak_to_spine_params(
+            peak_qe, ar, length, radius, total_field_qe,
+        );
 
-        // Tint from freq_field at peak node
         let local_freq = freq_field[peak_ax as usize][peak_rad as usize];
         let branch_tint = frequency_to_tint_rgb(local_freq);
 

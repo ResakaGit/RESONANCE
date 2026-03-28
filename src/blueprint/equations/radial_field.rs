@@ -293,6 +293,61 @@ pub fn radial_freq_entrain(freq: &RadialField, coupling: f32, dt: f32) -> Radial
     out
 }
 
+// ─── Appendage geometry mapping (EM-3) ──────────────────────────────────────
+
+/// Maps a 2D field peak to a 3D attachment position + direction on the trunk spine.
+///
+/// Returns `(attach_position, branch_direction)`.
+/// `spine_positions`: trunk spine node positions (world space).
+/// Peak's axial index maps to a trunk station. Radial sector maps to a direction.
+pub fn peak_to_3d_offset(
+    peak_ax: u8,
+    peak_rad: u8,
+    spine_positions: &[crate::math_types::Vec3],
+) -> (crate::math_types::Vec3, crate::math_types::Vec3) {
+    let spine_len = spine_positions.len();
+    if spine_len == 0 {
+        return (crate::math_types::Vec3::ZERO, crate::math_types::Vec3::Y);
+    }
+    let ax_t = peak_ax as f32 / (AXIAL - 1).max(1) as f32;
+    let attach_idx = (ax_t * (spine_len - 1) as f32) as usize;
+    let attach_idx = attach_idx.clamp(0, spine_len - 1);
+    let attach_pos = spine_positions[attach_idx];
+
+    let sector_angle = peak_rad as f32 * std::f32::consts::FRAC_PI_2;
+    let branch_dir = crate::math_types::Vec3::new(
+        sector_angle.sin(),
+        sector_angle.cos() * 0.3,
+        0.0,
+    ).normalize_or_zero();
+
+    (attach_pos, branch_dir)
+}
+
+/// Derives appendage spine parameters from peak properties.
+///
+/// Returns `(length, radius, detail_factor)`.
+/// `aspect_ratio` from `peak_aspect_ratio()`: high = long tube, low = compact bulb.
+/// All values derived from the peak's energy share — no hardcoded sizes.
+pub fn peak_to_spine_params(
+    peak_qe: f32,
+    aspect_ratio: f32,
+    base_length: f32,
+    base_radius: f32,
+    total_field_qe: f32,
+) -> (f32, f32, f32) {
+    let ar = aspect_ratio.min(3.0);
+    let qe_share = if total_field_qe > 1e-6 {
+        (peak_qe / total_field_qe).sqrt()
+    } else {
+        0.0
+    };
+    let app_length = base_length * 0.3 * ar;
+    let app_radius = (base_radius * qe_share * 0.6).max(base_radius * 0.15);
+    let detail = 0.7; // relative to trunk detail
+    (app_length, app_radius, detail)
+}
+
 // ─── Tests ──────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -529,5 +584,54 @@ mod tests {
         let mut f = spike_at(2, 1, 80.0);
         radial_rescale(&mut f, 100.0);
         assert!((radial_total(&f) - 100.0).abs() < 1e-3);
+    }
+
+    // ── peak_to_3d_offset ────────────────────────────────────────────────────
+
+    #[test]
+    fn peak_3d_offset_center_attaches_mid_spine() {
+        let spine: Vec<crate::math_types::Vec3> = (0..8)
+            .map(|i| crate::math_types::Vec3::new(0.0, i as f32, 0.0))
+            .collect();
+        let (pos, _dir) = peak_to_3d_offset(4, 1, &spine); // ax=4 of 8 = mid
+        assert!(pos.y > 2.0, "should attach near middle: {pos:?}");
+    }
+
+    #[test]
+    fn peak_3d_offset_empty_spine_returns_zero() {
+        let (pos, dir) = peak_to_3d_offset(0, 0, &[]);
+        assert_eq!(pos, crate::math_types::Vec3::ZERO);
+        assert!(dir.length() > 0.0);
+    }
+
+    #[test]
+    fn peak_3d_offset_sector_direction_varies() {
+        let spine = vec![crate::math_types::Vec3::ZERO, crate::math_types::Vec3::Y];
+        let (_, dir_0) = peak_to_3d_offset(0, 0, &spine);
+        let (_, dir_1) = peak_to_3d_offset(0, 1, &spine);
+        assert!((dir_0 - dir_1).length() > 0.01, "different sectors → different directions");
+    }
+
+    // ── peak_to_spine_params ─────────────────────────────────────────────────
+
+    #[test]
+    fn spine_params_high_ar_longer() {
+        let (len_low, _, _) = peak_to_spine_params(10.0, 0.5, 5.0, 1.0, 100.0);
+        let (len_high, _, _) = peak_to_spine_params(10.0, 2.5, 5.0, 1.0, 100.0);
+        assert!(len_high > len_low, "high AR → longer: {len_high} vs {len_low}");
+    }
+
+    #[test]
+    fn spine_params_more_qe_wider() {
+        let (_, rad_low, _) = peak_to_spine_params(5.0, 1.0, 5.0, 1.0, 100.0);
+        let (_, rad_high, _) = peak_to_spine_params(50.0, 1.0, 5.0, 1.0, 100.0);
+        assert!(rad_high > rad_low, "more qe → wider: {rad_high} vs {rad_low}");
+    }
+
+    #[test]
+    fn spine_params_zero_total_no_panic() {
+        let (len, rad, _) = peak_to_spine_params(10.0, 1.0, 5.0, 1.0, 0.0);
+        assert!(len >= 0.0);
+        assert!(rad >= 0.0);
     }
 }
