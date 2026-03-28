@@ -26,7 +26,7 @@ use resonance::worldgen::systems::day_night::DayNightConfig;
 const PLANET_RADIUS: f32 = 5.0;
 const SPHERE_SEGMENTS: u32 = 64;
 const SPHERE_RINGS: u32 = 32;
-const CAMERA_ORBIT_SPEED: f32 = 0.02;
+const CAMERA_ORBIT_SPEED: f32 = 0.15; // ~42s per revolution
 const CAMERA_DISTANCE: f32 = 15.0;
 const SIM_TICKS_PER_SEC: f64 = 50.0; // 1 day per 24 real seconds
 
@@ -56,7 +56,8 @@ fn main() {
     app.add_plugins(SimulationPlugin);
 
     app.add_systems(Startup, (setup_planet, setup_hud));
-    app.add_systems(Update, (update_planet_texture, rotate_planet, rotate_camera, update_hud));
+    // No rotate_planet: day/night already sweeps in the texture. Camera orbits to show both sides.
+    app.add_systems(Update, (update_planet_texture, rotate_camera, update_hud));
 
     app.run();
 }
