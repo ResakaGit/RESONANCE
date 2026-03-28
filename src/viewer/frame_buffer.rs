@@ -6,6 +6,7 @@ use crate::worldgen::EnergyFieldGrid;
 // ── Visual calibration (rendering, not physics) ─────────────────────────────
 const HSV_SATURATION_FLOOR: f32 = 0.3;
 const COLOR_INTENSITY_BOOST: f32 = 1.5;
+const SURFACE_MIN_BRIGHTNESS: f32 = 0.08; // Dark terrain visible vs space black
 
 /// RGBA pixel data for one frame.
 pub struct FrameBuffer {
@@ -59,7 +60,7 @@ pub fn render_frame(
                 let intensity = (cell.accumulated_qe / max_qe).sqrt();
                 let hue = if max_freq > 0.0 { cell.dominant_frequency_hz / max_freq } else { 0.0 };
                 let sat = cell.purity.max(HSV_SATURATION_FLOOR);
-                let boosted = (intensity * COLOR_INTENSITY_BOOST).min(1.0);
+                let boosted = (intensity * COLOR_INTENSITY_BOOST).min(1.0).max(SURFACE_MIN_BRIGHTNESS);
                 let (r, g, b) = hsv_to_rgb(hue, sat, boosted);
                 let idx = (grid.height - 1 - y) as usize * w + x as usize;
                 pixels[idx] = [r, g, b, 255];

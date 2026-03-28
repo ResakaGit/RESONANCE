@@ -28,7 +28,7 @@ const SPHERE_SEGMENTS: u32 = 64;
 const SPHERE_RINGS: u32 = 32;
 const CAMERA_ORBIT_SPEED: f32 = 0.02;
 const CAMERA_DISTANCE: f32 = 15.0;
-const SIM_TICKS_PER_SEC: f64 = 120.0; // 1 day per 10 real seconds
+const SIM_TICKS_PER_SEC: f64 = 600.0; // 1 day per 2 real seconds
 
 fn main() {
     let mut app = App::new();
