@@ -77,6 +77,7 @@ impl Default for MapConfig {
                     propagation_radius: 20.0,
                     decay: PropagationDecay::InverseSquare,
                     ambient_pressure: None,
+                    reservoir: None,
                 },
                 NucleusConfig {
                     name: "ignis_nucleus".to_string(),
@@ -86,6 +87,7 @@ impl Default for MapConfig {
                     propagation_radius: 18.0,
                     decay: PropagationDecay::InverseLinear,
                     ambient_pressure: None,
+                    reservoir: None,
                 },
             ],
             seasons: Vec::new(),
@@ -112,6 +114,10 @@ pub struct NucleusConfig {
     pub propagation_radius: f32,
     pub decay: PropagationDecay,
     pub ambient_pressure: Option<AmbientPressureConfig>,
+    /// Per-nucleus fuel reservoir (qe). Overrides NUCLEUS_DEFAULT_RESERVOIR_QE.
+    /// Use very large values for stars (effectively infinite emission).
+    #[serde(default)]
+    pub reservoir: Option<f32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -270,6 +276,8 @@ pub struct SpawnedNucleusSpec {
     pub position: Vec2,
     /// Capa 6 opcional: volumen de presión compartido con el radio de propagación (bioma del emisor).
     pub ambient_pressure: Option<AmbientPressureConfig>,
+    /// Per-nucleus reservoir override (None = use NUCLEUS_DEFAULT_RESERVOIR_QE).
+    pub reservoir: Option<f32>,
 }
 
 pub fn resolve_nuclei_for_spawn(config: &MapConfig) -> Vec<SpawnedNucleusSpec> {
@@ -306,6 +314,7 @@ pub fn resolve_nuclei_for_spawn(config: &MapConfig) -> Vec<SpawnedNucleusSpec> {
                 ),
                 position: pos,
                 ambient_pressure: entry.ambient_pressure.clone(),
+                reservoir: entry.reservoir,
             }
         })
         .collect()
@@ -412,6 +421,7 @@ mod tests {
                 propagation_radius: 12.0,
                 decay: PropagationDecay::Flat,
                 ambient_pressure: None,
+                reservoir: None,
             }],
             ..Default::default()
         };
@@ -439,6 +449,7 @@ mod tests {
             propagation_radius: 0.5,
             decay: PropagationDecay::Flat,
             ambient_pressure: None,
+            reservoir: None,
         }];
         let err = validate_map_config(&cfg).expect_err("margin");
         assert!(err.contains(&ValidationError::PlayfieldMarginTooLarge));
@@ -455,6 +466,7 @@ mod tests {
                 propagation_radius: 12.0,
                 decay: PropagationDecay::Flat,
                 ambient_pressure: None,
+                reservoir: None,
             }],
             ..Default::default()
         };
@@ -516,6 +528,7 @@ mod tests {
                 propagation_radius: 1.0,
                 decay: PropagationDecay::Flat,
                 ambient_pressure: None,
+                reservoir: None,
             }],
             ..Default::default()
         };

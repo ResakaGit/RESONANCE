@@ -149,7 +149,9 @@ pub fn spawn_nuclei_from_map_config_system(
             StartupNucleus,
             Name::new(format!("nucleus::{}", spawn.name)),
             spawn.nucleus,
-            NucleusReservoir { qe: crate::blueprint::constants::NUCLEUS_DEFAULT_RESERVOIR_QE },
+            NucleusReservoir {
+                qe: spawn.reservoir.unwrap_or(crate::blueprint::constants::NUCLEUS_DEFAULT_RESERVOIR_QE),
+            },
             transform,
             GlobalTransform::default(),
             Visibility::default(),

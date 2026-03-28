@@ -60,6 +60,7 @@
       propagation_radius: 120.0,
       decay: InverseSquare,
       ambient_pressure: None,
+      reservoir: Some(999999.0),
     ),
 
     // ══════════════════════════════════════════════════════════════════════
