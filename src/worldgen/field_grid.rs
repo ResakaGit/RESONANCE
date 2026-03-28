@@ -334,12 +334,16 @@ mod tests {
     }
 
     #[test]
-    fn field_grid_neighbors4_only_returns_valid_coords() {
+    fn field_grid_neighbors4_toroidal_always_four() {
         let grid = EnergyFieldGrid::new(3, 3, 1.0, Vec2::ZERO);
         let center = grid.neighbors4(1, 1);
         assert_eq!(center.iter().flatten().count(), 4);
+        // Toroidal: corner wraps to opposite edges — still 4 neighbors.
         let corner = grid.neighbors4(0, 0);
-        assert_eq!(corner.iter().flatten().count(), 2);
+        assert_eq!(corner.iter().flatten().count(), 4);
+        // Verify wrapping: left of (0,_) = (2,_), down of (_,0) = (_,2).
+        assert_eq!(corner[0], Some((2, 0))); // left wraps
+        assert_eq!(corner[2], Some((0, 2))); // down wraps
     }
 
     #[test]

@@ -93,8 +93,8 @@ pub fn axiomatic_split_system(
         let total = (left_qe + right_qe).max(1e-6);
         let left_frac = left_qe / total;
         let right_frac = right_qe / total;
-        let profile_left = InferenceProfile::new(left_frac, 1.0 - left_frac, 0.5, left_frac);
-        let profile_right = InferenceProfile::new(right_frac, 1.0 - right_frac, 0.5, right_frac);
+        let profile_left = InferenceProfile::new(left_frac, 1.0 - left_frac, left_frac, left_frac);
+        let profile_right = InferenceProfile::new(right_frac, 1.0 - right_frac, right_frac, right_frac);
 
         // Spawn child A (left nodes).
         let child_a = commands.spawn((

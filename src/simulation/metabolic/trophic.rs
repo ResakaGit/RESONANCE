@@ -137,11 +137,23 @@ pub fn trophic_predation_attempt_system(
         .take(remaining_budget)
         .map(|(e, consumer, _state, transform, osc, link)| {
             let (freq, phase) = osc.map(|o| (o.frequency_hz(), o.phase())).unwrap_or((0.0, 0.0));
-            // Pack size: count linked neighbors (cluster = multicelular organism).
-            let pack_size = link
-                .filter(|l| link_count_query.get(l.target).is_ok())
-                .map(|_| 2u32)
-                .unwrap_or(1);
+            // Pack size: traverse StructuralLink chain for connected component.
+            let pack_size = {
+                let mut size = 1u32;
+                let mut current = link.map(|l| l.target);
+                let mut visited = e;
+                // Walk the chain (max 8 to cap cost).
+                while let Some(target) = current {
+                    if target == visited || size >= 8 { break; }
+                    if link_count_query.get(target).is_err() { break; }
+                    size += 1;
+                    visited = target;
+                    // Follow chain: read next link's target.
+                    current = predator_query.get(target).ok()
+                        .and_then(|(_, _, _, _, _, next_link)| next_link.map(|l| l.target));
+                }
+                size
+            };
             (e, consumer.intake_rate, transform.translation, freq, phase, pack_size)
         })
         .collect();

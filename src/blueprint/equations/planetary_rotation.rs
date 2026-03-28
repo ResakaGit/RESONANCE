@@ -79,7 +79,8 @@ pub fn effective_irradiance(solar_factor: f32) -> f32 {
 /// Seasonal irradiance modifier based on axial tilt.
 ///
 /// The sub-solar latitude oscillates over the year: `center ± tilt × half_height × sin(year_angle)`.
-/// Returns a multiplier [0.5, 1.5] — poles get less light in winter, more in summer.
+/// Returns a multiplier [0.5, 1.0] — cells far from sub-solar latitude get less light.
+/// Latitude is linear (not wrapped) — north/south poles have opposite seasons.
 /// `tilt = 0` → no seasons (1.0 everywhere).
 #[inline]
 pub fn seasonal_irradiance_modifier(
@@ -94,11 +95,10 @@ pub fn seasonal_irradiance_modifier(
     let year_progress = (tick as f32 / year_period_ticks).fract();
     // Sub-solar latitude oscillates with the year.
     let sub_solar_y = half_h + axial_tilt * half_h * (std::f32::consts::TAU * year_progress).sin();
-    // Distance from sub-solar latitude (wrapped).
+    // Linear distance (no wrap — latitude is not cyclic on a sphere).
     let dy = (cell_y - sub_solar_y).abs();
-    let wrapped_dy = dy.min(grid_height - dy);
-    // Gentle cosine modulation: near sub-solar → boost, far → reduction.
-    let angle = std::f32::consts::PI * wrapped_dy / grid_height;
+    // Cosine falloff: near sub-solar → 1.0, far → 0.5.
+    let angle = (std::f32::consts::PI * 0.5 * dy / half_h).min(std::f32::consts::FRAC_PI_2);
     0.5 + 0.5 * angle.cos()
 }
 
