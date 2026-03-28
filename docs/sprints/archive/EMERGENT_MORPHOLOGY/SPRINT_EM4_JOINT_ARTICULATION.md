@@ -3,7 +3,7 @@
 **Modulo:** `src/blueprint/equations/radial_field.rs`, `src/geometry_flow/creature_builder.rs`
 **Tipo:** Equations + geometry refinement.
 **Onda:** EM-3 → EM-4.
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27)
 
 ---
 

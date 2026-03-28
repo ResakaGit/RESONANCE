@@ -194,7 +194,30 @@ pub fn build_creature_mesh_with_field(
             branch_role: BranchRole::Leaf,
         };
         let app_spine = geometry_flow::build_flow_spine(&appendage_influence);
-        all_meshes.push(geometry_flow::build_flow_mesh(&app_spine, &appendage_influence));
+
+        // EM-4: Joint articulation — extract profile, detect joints, segment
+        let direction: i8 = if peak_ax < (radial_field::AXIAL / 2) as u8 { -1 } else { 1 };
+        let (profile, prof_len) = radial_field::extract_appendage_profile(
+            qe_field, peak_ax, peak_rad, direction,
+        );
+        let joints = radial_field::detect_appendage_joints(&profile, prof_len);
+        let n_joints = radial_field::appendage_joint_count(&joints);
+
+        if n_joints > 0 && app_spine.len() > 2 {
+            // Segmented: apply joint-thinned radii
+            let seg_radii = radial_field::segmented_radii(
+                local_radius, &joints, n_joints, app_spine.len(),
+            );
+            let spine_radii = interpolate_radii_to_spine(
+                &seg_radii, app_spine.len(),
+            );
+            all_meshes.push(geometry_flow::build_flow_mesh_variable_radius(
+                &app_spine, &appendage_influence, &spine_radii,
+            ));
+        } else {
+            // No joints: single tube (existing behavior)
+            all_meshes.push(geometry_flow::build_flow_mesh(&app_spine, &appendage_influence));
+        }
     }
 
     merge_meshes(&all_meshes)

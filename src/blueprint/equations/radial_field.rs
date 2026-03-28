@@ -268,6 +268,89 @@ pub fn joint_count(joints: &[(u8, f32); AXIAL]) -> usize {
     joints.iter().take_while(|j| j.0 > 0 || j.1 > 0.0).count()
 }
 
+// ─── EM-4: Appendage joint articulation ──────────────────────────────────────
+
+/// Extract 1D energy profile along an appendage from its peak outward.
+///
+/// Walks from `peak_ax` in `direction` along the axial axis, collecting
+/// the qe values at `peak_rad` sector. Returns up to AXIAL values.
+/// Axiom 6: profile shape emerges from field, not programmed.
+pub fn extract_appendage_profile(
+    field: &RadialField,
+    peak_ax: u8,
+    peak_rad: u8,
+    direction: i8,
+) -> ([f32; AXIAL], usize) {
+    let mut profile = [0.0f32; AXIAL];
+    let mut len = 0usize;
+    let mut ax = peak_ax as i32;
+    while ax >= 0 && (ax as usize) < AXIAL && len < AXIAL {
+        profile[len] = field[ax as usize][peak_rad as usize];
+        len += 1;
+        ax += direction as i32;
+    }
+    (profile, len)
+}
+
+/// Find valleys (local minima) in a 1D appendage profile.
+///
+/// A valley where `profile[i] < mean × threshold_ratio` → joint point.
+/// Returns `(position_t ∈ [0,1], flexibility ∈ [0,1])` pairs.
+/// `flexibility = 1.0 - (valley_qe / peak_qe).sqrt()` — lower qe = more flexible.
+/// Axiom 1: joint = low energy region. Axiom 4: dissipation thins the connection.
+pub fn detect_appendage_joints(
+    profile: &[f32],
+    len: usize,
+) -> [(f32, f32); AXIAL] {
+    let mut joints = [(0.0f32, 0.0f32); AXIAL];
+    if len < 3 { return joints; }
+    let active = &profile[..len];
+    let peak_qe = active.iter().copied().fold(0.0f32, f32::max);
+    if peak_qe <= 0.0 { return joints; }
+
+    let mut count = 0usize;
+    for i in 1..(len - 1) {
+        if active[i] < active[i - 1] && active[i] < active[i + 1] {
+            let t = i as f32 / (len - 1).max(1) as f32;
+            let flexibility = 1.0 - (active[i] / peak_qe).sqrt().min(1.0);
+            if count < AXIAL {
+                joints[count] = (t, flexibility);
+                count += 1;
+            }
+        }
+    }
+    joints
+}
+
+/// Count valid appendage joints (position > 0).
+pub fn appendage_joint_count(joints: &[(f32, f32); AXIAL]) -> usize {
+    joints.iter().take_while(|j| j.0 > 0.0 || j.1 > 0.0).count()
+}
+
+/// Compute per-segment radii for a segmented appendage.
+///
+/// At joint positions, radius thins proportional to flexibility.
+/// Between joints, radius interpolates smoothly.
+/// `base_radius`: the appendage's nominal radius.
+/// Returns array of radii along the appendage (one per segment station).
+pub fn segmented_radii(
+    base_radius: f32,
+    joints: &[(f32, f32)],
+    joint_count: usize,
+    stations: usize,
+) -> [f32; AXIAL] {
+    let mut radii = [base_radius; AXIAL];
+    if stations == 0 { return radii; }
+    for j in 0..joint_count {
+        let (t, flexibility) = joints[j];
+        let idx = (t * (stations - 1).max(1) as f32) as usize;
+        let idx = idx.min(stations - 1);
+        // Joint radius: thinner where flexibility is high (Axiom 4: dissipation thins)
+        radii[idx] = base_radius * (1.0 - flexibility * 0.8).max(0.05);
+    }
+    radii
+}
+
 // ─── Frequency field ────────────────────────────────────────────────────────
 
 /// Frequency entrainment across 2D neighbors.
@@ -578,6 +661,66 @@ mod tests {
     }
 
     // ── rescale ─────────────────────────────────────────────────────────────
+
+    // ── EM-4: appendage joints ─────────────────────────────────────────────
+
+    #[test]
+    fn extract_profile_from_peak_outward() {
+        let mut f = uniform(10.0);
+        f[3][1] = 50.0; // peak at ax=3, rad=1
+        let (profile, len) = extract_appendage_profile(&f, 3, 1, 1); // walk forward
+        assert!(len > 0);
+        assert!((profile[0] - 50.0).abs() < 1e-5, "starts at peak");
+    }
+
+    #[test]
+    fn extract_profile_backward() {
+        let f = uniform(10.0);
+        let (_, len) = extract_appendage_profile(&f, 5, 0, -1);
+        assert_eq!(len, 6, "from ax=5 walking back: 5,4,3,2,1,0");
+    }
+
+    #[test]
+    fn detect_joints_uniform_returns_empty() {
+        let profile = [10.0; AXIAL];
+        let joints = detect_appendage_joints(&profile, 8);
+        assert_eq!(appendage_joint_count(&joints), 0);
+    }
+
+    #[test]
+    fn detect_joints_single_valley() {
+        let profile = [10.0, 15.0, 2.0, 15.0, 10.0, 0.0, 0.0, 0.0];
+        let joints = detect_appendage_joints(&profile, 5);
+        assert_eq!(appendage_joint_count(&joints), 1);
+        let (t, flex) = joints[0];
+        assert!(t > 0.3 && t < 0.7, "joint at middle: t={t}");
+        assert!(flex > 0.5, "low valley → high flexibility: {flex}");
+    }
+
+    #[test]
+    fn detect_joints_two_valleys() {
+        let profile = [10.0, 1.0, 10.0, 1.0, 10.0, 0.0, 0.0, 0.0];
+        let joints = detect_appendage_joints(&profile, 5);
+        assert_eq!(appendage_joint_count(&joints), 2);
+    }
+
+    #[test]
+    fn segmented_radii_no_joints_uniform() {
+        let joints = [(0.0, 0.0); AXIAL];
+        let radii = segmented_radii(1.0, &joints, 0, 8);
+        for r in &radii[..8] {
+            assert!((*r - 1.0).abs() < 1e-5);
+        }
+    }
+
+    #[test]
+    fn segmented_radii_joint_thins() {
+        let mut joints = [(0.0, 0.0); AXIAL];
+        joints[0] = (0.5, 0.9); // joint at middle, high flexibility
+        let radii = segmented_radii(1.0, &joints, 1, 8);
+        let mid = radii[3]; // idx = 0.5 * 7 ≈ 3
+        assert!(mid < 0.5, "joint should thin radius: {mid}");
+    }
 
     #[test]
     fn rescale_matches_target() {
