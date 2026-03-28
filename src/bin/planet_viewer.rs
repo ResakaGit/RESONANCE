@@ -285,22 +285,6 @@ fn update_hud(
     );
 }
 
-fn rotate_planet(
-    time: Res<Time>,
-    config: Option<Res<DayNightConfig>>,
-    mut planet: Query<&mut Transform, With<Planet>>,
-) {
-    let speed = config
-        .as_ref()
-        .filter(|c| c.period_ticks > 0.0)
-        .map(|c| std::f32::consts::TAU / (c.period_ticks / 60.0))
-        .unwrap_or(0.1);
-
-    for mut tr in &mut planet {
-        tr.rotate_y(-speed * time.delta_secs());
-    }
-}
-
 fn rotate_camera(
     time: Res<Time>,
     mut pivot: Query<&mut Transform, With<CameraPivot>>,
