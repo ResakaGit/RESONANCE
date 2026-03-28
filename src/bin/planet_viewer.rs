@@ -34,10 +34,10 @@ fn main() {
         ..default()
     }));
 
-    // Speed: 1 week per real second = 7 days × 1200 ticks/day = 8400 ticks/s.
+    // Speed: 1 day per 10 real seconds = 120 ticks/s (2× default, smooth).
     app.insert_resource(resonance::runtime_platform::simulation_tick::V6RuntimeConfig {
         use_fixed_tick: true,
-        fixed_hz: 8400.0,
+        fixed_hz: 120.0,
     });
     app.init_resource::<PaletteRegistry>();
     app.add_plugins(SimulationTickPlugin);
@@ -93,9 +93,10 @@ fn setup_planet(
 
     let sphere_mesh = meshes.add(Sphere::new(5.0).mesh().uv(64, 32));
     let planet_material = materials.add(StandardMaterial {
-        base_color_texture: Some(texture_handle),
-        perceptual_roughness: 0.8,
-        metallic: 0.0,
+        base_color_texture: Some(texture_handle.clone()),
+        emissive_texture: Some(texture_handle),
+        emissive: bevy::color::LinearRgba::WHITE,
+        unlit: true,
         ..default()
     });
 
