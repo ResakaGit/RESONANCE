@@ -11,6 +11,11 @@ use bevy::prelude::*;
 use crate::blueprint::equations::derived_thresholds as dt;
 use crate::worldgen::{EnergyFieldGrid, NutrientFieldGrid};
 
+/// Minimum water_norm to trigger evaporation (below = negligible moisture).
+const WATER_MIN_THRESHOLD: f32 = dt::DISSIPATION_LIQUID; // 0.02
+/// Minimum delta to apply (avoids float churn on negligible changes).
+const DELTA_EPSILON: f32 = 1e-5;
+
 /// Transfers water from hot cells to their coolest neighbor.
 /// Conservation: water moved, not created/destroyed (Axiom 5).
 pub fn water_cycle_system(
@@ -37,11 +42,11 @@ pub fn water_cycle_system(
             let cell_water = nutrients.cell_xy(x as u32, y as u32)
                 .map(|c| c.water_norm).unwrap_or(0.0);
 
-            if cell_water < 0.01 || cell_qe < 1.0 { continue; }
+            if cell_water < WATER_MIN_THRESHOLD || cell_qe < 1.0 { continue; }
 
             // Evaporation amount: proportional to energy and current water.
             let evap = cell_water * evap_rate * (cell_qe / dt::DENSITY_SCALE).min(1.0);
-            if evap < 1e-5 { continue; }
+            if evap < DELTA_EPSILON { continue; }
 
             // Find coolest neighbor (precipitation target).
             let neighbors = grid.neighbors4(x as u32, y as u32);
@@ -69,7 +74,7 @@ pub fn water_cycle_system(
     for y in 0..h {
         for x in 0..w {
             let idx = y * w + x;
-            if deltas[idx].abs() < 1e-5 { continue; }
+            if deltas[idx].abs() < DELTA_EPSILON { continue; }
             if let Some(cell) = nutrients.cell_xy_mut(x as u32, y as u32) {
                 cell.water_norm = (cell.water_norm + deltas[idx]).clamp(0.0, 1.0);
             }

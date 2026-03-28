@@ -22,6 +22,14 @@ use resonance::viewer::frame_buffer;
 use resonance::worldgen::{EnergyFieldGrid, NutrientFieldGrid};
 use resonance::worldgen::systems::day_night::DayNightConfig;
 
+// ── Visual constants (rendering, not physics) ────────────────────────────────
+const PLANET_RADIUS: f32 = 5.0;
+const SPHERE_SEGMENTS: u32 = 64;
+const SPHERE_RINGS: u32 = 32;
+const CAMERA_ORBIT_SPEED: f32 = 0.02;
+const CAMERA_DISTANCE: f32 = 15.0;
+const SIM_TICKS_PER_SEC: f64 = 120.0; // 1 day per 10 real seconds
+
 fn main() {
     let mut app = App::new();
 
@@ -34,10 +42,12 @@ fn main() {
         ..default()
     }));
 
-    // Speed: 1 day per 10 real seconds = 120 ticks/s (2× default, smooth).
+    // Simulation speed: SIM_TICKS_PER_SEC ticks/s.
+    // FixedUpdate runs at this rate; Bevy caps catch-up to ~250ms by default.
+    // At 120 Hz, max ~30 ticks/frame before dropping — smooth enough.
     app.insert_resource(resonance::runtime_platform::simulation_tick::V6RuntimeConfig {
         use_fixed_tick: true,
-        fixed_hz: 120.0,
+        fixed_hz: SIM_TICKS_PER_SEC,
     });
     app.init_resource::<PaletteRegistry>();
     app.add_plugins(SimulationTickPlugin);
@@ -91,7 +101,7 @@ fn setup_planet(
     let texture_handle = images.add(image);
     commands.insert_resource(PlanetTexture(texture_handle.clone()));
 
-    let sphere_mesh = meshes.add(Sphere::new(5.0).mesh().uv(64, 32));
+    let sphere_mesh = meshes.add(Sphere::new(PLANET_RADIUS).mesh().uv(SPHERE_SEGMENTS, SPHERE_RINGS));
     let planet_material = materials.add(StandardMaterial {
         base_color_texture: Some(texture_handle.clone()),
         emissive_texture: Some(texture_handle),
@@ -128,7 +138,7 @@ fn setup_planet(
     )).with_children(|parent| {
         parent.spawn((
             Camera3d::default(),
-            Transform::from_xyz(0.0, 3.0, 15.0).looking_at(Vec3::ZERO, Vec3::Y),
+            Transform::from_xyz(0.0, 3.0, CAMERA_DISTANCE).looking_at(Vec3::ZERO, Vec3::Y),
         ));
     });
 
@@ -295,6 +305,6 @@ fn rotate_camera(
     mut pivot: Query<&mut Transform, With<CameraPivot>>,
 ) {
     for mut tr in &mut pivot {
-        tr.rotate_y(0.02 * time.delta_secs());
+        tr.rotate_y(CAMERA_ORBIT_SPEED * time.delta_secs());
     }
 }

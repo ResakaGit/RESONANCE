@@ -86,7 +86,7 @@ pub fn axiomatic_split_system(
         let radius_left = volume.radius * (left_qe / energy.qe().max(1e-6)).sqrt();
         let radius_right = volume.radius * (right_qe / energy.qe().max(1e-6)).sqrt();
 
-        let is_mobile = left_qe > 30.0; // enough energy for behavior
+        let is_mobile = left_qe > dt::self_sustaining_qe_min() * 1.5;
 
         // Specialization: larger child → growth (interior), smaller → mobility (exterior).
         // Bias = energy fraction: dominant child grows, minor child moves (Axiom 1 + 4).
