@@ -34,6 +34,11 @@ fn main() {
         ..default()
     }));
 
+    // Speed: 1 week per real second = 7 days × 1200 ticks/day = 8400 ticks/s.
+    app.insert_resource(resonance::runtime_platform::simulation_tick::V6RuntimeConfig {
+        use_fixed_tick: true,
+        fixed_hz: 8400.0,
+    });
     app.init_resource::<PaletteRegistry>();
     app.add_plugins(SimulationTickPlugin);
     app.insert_resource(SimWorldTransformParams::default());
@@ -239,28 +244,20 @@ fn update_hud(
         wet_cells / total_cells * 100.0
     }).unwrap_or(0.0);
 
-    // Frequency diversity (count distinct bands).
-    let mut band_counts = [0u32; 7]; // Um, Te, Fl, Aq, Ig, Ve, Lx
-    for energy in &entities_q {
-        if energy.is_dead() { continue; }
-        // Approximate from qe range (entities don't expose freq here, use band index).
-    }
-    let _ = band_counts; // Placeholder — freq not in this query.
-
     **text = format!(
         "EARTH SIMULATION\n\
-         ─────────────────────────\n\
+         -------------------------\n\
          Tick: {}  Day: {:.1}  Year: {:.2}\n\
          Season: {}\n\
-         ─────────────────────────\n\
+         -------------------------\n\
          Entities:   {}\n\
          Behavioral: {}\n\
          Multicelular: {} (linked)\n\
-         ─────────────────────────\n\
+         -------------------------\n\
          Field qe:   {:.0}\n\
          Entity qe:  {:.0}\n\
          Total qe:   {:.0}\n\
-         ─────────────────────────\n\
+         -------------------------\n\
          Water cover: {:.1}%\n\
          Avg qe/entity: {:.1}",
         tick, sim_day, sim_year,

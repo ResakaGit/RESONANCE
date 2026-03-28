@@ -24,17 +24,23 @@ pub fn render_frame(
     let h = grid.height as usize;
     let mut pixels = vec![[0u8, 0, 0, 255]; w * h];
 
-    // Find max for normalization.
-    let mut max_qe: f32 = 1.0;
+    // Find P95 for normalization (ignores nucleus hotspots for better contrast).
+    let mut qe_values = Vec::with_capacity((grid.width * grid.height) as usize);
     let mut max_freq: f32 = 1.0;
     for y in 0..grid.height {
         for x in 0..grid.width {
             if let Some(cell) = grid.cell_xy(x, y) {
-                max_qe = max_qe.max(cell.accumulated_qe);
+                qe_values.push(cell.accumulated_qe);
                 max_freq = max_freq.max(cell.dominant_frequency_hz);
             }
         }
     }
+    qe_values.sort_unstable_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+    let p95_idx = (qe_values.len() as f32 * 0.95) as usize;
+    let max_qe = qe_values.get(p95_idx.min(qe_values.len().saturating_sub(1)))
+        .copied()
+        .unwrap_or(1.0)
+        .max(1.0);
 
     // Field cells → pixels.
     for y in 0..grid.height {
