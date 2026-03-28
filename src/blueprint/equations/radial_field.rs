@@ -7,12 +7,12 @@
 //! Axiom 1: all nodes are qe. Axiom 4: diffusion = entropy.
 //! Axiom 6: peaks emerge, not programmed. Axiom 7: adjacent only.
 
-/// Axial stations along body axis.
-pub const AXIAL: usize = 8;
-/// Radial sectors around body axis (dorsal=0, right=1, ventral=2, left=3).
-pub const RADIAL: usize = 4;
+/// Axial stations along body axis (16 for complex morphology).
+pub const AXIAL: usize = 16;
+/// Radial sectors around body axis (8 for fine bilateral resolution).
+pub const RADIAL: usize = 8;
 /// Maximum detectable peaks.
-pub const MAX_PEAKS: usize = 8;
+pub const MAX_PEAKS: usize = 16;
 
 /// 2D radial field: `[axial][radial]`.
 pub type RadialField = [[f32; RADIAL]; AXIAL];

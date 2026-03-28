@@ -12,6 +12,7 @@ gpu_cell_field_snapshot = []
 v6_fixed_tick = []
 v6_collision_backend_3d = []
 v7_worldgen = []
+pixel_viewer = ["dep:pixels", "dep:winit"]
 
 [dependencies]
 bevy = { version = "0.15", features = ["serialize"] }
@@ -26,6 +27,8 @@ noise = "0.9"
 oxidized_navigation = "0.12"
 parry3d = "0.17"
 rayon = "1.10"
+pixels = { version = "0.14", optional = true }
+winit = { version = "0.30", optional = true }
 
 [profile.dev]
 opt-level = 1
@@ -43,6 +46,10 @@ wgpu = { version = "23", default-features = true, features = ["wgsl"] }
 [[bin]]
 name = "headless_sim"
 path = "src/bin/headless_sim.rs"
+
+[[bin]]
+name = "sim_viewer"
+path = "src/bin/sim_viewer.rs"
 
 [[bench]]
 name = "worldgen_field_perf"
