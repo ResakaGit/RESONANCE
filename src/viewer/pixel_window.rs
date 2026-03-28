@@ -1,15 +1,15 @@
-//! Pixel window renderer — real 2D window using `pixels` crate.
+//! Pixel window renderer — real 2D window using `minifb` crate.
 //! Feature-gated: requires `pixel_viewer` feature.
 //!
-//! Usage: `--render window` flag in headless_sim.
-//! `cargo run --release --features pixel_viewer --bin headless_sim -- --render window`
+//! Usage: `--render window` flag in sim_viewer.
+//! `cargo run --release --features pixel_viewer --bin sim_viewer -- --render window`
 
 use super::frame_buffer::FrameBuffer;
 
 /// Window configuration.
 pub struct WindowConfig {
     pub title: String,
-    pub scale: u32,
+    pub scale: usize,
 }
 
 impl Default for WindowConfig {
@@ -28,86 +28,42 @@ pub fn run_window<F>(config: WindowConfig, width: u32, height: u32, mut tick_fn:
 where
     F: FnMut() -> Option<FrameBuffer>,
 {
-    use pixels::Pixels;
-    use winit::application::ApplicationHandler;
-    use winit::dpi::LogicalSize;
-    use winit::event::WindowEvent;
-    use winit::event_loop::{ActiveEventLoop, EventLoop};
-    use winit::keyboard::{Key, NamedKey};
-    use winit::window::{Window, WindowId};
+    use minifb::{Key, Window, WindowOptions};
 
-    struct App<'a, F2: FnMut() -> Option<FrameBuffer>> {
-        window: Option<Window>,
-        pixels: Option<Pixels<'a>>,
-        width: u32,
-        height: u32,
-        scale: u32,
-        title: String,
-        tick_fn: F2,
-    }
+    let w = width as usize;
+    let h = height as usize;
+    let scaled_w = w * config.scale;
+    let scaled_h = h * config.scale;
 
-    impl<F2: FnMut() -> Option<FrameBuffer>> ApplicationHandler for App<'_, F2> {
-        fn resumed(&mut self, event_loop: &ActiveEventLoop) {
-            let size = LogicalSize::new(
-                (self.width * self.scale) as f64,
-                (self.height * self.scale) as f64,
-            );
-            let attrs = Window::default_attributes()
-                .with_title(&self.title)
-                .with_inner_size(size)
-                .with_min_inner_size(size);
-            let window = event_loop.create_window(attrs).expect("create window");
+    let mut window = Window::new(
+        &config.title,
+        scaled_w,
+        scaled_h,
+        WindowOptions::default(),
+    ).expect("failed to create window");
 
-            let surface_size = window.inner_size();
-            let pixels = Pixels::new(self.width, self.height, pixels::SurfaceTexture::new(
-                surface_size.width, surface_size.height, &window,
-            )).expect("create pixels");
+    // ~60 fps
+    window.set_target_fps(60);
 
-            self.window = Some(window);
-            self.pixels = Some(pixels);
-        }
+    let mut buffer = vec![0u32; scaled_w * scaled_h];
 
-        fn window_event(&mut self, event_loop: &ActiveEventLoop, _id: WindowId, event: WindowEvent) {
-            match event {
-                WindowEvent::CloseRequested => event_loop.exit(),
-                WindowEvent::KeyboardInput { event, .. } => {
-                    if event.logical_key == Key::Named(NamedKey::Escape) {
-                        event_loop.exit();
-                    }
+    while window.is_open() && !window.is_key_down(Key::Escape) {
+        if let Some(frame) = tick_fn() {
+            // Upscale: frame pixels → window buffer.
+            for sy in 0..scaled_h {
+                for sx in 0..scaled_w {
+                    let src_x = sx / config.scale;
+                    let src_y = sy / config.scale;
+                    let src_idx = src_y * w + src_x;
+                    let [r, g, b, _] = frame.pixels[src_idx.min(frame.pixels.len() - 1)];
+                    buffer[sy * scaled_w + sx] = (r as u32) << 16 | (g as u32) << 8 | b as u32;
                 }
-                WindowEvent::RedrawRequested => {
-                    let Some(ref mut px) = self.pixels else { return };
-                    if let Some(frame) = (self.tick_fn)() {
-                        let fb = px.frame_mut();
-                        for (i, [r, g, b, a]) in frame.pixels.iter().enumerate() {
-                            let offset = i * 4;
-                            if offset + 3 < fb.len() {
-                                fb[offset] = *r;
-                                fb[offset + 1] = *g;
-                                fb[offset + 2] = *b;
-                                fb[offset + 3] = *a;
-                            }
-                        }
-                        let _ = px.render();
-                    }
-                    if let Some(ref w) = self.window {
-                        w.request_redraw();
-                    }
-                }
-                _ => {}
             }
+            window.set_title(&format!(
+                "Resonance — entities:{} beh:{} qe:{:.0}",
+                frame.entity_count, frame.behavioral_count, frame.total_qe,
+            ));
         }
+        window.update_with_buffer(&buffer, scaled_w, scaled_h).expect("update buffer");
     }
-
-    let event_loop = EventLoop::new().expect("event loop");
-    let mut app = App {
-        window: None,
-        pixels: None,
-        width,
-        height,
-        scale: config.scale,
-        title: config.title,
-        tick_fn,
-    };
-    let _ = event_loop.run_app(&mut app);
 }

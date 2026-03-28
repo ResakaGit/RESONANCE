@@ -12,7 +12,7 @@ gpu_cell_field_snapshot = []
 v6_fixed_tick = []
 v6_collision_backend_3d = []
 v7_worldgen = []
-pixel_viewer = ["dep:pixels", "dep:winit"]
+pixel_viewer = ["dep:minifb"]
 
 [dependencies]
 bevy = { version = "0.15", features = ["serialize"] }
@@ -27,8 +27,7 @@ noise = "0.9"
 oxidized_navigation = "0.12"
 parry3d = "0.17"
 rayon = "1.10"
-pixels = { version = "0.14", optional = true }
-winit = { version = "0.30", optional = true }
+minifb = { version = "0.27", optional = true }
 
 [profile.dev]
 opt-level = 1

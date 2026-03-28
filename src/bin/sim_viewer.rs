@@ -123,7 +123,7 @@ fn run_window(app: &mut App) {
         grid.map(|g| (g.width, g.height)).unwrap_or((32, 32))
     };
 
-    let scale = parse_arg("--scale").unwrap_or(8);
+    let scale = parse_arg("--scale").unwrap_or(8) as usize;
     let sleep = std::time::Duration::from_millis(17);
 
     resonance::viewer::pixel_window::run_window(
