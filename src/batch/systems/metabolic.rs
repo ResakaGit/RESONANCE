@@ -245,7 +245,7 @@ pub fn culture_transmission(world: &mut SimWorldFlat, _scratch: &mut ScratchPad)
 ///
 /// No N² interaction — single scan. Writes nothing to entities,
 /// just updates a world-level observable.
-pub fn ecology_census(world: &SimWorldFlat) -> u8 {
+pub(super) fn ecology_census(world: &SimWorldFlat) -> u8 {
     let mut bands = [false; 16];
     let mut mask = world.alive_mask;
     while mask != 0 {

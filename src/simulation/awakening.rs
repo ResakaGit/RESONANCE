@@ -90,23 +90,18 @@ pub fn awakening_system(
             0.0
         };
 
-        // Insert behavioral stack — entity "awakens".
+        // Insert behavioral + lifecycle stacks via component group factories.
+        use crate::entities::component_groups as cg;
+        let profile = InferenceProfile::new(growth, mobility, branching, resilience);
         commands.entity(entity).insert((
-            BehavioralAgent,
-            BehaviorIntent::default(),
-            BehaviorCooldown::default(),
-            CapabilitySet::new(caps),
-            InferenceProfile::new(growth, mobility, branching, resilience),
-            HasInferredShape,
-            LifecycleStageCache::default(),
-            MorphogenesisShapeParams::default(),
+            cg::behavior_components(caps, profile),
+            cg::lifecycle_components(clock.tick_id, is_mobile),
         ));
 
         // Mobile entities get full motor + trophic stack.
         if is_mobile {
             commands.entity(entity).insert((
-                TrophicConsumer::new(trophic_class, intake_rate),
-                TrophicState::new(ABIOGENESIS_FAUNA_INITIAL_SATIATION),
+                cg::trophic_components(trophic_class, intake_rate),
                 Homeostasis::new(
                     FAUNA_EMERGENT_ADAPT_RATE,
                     FAUNA_EMERGENT_QE_COST_HZ,
@@ -115,16 +110,6 @@ pub fn awakening_system(
                 ),
             ));
         }
-
-        // Reset senescence on awakening — entity gets a new lifecycle as an organism.
-        let max_age = if is_mobile { senescence_max_age_fauna() } else { senescence_max_age_flora() };
-        let coeff = if is_mobile { senescence_coeff_fauna() } else { senescence_coeff_flora() };
-        commands.entity(entity).insert(SenescenceProfile {
-            tick_birth: clock.tick_id,
-            senescence_coeff: coeff,
-            max_viable_age: max_age,
-            strategy: SENESCENCE_DEFAULT_STRATEGY,
-        });
 
         awakened += 1;
     }

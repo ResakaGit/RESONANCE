@@ -268,12 +268,7 @@ pub fn materialization_delta_system(
                                 layout.materialized_tile_transform(world_pos),
                                 GlobalTransform::default(),
                                 Sprite::default(),
-                                SenescenceProfile {
-                                    tick_birth,
-                                    senescence_coeff: crate::blueprint::constants::senescence_coeff_materialized(),
-                                    max_viable_age: crate::blueprint::constants::senescence_max_age_materialized(),
-                                    strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
-                                },
+                                crate::entities::component_groups::terrain_senescence(tick_birth),
                             ))
                             .id()
                     } else {
@@ -298,12 +293,7 @@ pub fn materialization_delta_system(
                                 layout.materialized_tile_transform(world_pos),
                                 GlobalTransform::default(),
                                 Sprite::default(),
-                                SenescenceProfile {
-                                    tick_birth,
-                                    senescence_coeff: crate::blueprint::constants::senescence_coeff_materialized(),
-                                    max_viable_age: crate::blueprint::constants::senescence_max_age_materialized(),
-                                    strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
-                                },
+                                crate::entities::component_groups::terrain_senescence(tick_birth),
                             ))
                             .id()
                     };
@@ -353,12 +343,7 @@ pub fn materialization_delta_system(
                                 layout.materialized_tile_transform(world_pos),
                                 GlobalTransform::default(),
                                 Sprite::default(),
-                                SenescenceProfile {
-                                    tick_birth,
-                                    senescence_coeff: crate::blueprint::constants::senescence_coeff_materialized(),
-                                    max_viable_age: crate::blueprint::constants::senescence_max_age_materialized(),
-                                    strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
-                                },
+                                crate::entities::component_groups::terrain_senescence(tick_birth),
                             ))
                             .id()
                     } else {
@@ -383,12 +368,7 @@ pub fn materialization_delta_system(
                                 layout.materialized_tile_transform(world_pos),
                                 GlobalTransform::default(),
                                 Sprite::default(),
-                                SenescenceProfile {
-                                    tick_birth,
-                                    senescence_coeff: crate::blueprint::constants::senescence_coeff_materialized(),
-                                    max_viable_age: crate::blueprint::constants::senescence_max_age_materialized(),
-                                    strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
-                                },
+                                crate::entities::component_groups::terrain_senescence(tick_birth),
                             ))
                             .id()
                     };

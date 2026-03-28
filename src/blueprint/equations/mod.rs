@@ -52,6 +52,7 @@ pub mod inferred_world_geometry;
 pub mod calibration;
 pub mod batch_fitness;
 pub mod determinism;
+pub mod radial_field;
 pub mod internal_field;
 pub mod morph_robustness;
 pub mod observability;

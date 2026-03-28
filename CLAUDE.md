@@ -257,7 +257,7 @@ L13 StructuralLink       (spring joint between entities)
 6. **Chain events.** Producer `.before()` or `.chain()` with consumer. Never unordered.
 7. **Phase assignment required.** Every gameplay system → `.in_set(Phase::X)`.
 8. **Math in `blueprint/equations/`.** Systems call pure fns, don't inline formulas.
-9. **`EntityBuilder`** for spawning. Fluent API supporting all 14 layers.
+9. **Component group factories** for spawning (`entities/component_groups.rs`). Pure functions returning tuples, composable via nested bundles. `EntityBuilder` for legacy; prefer factories for new code.
 10. **Constants in constants.** Tuning values centralized per module. Algorithmic arrays stay in-file.
 11. **`With<T>`/`Without<T>`** over `Option<&T>` for filter-only queries.
 12. **Minimal query width.** Only request components you read/write.

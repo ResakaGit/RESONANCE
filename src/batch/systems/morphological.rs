@@ -140,11 +140,11 @@ pub fn abiogenesis(world: &mut SimWorldFlat) {
     world.next_id += 1;
     cell.qe = ABIOGENESIS_INITIAL_QE;
     cell.radius = ABIOGENESIS_INITIAL_RADIUS;
-    cell.frequency_hz = determinism::range_f32(rng, 200.0, 800.0);
+    cell.frequency_hz = determinism::range_f32(rng, ABIOGENESIS_FREQ_MIN, ABIOGENESIS_FREQ_MAX);
     cell.growth_bias = determinism::unit_f32(determinism::next_u64(rng));
-    cell.resilience = 0.5;
+    cell.resilience = ABIOGENESIS_DEFAULT_RESILIENCE;
     cell.trophic_class = 0; // primary producer
-    cell.dissipation = 0.01;
+    cell.dissipation = ABIOGENESIS_DEFAULT_DISSIPATION;
     let s1 = determinism::next_u64(determinism::next_u64(rng));
     let s2 = determinism::next_u64(s1);
     cell.position = [

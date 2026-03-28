@@ -71,7 +71,8 @@ pub fn photosynthesis(world: &mut SimWorldFlat) {
         // Axiom 7: attenuation with frequency distance.
         // resonance = exp(-Δf² / (2 × bandwidth²)) — Gaussian around SOLAR_FREQUENCY.
         let delta_f = (e.frequency_hz - SOLAR_FREQUENCY).abs();
-        let solar_resonance = (-delta_f * delta_f / (2.0 * 200.0 * 200.0)).exp();
+        let bw = SOLAR_BANDWIDTH;
+        let solar_resonance = (-delta_f * delta_f / (2.0 * bw * bw)).exp();
         if solar_resonance < SOLAR_RESONANCE_MIN { continue; }
         let cell = grid_cell(e.position);
         if cell >= GRID_CELLS { continue; }

@@ -120,19 +120,22 @@ fn spawn_creatures(
         let z = angle.sin() * 7.0;
         let freq = bridge::genome_to_components(genome).2.frequency_hz();
 
-        // Initialize internal field from genome (same logic as internal_diffusion system)
-        let profile = resonance::blueprint::equations::internal_field::genome_to_profile(
-            genome.growth_bias, genome.resilience, genome.branching_bias,
-        );
+        // Initialize 2D radial field from genome (isotropic → bilateral emerges)
+        use resonance::blueprint::equations::radial_field;
         let qe = 20.0 + genome.growth_bias * 80.0;
-        let qe_field = resonance::blueprint::equations::internal_field::distribute_to_field(qe, &profile);
-        // Run a few diffusion steps to develop gradients
-        let mut field = qe_field;
-        for _ in 0..20 {
-            field = resonance::blueprint::equations::internal_field::field_diffuse(&field, 0.1, 0.05);
+        let mut field = radial_field::distribute_to_radial(
+            qe, genome.growth_bias, genome.resilience, genome.branching_bias,
+        );
+        // Run diffusion steps to develop emergent gradients + bilateral peaks
+        for _ in 0..30 {
+            field = radial_field::radial_diffuse(&field, 0.1, 0.05);
         }
-        let mut freq_field = [0.0f32; 8];
-        for n in 0..8 { freq_field[n] = freq + (n as f32 - 3.5) * 20.0; }
+        let mut freq_field = [[0.0f32; 4]; 8];
+        for a in 0..8 {
+            for r in 0..4 {
+                freq_field[a][r] = freq + (a as f32 - 3.5) * 20.0 + (r as f32 - 1.5) * 10.0;
+            }
+        }
 
         // Geometry: genome + field → creature_builder (desacoplado)
         let mesh = creature_builder::build_creature_mesh_with_field(

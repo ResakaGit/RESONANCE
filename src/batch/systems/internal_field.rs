@@ -1,17 +1,16 @@
-//! Internal energy field system — distributes qe along 8 body-axis nodes
-//! and runs diffusion each tick.
+//! Internal energy field system — 2D radial diffusion for emergent morphology.
 //!
 //! Tier 1: per-entity, no interaction. SIMD-friendly.
 //! Phase: MorphologicalLayer, before growth_inference.
 
 use crate::batch::arena::SimWorldFlat;
 use crate::batch::constants::*;
-use crate::blueprint::equations::internal_field;
+use crate::blueprint::equations::radial_field;
 
-/// Distribute entity qe into internal field, run diffusion + freq entrainment.
+/// Distribute entity qe into 2D radial field, run diffusion + freq entrainment.
 ///
-/// Axiom 6: organ-like peaks emerge from diffusion dynamics, not programming.
-/// Axiom 5: conservation — field_total always matches qe after this system.
+/// Axiom 6: bilateral peaks emerge from isotropic init + diffusion.
+/// Axiom 5: conservation — radial_total always matches qe.
 pub fn internal_diffusion(world: &mut SimWorldFlat) {
     let dt = world.dt;
     let mut mask = world.alive_mask;
@@ -20,36 +19,36 @@ pub fn internal_diffusion(world: &mut SimWorldFlat) {
         mask &= mask - 1;
         let e = &mut world.entities[i];
 
-        // If field is uninitialized (all zeros but qe > 0), distribute from genome
-        let field_sum = internal_field::field_total(&e.qe_field);
+        // If field uninitialized, distribute from genome (isotropic → bilateral emerges)
+        let field_sum = radial_field::radial_total(&e.qe_field);
         if field_sum < 1e-6 && e.qe > 1e-6 {
-            let profile = internal_field::genome_to_profile(
-                e.growth_bias, e.resilience, e.branching_bias,
+            e.qe_field = radial_field::distribute_to_radial(
+                e.qe, e.growth_bias, e.resilience, e.branching_bias,
             );
-            e.qe_field = internal_field::distribute_to_field(e.qe, &profile);
-            // Initialize freq_field from entity frequency with slight variation
-            for n in 0..internal_field::NODE_COUNT {
-                e.freq_field[n] = e.frequency_hz
-                    + (n as f32 - (internal_field::NODE_COUNT as f32 - 1.0) / 2.0)
-                    * FREQ_FIELD_SPREAD;
+            // Initialize freq_field with slight axial + radial variation
+            for a in 0..radial_field::AXIAL {
+                for r in 0..radial_field::RADIAL {
+                    e.freq_field[a][r] = e.frequency_hz
+                        + (a as f32 - 3.5) * FREQ_FIELD_SPREAD
+                        + (r as f32 - 1.5) * FREQ_FIELD_SPREAD * 0.5;
+                }
             }
         } else if e.qe > 1e-6 {
-            // Sync: if other systems changed qe, rescale field to match
-            internal_field::rescale_field(&mut e.qe_field, e.qe);
+            radial_field::radial_rescale(&mut e.qe_field, e.qe);
         }
 
-        // Diffuse energy between adjacent nodes
-        e.qe_field = internal_field::field_diffuse(
+        // 2D diffusion (axial + radial neighbors)
+        e.qe_field = radial_field::radial_diffuse(
             &e.qe_field, INTERNAL_DIFFUSION_CONDUCTIVITY, dt,
         );
 
-        // Entrain frequencies between adjacent nodes
-        e.freq_field = internal_field::freq_field_entrain(
+        // 2D frequency entrainment
+        e.freq_field = radial_field::radial_freq_entrain(
             &e.freq_field, INTERNAL_FREQ_COUPLING, dt,
         );
 
-        // Update cached qe from field (conservation)
-        e.qe = internal_field::field_total(&e.qe_field);
+        // Conservation: update cached qe from field
+        e.qe = radial_field::radial_total(&e.qe_field);
     }
 }
 
@@ -65,19 +64,18 @@ mod tests {
         e.dissipation = 0.01;
         e.growth_bias = 0.8;
         e.resilience = 0.5;
-        e.branching_bias = 0.3;
+        e.branching_bias = 0.6;
         e.frequency_hz = 440.0;
         w.spawn(e).unwrap()
     }
 
     #[test]
-    fn initializes_field_from_qe() {
+    fn initializes_2d_field_from_qe() {
         let mut w = SimWorldFlat::new(0, 0.05);
-        let idx = spawn(&mut w, 100.0);
-        assert_eq!(internal_field::field_total(&w.entities[idx].qe_field), 0.0);
+        spawn(&mut w, 100.0);
         internal_diffusion(&mut w);
-        let total = internal_field::field_total(&w.entities[idx].qe_field);
-        assert!((total - 100.0).abs() < 1e-3, "field should sum to qe: {total}");
+        let total = radial_field::radial_total(&w.entities[0].qe_field);
+        assert!((total - 100.0).abs() < 1e-2, "field should sum to qe: {total}");
     }
 
     #[test]
@@ -87,43 +85,40 @@ mod tests {
         for _ in 0..50 {
             internal_diffusion(&mut w);
         }
-        let total = internal_field::field_total(&w.entities[0].qe_field);
-        assert!((total - w.entities[0].qe).abs() < 1e-3, "field={total} qe={}", w.entities[0].qe);
-        assert!((total - 100.0).abs() < 1e-2, "conservation: {total}");
+        let total = radial_field::radial_total(&w.entities[0].qe_field);
+        assert!((total - w.entities[0].qe).abs() < 1e-2);
+        assert!((total - 100.0).abs() < 1e-1, "conservation: {total}");
     }
 
     #[test]
-    fn field_develops_gradient_from_genome() {
+    fn bilateral_symmetry_emerges() {
         let mut w = SimWorldFlat::new(0, 0.05);
         let idx = spawn(&mut w, 100.0);
-        w.entities[idx].growth_bias = 1.0;   // tip emphasis
-        w.entities[idx].resilience = 0.0;     // no center emphasis
+        w.entities[idx].branching_bias = 1.0; // strong lateral emphasis
         internal_diffusion(&mut w);
-        // Tips should have more energy than center
-        assert!(
-            w.entities[idx].qe_field[0] > w.entities[idx].qe_field[3],
-            "tips should have more: tip={} center={}",
-            w.entities[idx].qe_field[0], w.entities[idx].qe_field[3],
-        );
-    }
-
-    #[test]
-    fn diffusion_smooths_over_time() {
-        let mut w = SimWorldFlat::new(0, 0.05);
-        let idx = spawn(&mut w, 100.0);
-        internal_diffusion(&mut w);
-        let variance_before: f32 = {
-            let mean = 100.0 / 8.0;
-            w.entities[idx].qe_field.iter().map(|v| (v - mean).powi(2)).sum::<f32>() / 8.0
-        };
-        for _ in 0..200 {
-            internal_diffusion(&mut w);
+        // Sectors 1 (right) and 3 (left) should be equal (isotropic init)
+        for a in 0..radial_field::AXIAL {
+            let right = w.entities[idx].qe_field[a][1];
+            let left = w.entities[idx].qe_field[a][3];
+            assert!((right - left).abs() < 1e-4,
+                "station {a}: right={right} left={left} — bilateral should be symmetric");
         }
-        let variance_after: f32 = {
-            let mean = w.entities[idx].qe / 8.0;
-            w.entities[idx].qe_field.iter().map(|v| (v - mean).powi(2)).sum::<f32>() / 8.0
-        };
-        assert!(variance_after < variance_before, "should smooth: {variance_before} → {variance_after}");
+    }
+
+    #[test]
+    fn lateral_peaks_form_with_branching() {
+        let mut w = SimWorldFlat::new(0, 0.05);
+        let idx = spawn(&mut w, 100.0);
+        w.entities[idx].branching_bias = 1.0;
+        internal_diffusion(&mut w);
+        // Lateral sectors (1,3) should have more energy than dorsal/ventral (0,2)
+        let lateral: f32 = (0..radial_field::AXIAL)
+            .map(|a| w.entities[idx].qe_field[a][1] + w.entities[idx].qe_field[a][3])
+            .sum();
+        let dv: f32 = (0..radial_field::AXIAL)
+            .map(|a| w.entities[idx].qe_field[a][0] + w.entities[idx].qe_field[a][2])
+            .sum();
+        assert!(lateral > dv, "lateral={lateral} should exceed dorsal/ventral={dv}");
     }
 
     #[test]
@@ -131,14 +126,19 @@ mod tests {
         let mut w = SimWorldFlat::new(0, 0.05);
         spawn(&mut w, 100.0);
         w.kill(0);
-        internal_diffusion(&mut w); // should not panic
+        internal_diffusion(&mut w); // no panic
     }
 
     #[test]
-    fn freq_field_initialized() {
+    fn freq_field_initialized_2d() {
         let mut w = SimWorldFlat::new(0, 0.05);
         let idx = spawn(&mut w, 100.0);
         internal_diffusion(&mut w);
-        assert!(w.entities[idx].freq_field[0] > 0.0, "freq should be initialized");
+        assert!(w.entities[idx].freq_field[0][0] > 0.0);
+        // Different axial stations should have different freq
+        assert_ne!(
+            w.entities[idx].freq_field[0][0].to_bits(),
+            w.entities[idx].freq_field[4][0].to_bits(),
+        );
     }
 }

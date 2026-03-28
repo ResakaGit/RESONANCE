@@ -79,12 +79,7 @@ pub fn materialization_incremental_system(
                         layout.materialized_tile_transform(world_pos),
                         GlobalTransform::default(),
                         Sprite::default(),
-                        SenescenceProfile {
-                            tick_birth: clock.tick_id,
-                            senescence_coeff: crate::blueprint::constants::senescence_coeff_materialized(),
-                            max_viable_age: crate::blueprint::constants::senescence_max_age_materialized(),
-                            strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
-                        },
+                        crate::entities::component_groups::terrain_senescence(clock.tick_id),
                     ))
                     .id();
                 let Some(cell_mut) = grid.cell_xy_mut(x, y) else { continue };

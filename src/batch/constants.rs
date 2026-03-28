@@ -167,3 +167,26 @@ pub const CULTURE_AFFINITY_MIN: f32 = 0.3;
 
 /// Frequency field initialization spread per node (Hz offset from center).
 pub const FREQ_FIELD_SPREAD: f32 = 5.0;
+
+// ── Emergent morphology (radial field) ──────────────────────────────────────
+
+/// Peak detection threshold: node must exceed mean × this factor.
+pub const PEAK_THRESHOLD_FACTOR: f32 = 1.8;
+
+/// Minimum peak qe to generate an appendage mesh.
+pub const APPENDAGE_QE_MIN: f32 = 0.5;
+
+/// Solar resonance Gaussian bandwidth (Hz). Controls photosynthetic frequency selectivity.
+pub const SOLAR_BANDWIDTH: f32 = 200.0;
+
+/// Abiogenesis frequency range min (Hz).
+pub const ABIOGENESIS_FREQ_MIN: f32 = 200.0;
+
+/// Abiogenesis frequency range max (Hz).
+pub const ABIOGENESIS_FREQ_MAX: f32 = 800.0;
+
+/// Default resilience for abiogenesis-spawned cells.
+pub const ABIOGENESIS_DEFAULT_RESILIENCE: f32 = 0.5;
+
+/// Default dissipation for abiogenesis-spawned cells.
+pub const ABIOGENESIS_DEFAULT_DISSIPATION: f32 = 0.01;

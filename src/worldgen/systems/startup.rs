@@ -261,12 +261,7 @@ fn materialization_full_world(world: &mut World) {
                         crate::worldgen::constants::MATERIALIZED_SPAWN_BOND_ENERGY,
                         crate::worldgen::constants::MATERIALIZED_SPAWN_THERMAL_CONDUCTIVITY,
                     ),
-                    SenescenceProfile {
-                        tick_birth: 0,
-                        senescence_coeff: crate::blueprint::constants::senescence_coeff_materialized(),
-                        max_viable_age: crate::blueprint::constants::senescence_max_age_materialized(),
-                        strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
-                    },
+                    crate::entities::component_groups::terrain_senescence(0),
                     layout.materialized_tile_transform(world_pos),
                     GlobalTransform::default(),
                     Sprite::default(),

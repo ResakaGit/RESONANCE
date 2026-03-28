@@ -1,5 +1,6 @@
 pub mod archetypes;
 pub mod builder;
+pub mod component_groups;
 pub mod composition;
 pub(crate) mod constants;
 pub(crate) mod lifecycle_observers;
