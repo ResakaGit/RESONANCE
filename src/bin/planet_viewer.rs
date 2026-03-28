@@ -28,7 +28,9 @@ const SPHERE_SEGMENTS: u32 = 64;
 const SPHERE_RINGS: u32 = 32;
 const CAMERA_ORBIT_SPEED: f32 = 0.15; // ~42s per revolution
 const CAMERA_DISTANCE: f32 = 15.0;
-const SIM_TICKS_PER_SEC: f64 = 50.0; // 1 day per 24 real seconds
+/// DENSITY_SCALE / DISSIPATION_GAS = 250. 1 day per ~5 real seconds.
+/// Same physics per tick — just more ticks per second. Axiom-derived 5× multiplier.
+const SIM_TICKS_PER_SEC: f64 = 250.0;
 
 fn main() {
     let mut app = App::new();
