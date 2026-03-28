@@ -112,22 +112,43 @@
       ambient_pressure: None,
     ),
 
-    // ── TERRA LAND MASS — continental crust ───────────────────────────────
-    // Two "continents" at Terra band (85 Hz) — where land-based life thrives.
+    // ── TERRA LAND MASS — continental crust in solar zone ──────────────────
+    // Clustered in the solar-facing hemisphere for maximum coherence.
+    // 4 overlapping Terra nuclei (82-92 Hz) — coherence threshold requires
+    // neighbors at similar frequency within COHERENCE_BANDWIDTH (50 Hz).
+    // High emission: crust absorbs and re-emits solar energy as Terra-band.
     (
-      name: "continent_north",
-      position: (-10.0, 20.0),
+      name: "continent_alpha",
+      position: (-8.0, 28.0),
       frequency_hz: 85.0,
-      emission_rate_qe_s: 100.0,
-      propagation_radius: 15.0,
+      emission_rate_qe_s: 350.0,
+      propagation_radius: 16.0,
       decay: InverseLinear,
       ambient_pressure: None,
     ),
     (
-      name: "continent_south",
-      position: (10.0, -18.0),
-      frequency_hz: 90.0,
-      emission_rate_qe_s: 80.0,
+      name: "continent_beta",
+      position: (6.0, 32.0),
+      frequency_hz: 88.0,
+      emission_rate_qe_s: 300.0,
+      propagation_radius: 14.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    (
+      name: "continent_gamma",
+      position: (-4.0, 22.0),
+      frequency_hz: 82.0,
+      emission_rate_qe_s: 280.0,
+      propagation_radius: 14.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    (
+      name: "continent_delta",
+      position: (10.0, 25.0),
+      frequency_hz: 92.0,
+      emission_rate_qe_s: 250.0,
       propagation_radius: 12.0,
       decay: InverseLinear,
       ambient_pressure: None,
