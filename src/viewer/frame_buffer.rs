@@ -29,35 +29,22 @@ pub fn render_frame(
     let h = grid.height as usize;
     let mut pixels = vec![[0u8, 0, 0, 255]; w * h];
 
-    // Normalization: mean + 2σ (clips nucleus hotspots without sorting).
-    let mut sum_qe = 0.0_f64;
-    let mut sum_sq = 0.0_f64;
-    let mut count = 0u32;
+    // Find max frequency for hue normalization (O(N), no sort).
     let mut max_freq: f32 = 1.0;
     for y in 0..grid.height {
         for x in 0..grid.width {
             if let Some(cell) = grid.cell_xy(x, y) {
-                let q = cell.accumulated_qe as f64;
-                sum_qe += q;
-                sum_sq += q * q;
-                count += 1;
                 max_freq = max_freq.max(cell.dominant_frequency_hz);
             }
         }
     }
-    let max_qe = if count > 0 {
-        let mean = sum_qe / count as f64;
-        let variance = (sum_sq / count as f64 - mean * mean).max(0.0);
-        (mean + 2.0 * variance.sqrt()).max(1.0) as f32
-    } else {
-        1.0
-    };
 
-    // Field cells → pixels.
+    // Field cells → pixels. Logarithmic intensity (astronomical standard).
     for y in 0..grid.height {
         for x in 0..grid.width {
             if let Some(cell) = grid.cell_xy(x, y) {
-                let intensity = (cell.accumulated_qe / max_qe).sqrt();
+                // Log scale: compresses high dynamic range, reveals low-energy structure.
+                let intensity = (1.0 + cell.accumulated_qe).ln() / (1.0 + 100.0_f32).ln();
                 let hue = if max_freq > 0.0 { cell.dominant_frequency_hz / max_freq } else { 0.0 };
                 let sat = cell.purity.max(HSV_SATURATION_FLOOR);
                 let boosted = (intensity * COLOR_INTENSITY_BOOST).min(1.0).max(SURFACE_MIN_BRIGHTNESS);
