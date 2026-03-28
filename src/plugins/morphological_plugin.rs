@@ -130,17 +130,23 @@ impl Plugin for MorphologicalPlugin {
                 .after(simulation::allometric_growth::allometric_growth_system),
         );
 
+        // AD-2: Internal field diffusion (before split detection).
         app.add_systems(
             FixedUpdate,
-            (
-                simulation::reproduction::reproduction_cooldown_tick_system,
-                simulation::reproduction::reproduction_spawn_system,
-            )
-                .chain()
+            simulation::lifecycle::internal_field_diffusion::internal_field_diffusion_system
                 .in_set(Phase::MorphologicalLayer)
                 .run_if(run_gameplay.clone())
-                .run_if(not_round_world_rosa)
                 .after(simulation::allometric_growth::allometric_growth_system),
+        );
+
+        // AD-4: Axiomatic split — replaces reproduction_spawn_system (AD-5).
+        // Division occurs when internal field valley reaches qe ≤ 0 (Axiom 1).
+        app.add_systems(
+            FixedUpdate,
+            simulation::lifecycle::axiomatic_split::axiomatic_split_system
+                .in_set(Phase::MorphologicalLayer)
+                .run_if(run_gameplay.clone())
+                .after(simulation::lifecycle::internal_field_diffusion::internal_field_diffusion_system),
         );
 
         app.add_systems(
@@ -149,7 +155,7 @@ impl Plugin for MorphologicalPlugin {
                 .in_set(Phase::MorphologicalLayer)
                 .run_if(run_gameplay.clone())
                 .run_if(not_round_world_rosa)
-                .after(simulation::reproduction::reproduction_spawn_system),
+                .after(simulation::lifecycle::axiomatic_split::axiomatic_split_system),
         );
 
         // Nucleus recycling: nutrient accumulation → new finite nucleus.

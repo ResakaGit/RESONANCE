@@ -1,4 +1,6 @@
 pub mod allometric_growth;
+pub mod axiomatic_split;
+pub mod internal_field_diffusion;
 pub mod body_plan_layout_inference;
 pub mod competitive_exclusion;
 pub mod constructal_body_plan;

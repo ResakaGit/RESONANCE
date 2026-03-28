@@ -3,7 +3,7 @@
 **Módulo:** `src/blueprint/equations/`
 **Tipo:** Ecuaciones puras (zero Bevy)
 **Eje axiomático:** Axiom 1 (qe ≤ 0 = no existence = disconnection)
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27)
 **Bloqueado por:** Nada (ecuaciones independientes)
 **Esfuerzo:** Bajo (~30min)
 

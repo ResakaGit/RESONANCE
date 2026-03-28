@@ -96,6 +96,7 @@ pub fn awakening_system(
         commands.entity(entity).insert((
             cg::behavior_components(caps, profile),
             cg::lifecycle_components(clock.tick_id, is_mobile),
+            crate::layers::InternalEnergyField::uniform(energy.qe()),
         ));
 
         // Mobile entities get full motor + trophic stack.

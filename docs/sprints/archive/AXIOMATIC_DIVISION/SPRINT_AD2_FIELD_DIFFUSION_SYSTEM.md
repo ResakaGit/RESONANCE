@@ -3,7 +3,7 @@
 **Módulo:** `src/simulation/lifecycle/`
 **Tipo:** Nuevo sistema stateless
 **Eje axiomático:** Axiom 4 (diffusion + dissipation between internal nodes)
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27)
 **Bloqueado por:** AD-1
 **Esfuerzo:** Bajo (~30min)
 

@@ -3,7 +3,7 @@
 **Módulo:** `src/layers/`
 **Tipo:** Nuevo componente ECS
 **Eje axiomático:** Axiom 1 (entity = energy distribution, not energy point)
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27)
 **Bloqueado por:** Nada
 **Esfuerzo:** Bajo (~30min)
 

@@ -3,7 +3,7 @@
 **Módulo:** `src/simulation/lifecycle/`
 **Tipo:** Nuevo sistema ECS
 **Eje axiomático:** Axiom 1 (split at disconnection) + Axiom 2 (conservation)
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27)
 **Bloqueado por:** AD-1, AD-2, AD-3
 **Esfuerzo:** Medio (~1h)
 

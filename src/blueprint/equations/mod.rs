@@ -44,6 +44,7 @@ mod game_loop;
 mod netcode;
 pub mod awakening;
 pub mod derived_thresholds;
+pub mod field_division;
 mod radiation_pressure;
 mod signal_propagation;
 mod culture;

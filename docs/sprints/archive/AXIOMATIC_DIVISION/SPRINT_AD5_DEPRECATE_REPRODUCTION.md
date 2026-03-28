@@ -3,7 +3,7 @@
 **Módulo:** `src/simulation/reproduction/`, `src/plugins/morphological_plugin.rs`
 **Tipo:** Eliminación de sistema hardcodeado
 **Eje axiomático:** Axiom 6 (emergence, not programming)
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ Cerrado (2026-03-27)
 **Bloqueado por:** AD-4 (split system must be working first)
 **Esfuerzo:** Medio (~45min)
 
