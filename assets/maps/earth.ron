@@ -1,0 +1,136 @@
+(
+  // ── Earth Simulation ───────────────────────────────────────────────────────
+  //
+  // Emulates Earth's energy dynamics from first principles:
+  //
+  // 1. THE SUN: A single massive nucleus at the edge of the grid (external source).
+  //    High emission, huge radius, never depletes in simulation timescale.
+  //    Frequency = 400 Hz (SOLAR_FREQUENCY — photosynthetic resonance).
+  //    → This is the energy source that prevents heat death (Axiom 5: external input).
+  //
+  // 2. THE CORE: A deep geothermal nucleus at center.
+  //    Low frequency (50 Hz — Geo/Umbra band), moderate emission.
+  //    → Internal planetary heat, drives tectonics-like energy redistribution.
+  //
+  // 3. THE OCEANS: Two Aqua nuclei (200 Hz) at opposing sides.
+  //    Moderate emission, wide radius (InverseLinear = slow spread).
+  //    → Water moderates temperature, enables life.
+  //
+  // 4. THE ATMOSPHERE: Ventus nucleus (600 Hz) covering most of the grid.
+  //    Low emission but huge radius — thin energy layer everywhere.
+  //    → Wind distributes energy, creates weather-like patterns.
+  //
+  // 5. INITIAL CONDITIONS: Uniform low energy + nutrient water.
+  //    → Primordial soup — life emerges where conditions permit.
+  //
+  // Key: The Sun never runs out (reservoir 500k — lasts entire simulation).
+  // Everything else has finite fuel and must be recycled.
+  //
+  // Expected: solar-facing side develops life first (photosynthetic resonance).
+  // Dark side stays cold until diffusion/radiation pressure brings energy.
+  // Oceans moderate — life persists near water sources even as land dries.
+  // Geothermal creates deep-biome life near core (independent of sun).
+  //
+  width_cells: 48,
+  height_cells: 48,
+  cell_size: 2.0,
+  origin: (-48.0, -48.0),
+  warmup_ticks: Some(100),
+  seed: Some(137),
+  fog_of_war: false,
+  playfield_margin_cells: None,
+
+  // Primordial soup: low uniform energy + nutrients.
+  initial_field_qe: Some(8.0),
+  initial_field_freq: Some(85.0),
+  initial_nutrient_water: Some(0.3),
+
+  nuclei: [
+    // ── THE SUN — external energy source, never depletes ──────────────────
+    // Positioned at top edge (north). Solar radiation falls on the surface.
+    // Frequency 400 Hz — Ignis band. Photosynthesis resonates with this.
+    // Massive reservoir (500k) — effectively infinite for sim timescale.
+    // InverseSquare decay — intensity drops fast with distance (realistic).
+    (
+      name: "sol",
+      position: (0.0, 44.0),
+      frequency_hz: 400.0,
+      emission_rate_qe_s: 800.0,
+      propagation_radius: 45.0,
+      decay: InverseSquare,
+      ambient_pressure: None,
+    ),
+
+    // ── GEOTHERMAL CORE — internal heat engine ────────────────────────────
+    // Center of the world. Low frequency (Geo band).
+    // Finite reservoir — planet cools over geological time.
+    (
+      name: "geo_core",
+      position: (0.0, 0.0),
+      frequency_hz: 50.0,
+      emission_rate_qe_s: 200.0,
+      propagation_radius: 20.0,
+      decay: InverseSquare,
+      ambient_pressure: None,
+    ),
+
+    // ── OCEAN WEST — water body ───────────────────────────────────────────
+    // Aqua band (200 Hz). Wide spread, moderate emission.
+    // Water moderates energy fluctuations (thermal mass).
+    (
+      name: "ocean_west",
+      position: (-20.0, 5.0),
+      frequency_hz: 200.0,
+      emission_rate_qe_s: 150.0,
+      propagation_radius: 22.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+
+    // ── OCEAN EAST — water body ───────────────────────────────────────────
+    (
+      name: "ocean_east",
+      position: (20.0, -5.0),
+      frequency_hz: 210.0,
+      emission_rate_qe_s: 140.0,
+      propagation_radius: 20.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+
+    // ── ATMOSPHERE — thin global energy layer ─────────────────────────────
+    // Ventus band (600 Hz). Low emission but covers everything.
+    // Creates weather-like redistribution patterns.
+    (
+      name: "atmosphere",
+      position: (0.0, 15.0),
+      frequency_hz: 600.0,
+      emission_rate_qe_s: 60.0,
+      propagation_radius: 40.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+
+    // ── TERRA LAND MASS — continental crust ───────────────────────────────
+    // Two "continents" at Terra band (85 Hz) — where land-based life thrives.
+    (
+      name: "continent_north",
+      position: (-10.0, 20.0),
+      frequency_hz: 85.0,
+      emission_rate_qe_s: 100.0,
+      propagation_radius: 15.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    (
+      name: "continent_south",
+      position: (10.0, -18.0),
+      frequency_hz: 90.0,
+      emission_rate_qe_s: 80.0,
+      propagation_radius: 12.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+  ],
+  seasons: [],
+)
