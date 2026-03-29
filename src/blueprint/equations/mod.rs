@@ -58,6 +58,7 @@ pub mod batch_stepping;
 pub mod determinism;
 pub mod radial_field;
 pub mod internal_field;
+pub mod variable_genome;
 pub mod morph_robustness;
 pub mod observability;
 pub mod sensitivity;

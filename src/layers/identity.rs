@@ -40,18 +40,26 @@ pub enum RelationalTag {
     Jungle,
 }
 
+impl RelationalTag {
+    /// Bitfield position for this tag.
+    pub const fn bit(self) -> u8 {
+        1 << (self as u8)
+    }
+}
+
 /// Capa 9: Meta-Contexto e Identidad — Reglas de MOBA
+/// Layer 9: Meta-Context and Identity — MOBA Rules
 ///
-/// El "Juego" sobre la simulación. Etiquetas arbitrarias que interceptan las
-/// matemáticas físicas para aplicar reglas de diseño (Lore, Facciones, Odio, Ítems).
+/// Facciones, tags relacionales, modificador crítico. Capa de gameplay sobre la física.
+/// Factions, relational tags, critical modifier. Gameplay layer over physics.
 #[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct MobaIdentity {
     /// Equipo/facción de la entidad.
     pub(crate) faction: Faction,
 
-    /// Tags relacionales para filtros y reglas de targeting.
-    pub(crate) relational_tags: Vec<RelationalTag>,
+    /// Tags relacionales como bitfield (8 variants → 8 bits). No heap.
+    pub(crate) relational_tags: u8,
 
     /// Multiplicador de daño/curación crítico.
     /// Alterado por la Fase (Capa 2) y relaciones de Odio/Afinidad.
@@ -62,7 +70,7 @@ impl Default for MobaIdentity {
     fn default() -> Self {
         Self {
             faction: Faction::Neutral,
-            relational_tags: Vec::new(),
+            relational_tags: 0,
             critical_multiplier: LINK_NEUTRAL_MULTIPLIER,
         }
     }
@@ -74,9 +82,20 @@ impl MobaIdentity {
         self.faction
     }
 
+    /// Raw tag bitfield.
     #[inline]
-    pub fn relational_tags(&self) -> &[RelationalTag] {
-        &self.relational_tags
+    pub fn relational_tags_bits(&self) -> u8 {
+        self.relational_tags
+    }
+
+    /// Add a relational tag.
+    pub fn add_tag(&mut self, tag: RelationalTag) {
+        self.relational_tags |= tag.bit();
+    }
+
+    /// Remove a relational tag.
+    pub fn remove_tag(&mut self, tag: RelationalTag) {
+        self.relational_tags &= !tag.bit();
     }
 
     #[inline]
@@ -115,7 +134,7 @@ impl MobaIdentity {
     }
 
     pub fn has_tag(&self, tag: RelationalTag) -> bool {
-        self.relational_tags.contains(&tag)
+        self.relational_tags & tag.bit() != 0
     }
 }
 
@@ -128,12 +147,12 @@ mod tests {
     fn faction_modifier_ally_positive() {
         let a = MobaIdentity {
             faction: Faction::Red,
-            relational_tags: Vec::new(),
+            relational_tags: 0,
             critical_multiplier: 1.0,
         };
         let b = MobaIdentity {
             faction: Faction::Red,
-            relational_tags: Vec::new(),
+            relational_tags: 0,
             critical_multiplier: 1.0,
         };
         assert!((a.faction_modifier(&b) - FACTION_ALLY_BONUS).abs() < 1e-5);
@@ -144,12 +163,12 @@ mod tests {
     fn faction_modifier_enemy_negative() {
         let a = MobaIdentity {
             faction: Faction::Red,
-            relational_tags: Vec::new(),
+            relational_tags: 0,
             critical_multiplier: 1.0,
         };
         let b = MobaIdentity {
             faction: Faction::Blue,
-            relational_tags: Vec::new(),
+            relational_tags: 0,
             critical_multiplier: 1.0,
         };
         assert!((a.faction_modifier(&b) - FACTION_ENEMY_MALUS).abs() < 1e-5);

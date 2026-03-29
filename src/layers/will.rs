@@ -1,14 +1,15 @@
 use bevy::prelude::*;
-
-use crate::blueprint::constants::WILL_MOVEMENT_INTENT_SQ_EPSILON;
 use serde::{Deserialize, Serialize};
 
+use crate::blueprint::constants::WILL_MOVEMENT_INTENT_SQ_EPSILON;
 use crate::blueprint::ElementId;
 use crate::blueprint::recipes::{EffectRecipe, TransmuteDir};
-/// Límite de slots en grimorio (evita crecimiento ilimitado del Vec).
-pub const MAX_GRIMOIRE_ABILITIES: usize = 64;
+
+/// Máximo de habilidades por entidad. / Max ability slots per entity.
+pub const MAX_GRIMOIRE_ABILITIES: usize = 8;
 
 /// Capa 7: Agencia y Locomoción — El Actuador
+/// Layer 7: Agency and Locomotion — The Actuator
 ///
 /// La voluntad inyectada en el motor. Traduce inputs (teclado/IA) en órdenes
 /// de drenaje de la Capa 5 para generar vectores en la Capa 3.
@@ -208,25 +209,46 @@ impl AbilitySlot {
 }
 
 /// Capa 7b: Grimorio — Catálogo de habilidades de la entidad.
-#[derive(Component, Reflect, Debug, Clone, Default)]
+///
+/// Fixed-size array (no heap). MAX_GRIMOIRE_ABILITIES = 8 (QWER + extras).
+#[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
 pub struct Grimoire {
-    pub(crate) abilities: Vec<AbilitySlot>,
+    pub(crate) abilities: [Option<AbilitySlot>; MAX_GRIMOIRE_ABILITIES],
+    pub(crate) len: u8,
+}
+
+impl Default for Grimoire {
+    fn default() -> Self {
+        Self {
+            abilities: std::array::from_fn(|_| None),
+            len: 0,
+        }
+    }
 }
 
 impl Grimoire {
-    /// Iteración de solo lectura sobre slots (API pública fuera del crate).
-    #[inline]
-    pub fn abilities(&self) -> &[AbilitySlot] {
-        &self.abilities
+    /// Active ability slots as slice (indexed access for QWER selection).
+    pub fn abilities(&self) -> &[Option<AbilitySlot>] {
+        &self.abilities[..self.len as usize]
     }
 
-    /// Inserta una habilidad en el grimorio.
+    /// Get ability at slot index.
+    pub fn get(&self, index: usize) -> Option<&AbilitySlot> {
+        self.abilities.get(index).and_then(|s| s.as_ref())
+    }
+
+    /// Number of active abilities.
+    pub fn len(&self) -> usize {
+        self.len as usize
+    }
+
+    /// Insert ability. Returns false if full.
     pub fn push_ability(&mut self, ability: AbilitySlot) -> bool {
-        if self.abilities.len() >= MAX_GRIMOIRE_ABILITIES {
-            return false;
-        }
-        self.abilities.push(ability);
+        let idx = self.len as usize;
+        if idx >= MAX_GRIMOIRE_ABILITIES { return false; }
+        self.abilities[idx] = Some(ability);
+        self.len += 1;
         true
     }
 }

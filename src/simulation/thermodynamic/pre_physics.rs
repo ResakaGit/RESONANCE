@@ -373,7 +373,7 @@ mod tests {
     fn neutral_identity() -> MobaIdentity {
         MobaIdentity {
             faction: Faction::Neutral,
-            relational_tags: Vec::new(),
+            relational_tags: 0,
             critical_multiplier: LINK_NEUTRAL_MULTIPLIER,
         }
     }

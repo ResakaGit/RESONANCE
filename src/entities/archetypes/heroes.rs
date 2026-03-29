@@ -85,7 +85,7 @@ pub fn spawn_hero_layers(
             engine.initial_buffer,
         )
         .will_default()
-        .identity(faction, vec![RelationalTag::Hero], crit)
+        .identity(faction, RelationalTag::Hero.bit(), crit)
         .sim_world_layout(layout);
 
     if let Some(tf) = addons.tension_field {

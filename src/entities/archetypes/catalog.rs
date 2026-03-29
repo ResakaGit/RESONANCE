@@ -241,7 +241,7 @@ pub fn spawn_animal_demo(
         .matter(MatterState::Solid, ANIMAL_BOND, ANIMAL_CONDUCTIVITY)
         .motor(ANIMAL_BUF_MAX, ANIMAL_IN_VALVE, ANIMAL_OUT_VALVE, ANIMAL_BUF_INIT)
         .will_default()
-        .identity(Faction::Neutral, vec![RelationalTag::Jungle], 1.0)
+        .identity(Faction::Neutral, RelationalTag::Jungle.bit(), 1.0)
         .homeostasis(Homeostasis::new(ANIMAL_ADAPT_RATE, ANIMAL_QE_COST_HZ, ANIMAL_STAB_BAND, true))
         .ambient(0.0, 1.0) // L6: neutral biome — enables constructal body plan inference
         .sim_world_layout(layout)

@@ -22,16 +22,10 @@ pub enum MatterState {
 }
 
 /// Capa 4: Materia — La Coherencia Estructural
+/// Layer 4: Matter — Structural Coherence
 ///
-/// El "freno" a la disipación. Contenedor que resiste el estrés de las Capas 2 y 3.
-/// Si la energía interna supera la energía de enlace, la entidad colapsa o muta.
-///
-/// Transiciones de fase (basadas en densidad → temperatura equivalente):
-///   T_equiv = densidad / k_boltzmann_juego
-///   T < 0.3 * eb → Sólido
-///   T < 1.0 * eb → Líquido
-///   T < 3.0 * eb → Gas
-///   T >= 3.0 * eb → Plasma
+/// Resistencia a la disipación. Si energía > enlace, la entidad muta de fase.
+/// Dissipation brake. If energy > bond, entity undergoes phase transition.
 #[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct MatterCoherence {

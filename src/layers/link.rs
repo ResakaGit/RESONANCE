@@ -19,9 +19,10 @@ pub enum ModifiedField {
 }
 
 /// Capa 10: Enlace de Resonancia — Entidades-efecto tipo B.
+/// Layer 10: Resonance Link — Effect Entities
 ///
-/// Une una entidad-efecto (fuente) con un target y aplica un modificador
-/// temporal mientras la entidad-efecto tenga energía.
+/// Buff/debuff temporal: modifica un campo del target mientras la fuente viva.
+/// Temporary buff/debuff: modifies a target field while the source lives.
 #[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct ResonanceLink {

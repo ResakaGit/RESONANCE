@@ -69,11 +69,9 @@ pub fn enqueue_grimoire_cast_intent(
     pending_proj: &mut EventWriter<GrimoireProjectileCastPending>,
     pending_self: &mut EventWriter<GrimoireSelfBuffCastPending>,
 ) -> bool {
-    let ability_count = grimoire.abilities().len();
-    if slot_index >= ability_count {
+    let Some(slot) = grimoire.get(slot_index) else {
         return false;
-    }
-    let slot = &grimoire.abilities()[slot_index];
+    };
     let cost = slot.cost_qe().max(0.0);
     if cost <= 0.0 {
         return false;

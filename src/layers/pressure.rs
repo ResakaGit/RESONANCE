@@ -8,13 +8,10 @@ use crate::blueprint::constants::{
 };
 
 /// Capa 6: Ecosistema — Topología Macroscópica
+/// Layer 6: Ecosystem — Macroscopic Topology
 ///
-/// Modificadores ambientales a gran escala que aplican presión constante
-/// sobre las entidades de Capas 1 a 5.
-///
-/// Aplicación (en sistema presion_entorno):
-///   entidad.qe += bioma.delta_qe_constante * dt
-///   entidad.tasa_disipacion_efectiva *= bioma.viscosidad_terreno
+/// Presión ambiental: inyecta/drena qe y modifica viscosidad por bioma.
+/// Ambient pressure: injects/drains qe and modifies viscosity per biome.
 #[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct AmbientPressure {
@@ -73,10 +70,12 @@ impl AmbientPressure {
 
     /// Deep space vacuum: near-zero dissipation, no energy injection.
     /// Axiom 4 still holds (dissipation > 0) but at negligible rate.
+    /// Vacío espacial. / Deep space vacuum.
     pub fn vacuum() -> Self {
+        use crate::blueprint::equations::derived_thresholds::DISSIPATION_SOLID;
         Self {
             delta_qe_constant: 0.0,
-            terrain_viscosity: 0.001,
+            terrain_viscosity: DISSIPATION_SOLID, // 0.005 — minimal but nonzero (Axiom 4)
         }
     }
 }

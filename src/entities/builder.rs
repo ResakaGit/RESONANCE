@@ -6,7 +6,7 @@ use crate::layers::{
     AlchemicalEngine, AlchemicalInjector, AllometricRadiusAnchor, AmbientPressure, BaseEnergy,
     Faction, FlowVector, GrowthBudget, Homeostasis, IrradianceReceiver, MatterCoherence,
     MatterState, MetabolicGraph, MobaIdentity, MorphogenesisShapeParams, NutrientProfile,
-    OrganManifest, OscillatorySignature, RelationalTag, SpatialVolume, StructuralLink,
+    OrganManifest, OscillatorySignature, SpatialVolume, StructuralLink,
     TensionField, WillActuator,
 };
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
@@ -160,12 +160,12 @@ impl EntityBuilder {
     pub fn identity(
         mut self,
         faction: Faction,
-        tags: Vec<RelationalTag>,
+        tag_bits: u8,
         critical_multiplier: f32,
     ) -> Self {
         self.identity = Some(MobaIdentity {
             faction,
-            relational_tags: tags,
+            relational_tags: tag_bits,
             critical_multiplier,
         });
         self

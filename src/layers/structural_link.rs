@@ -6,6 +6,7 @@ fn placeholder_entity() -> Entity {
 }
 
 /// Capa 13: Vínculo físico tipo resorte entre nodos.
+/// Layer 13: Physical spring joint between entities.
 #[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct StructuralLink {

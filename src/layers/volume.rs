@@ -4,17 +4,17 @@ use serde::{Deserialize, Serialize};
 use crate::blueprint::constants::{DEFAULT_SPHERE_RADIUS, VOLUME_MIN_RADIUS};
 use crate::blueprint::equations;
 
-/// Capa 1: Densidad — El Espacio
+/// Capa 1: Volumen Espacial — El Espacio
+/// Layer 1: Spatial Volume — Space
 ///
-/// La energía requiere un contenedor espacial. El radio define el volumen esférico
-/// y el radio de colisión para consultas espaciales.
+/// La energía requiere un contenedor espacial. El radio define volumen y colisión.
+/// Energy needs a spatial container. Radius defines volume and collision.
 ///
-/// Cantidad derivada (calculada en sistemas, no almacenada):
-///   densidad = qe / ((4/3) * PI * radio³)
+/// Derivada / Derived: `densidad = qe / ((4/3) × π × r³)` (computed, not stored)
 #[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct SpatialVolume {
-    /// Radio en unidades de mundo (metros).
+    /// Radio en unidades de mundo. / Radius in world units.
     pub radius: f32,
 }
 
@@ -33,19 +33,19 @@ impl SpatialVolume {
         }
     }
 
-    /// Volumen de la esfera (SSOT: `blueprint::equations::sphere_volume`).
+    /// Volumen de la esfera. / Sphere volume. Delegates to `equations::sphere_volume`.
     #[inline]
     pub fn volume(&self) -> f32 {
         equations::sphere_volume(self.radius)
     }
 
-    /// Densidad: ρ = qe / V (SSOT: `blueprint::equations::density`).
+    /// Densidad: ρ = qe / V. / Density. Delegates to `equations::density`.
     #[inline]
     pub fn density(&self, qe: f32) -> f32 {
         equations::density(qe, self.radius)
     }
 
-    /// Actualiza el radio respetando invariantes de capa.
+    /// Actualiza el radio respetando invariantes. / Updates radius, clamped to minimum.
     #[inline]
     pub fn set_radius(&mut self, radius: f32) {
         let r = radius.max(VOLUME_MIN_RADIUS);
@@ -90,5 +90,26 @@ mod tests {
     fn new_clamps_radius_to_volume_minimum() {
         let v = SpatialVolume::new(-5.0);
         assert!((v.radius - VOLUME_MIN_RADIUS).abs() < 1e-6);
+    }
+
+    #[test]
+    fn new_nan_clamps_to_minimum() {
+        let v = SpatialVolume::new(f32::NAN);
+        assert!(v.radius.is_finite());
+        assert!((v.radius - VOLUME_MIN_RADIUS).abs() < 1e-6);
+    }
+
+    #[test]
+    fn set_radius_clamps_negative() {
+        let mut v = SpatialVolume::new(1.0);
+        v.set_radius(-10.0);
+        assert!((v.radius - VOLUME_MIN_RADIUS).abs() < 1e-6);
+    }
+
+    #[test]
+    fn set_radius_updates_valid_value() {
+        let mut v = SpatialVolume::new(1.0);
+        v.set_radius(2.5);
+        assert!((v.radius - 2.5).abs() < 1e-6);
     }
 }

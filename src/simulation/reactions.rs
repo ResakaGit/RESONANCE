@@ -484,7 +484,7 @@ mod tests {
             .world_mut()
             .spawn(MobaIdentity {
                 faction: Faction::Red,
-                relational_tags: Vec::new(),
+                relational_tags: 0,
                 critical_multiplier: 1.0,
             })
             .id();
@@ -504,7 +504,7 @@ mod tests {
                 OscillatorySignature::new(450.0, 0.0),
                 MobaIdentity {
                     faction: Faction::Blue,
-                    relational_tags: Vec::new(),
+                    relational_tags: 0,
                     critical_multiplier: 1.0,
                 },
             ))

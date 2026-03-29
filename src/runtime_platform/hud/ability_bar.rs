@@ -144,7 +144,7 @@ fn sync_ability_bar_system(
     };
 
     for (fill, mut bg, mut node) in &mut q_fill {
-        let Some(slot) = grim.abilities().get(fill.slot) else {
+        let Some(slot) = grim.get(fill.slot) else {
             node.width = Val::Percent(0.0);
             continue;
         };

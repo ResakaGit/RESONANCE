@@ -4,22 +4,17 @@ use serde::{Deserialize, Serialize};
 use std::f32::consts::PI;
 
 use crate::blueprint::constants::DEFAULT_FREQUENCY_HZ;
-
 use crate::blueprint::equations;
 use crate::layers::MobaIdentity;
 use crate::runtime_platform::simulation_tick::SimulationElapsed;
 
 /// Capa 2: Resonancia — El Tiempo y la Forma
+/// Layer 2: Resonance — Time and Form
 ///
-/// La energía concentrada oscila. La frecuencia define el "elemento" y la fase
-/// determina la alineación para cálculos de interferencia.
+/// La frecuencia define el "elemento", la fase determina interferencia.
+/// Frequency defines "element", phase determines interference alignment.
 ///
-/// Interferencia entre dos osciladores:
-///   I(a,b) = cos(2π * |f_a - f_b| * t + (φ_a - φ_b))
-///
-/// I ~ +1.0 → constructiva (resonancia, amplificación, curación)
-/// I ~ -1.0 → destructiva (daño, aniquilación, oposición)
-/// I ~  0.0 → ortogonal (sin interacción)
+/// `I(a,b) = cos(2π × |f_a - f_b| × t + (φ_a - φ_b))` → [-1, 1]
 #[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct OscillatorySignature {
@@ -45,10 +40,9 @@ impl Default for OscillatorySignature {
 
 impl OscillatorySignature {
     pub fn new(frequency_hz: f32, phase: f32) -> Self {
-        Self {
-            frequency_hz: frequency_hz.max(0.0),
-            phase: phase.rem_euclid(2.0 * PI),
-        }
+        let f = if frequency_hz.is_finite() { frequency_hz.max(0.0) } else { 0.0 };
+        let p = if phase.is_finite() { phase.rem_euclid(2.0 * PI) } else { 0.0 };
+        Self { frequency_hz: f, phase: p }
     }
 
     #[inline]

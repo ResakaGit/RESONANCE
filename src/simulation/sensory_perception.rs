@@ -289,7 +289,7 @@ mod tests {
                 AlchemicalEngine::new(100.0, 10.0, 10.0, 50.0),
                 MobaIdentity {
                     faction: Faction::Red,
-                    relational_tags: Vec::new(),
+                    relational_tags: 0,
                     critical_multiplier: 1.0,
                 },
             ))
@@ -310,7 +310,7 @@ mod tests {
                 crate::layers::SpatialVolume::new(radius),
                 MobaIdentity {
                     faction,
-                    relational_tags: Vec::new(),
+                    relational_tags: 0,
                     critical_multiplier: 1.0,
                 },
             ))

@@ -2,6 +2,7 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 /// Capa 12: Adaptación frecuencial con costo energético.
+/// Layer 12: Frequency adaptation with energy cost.
 #[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct Homeostasis {

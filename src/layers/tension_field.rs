@@ -9,6 +9,7 @@ pub enum FieldFalloffMode {
 }
 
 /// Capa 11: Campo de tensión a distancia.
+/// Layer 11: Tension Field — Long-range force (gravity/magnetic).
 #[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct TensionField {

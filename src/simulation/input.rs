@@ -81,7 +81,7 @@ pub fn grimoire_slot_selection_system(
     ];
 
     for (caster, grim, mut will) in &mut query {
-        let n = grim.abilities().len();
+        let n = grim.len();
         if n == 0 {
             continue;
         }
@@ -112,10 +112,8 @@ pub fn grimoire_targeting_system(
 ) {
     for ev in slot_ev.read() {
         let Ok(grim) = grimoire_q.get(ev.caster) else { continue; };
-        if ev.slot_index >= grim.abilities().len() {
-            continue;
-        }
-        let mode = grim.abilities()[ev.slot_index].targeting().clone();
+        let Some(slot) = grim.get(ev.slot_index) else { continue; };
+        let mode = slot.targeting().clone();
         match mode {
             TargetingMode::PointTarget { .. }
             | TargetingMode::AreaTarget { .. }
@@ -149,10 +147,7 @@ pub fn grimoire_channeling_start_system(
 ) {
     for ev in slot_ev.read() {
         let Ok((tf, vol, grim, eng, will)) = query.get(ev.caster) else { continue; };
-        if ev.slot_index >= grim.abilities().len() {
-            continue;
-        }
-        let slot = &grim.abilities()[ev.slot_index];
+        let Some(slot) = grim.get(ev.slot_index) else { continue; };
         match slot.targeting().clone() {
             TargetingMode::NoTarget => {
                 if slot.min_channeling_secs() > 0.0 {

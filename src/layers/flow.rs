@@ -4,14 +4,12 @@ use serde::{Deserialize, Serialize};
 use crate::blueprint::constants::DEFAULT_DISSIPATION_RATE;
 
 /// Capa 3: Dinámica — El Flujo y la Entropía
+/// Layer 3: Dynamics — Flow and Entropy
 ///
-/// Tendencia de la energía a desplazarse y disiparse (Segunda Ley de la Termodinámica).
+/// Velocidad + disipación. Segunda Ley de la Termodinámica.
+/// Velocity + dissipation. Second Law of Thermodynamics.
 ///
-/// Ecuaciones clave:
-///   posición += velocidad * dt
-///   qe -= tasa_disipacion_efectiva * dt
-///   tasa_efectiva = tasa_disipacion + coef_friccion * |velocidad|²
-///   F_arrastre = -0.5 * viscosidad * densidad * |v| * v
+/// `qe -= (dissipation + friction × |v|²) × dt`
 #[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct FlowVector {

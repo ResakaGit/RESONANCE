@@ -2,17 +2,19 @@ use bevy::ecs::system::SystemParam;
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::blueprint::constants::DEFAULT_BASE_ENERGY;
-
-use crate::blueprint::constants::QE_MIN_EXISTENCE;
+use crate::blueprint::constants::{DEFAULT_BASE_ENERGY, QE_MIN_EXISTENCE};
 use crate::events::{DeathCause, DeathEvent};
 
 /// Capa 0: Magnitud Base — El Cuanto
+/// Layer 0: Base Magnitude — The Quantum
 ///
 /// La existencia pura. Define cuánta "sustancia" hay antes de darle forma o comportamiento.
-/// Es el HP termodinámico: cuando `qe` llega a 0, la entidad se disipa o muere.
+/// Pure existence. Defines how much "substance" there is before shape or behavior.
 ///
-/// Invariante: qe >= 0.0 (clampeado en todo sistema que lo modifique)
+/// Es el HP termodinámico: cuando `qe` llega a 0, la entidad se disipa o muere.
+/// Thermodynamic HP: when `qe` reaches 0, the entity dissipates or dies.
+///
+/// Invariante / Invariant: qe >= 0.0 (clamped in every system that modifies it)
 #[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct BaseEnergy {
@@ -159,6 +161,20 @@ mod tests {
         e.inject(f32::NAN);
         assert!(e.qe().is_finite());
         assert!((e.qe() - 100.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn new_clamps_negative_to_zero() {
+        let e = BaseEnergy::new(-50.0);
+        assert_eq!(e.qe(), 0.0);
+    }
+
+    #[test]
+    fn drain_overdraw_returns_only_available() {
+        let mut e = BaseEnergy::new(30.0);
+        let got = e.drain(100.0);
+        assert!((got - 30.0).abs() < 1e-5, "should return available, not requested: {got}");
+        assert_eq!(e.qe(), 0.0);
     }
 
     #[test]

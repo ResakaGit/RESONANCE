@@ -338,6 +338,7 @@ let total: f32 = query.iter().filter(|(_, e)| !e.is_dead()).map(|(_, e)| e.qe).s
 7. **Inline comments** only for non-obvious math or invariants.
 8. **Imports grouped:** bevy → crate → super.
 9. **Naming:** `SCREAMING_SNAKE` constants, `PascalCase` types, `snake_case` fns. Domain abbreviations OK: `qe`, `eb`, `freq`, `dt`.
+10. **Bilingual comments** — All `///` doc comments must have both Spanish and English, one line each. Spanish first, English below. Minimalist: one sentence per language. Inline `//` comments can be single-language if trivial.
 
 ## Design Templates
 

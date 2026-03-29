@@ -10,14 +10,10 @@ use crate::blueprint::equations;
 use crate::blueprint::{AlchemicalAlmanac, ElementId};
 
 /// Capa 5: Enrutamiento — El Motor Abierto
+/// Layer 5: Routing — The Open Engine
 ///
-/// Transforma la materia muerta en un sistema procesador. Actúa como un capacitor
-/// entre el campo de energía bruto (Capa 0) y el uso activo de habilidades (Capa 8).
-///
-/// Ciclo por tick:
-///   intake = min(valvula_entrada * dt, qe_disponible, buffer_libre)
-///   qe -= intake
-///   buffer_actual += intake
+/// Capacitor entre campo de energía (L0) y habilidades (L8).
+/// Capacitor between energy field (L0) and abilities (L8).
 #[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct AlchemicalEngine {
@@ -154,40 +150,49 @@ impl AlchemicalEngine {
     }
 }
 
+/// Max mastered elements per entity.
+const MAX_MASTERED: usize = 4;
+/// Max discovered compounds per entity.
+const MAX_COMPOUNDS: usize = 4;
+
 /// Extensión del motor: identidad alquímica de la entidad.
 ///
-/// Define qué elementos domina, su eficiencia de creación,
-/// y qué compuestos ha descubierto. Co-localizado con AlchemicalEngine.
+/// Fixed-size arrays (no heap). Entities master ≤4 elements, discover ≤4 compounds.
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
 pub struct AlchemicalForge {
-    /// Elementos que la entidad domina (eficiencia máxima).
-    pub mastered_elements: Vec<ElementId>,
-
+    /// Elementos dominados + compuestos descubiertos (fixed-size, no heap).
+    pub(crate) mastered_elements: [ElementId; MAX_MASTERED],
+    pub(crate) mastered_count: u8,
+    pub(crate) discovered_compounds: [ElementId; MAX_COMPOUNDS],
+    pub(crate) discovered_count: u8,
     /// Multiplicador global de eficiencia de creación.
     pub creation_bonus: f32,
-
-    /// Compuestos descubiertos por transmutación exitosa.
-    pub discovered_compounds: Vec<ElementId>,
 }
 
 impl Default for AlchemicalForge {
     fn default() -> Self {
         Self {
-            mastered_elements: Vec::new(),
+            mastered_elements: [ElementId::default(); MAX_MASTERED],
+            mastered_count: 0,
             creation_bonus: LINK_NEUTRAL_MULTIPLIER,
-            discovered_compounds: Vec::new(),
+            discovered_compounds: [ElementId::default(); MAX_COMPOUNDS],
+            discovered_count: 0,
         }
     }
 }
 
 impl AlchemicalForge {
     pub fn new(primary_element: ElementId) -> Self {
-        Self {
-            mastered_elements: vec![primary_element],
-            creation_bonus: LINK_NEUTRAL_MULTIPLIER,
-            discovered_compounds: Vec::new(),
-        }
+        let mut s = Self::default();
+        s.mastered_elements[0] = primary_element;
+        s.mastered_count = 1;
+        s
+    }
+
+    /// Active mastered elements slice.
+    pub fn mastered(&self) -> &[ElementId] {
+        &self.mastered_elements[..self.mastered_count as usize]
     }
 
     /// Eficiencia de creación para un elemento dado.
@@ -196,7 +201,7 @@ impl AlchemicalForge {
     pub fn creation_efficiency(&self, target: ElementId, almanac: &AlchemicalAlmanac) -> f32 {
         let f_target = almanac.get(target).map(|d| d.frequency_hz).unwrap_or(0.0);
         let f_caster = self
-            .mastered_elements
+            .mastered()
             .first()
             .and_then(|id| almanac.get(*id))
             .map(|d| d.frequency_hz)
@@ -218,18 +223,29 @@ impl AlchemicalForge {
 
     /// Registra un compuesto como descubierto.
     pub fn discover(&mut self, compound: ElementId) {
-        if !self.discovered_compounds.contains(&compound) {
-            self.discovered_compounds.push(compound);
+        let count = self.discovered_count as usize;
+        if count < MAX_COMPOUNDS && !self.discovered_compounds[..count].contains(&compound) {
+            self.discovered_compounds[count] = compound;
+            self.discovered_count += 1;
         }
     }
 
     /// Promueve un compuesto descubierto a dominado (mastered).
     pub fn master(&mut self, element: ElementId) {
-        if !self.mastered_elements.contains(&element) {
-            self.mastered_elements.push(element);
+        let m_count = self.mastered_count as usize;
+        if m_count < MAX_MASTERED && !self.mastered_elements[..m_count].contains(&element) {
+            self.mastered_elements[m_count] = element;
+            self.mastered_count += 1;
         }
-        // Si era descubierto, ya no necesita estar ahí
-        self.discovered_compounds.retain(|e| *e != element);
+        // Si era descubierto, ya no necesita estar ahí — compact in place
+        let mut write = 0usize;
+        for read in 0..self.discovered_count as usize {
+            if self.discovered_compounds[read] != element {
+                self.discovered_compounds[write] = self.discovered_compounds[read];
+                write += 1;
+            }
+        }
+        self.discovered_count = write as u8;
     }
 }
 

@@ -7,8 +7,10 @@ use crate::blueprint::constants::{
 };
 
 /// Capa 8: Catálisis — El Gestor de Reacciones Emergentes
+/// Layer 8: Catalysis — The Emergent Reaction Manager
 ///
-/// Arquetipo dinámico que representa el evento de alteración de la realidad.
+/// Spell payload: fuerza energía y frecuencia en el objetivo.
+/// Spell payload: forces energy and frequency onto target.
 #[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct AlchemicalInjector {
