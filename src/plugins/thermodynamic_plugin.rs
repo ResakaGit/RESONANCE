@@ -75,8 +75,10 @@ impl Plugin for ThermodynamicPlugin {
         app.add_systems(
             FixedUpdate,
             (
-                crate::worldgen::systems::day_night::day_night_modulation_system
+                crate::worldgen::systems::planetary_formation::planetary_formation_system
                     .after(crate::worldgen::systems::radiation_pressure::radiation_pressure_system),
+                crate::worldgen::systems::day_night::day_night_modulation_system
+                    .after(crate::worldgen::systems::planetary_formation::planetary_formation_system),
                 crate::worldgen::systems::water_cycle::water_cycle_system
                     .after(crate::worldgen::systems::day_night::day_night_modulation_system),
             )

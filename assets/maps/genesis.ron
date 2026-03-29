@@ -1,0 +1,63 @@
+(
+  // ── Genesis — Everything from nothing ──────────────────────────────────────
+  //
+  // Only a proto-sun (dense energy point) + uniform primordial gas.
+  // No continents, no oceans, no atmosphere defined.
+  //
+  // What should emerge from physics alone:
+  //   1. Gravity collapses proto-sun → fusion ignites when qe > plasma threshold
+  //   2. Solar radiation propagates outward → energy field forms
+  //   3. Night cooling + dissipation → outer shell solidifies
+  //   4. Angular momentum → rotation emerges from collapse asymmetry
+  //   5. Water cycle redistributes moisture to cold zones → "oceans"
+  //   6. Frequency coherence clusters → "continents" where Terra band resonates
+  //   7. Abiogenesis → life where coherence > dissipation
+  //
+  width_cells: 64,
+  height_cells: 64,
+  cell_size: 2.0,
+  origin: (-64.0, -64.0),
+  warmup_ticks: Some(300),
+  seed: Some(137),
+  fog_of_war: false,
+  playfield_margin_cells: None,
+
+  // Primordial gas: moderate uniform energy + frequency noise.
+  initial_field_qe: Some(15.0),
+  initial_field_freq: Some(200.0),
+  initial_nutrient_water: Some(0.6),
+
+  // Day/night emerges from rotation; seasons from tilt.
+  day_period_ticks: Some(800.0),
+  year_period_ticks: Some(292000.0),
+  axial_tilt: Some(0.26),
+  self_sustaining_qe: Some(10.0),
+
+  nuclei: [
+    // Proto-sun: single dense point. Fusion activates when qe > plasma threshold.
+    // Gravity pulls surrounding gas inward → accretion disk → star ignites.
+    (
+      name: "proto_sun",
+      position: (0.0, 50.0),
+      frequency_hz: 400.0,
+      emission_rate_qe_s: 500.0,
+      propagation_radius: 50.0,
+      decay: InverseSquare,
+      ambient_pressure: None,
+    ),
+
+    // Proto-core: small dense seed at center. Gravity will grow it.
+    // Represents the initial density perturbation that becomes a planet.
+    (
+      name: "proto_core",
+      position: (0.0, 0.0),
+      frequency_hz: 50.0,
+      emission_rate_qe_s: 30.0,
+      propagation_radius: 15.0,
+      decay: InverseSquare,
+      ambient_pressure: None,
+      reservoir: Some(5000.0),
+    ),
+  ],
+  seasons: [],
+)

@@ -45,6 +45,7 @@ mod netcode;
 pub mod awakening;
 pub mod derived_thresholds;
 pub mod field_division;
+pub mod planetary_formation;
 pub mod planetary_rotation;
 mod radiation_pressure;
 mod signal_propagation;
