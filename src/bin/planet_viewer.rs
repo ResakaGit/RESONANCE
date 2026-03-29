@@ -174,7 +174,6 @@ fn update_planet_texture(
 ) {
     let Some(grid) = grid else { return };
     let Some(tex) = planet_tex else { return };
-    let Some(image) = images.get_mut(&tex.0) else { return };
 
     let mut ent_positions = Vec::new();
     let mut beh_positions = Vec::new();
@@ -191,14 +190,17 @@ fn update_planet_texture(
 
     let frame = frame_buffer::render_frame(&grid, &ent_positions, &beh_positions);
 
-    let expected_len = frame.width * frame.height * 4;
-    if image.data.len() != expected_len { return; }
-    for (i, &[r, g, b, a]) in frame.pixels.iter().enumerate() {
-        let base = i * 4;
-        image.data[base] = r;
-        image.data[base + 1] = g;
-        image.data[base + 2] = b;
-        image.data[base + 3] = a;
+    // Rebuild Image data (ensures Bevy detects the change for GPU upload).
+    let w = frame.width as u32;
+    let h = frame.height as u32;
+    let mut data = Vec::with_capacity(frame.pixels.len() * 4);
+    for &[r, g, b, a] in &frame.pixels {
+        data.extend_from_slice(&[r, g, b, a]);
+    }
+
+    let Some(image) = images.get_mut(&tex.0) else { return };
+    if image.data.len() == data.len() {
+        image.data = data;
     }
 }
 
