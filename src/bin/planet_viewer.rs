@@ -76,14 +76,6 @@ struct MetricsText;
 #[derive(Resource)]
 struct PlanetTexture(Handle<Image>);
 
-/// Material handle — needed to poke change detection after image data update.
-/// Bevy 0.15 regression: modifying Image::data via get_mut() does NOT trigger
-/// GPU re-upload for StandardMaterial dependents. Workaround: touch the material
-/// with get_mut() so the render pipeline re-extracts the texture.
-/// See: <https://github.com/bevyengine/bevy/issues/17350>
-#[derive(Resource)]
-struct PlanetMaterial(Handle<StandardMaterial>);
-
 fn setup_planet(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -120,8 +112,6 @@ fn setup_planet(
         unlit: true,
         ..default()
     });
-    commands.insert_resource(PlanetMaterial(planet_material.clone()));
-
     commands.spawn((
         Planet,
         Mesh3d(sphere_mesh),
@@ -165,9 +155,7 @@ fn setup_hud(mut commands: Commands) {
 fn update_planet_texture(
     grid: Option<Res<EnergyFieldGrid>>,
     planet_tex: Option<Res<PlanetTexture>>,
-    planet_mat: Option<Res<PlanetMaterial>>,
     mut images: ResMut<Assets<Image>>,
-    mut materials: ResMut<Assets<StandardMaterial>>,
     entities_q: Query<(&Transform, &BaseEnergy, &OscillatorySignature, Option<&BehavioralAgent>)>,
 ) {
     let Some(grid) = grid else { return };
@@ -188,23 +176,25 @@ fn update_planet_texture(
 
     let frame = frame_buffer::render_frame(&grid, &ent_positions, &beh_positions);
 
+    // Build raw RGBA data from frame pixels.
+    let w = frame.width as u32;
+    let h = frame.height as u32;
     let mut data = Vec::with_capacity(frame.pixels.len() * 4);
     for &[r, g, b, a] in &frame.pixels {
         data.extend_from_slice(&[r, g, b, a]);
     }
 
-    let Some(image) = images.get_mut(&tex.0) else { return };
-    if image.data.len() == data.len() {
-        image.data = data;
-    }
-
-    // Bevy 0.15 workaround: touching the material via get_mut() triggers change
-    // detection so the render pipeline re-extracts the updated texture to the GPU.
-    // Without this, Image::data mutations are silently ignored by StandardMaterial.
-    // See: https://github.com/bevyengine/bevy/issues/17350
-    if let Some(mat) = planet_mat {
-        let _ = materials.get_mut(&mat.0);
-    }
+    // Replace the entire Image asset (forces GPU re-upload every frame).
+    // Bevy 0.15 bug #17350: in-place data mutation doesn't propagate to GPU.
+    let mut new_image = Image::new(
+        Extent3d { width: w, height: h, depth_or_array_layers: 1 },
+        TextureDimension::D2,
+        data,
+        TextureFormat::Rgba8UnormSrgb,
+        RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
+    );
+    new_image.sampler = bevy::image::ImageSampler::linear();
+    images.insert(tex.0.id(), new_image);
 }
 
 fn update_hud(
