@@ -28,6 +28,7 @@ const SPHERE_SEGMENTS: u32 = 64;
 const SPHERE_RINGS: u32 = 32;
 const CAMERA_ORBIT_SPEED: f32 = 0.15; // ~42s per revolution
 const CAMERA_DISTANCE: f32 = 15.0;
+const PLANET_TILT_RAD: f32 = -0.41; // Earth's 23.5° axial tilt
 /// DENSITY_SCALE / DISSIPATION_GAS = 250. 1 day per ~5 real seconds.
 /// Same physics per tick — just more ticks per second. Axiom-derived 5× multiplier.
 const SIM_TICKS_PER_SEC: f64 = 250.0;
@@ -44,9 +45,8 @@ fn main() {
         ..default()
     }));
 
-    // Simulation speed: SIM_TICKS_PER_SEC ticks/s.
+    // Simulation speed: SIM_TICKS_PER_SEC ticks/s (axiom-derived 5× multiplier).
     // FixedUpdate runs at this rate; Bevy caps catch-up to ~250ms by default.
-    // At 120 Hz, max ~30 ticks/frame before dropping — smooth enough.
     app.insert_resource(resonance::runtime_platform::simulation_tick::V6RuntimeConfig {
         use_fixed_tick: true,
         fixed_hz: SIM_TICKS_PER_SEC,
@@ -104,7 +104,7 @@ fn setup_planet(
     let mut image = Image::new(
         size,
         TextureDimension::D2,
-        vec![40u8; (tex_w * tex_h * 4) as usize],
+        vec![0u8; (tex_w * tex_h * 4) as usize],
         TextureFormat::Rgba8UnormSrgb,
         RenderAssetUsages::RENDER_WORLD | RenderAssetUsages::MAIN_WORLD,
     );
@@ -126,23 +126,10 @@ fn setup_planet(
         Planet,
         Mesh3d(sphere_mesh),
         MeshMaterial3d(planet_material),
-        Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.4, 0.0, 0.0)),
+        Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, PLANET_TILT_RAD, 0.0, 0.0)),
     ));
 
-    commands.spawn((
-        DirectionalLight {
-            illuminance: 15000.0,
-            color: Color::srgb(1.0, 0.95, 0.85),
-            shadows_enabled: true,
-            ..default()
-        },
-        Transform::from_rotation(Quat::from_euler(EulerRot::XYZ, -0.3, 0.8, 0.0)),
-    ));
-
-    commands.insert_resource(AmbientLight {
-        color: Color::srgb(0.15, 0.15, 0.25),
-        brightness: 50.0,
-    });
+    // No directional/ambient light needed — unlit material shows texture directly.
 
     commands.spawn((
         CameraPivot,
