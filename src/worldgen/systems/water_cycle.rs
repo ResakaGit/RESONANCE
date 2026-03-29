@@ -16,15 +16,24 @@ const WATER_MIN_THRESHOLD: f32 = dt::DISSIPATION_LIQUID; // 0.02
 /// Minimum delta to apply (avoids float churn on negligible changes).
 const DELTA_EPSILON: f32 = 1e-5;
 
+/// Reference tick rate for dt normalization.
+const REFERENCE_HZ: f32 = 60.0;
+
 /// Transfers water from hot cells to their coolest neighbor.
 /// Conservation: water moved, not created/destroyed (Axiom 5).
+/// Tick-rate-independent via dt normalization.
 pub fn water_cycle_system(
     energy_grid: Option<Res<EnergyFieldGrid>>,
     mut nutrient_grid: Option<ResMut<NutrientFieldGrid>>,
+    fixed: Option<Res<Time<Fixed>>>,
+    time: Res<Time>,
 ) {
     let Some(grid) = energy_grid else { return };
     let Some(ref mut nutrients) = nutrient_grid else { return };
     if grid.width != nutrients.width || grid.height != nutrients.height { return; }
+
+    let dt = fixed.as_ref().map(|f| f.delta_secs()).unwrap_or_else(|| time.delta_secs());
+    let dt_ratio = dt * REFERENCE_HZ;
 
     let w = grid.width as usize;
     let h = grid.height as usize;
@@ -45,7 +54,7 @@ pub fn water_cycle_system(
             if cell_water < WATER_MIN_THRESHOLD || cell_qe < 1.0 { continue; }
 
             // Evaporation amount: proportional to energy and current water.
-            let evap = cell_water * evap_rate * (cell_qe / dt::DENSITY_SCALE).min(1.0);
+            let evap = cell_water * evap_rate * (cell_qe / dt::DENSITY_SCALE).min(1.0) * dt_ratio;
             if evap < DELTA_EPSILON { continue; }
 
             // Find coolest neighbor (precipitation target).

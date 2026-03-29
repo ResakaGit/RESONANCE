@@ -5,6 +5,7 @@
 //!
 //! Night cooling follows Newton's law: proportional drain (hot cells cool
 //! faster, cold cells approach zero asymptotically — never empty).
+//! All rates are tick-rate-independent via dt normalization.
 //!
 //! Stateless: reads tick_id + config, writes grid qe.
 //! Phase: ThermodynamicLayer, after propagation.
@@ -17,6 +18,9 @@ use crate::blueprint::equations::planetary_rotation::{
 };
 use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::worldgen::EnergyFieldGrid;
+
+/// Reference tick rate at which dissipation constants were calibrated.
+const REFERENCE_HZ: f32 = 60.0;
 
 /// Resource: day/night cycle + seasonal configuration.
 #[derive(Resource, Debug, Clone)]
@@ -47,17 +51,21 @@ impl DayNightConfig {
 }
 
 /// Drains energy on the dark side of the rotating planet (Newton's law).
-/// Day side: no change (propagation handles solar emission).
-/// Night side: proportional drain `cell_qe × cooling_fraction × shadow`.
-/// Seasons modulate irradiance by latitude (axial tilt oscillation).
+/// Tick-rate-independent: drain scaled by `dt × REFERENCE_HZ`.
 pub fn day_night_modulation_system(
     config: Option<Res<DayNightConfig>>,
     clock: Res<SimulationClock>,
+    fixed: Option<Res<Time<Fixed>>>,
+    time: Res<Time>,
     mut grid: Option<ResMut<EnergyFieldGrid>>,
 ) {
     let Some(config) = config else { return };
     let Some(ref mut grid) = grid else { return };
     if config.omega == 0.0 { return; }
+
+    // dt normalization: at 60 Hz → dt_ratio = 1.0. At 250 Hz → 0.24.
+    let dt = fixed.as_ref().map(|f| f.delta_secs()).unwrap_or_else(|| time.delta_secs());
+    let dt_ratio = dt * REFERENCE_HZ;
 
     let grid_w = config.grid_width_world;
     let grid_h = grid.height as f32 * grid.cell_size;
@@ -80,7 +88,7 @@ pub fn day_night_modulation_system(
             if let Some(cell) = grid.cell_xy_mut(x, y) {
                 if cell.accumulated_qe <= 0.0 { continue; }
                 let shadow = 1.0 - solar_factor;
-                let drain = cell.accumulated_qe * cooling * shadow;
+                let drain = cell.accumulated_qe * cooling * shadow * dt_ratio;
                 if drain > 0.01 {
                     cell.accumulated_qe -= drain;
                     grid.mark_cell_dirty(x, y);
