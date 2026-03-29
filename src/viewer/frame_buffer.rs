@@ -1,12 +1,13 @@
 //! Shared frame buffer — pure function that converts EnergyFieldGrid → pixel data.
-//! Used by both terminal and pixel_window renderers.
+//! Used by terminal, pixel_window, and planet_viewer renderers.
 
 use crate::worldgen::EnergyFieldGrid;
 
 // ── Visual calibration (rendering, not physics) ─────────────────────────────
-const HSV_SATURATION_FLOOR: f32 = 0.3;
-const COLOR_INTENSITY_BOOST: f32 = 1.5;
-const SURFACE_MIN_BRIGHTNESS: f32 = 0.08; // Dark terrain visible vs space black
+/// Log normalization reference: ln(1 + REF) is the 100% white point.
+const LOG_REFERENCE_QE: f32 = 50.0;
+/// Minimum brightness so dark terrain is visible against space background.
+const SURFACE_MIN_BRIGHTNESS: f32 = 0.06;
 
 /// RGBA pixel data for one frame.
 pub struct FrameBuffer {
@@ -20,6 +21,9 @@ pub struct FrameBuffer {
 
 /// Render the energy field grid to a pixel buffer.
 /// Pure function: grid in → pixels out. No state. No side effects.
+///
+/// Color ramp: thermal (black → blue → cyan → green → yellow → white).
+/// Hue from dominant frequency. Brightness from log(qe).
 pub fn render_frame(
     grid: &EnergyFieldGrid,
     entity_positions: &[(u32, u32, f32)], // (cell_x, cell_y, frequency_hz)
@@ -28,34 +32,21 @@ pub fn render_frame(
     let w = grid.width as usize;
     let h = grid.height as usize;
     let mut pixels = vec![[0u8, 0, 0, 255]; w * h];
+    let log_ref = (1.0 + LOG_REFERENCE_QE).ln();
 
-    // Find max frequency for hue normalization (O(N), no sort).
-    let mut max_freq: f32 = 1.0;
     for y in 0..grid.height {
         for x in 0..grid.width {
             if let Some(cell) = grid.cell_xy(x, y) {
-                max_freq = max_freq.max(cell.dominant_frequency_hz);
-            }
-        }
-    }
-
-    // Field cells → pixels. Logarithmic intensity (astronomical standard).
-    for y in 0..grid.height {
-        for x in 0..grid.width {
-            if let Some(cell) = grid.cell_xy(x, y) {
-                // Log scale: compresses high dynamic range, reveals low-energy structure.
-                let intensity = (1.0 + cell.accumulated_qe).ln() / (1.0 + 100.0_f32).ln();
-                let hue = if max_freq > 0.0 { cell.dominant_frequency_hz / max_freq } else { 0.0 };
-                let sat = cell.purity.max(HSV_SATURATION_FLOOR);
-                let boosted = (intensity * COLOR_INTENSITY_BOOST).min(1.0).max(SURFACE_MIN_BRIGHTNESS);
-                let (r, g, b) = hsv_to_rgb(hue, sat, boosted);
+                let t = ((1.0 + cell.accumulated_qe).ln() / log_ref).clamp(0.0, 1.0);
+                let freq_hue = cell.dominant_frequency_hz / 800.0; // 0→0 Hz, 1→800 Hz
+                let (r, g, b) = thermal_ramp(t, freq_hue);
                 let idx = (grid.height - 1 - y) as usize * w + x as usize;
                 pixels[idx] = [r, g, b, 255];
             }
         }
     }
 
-    // Entity dots.
+    // Entity dots: bright white.
     for &(cx, cy, _freq) in entity_positions {
         let idx = (grid.height - 1 - cy) as usize * w + cx as usize;
         if idx < pixels.len() {
@@ -87,21 +78,38 @@ pub fn render_frame(
     }
 }
 
-/// HSV → RGB conversion. Pure.
-fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
-    let h = h.clamp(0.0, 1.0) * 6.0;
-    let s = s.clamp(0.0, 1.0);
-    let v = v.clamp(0.0, 1.0);
-    let c = v * s;
-    let x = c * (1.0 - (h % 2.0 - 1.0).abs());
-    let m = v - c;
-    let (r, g, b) = match h as u32 {
-        0 => (c, x, 0.0),
-        1 => (x, c, 0.0),
-        2 => (0.0, c, x),
-        3 => (0.0, x, c),
-        4 => (x, 0.0, c),
-        _ => (c, 0.0, x),
+/// Thermal color ramp modulated by frequency hue.
+/// `t` = energy intensity [0, 1]. `freq_hue` = frequency band [0, 1].
+/// Low energy → dark blue/purple. High energy → bright green/yellow/white.
+fn thermal_ramp(t: f32, freq_hue: f32) -> (u8, u8, u8) {
+    let t = t.max(SURFACE_MIN_BRIGHTNESS);
+
+    // Base thermal: black → blue → cyan → green → yellow → white.
+    let (r, g, b) = if t < 0.2 {
+        let s = t / 0.2;
+        (0.0, 0.0, s * 0.5)              // black → dark blue
+    } else if t < 0.4 {
+        let s = (t - 0.2) / 0.2;
+        (0.0, s * 0.5, 0.5)              // dark blue → cyan
+    } else if t < 0.6 {
+        let s = (t - 0.4) / 0.2;
+        (0.0, 0.5 + s * 0.5, 0.5 - s * 0.3) // cyan → green
+    } else if t < 0.8 {
+        let s = (t - 0.6) / 0.2;
+        (s * 0.8, 1.0, 0.2 - s * 0.2)   // green → yellow
+    } else {
+        let s = (t - 0.8) / 0.2;
+        (0.8 + s * 0.2, 1.0 - s * 0.3, s * 0.5) // yellow → warm white
     };
-    (((r + m) * 255.0) as u8, ((g + m) * 255.0) as u8, ((b + m) * 255.0) as u8)
+
+    // Frequency tint: shift hue slightly based on dominant frequency.
+    let tint_r = r + freq_hue * 0.15;
+    let tint_g = g;
+    let tint_b = b + (1.0 - freq_hue) * 0.1;
+
+    (
+        (tint_r.clamp(0.0, 1.0) * 255.0) as u8,
+        (tint_g.clamp(0.0, 1.0) * 255.0) as u8,
+        (tint_b.clamp(0.0, 1.0) * 255.0) as u8,
+    )
 }
