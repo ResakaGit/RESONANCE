@@ -53,6 +53,15 @@ struct HudText;
 #[derive(Component)]
 struct GameOverUi;
 
+// ─── Constants (visual calibration, no physics) ────────────────────────────
+
+const VIEWER_QE_MIN: f32     = 20.0;  // minimum qe for stable mesh rendering
+const VIEWER_QE_RANGE: f32   = 80.0;  // growth_bias × RANGE + MIN = visual qe
+const ARENA_CREATURE_CAP: usize = 12; // max creatures in arena
+const SPAWN_RING_BASE: f32   = 6.0;   // inner radius of spawn ring
+const SPAWN_RING_STEP: f32   = 0.5;   // radius increment per creature
+const SPAWN_Y_OFFSET: f32    = 0.1;   // lift above ground plane
+
 // ─── States (local al binario) ──────────────────────────────────────────────
 
 #[derive(States, Clone, Copy, PartialEq, Eq, Hash, Debug, Default)]
@@ -196,10 +205,10 @@ fn spawn_creatures(
         })),
     ));
 
-    let count = genomes.0.len().min(12);
+    let count = genomes.0.len().min(ARENA_CREATURE_CAP);
     for (i, genome) in genomes.0.iter().take(count).enumerate() {
         let angle = (i as f32 / count as f32) * std::f32::consts::TAU;
-        let radius = 6.0 + (i as f32 * 0.5);
+        let radius = SPAWN_RING_BASE + (i as f32 * SPAWN_RING_STEP);
         let x = angle.cos() * radius;
         let z = angle.sin() * radius;
 
@@ -207,7 +216,7 @@ fn spawn_creatures(
         let entity = commands.spawn((
             Mesh3d(mesh_handle),
             MeshMaterial3d(mat_handle),
-            Transform::from_xyz(x, 0.1, z),
+            Transform::from_xyz(x, SPAWN_Y_OFFSET, z),
         )).id();
 
         // Marcar la primera criatura como player
@@ -219,13 +228,14 @@ fn spawn_creatures(
 }
 
 /// Construye mesh + material desde genome. Stateless.
+/// Pattern duplicado de evolve_and_view.rs por diseño (binario standalone, zero coupling).
 fn build_creature_visuals(
     genome: &GenomeBlob,
     meshes: &mut Assets<Mesh>,
     materials: &mut Assets<StandardMaterial>,
 ) -> (Handle<Mesh>, Handle<StandardMaterial>) {
     let freq = bridge::genome_to_components(genome).2.frequency_hz();
-    let qe = 20.0 + genome.growth_bias * 80.0;
+    let qe = VIEWER_QE_MIN + genome.growth_bias * VIEWER_QE_RANGE;
 
     use resonance::blueprint::equations::radial_field;
     let field = radial_field::build_viewer_field(
@@ -276,9 +286,15 @@ fn player_input(
     will.set_movement_intent(dir.normalize_or_zero());
 }
 
-/// Score = ticks sobrevividos.
+/// Score = ticks sobrevividos. Solo corre en Phase::Playing (run_if guard).
 fn score_tick(mut state: ResMut<SurvivalState>) {
-    if state.alive { state.score += 1; }
+    state.score += 1;
+}
+
+/// Transiciona a muerte. Idempotente.
+fn trigger_death(state: &mut SurvivalState, next_phase: &mut NextState<Phase>) {
+    state.alive = false;
+    next_phase.set(Phase::Dead);
 }
 
 /// Detecta muerte del player via DeathEvent o energía agotada.
@@ -289,28 +305,19 @@ fn detect_death(
     mut next_phase: ResMut<NextState<Phase>>,
 ) {
     if !state.alive { return; }
-
     let Some(player_entity) = state.player_entity else { return };
 
-    // Chequeo 1: DeathEvent emitido por EnergyOps
-    for ev in events.read() {
-        if ev.entity == player_entity {
-            state.alive = false;
-            next_phase.set(Phase::Dead);
-            return;
-        }
+    // DeathEvent emitido por EnergyOps
+    if events.read().any(|ev| ev.entity == player_entity) {
+        trigger_death(&mut state, &mut next_phase);
+        return;
     }
 
-    // Chequeo 2: energía por debajo del mínimo (fallback si el evento no llegó)
-    let Ok((_, energy)) = player_q.get(player_entity) else {
-        // Entity despawned sin evento — muerte por causa externa
-        state.alive = false;
-        next_phase.set(Phase::Dead);
-        return;
-    };
-    if energy.qe() <= 0.0 {
-        state.alive = false;
-        next_phase.set(Phase::Dead);
+    // Fallback: entity despawned o energía agotada
+    match player_q.get(player_entity) {
+        Ok((_, energy)) if energy.qe() <= 0.0 => trigger_death(&mut state, &mut next_phase),
+        Err(_) => trigger_death(&mut state, &mut next_phase),
+        _ => {}
     }
 }
 

@@ -52,10 +52,14 @@ pub struct TherapyConfig {
     pub normal_growth: f32,
     pub normal_resilience: f32,
     pub normal_dissipation: f32,
+    /// Normal cell trophic class. 0=producer (photosynthesis). Healthy tissue.
+    pub normal_trophic: u8,
     pub cancer_qe: f32,
     pub cancer_growth: f32,
     pub cancer_resilience: f32,
     pub cancer_dissipation: f32,
+    /// Cancer cell trophic class. 3=carnivore (Warburg: consumes host glucose, no photosynthesis).
+    pub cancer_trophic: u8,
 
     // Simulation
     pub worlds: usize,
@@ -79,8 +83,10 @@ impl Default for TherapyConfig {
             pk_ramp_gens: 3,
             normal_qe: 30.0, normal_growth: 0.3,
             normal_resilience: 0.8, normal_dissipation: 0.01,
+            normal_trophic: 0,  // producer: healthy tissue does photosynthesis
             cancer_qe: 40.0, cancer_growth: 0.9,
             cancer_resilience: 0.2, cancer_dissipation: 0.005,
+            cancer_trophic: 3,  // carnivore: Warburg effect, consumes host glucose
             worlds: 100, generations: 100,
             ticks_per_gen: 300, seed: 42,
         }
@@ -395,7 +401,9 @@ pub fn run(config: &TherapyConfig) -> TherapyReport {
 
 fn spawn_population(world: &mut SimWorldFlat, config: &TherapyConfig, seed: u64) {
     let mut s = seed;
-    let spawn_cell = |s: &mut u64, freq: f32, freq_sigma: f32, qe: f32, growth: f32, resilience: f32, dissipation: f32, pos_range: (f32, f32)| -> EntitySlot {
+    /// Spawn a single cell. Pure factory: config → EntitySlot. No side effects.
+    let spawn_cell = |s: &mut u64, freq: f32, freq_sigma: f32, qe: f32, growth: f32,
+                      resilience: f32, dissipation: f32, trophic: u8, pos_range: (f32, f32)| -> EntitySlot {
         *s = determinism::next_u64(*s);
         let mut slot = EntitySlot::default();
         slot.qe = qe;
@@ -404,6 +412,7 @@ fn spawn_population(world: &mut SimWorldFlat, config: &TherapyConfig, seed: u64)
         slot.growth_bias = growth;
         slot.resilience = resilience;
         slot.dissipation = dissipation;
+        slot.trophic_class = trophic;
         slot.expression_mask = [1.0; 4];
         *s = determinism::next_u64(*s);
         slot.position = [determinism::range_f32(*s, pos_range.0, pos_range.1),
@@ -411,41 +420,39 @@ fn spawn_population(world: &mut SimWorldFlat, config: &TherapyConfig, seed: u64)
         slot
     };
 
+    // Healthy cells: trophic from config (default: producer=photosynthesis)
     for _ in 0..config.normal_count {
         let slot = spawn_cell(&mut s, config.normal_freq, 10.0, config.normal_qe,
-            config.normal_growth, config.normal_resilience, config.normal_dissipation, (1.0, 15.0));
+            config.normal_growth, config.normal_resilience, config.normal_dissipation,
+            config.normal_trophic, (1.0, 15.0));
         world.spawn(slot);
     }
 
+    // Active cancer cells: trophic from config (default: carnivore=Warburg, no photosynthesis)
     let quiescent_n = (config.cancer_count as f32 * config.quiescent_fraction) as u8;
     for _ in 0..(config.cancer_count - quiescent_n) {
         let slot = spawn_cell(&mut s, config.cancer_freq, 15.0, config.cancer_qe,
-            config.cancer_growth, config.cancer_resilience, config.cancer_dissipation, (5.0, 11.0));
-        world.spawn(slot);
-    }
-    // Quiescent stem cells: low growth (dormant), high resilience, low dissipation.
-    // Properties derived from config: qe=half of active, growth=near-zero, resilience=max.
-    for _ in 0..quiescent_n {
-        let slot = spawn_cell(&mut s, config.cancer_freq, 5.0,
-            config.cancer_qe * config.quiescent_drug_sensitivity, // dormant = low energy
-            0.01,                           // near-quiescent (is_quiescent threshold = 0.05)
-            config.normal_resilience,       // hardy as healthy tissue
-            config.cancer_dissipation * 0.2, // very low natural death
-            (6.0, 10.0));
+            config.cancer_growth, config.cancer_resilience, config.cancer_dissipation,
+            config.cancer_trophic, (5.0, 11.0));
         world.spawn(slot);
     }
 
-    // Immune cells: attack cancer by frequency proximity.
-    // Properties: low growth (don't proliferate much), moderate resilience, higher dissipation.
+    // Quiescent stem cells: same trophic as active cancer (Warburg), but dormant.
+    for _ in 0..quiescent_n {
+        let slot = spawn_cell(&mut s, config.cancer_freq, 5.0,
+            config.cancer_qe * config.quiescent_drug_sensitivity,
+            0.01, config.normal_resilience, config.cancer_dissipation * 0.2,
+            config.cancer_trophic, (6.0, 10.0));
+        world.spawn(slot);
+    }
+
+    // Immune cells: carnivore (attack by predation). Not photosynthetic.
     for _ in 0..config.immune_count {
         let mut slot = spawn_cell(&mut s, config.cancer_freq, 20.0,
-            config.normal_qe * 0.8,   // slightly less energy than normals
-            config.normal_growth * 0.3, // slow proliferation
-            config.normal_resilience * 0.9, // moderately hardy
-            config.normal_dissipation * 2.0, // higher turnover
-            (1.0, 15.0));
-        slot.trophic_class = 3; // carnivore: attacks by trophic predation
-        slot.mobility_bias = config.cancer_growth * 0.9; // mobile hunter
+            config.normal_qe * 0.8, config.normal_growth * 0.3,
+            config.normal_resilience * 0.9, config.normal_dissipation * 2.0,
+            3, (1.0, 15.0)); // trophic=3=carnivore (immune killer)
+        slot.mobility_bias = config.cancer_growth * 0.9;
         world.spawn(slot);
     }
 }
@@ -519,6 +526,29 @@ mod tests {
         let pot_early = r.timeline[5].effective_potency;
         let pot_late = r.timeline[9].effective_potency;
         assert!(pot_late >= pot_early);
+    }
+
+    #[test] fn cancer_trophic_not_producer() {
+        // Cancer cells must NOT be trophic=0 (producer) to avoid photosynthesis.
+        // Warburg effect: tumors consume glucose, they don't photosynthesize.
+        let config = TherapyConfig::default();
+        assert_eq!(config.cancer_trophic, 3, "cancer must be carnivore (Warburg)");
+        assert_eq!(config.normal_trophic, 0, "normals are producers (healthy tissue)");
+    }
+
+    #[test] fn cancer_cells_spawned_as_carnivore() {
+        let config = TherapyConfig::default();
+        let mut w = SimWorldFlat::new(42, 0.05);
+        spawn_population(&mut w, &config, 42);
+        let mut mask = w.alive_mask;
+        while mask != 0 {
+            let i = mask.trailing_zeros() as usize;
+            mask &= mask - 1;
+            if is_cancer(w.entities[i].frequency_hz, &config) {
+                assert_eq!(w.entities[i].trophic_class, 3,
+                    "cancer cell at slot {i} must be carnivore, got {}", w.entities[i].trophic_class);
+            }
+        }
     }
 
     #[test] fn snapshot_empty() {
