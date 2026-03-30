@@ -17,7 +17,8 @@ use resonance::blueprint::equations;
 use resonance::events::DeathEvent;
 use resonance::geometry_flow::creature_builder;
 use resonance::layers::{BaseEnergy, WillActuator};
-use resonance::plugins::{LayersPlugin, SimulationPlugin};
+use resonance::plugins::{DashboardBridgePlugin, LayersPlugin, SimulationPlugin, SimulationTickPlugin};
+use resonance::runtime_platform::dashboard_bridge::SimTickSummary;
 use resonance::use_cases::cli::{find_arg, parse_arg};
 
 // ─── Resources (local al binario) ───────────────────────────────────────────
@@ -99,8 +100,10 @@ fn main() {
             }),
             ..default()
         }))
+        .add_plugins(SimulationTickPlugin)
         .add_plugins(LayersPlugin)
         .add_plugins(SimulationPlugin)
+        .add_plugins(DashboardBridgePlugin)
         .init_state::<Phase>()
         .insert_resource(LoadedGenomes(genomes))
         .insert_resource(SurvivalState::new())
@@ -325,13 +328,17 @@ fn detect_death(
 
 fn update_hud(
     state: Res<SurvivalState>,
+    summary: Res<SimTickSummary>,
     player_q: Query<&BaseEnergy, With<Player>>,
     mut text_q: Query<&mut Text, With<HudText>>,
 ) {
     let Ok(mut text) = text_q.get_single_mut() else { return };
-    let qe = player_q.get_single().map(|e| e.qe()).unwrap_or(0.0);
+    let player_qe = player_q.get_single().map(|e| e.qe()).unwrap_or(0.0);
     let status = if state.alive { "ALIVE" } else { "DEAD" };
-    **text = format!("Score: {} | qe: {:.1} | {status}", state.score, qe);
+    **text = format!(
+        "Score: {} | qe: {:.1} | {status} | pop: {} | world qe: {:.0}",
+        state.score, player_qe, summary.alive_count, summary.total_qe,
+    );
 }
 
 // ─── Game Over (Phase::Dead) ────────────────────────────────────────────────

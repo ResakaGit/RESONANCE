@@ -83,10 +83,10 @@ impl Default for TherapyConfig {
             pk_ramp_gens: 3,
             normal_qe: 30.0, normal_growth: 0.3,
             normal_resilience: 0.8, normal_dissipation: 0.01,
-            normal_trophic: 0,  // producer: healthy tissue does photosynthesis
+            normal_trophic: 0,  // producer: healthy tissue receives energy from environment
             cancer_qe: 40.0, cancer_growth: 0.9,
             cancer_resilience: 0.2, cancer_dissipation: 0.005,
-            cancer_trophic: 3,  // carnivore: Warburg effect, consumes host glucose
+            cancer_trophic: 4,  // detritivore: Warburg effect, scavenges nutrients passively (no photosynthesis, no hunting)
             worlds: 100, generations: 100,
             ticks_per_gen: 300, seed: 42,
         }
@@ -130,10 +130,21 @@ fn hill_response(alignment: f32, potency: f32, hill_n: f32) -> f32 {
     potency * c_n / (ec50_n + c_n)
 }
 
-/// Drug drain per entity. Hill equation × frequency alignment. Axiom 4+8.
+/// Drug-induced dissipation increase. Axiom 4+8.
+///
+/// Potency is a MULTIPLIER on the cell's base dissipation rate.
+/// potency=1.0 → doubles dissipation (100% increase). potency=0.3 → 30% increase.
+/// Scaled by frequency alignment (Axiom 8) and Hill pharmacology.
+/// This makes potency scale-invariant: works regardless of absolute dissipation values.
 fn drug_drain(entity_freq: f32, target_freq: f32, potency: f32, bandwidth: f32, hill_n: f32) -> f32 {
     let alignment = determinism::gaussian_frequency_alignment(entity_freq, target_freq, bandwidth);
     hill_response(alignment, potency, hill_n)
+}
+
+/// Drug effect as fraction of base dissipation. Potency is a relative multiplier.
+fn drug_dissipation_effect(entity_freq: f32, config: &TherapyConfig, eff_potency: f32, base_diss: f32) -> f32 {
+    let raw = drug_drain(entity_freq, config.drug_target_freq, eff_potency, config.drug_bandwidth, config.hill_coefficient);
+    raw * base_diss // potency=1.0 → adds 100% of base dissipation. Scale-invariant.
 }
 
 /// Pharmacokinetic ramp: potency builds up over pk_ramp_gens. Axiom 4.
@@ -167,34 +178,59 @@ fn is_quiescent(entity: &EntitySlot) -> bool { entity.growth_bias < 0.05 }
 
 // ─── Per-generation world operations ────────────────────────────────────────
 
-/// Apply drug with Hill pharmacology. Returns total drain. Axiom 4+5.
+/// Apply drug by setting dissipation rate of targeted cells. Axiom 4 pure.
+///
+/// Drug effect = temporary increase in dissipation rate, proportional to
+/// frequency alignment (Axiom 8) × potency (Hill pharmacology).
+/// The batch dissipation system then drains qe naturally each tick.
+///
+/// Dissipation is SET (not accumulated) to: base_dissipation + drug_effect.
+/// When drug is off, dissipation returns to baseline automatically.
+/// This is Axiom 4 pure: drug accelerates entropy, doesn't create/destroy energy.
+///
+/// Returns total drug-induced dissipation increase (observability).
 fn apply_drug(world: &mut SimWorldFlat, config: &TherapyConfig, eff_potency: f32) -> f32 {
-    let mut total = 0.0f32;
+    let mut total_effect = 0.0f32;
     let mut mask = world.alive_mask;
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
 
-        let mut drain = drug_drain(
-            world.entities[i].frequency_hz, config.drug_target_freq,
-            eff_potency, config.drug_bandwidth, config.hill_coefficient,
+        // Base dissipation for this cell type (from config, not hardcoded)
+        let base_diss = if is_cancer(world.entities[i].frequency_hz, config) {
+            config.cancer_dissipation
+        } else {
+            config.normal_dissipation
+        };
+
+        let mut drug_effect = drug_dissipation_effect(
+            world.entities[i].frequency_hz, config, eff_potency, base_diss,
         );
 
         if is_quiescent(&world.entities[i]) {
-            drain *= config.quiescent_drug_sensitivity;
+            drug_effect *= config.quiescent_drug_sensitivity;
         }
 
-        let loss = drain.min(world.entities[i].qe);
-        world.entities[i].qe -= loss;
-        total += loss;
-
-        // Axiom 5: drained energy → nutrient grid (conservation)
-        let gx = (world.entities[i].position[0] as usize).min(15);
-        let gy = (world.entities[i].position[1] as usize).min(15);
-        let idx = (gy * 16 + gx).min(world.nutrient_grid.len() - 1);
-        world.nutrient_grid[idx] += loss;
+        // SET dissipation = base + drug effect. Not accumulated. Axiom 4.
+        world.entities[i].dissipation = base_diss + drug_effect;
+        total_effect += drug_effect;
     }
-    total
+    total_effect
+}
+
+/// Reset dissipation to baseline when drug is off. Pure.
+fn reset_dissipation(world: &mut SimWorldFlat, config: &TherapyConfig) {
+    let mut mask = world.alive_mask;
+    while mask != 0 {
+        let i = mask.trailing_zeros() as usize;
+        mask &= mask - 1;
+        let base = if is_cancer(world.entities[i].frequency_hz, config) {
+            config.cancer_dissipation
+        } else {
+            config.normal_dissipation
+        };
+        world.entities[i].dissipation = base;
+    }
 }
 
 /// Anchor cancer cell frequencies: only changes via reproduction mutation, not drift.
@@ -362,10 +398,13 @@ pub fn run(config: &TherapyConfig) -> TherapyReport {
         let mut gen_drain = 0.0f32;
 
         for (wi, world) in worlds.iter_mut().enumerate() {
-            // Drug applied every tick at full potency (continuous infusion model).
-            // Potency = qe drain per tick per entity at full alignment.
+            // Drug: set dissipation each tick (Axiom 4). Reset when drug off.
             for _ in 0..config.ticks_per_gen {
-                if eff_pot > 0.0 { gen_drain += apply_drug(world, config, eff_pot); }
+                if eff_pot > 0.0 {
+                    gen_drain += apply_drug(world, config, eff_pot);
+                } else {
+                    reset_dissipation(world, config);
+                }
                 world.tick(&mut scratches[wi]);
             }
             apply_microenvironment(world, config);
@@ -532,11 +571,11 @@ mod tests {
         // Cancer cells must NOT be trophic=0 (producer) to avoid photosynthesis.
         // Warburg effect: tumors consume glucose, they don't photosynthesize.
         let config = TherapyConfig::default();
-        assert_eq!(config.cancer_trophic, 3, "cancer must be carnivore (Warburg)");
+        assert_eq!(config.cancer_trophic, 4, "cancer must be detritivore (Warburg: passive nutrient scavenger)");
         assert_eq!(config.normal_trophic, 0, "normals are producers (healthy tissue)");
     }
 
-    #[test] fn cancer_cells_spawned_as_carnivore() {
+    #[test] fn cancer_cells_not_producer() {
         let config = TherapyConfig::default();
         let mut w = SimWorldFlat::new(42, 0.05);
         spawn_population(&mut w, &config, 42);
@@ -545,8 +584,9 @@ mod tests {
             let i = mask.trailing_zeros() as usize;
             mask &= mask - 1;
             if is_cancer(w.entities[i].frequency_hz, &config) {
-                assert_eq!(w.entities[i].trophic_class, 3,
-                    "cancer cell at slot {i} must be carnivore, got {}", w.entities[i].trophic_class);
+                // Cancer cells must NOT be producer (0). They can be detritivore (4) or carnivore (3=immune).
+                assert_ne!(w.entities[i].trophic_class, 0,
+                    "cancer-freq cell at slot {i} must not be producer (photosynthesis)");
             }
         }
     }
