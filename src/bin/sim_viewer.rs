@@ -1,12 +1,15 @@
 //! Simulation viewer — real-time visualization of the simulation.
 //!
-//! Two render modes:
+//! Render modes:
 //!   --render terminal   ASCII art in terminal (zero deps, works everywhere)
 //!   --render window     2D pixel window (requires --features pixel_viewer)
 //!
+//! Projection:
+//!   --projection flat       Standard grid view (default)
+//!   --projection circular   Orthographic sphere — planet from space
+//!
 //! Usage:
-//!   RESONANCE_MAP=big_bang cargo run --release --bin sim_viewer -- --render terminal
-//!   RESONANCE_MAP=civilization_test cargo run --release --features pixel_viewer --bin sim_viewer -- --render window
+//!   RESONANCE_MAP=earth cargo run --release --features pixel_viewer --bin sim_viewer -- --render window --projection circular
 
 use bevy::prelude::*;
 
@@ -20,16 +23,19 @@ use resonance::worldgen::EnergyFieldGrid;
 
 fn main() {
     let render_mode = parse_arg_str("--render").unwrap_or_else(|| "terminal".to_string());
+    let projection = parse_arg_str("--projection").unwrap_or_else(|| "flat".to_string());
 
     eprintln!("=== Resonance Simulation Viewer ===");
-    eprintln!("render: {render_mode}");
+    eprintln!("render: {render_mode}, projection: {projection}");
 
     let mut app = build_app();
 
+    let circular = projection == "circular";
+
     match render_mode.as_str() {
-        "terminal" => run_terminal(&mut app),
+        "terminal" => run_terminal(&mut app, circular),
         #[cfg(feature = "pixel_viewer")]
-        "window" => run_window(&mut app),
+        "window" => run_window(&mut app, circular),
         #[cfg(not(feature = "pixel_viewer"))]
         "window" => {
             eprintln!("error: --render window requires --features pixel_viewer");
@@ -87,16 +93,27 @@ fn collect_positions(world: &mut bevy::ecs::world::World, grid: &EnergyFieldGrid
     (entities, behaviorals)
 }
 
-fn snapshot_frame(app: &mut App) -> Option<frame_buffer::FrameBuffer> {
+fn snapshot_frame(app: &mut App, circular: bool) -> Option<frame_buffer::FrameBuffer> {
     let world = app.world_mut();
     let grid = world.get_resource::<EnergyFieldGrid>()?.clone();
+    let clock_tick = world.get_resource::<SimulationClock>().map(|c| c.tick_id).unwrap_or(0);
     let (ents, behs) = collect_positions(world, &grid);
-    Some(frame_buffer::render_frame(&grid, &ents, &behs))
+    if circular {
+        // Rotation offset synced with day/night meridian (sun stays fixed, surface rotates).
+        let day_period = 600.0_f32; // default; overridden if DayNightConfig exists
+        let period = world.get_resource::<resonance::worldgen::systems::day_night::DayNightConfig>()
+            .map(|c| c.period_ticks)
+            .unwrap_or(day_period);
+        let rotation = (clock_tick as f32 / period).fract() * grid.width as f32;
+        Some(frame_buffer::render_frame_circular(&grid, &ents, &behs, rotation))
+    } else {
+        Some(frame_buffer::render_frame(&grid, &ents, &behs))
+    }
 }
 
 // ─── Terminal mode ───────────────────────────────────────────────────────────
 
-fn run_terminal(app: &mut App) {
+fn run_terminal(app: &mut App, circular: bool) {
     let sleep = std::time::Duration::from_millis(17);
     loop {
         std::thread::sleep(sleep);
@@ -107,7 +124,7 @@ fn run_terminal(app: &mut App) {
             .map(|c| c.tick_id)
             .unwrap_or(0);
 
-        if let Some(frame) = snapshot_frame(app) {
+        if let Some(frame) = snapshot_frame(app, circular) {
             resonance::viewer::terminal::display_frame(&frame, clk);
         }
     }
@@ -116,11 +133,17 @@ fn run_terminal(app: &mut App) {
 // ─── Window mode ─────────────────────────────────────────────────────────────
 
 #[cfg(feature = "pixel_viewer")]
-fn run_window(app: &mut App) {
+fn run_window(app: &mut App, circular: bool) {
     let (w, h) = {
         let world = app.world();
         let grid = world.get_resource::<EnergyFieldGrid>();
-        grid.map(|g| (g.width, g.height)).unwrap_or((32, 32))
+        if circular {
+            // Circular: square output, diameter = max(grid_w, grid_h).
+            let d = grid.map(|g| g.width.max(g.height)).unwrap_or(32);
+            (d, d)
+        } else {
+            grid.map(|g| (g.width, g.height)).unwrap_or((32, 32))
+        }
     };
 
     let scale = parse_arg("--scale").unwrap_or(8) as usize;
@@ -128,7 +151,11 @@ fn run_window(app: &mut App) {
 
     resonance::viewer::pixel_window::run_window(
         resonance::viewer::pixel_window::WindowConfig {
-            title: "Resonance — Simulation Viewer".to_string(),
+            title: if circular {
+                "Resonance — Planet View".to_string()
+            } else {
+                "Resonance — Simulation Viewer".to_string()
+            },
             scale,
         },
         w,
@@ -136,7 +163,7 @@ fn run_window(app: &mut App) {
         move || {
             std::thread::sleep(sleep);
             app.update();
-            snapshot_frame(app)
+            snapshot_frame(app, circular)
         },
     );
 }

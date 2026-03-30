@@ -113,3 +113,94 @@ fn thermal_ramp(t: f32, freq_hue: f32) -> (u8, u8, u8) {
         (tint_b.clamp(0.0, 1.0) * 255.0) as u8,
     )
 }
+
+// ── Circular projection (orthographic sphere) ───────────────────────────────
+
+/// Limb darkening exponent (Lambert's cosine law).
+/// Controla cuánto se oscurecen los bordes del disco.
+/// Controls how much the disk edges darken.
+const LIMB_DARKENING_EXP: f32 = 0.6;
+
+/// Render the energy field as a circular disk (orthographic sphere projection).
+/// Proyección ortográfica: centro brillante, bordes con limb darkening.
+/// Orthographic projection: bright center, limb-darkened edges, space = black.
+///
+/// `rotation_offset` shifts the grid X mapping, simulating planetary rotation.
+/// When tied to the solar meridian, the sun appears fixed and the surface moves.
+pub fn render_frame_circular(
+    grid: &EnergyFieldGrid,
+    entity_positions: &[(u32, u32, f32)],
+    behavioral_positions: &[(u32, u32)],
+    rotation_offset: f32,
+) -> FrameBuffer {
+    let diameter = grid.width.max(grid.height) as usize;
+    let out_size = diameter;
+    let mut pixels = vec![[0u8, 0, 0, 255]; out_size * out_size];
+    let log_ref = (1.0 + LOG_REFERENCE_QE).ln();
+    let cx = out_size as f32 * 0.5;
+    let cy = out_size as f32 * 0.5;
+    let r = cx - 1.0;
+
+    // Pre-compute entity/behavioral positions as a lookup set.
+    let ent_set: std::collections::HashSet<(u32, u32)> = entity_positions.iter()
+        .map(|&(x, y, _)| (x, y)).collect();
+    let beh_set: std::collections::HashSet<(u32, u32)> = behavioral_positions.iter()
+        .copied().collect();
+
+    for py in 0..out_size {
+        for px in 0..out_size {
+            let ux = (px as f32 - cx) / r;
+            let uy = (py as f32 - cy) / r;
+            let dist_sq = ux * ux + uy * uy;
+
+            // Outside the sphere → space.
+            if dist_sq > 1.0 {
+                pixels[py * out_size + px] = [2, 2, 8, 255]; // deep space blue
+                continue;
+            }
+
+            // Sphere depth for limb darkening (Lambert's cosine law).
+            let depth = (1.0 - dist_sq).sqrt();
+            let limb = depth.powf(LIMB_DARKENING_EXP);
+
+            // Map disk position → grid coords.
+            // X: longitude, shifted by rotation_offset (wraps toroidally).
+            // Y: latitude (top = north, bottom = south).
+            let gx_f = (ux * 0.5 + 0.5) * grid.width as f32 + rotation_offset;
+            let gy_f = (1.0 - (uy * 0.5 + 0.5)) * grid.height as f32;
+            let gx = ((gx_f as i32).rem_euclid(grid.width as i32)) as u32;
+            let gy = (gy_f as u32).min(grid.height.saturating_sub(1));
+
+            // Read grid cell.
+            let (qe, freq) = grid.cell_xy(gx, gy)
+                .map(|c| (c.accumulated_qe, c.dominant_frequency_hz))
+                .unwrap_or((0.0, 0.0));
+
+            // Check for entity/behavioral at this cell.
+            if beh_set.contains(&(gx, gy)) {
+                pixels[py * out_size + px] = [0, 255, 255, 255]; // cyan
+                continue;
+            }
+            if ent_set.contains(&(gx, gy)) {
+                let lum = (limb * 255.0) as u8;
+                pixels[py * out_size + px] = [lum, lum, lum, 255]; // white dimmed by limb
+                continue;
+            }
+
+            // Energy → color with limb darkening.
+            let t = ((1.0 + qe).ln() / log_ref).clamp(0.0, 1.0) * limb;
+            let freq_hue = freq / 800.0;
+            let (r_c, g_c, b_c) = thermal_ramp(t, freq_hue);
+            pixels[py * out_size + px] = [r_c, g_c, b_c, 255];
+        }
+    }
+
+    FrameBuffer {
+        width: out_size,
+        height: out_size,
+        pixels,
+        entity_count: entity_positions.len(),
+        behavioral_count: behavioral_positions.len(),
+        total_qe: grid.total_qe(),
+    }
+}

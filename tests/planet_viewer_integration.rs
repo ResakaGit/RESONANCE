@@ -189,3 +189,94 @@ fn ambient_irradiance_derived_correctly() {
     let expected = dt::DISSIPATION_SOLID / dt::DISSIPATION_GAS;
     assert!((AMBIENT_IRRADIANCE - expected).abs() < 1e-6);
 }
+
+// ── Circular projection ─────────────────────────────────────────────────────
+
+#[test]
+fn circular_output_is_square() {
+    let grid = EnergyFieldGrid::new(16, 16, 2.0, glam::Vec2::ZERO);
+    let frame = frame_buffer::render_frame_circular(&grid, &[], &[], 0.0);
+    assert_eq!(frame.width, frame.height);
+    assert_eq!(frame.width, 16);
+}
+
+#[test]
+fn circular_corners_are_space() {
+    let grid = EnergyFieldGrid::new(32, 32, 1.0, glam::Vec2::ZERO);
+    let frame = frame_buffer::render_frame_circular(&grid, &[], &[], 0.0);
+    // Top-left corner (0,0) is outside the disk → deep space.
+    let corner = frame.pixels[0];
+    assert!(corner[0] < 10 && corner[1] < 10 && corner[2] < 20,
+        "corner should be space: {:?}", corner);
+}
+
+#[test]
+fn circular_center_is_brighter_than_edge() {
+    let mut grid = EnergyFieldGrid::new(32, 32, 1.0, glam::Vec2::ZERO);
+    // Seed uniform energy so the whole grid has some brightness.
+    grid.seed_uniform(20.0, 85.0);
+    let frame = frame_buffer::render_frame_circular(&grid, &[], &[], 0.0);
+    let mid = frame.width / 2;
+    let center_px = frame.pixels[mid * frame.width + mid];
+    // Edge pixel: just inside the disk (not corner).
+    let edge_px = frame.pixels[mid * frame.width + (frame.width - 2)];
+    let center_lum = center_px[0] as u32 + center_px[1] as u32 + center_px[2] as u32;
+    let edge_lum = edge_px[0] as u32 + edge_px[1] as u32 + edge_px[2] as u32;
+    assert!(center_lum > edge_lum, "limb darkening: center={center_lum} > edge={edge_lum}");
+}
+
+#[test]
+fn circular_rotation_shifts_content() {
+    let mut grid = EnergyFieldGrid::new(16, 16, 1.0, glam::Vec2::ZERO);
+    if let Some(cell) = grid.cell_xy_mut(0, 8) {
+        cell.accumulated_qe = 100.0;
+    }
+    let frame_a = frame_buffer::render_frame_circular(&grid, &[], &[], 0.0);
+    let frame_b = frame_buffer::render_frame_circular(&grid, &[], &[], 8.0);
+    // Different rotation → different pixel arrangement.
+    assert_ne!(frame_a.pixels, frame_b.pixels, "rotation should shift content");
+}
+
+// ── Energy distribution: day/night verifiable cycles ────────────────────────
+
+#[test]
+fn solar_meridian_completes_full_cycle() {
+    // After exactly 1 period, meridian returns to start.
+    let period = 600.0;
+    let width = 48.0;
+    let m0 = solar_meridian_x(0, period, width);
+    let m_full = solar_meridian_x(600, period, width);
+    assert!((m0 - m_full).abs() < 0.1, "full cycle: start={m0} end={m_full}");
+}
+
+#[test]
+fn day_side_receives_more_energy_than_night() {
+    // At meridian=24 on a 48-wide grid:
+    // - Cell at x=24 (day) should have factor ≈ 1.0
+    // - Cell at x=0 (night/antipode) should have factor ≈ 0.0
+    let day = solar_irradiance_factor(24.0, 24.0, 48.0);
+    let night = solar_irradiance_factor(0.0, 24.0, 48.0);
+    assert!(day > 0.95, "day side: {day}");
+    assert!(night < 0.05, "night side: {night}");
+    assert!(day > night * 10.0, "day must be >> night");
+}
+
+#[test]
+fn irradiance_varies_smoothly_across_terminator() {
+    let width = 48.0;
+    let meridian = 24.0;
+    let mut prev = solar_irradiance_factor(meridian, meridian, width);
+    for x in 1..24 {
+        let current = solar_irradiance_factor(meridian + x as f32, meridian, width);
+        assert!(current <= prev + 0.01, "irradiance should decrease away from meridian");
+        prev = current;
+    }
+}
+
+#[test]
+fn seasonal_cycle_completes_in_one_year() {
+    let year = 10000.0;
+    let m0 = seasonal_irradiance_modifier(50.0, 100.0, 0, year, 0.26);
+    let m_full = seasonal_irradiance_modifier(50.0, 100.0, 10000, year, 0.26);
+    assert!((m0 - m_full).abs() < 0.01, "year cycle: start={m0} end={m_full}");
+}
