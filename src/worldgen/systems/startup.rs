@@ -148,6 +148,9 @@ pub fn init_day_night_config_system(
     if let (Some(year), Some(tilt)) = (config.year_period_ticks, config.axial_tilt) {
         day_night = day_night.with_seasons(year, tilt);
     }
+    if let Some(solar) = config.solar_emission_qe_s {
+        day_night = day_night.with_solar_emission(solar);
+    }
     commands.insert_resource(day_night);
 }
 

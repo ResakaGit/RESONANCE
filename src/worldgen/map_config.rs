@@ -68,6 +68,10 @@ pub struct MapConfig {
     /// Axial tilt [0, 1]. 0 = no seasons, 0.4 ≈ Earth-like (23.5°/90° ≈ 0.26).
     #[serde(default)]
     pub axial_tilt: Option<f32>,
+    /// Directional solar emission (qe/s). Only illuminated hemisphere receives.
+    /// Replaces omnidirectional sol nucleus for correct day/night contrast.
+    #[serde(default)]
+    pub solar_emission_qe_s: Option<f32>,
 }
 
 fn default_fog_of_war_enabled() -> bool {
@@ -116,6 +120,7 @@ impl Default for MapConfig {
             emission_scale: None,
             year_period_ticks: None,
             axial_tilt: None,
+            solar_emission_qe_s: None,
         }
     }
 }

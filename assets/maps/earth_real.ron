@@ -28,18 +28,13 @@
   year_period_ticks: Some(219000.0),
   axial_tilt: Some(0.26),
   self_sustaining_qe: Some(10.0),
+  // Directional sun: 800 qe/s distributed only to the illuminated hemisphere.
+  // Replaces the omnidirectional sol nucleus — correct day/night contrast.
+  solar_emission_qe_s: Some(800.0),
 
   nuclei: [
-    // ── SOL — infinite ───────────────────────────────────────────────────────
-    (
-      name: "sol",
-      position: (0.0, 56.0),
-      frequency_hz: 400.0,
-      emission_rate_qe_s: 800.0,
-      propagation_radius: 100.0,
-      decay: InverseSquare,
-      ambient_pressure: None,
-    ),
+    // Sol is DIRECTIONAL (via solar_emission_qe_s), not a nucleus.
+    // Only the illuminated hemisphere receives solar energy.
 
     // ── GEOTHERMAL CORE ──────────────────────────────────────────────────────
     (
