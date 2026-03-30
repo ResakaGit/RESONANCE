@@ -65,7 +65,9 @@ pub fn net_force(a: &ChargedParticle, b: &ChargedParticle) -> [f32; 2] {
     let dist = (dx * dx + dy * dy).sqrt();
     if dist < 1e-10 { return [0.0, 0.0]; } // coincident
 
-    let f_coulomb = coulomb_force(a.charge, b.charge, dist);
+    // Coulomb: q1×q2 > 0 → repulsion (push away). q1×q2 < 0 → attraction (pull toward).
+    // Negate because coulomb_force returns potential sign, we need force direction.
+    let f_coulomb = -coulomb_force(a.charge, b.charge, dist);
     let f_lj = lennard_jones_force(dist);
     let f_total = f_coulomb + f_lj;
 

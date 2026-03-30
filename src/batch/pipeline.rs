@@ -28,6 +28,9 @@ impl SimWorldFlat {
         systems::irradiance_update(self);
         systems::containment_check(self, scratch);
 
+        // Phase::ParticleForces (before Atomic — forces modify velocity)
+        systems::particle_forces(self, self.force_strategy, self.dt);
+
         // Phase::AtomicLayer
         systems::dissipation(self);
         systems::will_to_velocity(self);

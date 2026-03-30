@@ -8,6 +8,21 @@ use crate::blueprint::equations::codon_genome::{CodonGenome, CodonTable};
 use crate::blueprint::equations::variable_genome::VariableGenome;
 
 use super::constants::{GRID_CELLS, MAX_ENTITIES, QE_MIN_EXISTENCE};
+
+/// Force computation strategy. Configurable per world.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum ForceStrategy {
+    /// No particle forces (legacy behavior). Zero overhead.
+    Disabled,
+    /// Coulomb only (long-range electromagnetic).
+    CoulombOnly,
+    /// Coulomb + Lennard-Jones (full particle physics). Default.
+    Full,
+}
+
+impl Default for ForceStrategy {
+    fn default() -> Self { Self::Disabled } // disabled by default for backward compatibility
+}
 use super::events::EventBuffer;
 
 // ─── EntitySlot ─────────────────────────────────────────────────────────────
@@ -77,6 +92,10 @@ pub struct EntitySlot {
     pub qe_field:   [[f32; RADIAL]; AXIAL],
     pub freq_field:  [[f32; RADIAL]; AXIAL],
 
+    // ── L-1 ParticleCharge ──────────────────
+    pub charge:         f32,
+    pub particle_mass:  f32,
+
     // ── Flags (packed) ─────────────────────
     pub alive:          bool,
     pub archetype:      u8,
@@ -110,6 +129,7 @@ impl Default for EntitySlot {
             expression_mask: [1.0; 4], // fully expressed by default (ET-6)
             qe_field: [[0.0; RADIAL]; AXIAL],
             freq_field: [[0.0; RADIAL]; AXIAL],
+            charge: 0.0, particle_mass: 1.0,
             alive: false, archetype: 0, matter_state: 0,
             channeling: false, faction: 0, trophic_class: 0,
             field_converged: false, _pad: [0; 1],
@@ -131,6 +151,8 @@ pub struct SimWorldFlat {
     pub dt:              f32,
     pub entity_count:    u8,
     pub alive_mask:      u128,
+    /// Particle force strategy. Disabled = legacy (no charge physics).
+    pub force_strategy:  ForceStrategy,
     pub next_id:         u32,
     pub entities:        [EntitySlot; MAX_ENTITIES],
     /// Side-table: variable-length genomes per entity (cold data, DoD separation).
@@ -155,6 +177,7 @@ impl SimWorldFlat {
             dt,
             entity_count: 0,
             alive_mask: 0,
+            force_strategy: ForceStrategy::default(),
             next_id: 0,
             entities: [EntitySlot::default(); MAX_ENTITIES],
             genomes: [VariableGenome::default(); MAX_ENTITIES],

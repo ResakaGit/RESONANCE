@@ -14,7 +14,7 @@ Live contracts: `docs/design/` (specs) and `docs/arquitectura/` (runtime bluepri
 | **MULTICELLULARITY** | MC-1–5: cell adhesion, colony detection (Union-Find), positional signal, differential expression, batch wiring. 33 tests. | 2026-03-30 |
 | **METABOLIC_GENOME** | MGN-1–7: gene→ExergyNode mapping, topology inference, graph from genome, evolution integration, node competition (Axiom 3), Hebbian rewiring (Hebb 1949), internal catalysis with frequency alignment (Axiom 8). 80 tests, 100% metabolic networks. | 2026-03-29 |
 | **VARIABLE_GENOME** | VG-1–6: VariableGenome [4-32 genes], Kleiber maintenance cost, duplication/deletion mutation (Schwefel), expression mapping, epigenetic gating, GenomeBlob bridge, serialization. 62 tests. | 2026-03-29 |
-| **SURVIVAL_MODE** | SV-1–SV-3: apply_input() wiring, survival binary (WASD + genome load + arena + score), game over (death detect + overlay + restart). Zero src/ modifications. | 2026-03-30 |
+| **SURVIVAL_MODE** | SV-1–SV-3: input wiring (5 LOC), survival binary (WASD, genome load, arena, score, HUD, dashboard bridge), game over (DeathEvent + qe fallback, overlay, restart). Zero src/ changes except sim_world.rs. | 2026-03-30 |
 | **ANALYTICAL_STEPPING** | AS-1–AS-3: O(1) analytical stepping (dissipation, growth, senescence), convergence detection, tick_fast pipeline (16 tests) | 2026-03-28 |
 | **EMERGENT_MORPHOLOGY** | EM-1–EM-4: 2D radial field (16×8=128 nodes), peak detection, bilateral emergence, appendage inference, joints, gravity+climate+asteroids (30+ tests) | 2026-03-28 |
 | **BATCH_SIMULATOR** | BS-0–BS-6: batch arena (EntitySlot, SimWorldFlat), 33 systems (Tier 1/2/3), GeneticHarness, GenomeBlob bridge, rayon parallelism, criterion benchmarks (156 tests, 17 files) | 2026-03-26 |

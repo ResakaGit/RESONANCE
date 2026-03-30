@@ -11,6 +11,7 @@ mod metabolic;
 mod metabolic_graph;
 mod morphological;
 mod multicellular;
+mod particle_forces;
 mod protein;
 mod thermodynamic;
 
@@ -39,6 +40,7 @@ pub use metabolic::{
 pub use metabolic_graph::metabolic_graph_infer;
 pub use protein::protein_fold_infer;
 pub use multicellular::multicellular_step;
+pub use particle_forces::{particle_forces, detect_particle_bonds, count_molecules};
 
 // Phase::MorphologicalLayer (internal field)
 pub use internal_field::internal_diffusion;
