@@ -100,14 +100,22 @@ pub fn planetary_formation_system(
         }
     }
 
-    // --- Pass 2: Fusion ---
+    // --- Pass 2: Fusion (conservation: mass → radiation to neighbors) ---
     for y in 0..h {
         for x in 0..w {
             if let Some(cell) = grid.cell_xy(x, y) {
-                let bonus = pf::fusion_release(cell.accumulated_qe) * dt_ratio;
-                if bonus > 0.01 {
-                    let idx = y as usize * w as usize + x as usize;
-                    deltas[idx] += bonus;
+                let release = pf::fusion_release(cell.accumulated_qe) * dt_ratio;
+                if release > 0.01 {
+                    let src_idx = y as usize * w as usize + x as usize;
+                    let neighbors = grid.neighbors4(x as u32, y as u32);
+                    let n_count = neighbors.iter().flatten().count() as f32;
+                    // Source loses mass; neighbors gain radiation (Axiom 5 conserved).
+                    deltas[src_idx] -= release;
+                    let per_neighbor = release / n_count.max(1.0);
+                    for n in neighbors.iter().flatten() {
+                        let dst = n.1 as usize * w as usize + n.0 as usize;
+                        deltas[dst] += per_neighbor;
+                    }
                     any_change = true;
                 }
             }
