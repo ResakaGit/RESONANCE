@@ -45,6 +45,9 @@ pub mod trophic;
 pub mod vision_fog;
 pub mod volume;
 pub mod will;
+pub mod kleiber_cache;
+pub mod gompertz_cache;
+pub mod converged;
 
 // Componentes — re-exportación pública
 pub use body_plan_layout::BodyPlanLayout;
@@ -108,6 +111,9 @@ pub use niche::NicheProfile;
 pub use other_model::{OtherModel, OtherModelSet, MAX_MODELS};
 pub use self_model::{FunctionallyConscious, SelfModel};
 pub use senescence::SenescenceProfile;
+pub use kleiber_cache::KleiberCache;
+pub use gompertz_cache::GompertzCache;
+pub use converged::{Converged, hash_f32, hash_pos};
 pub use symbiosis::{SymbiosisLink, SymbiosisType};
 pub use timescale::TimescaleAdapter;
 

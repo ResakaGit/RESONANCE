@@ -1,6 +1,6 @@
 # Arquitectura de Resonance (`src/`)
 
-> 94K LOC · 2567+ tests · 55 sprints (46 ✅) · Última actualización: 2026-03-28
+> 87K+ LOC · 2,834 tests · 98 sprints (64 ✅) · Última actualización: 2026-03-30
 
 Referencia canónica. 17 módulos top-level, 14 capas ECS, 6 fases de pipeline.
 Código = Rust 2024 / Bevy 0.15. Todo es energía (qe).
@@ -364,7 +364,16 @@ RESONANCE_MAP=proving_grounds cargo run      # stress test
 RESONANCE_MAP=four_flowers cargo run         # V7 grid 32x32
 ```
 
-**Tests:** `cargo test` (~2567+ tests). Integration tests en `tests/`. Batch: 156 tests en `src/batch/`.
+**Tests:** `cargo test` (~2,834 tests). Integration tests en `tests/`. Batch: 156+ tests en `src/batch/`.
+
+**Deep Simulation Stack (2026-03-30):**
+```
+equations/variable_genome.rs    → Variable-length genome (4-32 genes, duplication/deletion)
+equations/codon_genome.rs       → Proto-DNA (codons, genetic code, silent mutations)
+equations/protein_fold.rs       → HP lattice fold (active sites, catalytic function)
+equations/metabolic_genome.rs   → Gene→MetabolicGraph (DAG, competition, Hebb, catalysis)
+equations/multicellular.rs      → Cell adhesion, colony detection, differential expression
+```
 
 **Eventos:** `simulation/bootstrap.rs` registra 15+ Event types. `PathRequestEvent` aparte en `Compat2d3dPlugin`.
 

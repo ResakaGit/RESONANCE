@@ -96,14 +96,14 @@ pub fn behavior_assess(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
         let mut action = equations::select_best_action(&scores) as u8;
         if scores[2] >= constants::PANIC_THRESHOLD { action = 2; }
 
-        // Encode: action in pair.0 high nibble, target idx in pair.1
+        // Encode: action in top 2 bits, target idx in bottom 6 bits (supports 64 entities)
         let target = match action {
             1 | 3 => best_food_idx,
             2 => best_threat_idx,
             _ => 255,
         };
         if scratch.pairs_len < scratch.pairs.len() {
-            scratch.pairs[scratch.pairs_len] = (i as u8, (action << 4) | (target & 0x0F));
+            scratch.pairs[scratch.pairs_len] = (i as u8, (action << 6) | (target & 0x3F));
             scratch.pairs_len += 1;
         }
     }
@@ -112,8 +112,8 @@ pub fn behavior_assess(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
     for p in 0..scratch.pairs_len {
         let i = scratch.pairs[p].0 as usize;
         let packed = scratch.pairs[p].1;
-        let action = packed >> 4;
-        let target = (packed & 0x0F) as usize;
+        let action = packed >> 6;
+        let target = (packed & 0x3F) as usize;
 
         match action {
             1 if target < MAX_ENTITIES && world.alive_mask & (1 << target) != 0 => {

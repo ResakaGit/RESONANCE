@@ -5,6 +5,8 @@
 
 pub mod cli;
 pub mod experiments;
+pub mod export;
+pub mod orchestrators;
 pub mod presets;
 pub mod presenters;
 
@@ -24,9 +26,38 @@ pub struct ExperimentReport {
     pub wall_time_ms:  u64,
 }
 
-/// The single HOF that touches the engine. Everything else composes this.
+/// Ejecuta un experimento con config completa. Single source of truth.
+/// Runs an experiment with full config. Single source of truth.
 ///
-/// Deterministic: same preset + seed → identical report (INV-UC1).
+/// Deterministic: same config + preset → identical report (INV-UC1).
+pub fn evolve_with_config(
+    config: &crate::batch::batch::BatchConfig,
+    preset: &presets::UniversePreset,
+) -> ExperimentReport {
+    use crate::batch::harness::GeneticHarness;
+    use std::time::Instant;
+
+    preset.apply();
+    let start = Instant::now();
+    let mut harness = GeneticHarness::new(config.clone());
+    let genomes = harness.run();
+
+    ExperimentReport {
+        preset_name: preset.name,
+        seed: config.seed,
+        generations: config.max_generations,
+        ticks_per_gen: config.ticks_per_eval,
+        world_count: config.world_count,
+        top_genomes: genomes,
+        history: harness.history,
+        wall_time_ms: start.elapsed().as_millis() as u64,
+    }
+}
+
+/// Convenience wrapper con parámetros principales. Defaults razonables para el resto.
+/// Convenience wrapper with main parameters. Reasonable defaults for the rest.
+///
+/// Para control total, usar `evolve_with_config`.
 pub fn evolve_with(
     preset: &presets::UniversePreset,
     seed: u64,
@@ -36,40 +67,16 @@ pub fn evolve_with(
     entities: u8,
 ) -> ExperimentReport {
     use crate::batch::batch::BatchConfig;
-    use crate::batch::harness::GeneticHarness;
-    use std::time::Instant;
 
     let config = BatchConfig {
-        world_count:      worlds,
-        ticks_per_eval:   ticks,
-        tick_rate_hz:     20.0,
-        mutation_sigma:   0.0, // self-adaptive
-        elite_fraction:   0.03,
-        crossover_rate:   0.30,
-        max_generations:  generations,
+        world_count: worlds,
+        ticks_per_eval: ticks,
+        max_generations: generations,
         seed,
         initial_entities: entities,
-        fitness_weights:  [1.0, 1.0, 4.0, 3.0, 1.0, 1.0],
-        tournament_k:     2,
+        ..Default::default()
     };
-
-    // Apply preset constants to batch module
-    preset.apply();
-
-    let start = Instant::now();
-    let mut harness = GeneticHarness::new(config);
-    let genomes = harness.run();
-
-    ExperimentReport {
-        preset_name: preset.name,
-        seed,
-        generations,
-        ticks_per_gen: ticks,
-        world_count: worlds,
-        top_genomes: genomes,
-        history: harness.history,
-        wall_time_ms: start.elapsed().as_millis() as u64,
-    }
+    evolve_with_config(&config, preset)
 }
 
 /// Compare multiple universe presets. Each preset runs `seeds_per` independent experiments.

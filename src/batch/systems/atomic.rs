@@ -240,7 +240,7 @@ pub fn tension_field_apply(world: &mut SimWorldFlat, _scratch: &mut ScratchPad) 
         let t_radius = world.entities[i].radius * TENSION_RADIUS_MULTIPLIER;
         let t_radius_sq = t_radius * t_radius;
 
-        let mut mj = world.alive_mask & !((1u64 << i) | ((1u64 << i) - 1));
+        let mut mj = world.alive_mask & !((1u128 << i) | ((1u128 << i) - 1));
         while mj != 0 {
             let j = mj.trailing_zeros() as usize;
             mj &= mj - 1;

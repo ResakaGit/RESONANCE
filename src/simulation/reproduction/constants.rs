@@ -52,3 +52,25 @@ pub const FAUNA_REPRODUCTION_QE_MIN: f32 = 200.0;
 pub const FAUNA_SEED_ENERGY_FRACTION: f32 = 0.25;
 /// Initial radius for fauna offspring (smaller than adult).
 pub const FAUNA_OFFSPRING_INITIAL_RADIUS: f32 = 0.2;
+/// Base frequency offset for fauna offspring (Hz).
+pub const FAUNA_OFFSPRING_FREQ_BASE: f32 = 75.0;
+/// Frequency scale from parent mobility_bias (Hz).
+pub const FAUNA_OFFSPRING_FREQ_SCALE: f32 = 400.0;
+/// Flow dissipation rate for fauna offspring.
+pub const FAUNA_OFFSPRING_FLOW_DISSIPATION: f32 = 0.08;
+/// Bond energy for fauna offspring (Solid matter).
+pub const FAUNA_OFFSPRING_BOND_EB: f32 = 1000.0;
+/// Thermal conductivity for fauna offspring.
+pub const FAUNA_OFFSPRING_THERMAL_CONDUCTIVITY: f32 = 1.5;
+/// Motor buffer max for fauna offspring.
+pub const FAUNA_OFFSPRING_MOTOR_BUF_MAX: f32 = 400.0;
+/// Motor input valve for fauna offspring.
+pub const FAUNA_OFFSPRING_MOTOR_IN_VALVE: f32 = 0.6;
+/// Motor output valve for fauna offspring.
+pub const FAUNA_OFFSPRING_MOTOR_OUT_VALVE: f32 = 0.5;
+/// Fraction of drained qe used for motor buffer init.
+pub const FAUNA_OFFSPRING_MOTOR_BUF_INIT_FRACTION: f32 = 0.3;
+/// Trophic intake rate for fauna offspring.
+pub const FAUNA_OFFSPRING_TROPHIC_INTAKE: f32 = 12.0;
+/// Initial satiation for fauna offspring.
+pub const FAUNA_OFFSPRING_INITIAL_SATIATION: f32 = 0.5;

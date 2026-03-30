@@ -34,6 +34,8 @@ batch/              → Batch simulator: millions of worlds without Bevy (rayon 
   harness.rs        → GeneticHarness (evaluate → select → reproduce), FitnessReport
   bridge.rs         → GenomeBlob ↔ Bevy components (lossless round-trip), save/load binary
   batch.rs          → WorldBatch (N worlds), BatchConfig, rayon par_iter_mut
+  lineage.rs        → LineageId (deterministic ancestry), TrackedGenome (genome + parent_id)
+  census.rs         → EntitySnapshot (per-entity state), PopulationCensus (per-gen capture, HOF distribution/mean)
 blueprint/          → Types, equations/, constants/, almanac/, abilities, recipes, ids, validator, morphogenesis
   equations/        → Pure math facade (45+ domain files). Key domains:
     abiogenesis/    → Legacy potential + axiomatic.rs (coherence-driven, axiom-derived)
@@ -403,7 +405,7 @@ impl MyComp {
 - **Property** (proptest): `tests/property_conservation.rs` — fuzzes conservation + pool equations with arbitrary inputs.
 - **Batch** (headless): tests in `src/batch/` modules. 156 tests covering 33 systems, arena, genome, harness, bridge. Zero Bevy dependency.
 - **Headless sim**: `cargo run --bin headless_sim -- --ticks N --scale S --out file.ppm` — full sim → PPM image, no GPU.
-- **Run**: `cargo test` (~2472+ tests). `cargo bench --bench batch_benchmark` for performance.
+- **Run**: `cargo test` (~2840+ tests). `cargo bench --bench batch_benchmark` for performance.
 - **Maps**: `RESONANCE_MAP={name} cargo run` (genesis_validation, visual_showcase, proving_grounds, four_flowers, demo_animal).
 
 ## Roles
@@ -494,13 +496,25 @@ If following a coding rule makes the game worse, break the rule and explain why.
 - `src/blueprint/equations/radiation_pressure.rs` — pressure transfer + frequency alignment
 - `src/blueprint/constants/nucleus_lifecycle.rs` — depletion, pressure, recycling constants
 - `src/blueprint/constants/senescence.rs` — age/death constants (materialized, flora, fauna)
-- `src/batch/mod.rs` — batch simulator entry point (17 files, 33 systems)
+- `src/batch/mod.rs` — batch simulator entry point (19 files, 33 systems)
 - `src/batch/arena.rs` — EntitySlot (flat entity) + SimWorldFlat (world)
 - `src/batch/harness.rs` — GeneticHarness (evolutionary loop)
 - `src/batch/bridge.rs` — GenomeBlob ↔ Bevy components round-trip
+- `src/batch/lineage.rs` — LineageId (deterministic ancestry) + TrackedGenome
+- `src/batch/census.rs` — EntitySnapshot + PopulationCensus (per-gen HOF capture)
+- `src/blueprint/equations/exact_cache.rs` — zero-loss precompute (kleiber_volume_factor, exact_death_tick, frequency_alignment_exact)
+- `src/use_cases/export.rs` — CSV/JSON stateless adapters (zero IO, String output)
+- `src/use_cases/orchestrators.rs` — HOF composition (ablate, ensemble, sweep)
 - `src/simulation/reproduction/mod.rs` — flora seed + fauna offspring (with mutation)
 - `src/simulation/emergence/` — theory_of_mind, symbiosis_effect, epigenetic_adaptation, niche_adaptation
 - `src/blueprint/constants/stellar.rs` — stellar-scale constants (star/planet gravity, radii, emission)
+- `src/blueprint/equations/variable_genome.rs` — VariableGenome (4-32 genes), duplication/deletion, Kleiber cost, epigenetic gating (62 tests)
+- `src/blueprint/equations/metabolic_genome.rs` — gene→ExergyNode, topology inference, graph from genome, competition, Hebb, catalysis (80 tests)
+- `src/blueprint/equations/protein_fold.rs` — HP lattice fold, contact map, active sites, catalytic function (27 tests)
+- `src/blueprint/equations/codon_genome.rs` — CodonGenome (tripletes), CodonTable, translation, silent mutations (28 tests)
+- `src/blueprint/equations/multicellular.rs` — cell adhesion, colony detection (Union-Find), differential expression (27 tests)
+- `src/use_cases/mod.rs` — evolve_with() HOF, ExperimentReport, 13 use cases
+- `src/use_cases/cli.rs` — shared CLI utilities (parse_arg, archetype_label, resolve_preset)
 
 ## Design Docs (`docs/design/`)
 

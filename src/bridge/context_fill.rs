@@ -7,9 +7,9 @@ use bevy::prelude::*;
 
 use crate::bridge::cache::BridgeCache;
 use crate::bridge::config::{
-    BridgeConfig, CatalysisBridge, CollisionTransferBridge, DensityBridge, DissipationBridge,
-    DragBridge, EngineBridge, InterferenceBridge, OsmosisBridge, PhaseTransitionBridge,
-    TemperatureBridge, WillBridge,
+    BridgeConfig, CatalysisBridge, CollisionTransferBridge, CompetitionNormBridge, DensityBridge,
+    DissipationBridge, DragBridge, EngineBridge, InterferenceBridge, OsmosisBridge,
+    PhaseTransitionBridge, TemperatureBridge, WillBridge,
 };
 
 // --- Fase y eventos ---------------------------------------------------------------------------
@@ -104,6 +104,7 @@ pub fn bridge_caches_max_fill_ratio(world: &World) -> f32 {
         CatalysisBridge,
         CollisionTransferBridge,
         OsmosisBridge,
+        CompetitionNormBridge,
     );
     max_r
 }
@@ -140,6 +141,7 @@ pub fn apply_bridge_phase_side_effects(world: &mut World, phase: BridgePhase) {
         CatalysisBridge,
         CollisionTransferBridge,
         OsmosisBridge,
+        CompetitionNormBridge,
     );
 }
 
@@ -163,6 +165,7 @@ pub fn clear_all_bridge_caches(world: &mut World) {
         CatalysisBridge,
         CollisionTransferBridge,
         OsmosisBridge,
+        CompetitionNormBridge,
     );
 }
 

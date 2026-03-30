@@ -147,14 +147,25 @@ pub fn reproduction_spawn_system(
 
         if is_fauna {
             // ── Fauna offspring: mobile entity with behavior stack ───────────
+            let freq = profile.mobility_bias * constants::FAUNA_OFFSPRING_FREQ_SCALE
+                + constants::FAUNA_OFFSPRING_FREQ_BASE;
             let child = EntityBuilder::new()
                 .named("fauna_offspring")
                 .energy(drained)
                 .volume(constants::FAUNA_OFFSPRING_INITIAL_RADIUS)
-                .wave_from_hz(profile.mobility_bias * 400.0 + 75.0) // freq from parent profile
-                .flow(Vec2::ZERO, 0.08)
-                .matter(MatterState::Solid, 1000.0, 1.5)
-                .motor(400.0, 0.6, 0.5, drained * 0.3)
+                .wave_from_hz(freq)
+                .flow(Vec2::ZERO, constants::FAUNA_OFFSPRING_FLOW_DISSIPATION)
+                .matter(
+                    MatterState::Solid,
+                    constants::FAUNA_OFFSPRING_BOND_EB,
+                    constants::FAUNA_OFFSPRING_THERMAL_CONDUCTIVITY,
+                )
+                .motor(
+                    constants::FAUNA_OFFSPRING_MOTOR_BUF_MAX,
+                    constants::FAUNA_OFFSPRING_MOTOR_IN_VALVE,
+                    constants::FAUNA_OFFSPRING_MOTOR_OUT_VALVE,
+                    drained * constants::FAUNA_OFFSPRING_MOTOR_BUF_INIT_FRACTION,
+                )
                 .will_default()
                 .ambient(0.0, 1.0)
                 .at(child_pos)
@@ -166,8 +177,8 @@ pub fn reproduction_spawn_system(
                 BehavioralAgent,
                 BehaviorIntent::default(),
                 BehaviorCooldown::default(),
-                TrophicConsumer::new(TrophicClass::Herbivore, 12.0),
-                TrophicState::new(0.5),
+                TrophicConsumer::new(TrophicClass::Herbivore, constants::FAUNA_OFFSPRING_TROPHIC_INTAKE),
+                TrophicState::new(constants::FAUNA_OFFSPRING_INITIAL_SATIATION),
                 HasInferredShape,
                 LifecycleStageCache::default(),
                 MorphogenesisShapeParams::default(),

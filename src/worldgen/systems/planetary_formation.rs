@@ -35,28 +35,6 @@ pub fn planetary_formation_system(
     let mut any_change = false;
 
     // --- Pass 1: Gravity + angular momentum ---
-    // Find center of mass for angular momentum direction.
-    let mut com_x = 0.0_f64;
-    let mut com_y = 0.0_f64;
-    let mut total_mass = 0.0_f64;
-    for y in 0..h {
-        for x in 0..w {
-            if let Some(cell) = grid.cell_xy(x, y) {
-                let m = cell.accumulated_qe as f64;
-                com_x += x as f64 * m;
-                com_y += y as f64 * m;
-                total_mass += m;
-            }
-        }
-    }
-    if total_mass > 0.0 {
-        com_x /= total_mass;
-        com_y /= total_mass;
-    } else {
-        com_x = w as f64 * 0.5;
-        com_y = h as f64 * 0.5;
-    }
-
     for y in 0..h {
         for x in 0..w {
             let Some(cell) = grid.cell_xy(x, y) else { continue };

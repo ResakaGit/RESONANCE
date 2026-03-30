@@ -3,7 +3,7 @@
 //! Each factory is stateless, pure, and composable via Bevy's nested tuple bundles.
 //! Use these instead of manually listing 8-12 components at each spawn site.
 //!
-//! ```rust
+//! ```rust,ignore
 //! commands.spawn((
 //!     physical_components(qe, radius, freq, pos),
 //!     behavior_components(caps, profile),

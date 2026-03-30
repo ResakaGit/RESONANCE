@@ -1,9 +1,9 @@
 # Use Cases Validados — ¿Se puede hacer realmente?
 
-> Cada caso de uso verificado contra el código existente (2567+ tests, 94K LOC, 46 sprints completados).
+> Cada caso de uso verificado contra el código existente (2,834 tests, 87K+ LOC, 64 sprints completados).
 > Veredicto honesto: ✅ SÍ hoy / 🔧 SÍ con trabajo / ❌ NO sin cambios fundamentales.
 >
-> Última actualización: 2026-03-28
+> Última actualización: 2026-03-30
 
 ---
 
@@ -172,6 +172,10 @@ Validación contra datos reales (doubling time, resistance curves).
 | ¿Altruismo paga? | Fitness de cooperators vs solos | ✅ |
 
 **Qué falta:** Script que corre 1M seeds y agrega estadísticas.
+
+**Sprint track:** [SCIENTIFIC_OBSERVABILITY](SCIENTIFIC_OBSERVABILITY/) — SO-1 a SO-5:
+lineage tracking → population census → CSV/JSON export → HOF orchestrators → binarios científicos.
+Habilita B1 (Fermi), B2 (Speciation), B3 (Cancer), Epidemiology, Convergence.
 
 **Veredicto:** Medio día de trabajo. Los resultados son publicables.
 

@@ -23,6 +23,10 @@ pub fn print_report(report: &ExperimentReport) {
     if let Some(last) = report.history.last() {
         println!("  Final: fitness={:.3} diversity={:.3} species={:.1}",
             last.best_fitness, last.diversity, last.species_mean);
+        println!("  Complexity: genes={:.1} metabolic={:.0}% protein={:.0}%",
+            last.gene_count_mean,
+            last.metabolic_graph_rate * 100.0,
+            last.protein_function_rate * 100.0);
     }
     println!("  {} genomes evolved.\n", report.top_genomes.len());
 

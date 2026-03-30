@@ -14,3 +14,4 @@ pub mod debate;
 pub mod mesh_export;
 pub mod fossil;
 pub mod sonification;
+pub mod cancer_therapy;

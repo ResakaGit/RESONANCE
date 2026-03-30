@@ -1,6 +1,63 @@
 # Changelog
 
-## [Unreleased] — 2026-03-25
+## [Unreleased] — 2026-03-30
+
+### Added — VG-1–6: Variable-Length Genome
+- `VariableGenome` (4-32 genes) in `blueprint/equations/variable_genome.rs` (62 tests)
+- Gene duplication/deletion (Schwefel self-adaptive). Kleiber maintenance cost.
+- Epigenetic gating. Expression mapping. Serialization. GenomePhenotype cache.
+- Genome side-table in `batch/arena.rs`. Reproduction propagates variable genomes.
+
+### Added — MGN-1–7: Metabolic Genome (gene → metabolic network)
+- `metabolic_genome.rs`: gene→ExergyNode, topology inference (DAG), graph from genome (80 tests)
+- Node competition (Axiom 3), Hebbian rewiring, internal catalysis (Axiom 8)
+- Batch wiring: `metabolic_graph_infer` + `protein_fold_infer` in pipeline
+- Bevy wiring: `genome_to_metabolic_graph_system` + `genome_maintenance_drain_system`
+
+### Added — PF-1–5: Protein Fold (lattice HP model)
+- `protein_fold.rs`: polymer chain, greedy lattice fold, contact map, function inference (27 tests)
+- Proto-proteins with active sites. Catalytic function from fold geometry.
+
+### Added — PD-1–5: Proto-DNA (codon-based genome)
+- `codon_genome.rs`: CodonGenome (tripletes), CodonTable (64→8 amino, evolucionable) (28 tests)
+- Translation pipeline: codons → amino acids → Monomer chain
+- Silent mutations + neutral drift. Code table evolves by selection.
+- Batch wiring: codon side-tables, reproduction propagates codons.
+
+### Added — MC-1–5: Multicellularity
+- `multicellular.rs`: cell adhesion, colony detection (Union-Find), positional signal (27 tests)
+- Differential expression: border=defense, interior=metabolism. Specialization emerges.
+- Batch wiring: `multicellular_step` in pipeline. Observability: multicellular_rate.
+
+### Added — 13 Use Cases + 14 Binaries
+- fermi, speciation, cambrian, debate, versus, universe_lab, museum, fossil_record, petri_dish, ecosystem_music, mesh_export, personal_universe, convergence
+- Shared CLI utilities: `use_cases/cli.rs` (parse_arg, archetype_label, resolve_preset)
+
+### Fixed — Layer Violations
+- MobaIdentity: Vec<RelationalTag> → u8 bitfield
+- Grimoire: Vec<AbilitySlot> → [Option<AbilitySlot>; 8]
+- AlchemicalForge: Vec<ElementId> → [ElementId; 4]
+
+### Fixed — SV-1: Input Wiring
+- `apply_input()` in `sim_world.rs`: InputCommand → WillActuator via WorldEntityId
+
+### Changed — Observability
+- GenerationStats: +gene_count_mean, metabolic_graph_rate, protein_function_rate, codon_count_mean, multicellular_rate
+- `cargo run --bin evolve` shows full complexity dashboard
+
+### Changed — Centralized Utilities
+- `gaussian_frequency_alignment()` in `determinism.rs` (was duplicated 3×)
+- `sanitize_unit()` in `determinism.rs` (universal NaN/Inf guard)
+
+### Stats
+- Tests: 2,567 → **2,834** (+267)
+- LOC: ~80K → **~87K** (+7K)
+- Sprints completed: 47 → **64** (+17)
+- Binaries: 4 → **18** (+14)
+
+---
+
+## [0.1.0] — 2026-03-25
 
 ### Added — AC-1–AC-5: Axiomatic Closure (cross-axiom dynamics)
 - **AC-1**: `metabolic_interference_factor` / `apply_metabolic_interference` in `blueprint/equations/energy_competition/metabolic_interference.rs` (15 tests). `trophic_predation_attempt_system` scales assimilation by oscillatory alignment between predator and prey (Axiom 3×8)

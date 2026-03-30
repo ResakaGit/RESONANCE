@@ -2,8 +2,9 @@
 
 use crate::batch::arena::SimWorldFlat;
 use crate::batch::batch::{BatchConfig, WorldBatch};
+use crate::batch::constants::MAX_ENTITIES;
 use crate::batch::genome::GenomeBlob;
-use crate::blueprint::equations::{batch_fitness, determinism};
+use crate::blueprint::equations::{batch_fitness, determinism, variable_genome};
 
 // ─── FitnessReport ──────────────────────────────────────────────────────────
 
@@ -50,12 +51,30 @@ impl FitnessReport {
         // Diversity bonus: normalized to [0,1] (max euclidean in 4D = 2.0)
         let diversity_norm = (diversity / 2.0).min(1.0);
 
+        // Genome complexity bonus: mean gene count normalized to [0,1] (max = 32).
+        // Axiom 6: worlds where genomes grew are more complex → higher fitness.
+        let complexity_mean = if bias_count > 0 {
+            let total_genes: f32 = {
+                let mut sum = 0.0f32;
+                let mut m = world.alive_mask;
+                while m != 0 {
+                    let idx = m.trailing_zeros() as usize;
+                    m &= m - 1;
+                    sum += world.genomes[idx].gene_count() as f32;
+                }
+                sum
+            };
+            (total_genes / bias_count as f32) / 32.0 // normalized [0,1]
+        } else { 0.0 };
+
         let mut composite = batch_fitness::composite_fitness(
             survivors, reproductions, species_count,
             max_trophic, 0, 0, weights,
         );
         // Add diversity bonus (scaled by species weight — same axis of importance)
         composite += diversity_norm * weights[2];
+        // Add complexity bonus (scaled moderately — reward but don't dominate)
+        composite += complexity_mean * weights[3]; // uses trophic weight as proxy
 
         Self {
             world_index, survivors, total_qe: world.total_qe,
@@ -95,13 +114,23 @@ fn max_trophic_chain(world: &SimWorldFlat) -> u8 {
 /// Statistics for one generation — recorded in `GeneticHarness.history`.
 #[derive(Debug, Clone)]
 pub struct GenerationStats {
-    pub generation:     u32,
-    pub best_fitness:   f32,
-    pub mean_fitness:   f32,
-    pub worst_fitness:  f32,
-    pub diversity:      f32,
-    pub survivors_mean: f32,
-    pub species_mean:   f32,
+    pub generation:           u32,
+    pub best_fitness:         f32,
+    pub mean_fitness:         f32,
+    pub worst_fitness:        f32,
+    pub diversity:            f32,
+    pub survivors_mean:       f32,
+    pub species_mean:         f32,
+    /// Mean gene count across all alive entities (VG observability).
+    pub gene_count_mean:       f32,
+    /// Fraction of entities with a functional MetabolicGraph (MGN observability).
+    pub metabolic_graph_rate:  f32,
+    /// Fraction of entities with a functional protein (PF observability).
+    pub protein_function_rate: f32,
+    /// Mean codon count (PD-5 observability).
+    pub codon_count_mean:      f32,
+    /// Fraction of entities in colonies ≥ 3 (MC-5 observability).
+    pub multicellular_rate:    f32,
 }
 
 // ─── GeneticHarness ─────────────────────────────────────────────────────────
@@ -155,22 +184,33 @@ impl GeneticHarness {
             .map(|r| r.world_index)
             .collect();
 
-        // 6. Extract genomes from elite worlds
+        // 6. Extract genomes from elite worlds (both GenomeBlob + VariableGenome)
         let elite_genomes: Vec<Vec<GenomeBlob>> = elite_indices.iter()
             .map(|&wi| self.extract_genomes(wi))
+            .collect();
+        let elite_vgenomes: Vec<Vec<variable_genome::VariableGenome>> = elite_indices.iter()
+            .map(|&wi| self.extract_variable_genomes(wi))
             .collect();
 
         // 7. Compute diversity
         let diversity = compute_diversity(&elite_genomes);
 
-        // 8. Repopulate
-        self.repopulate(&elite_genomes);
+        // 7b. Complexity observability
+        let cx = compute_complexity_stats(&self.batch.worlds);
+
+        // 8. Repopulate with variable genomes (gene duplication/deletion propagated)
+        self.repopulate_variable(&elite_genomes, &elite_vgenomes);
 
         self.batch.generation += 1;
         let stats = GenerationStats {
             generation: self.batch.generation,
             best_fitness: best, mean_fitness: mean, worst_fitness: worst,
             diversity, survivors_mean, species_mean,
+            gene_count_mean: cx.gene_count_mean,
+            metabolic_graph_rate: cx.metabolic_graph_rate,
+            protein_function_rate: cx.protein_function_rate,
+            codon_count_mean: cx.codon_count_mean,
+            multicellular_rate: cx.multicellular_rate,
         };
         self.history.push(stats.clone());
         stats
@@ -212,9 +252,26 @@ impl GeneticHarness {
         genomes
     }
 
-    fn repopulate(&mut self, elite_genomes: &[Vec<GenomeBlob>]) {
+    fn extract_variable_genomes(&self, world_idx: usize) -> Vec<variable_genome::VariableGenome> {
+        let w = &self.batch.worlds[world_idx];
+        let mut genomes = Vec::new();
+        let mut mask = w.alive_mask;
+        while mask != 0 {
+            let i = mask.trailing_zeros() as usize;
+            mask &= mask - 1;
+            genomes.push(w.genomes[i]);
+        }
+        genomes
+    }
+
+    fn repopulate_variable(
+        &mut self,
+        elite_genomes: &[Vec<GenomeBlob>],
+        elite_vgenomes: &[Vec<variable_genome::VariableGenome>],
+    ) {
         if elite_genomes.is_empty() { return; }
         let flat_elite: Vec<GenomeBlob> = elite_genomes.iter().flatten().copied().collect();
+        let flat_vg: Vec<variable_genome::VariableGenome> = elite_vgenomes.iter().flatten().copied().collect();
         if flat_elite.is_empty() { return; }
 
         let dt = 1.0 / self.config.tick_rate_hz;
@@ -234,14 +291,26 @@ impl GeneticHarness {
                 let p1_idx = batch_fitness::tournament_select(&fitnesses, self.config.tournament_k, e_seed);
                 let parent1 = flat_elite[p1_idx];
 
-                // Crossover or clone+mutate
-                let genome = if determinism::unit_f32(e_seed) < self.config.crossover_rate {
+                // Variable genome: crossover or clone+mutate (with gene duplication/deletion)
+                let parent_vg = if p1_idx < flat_vg.len() { flat_vg[p1_idx] } else {
+                    variable_genome::from_genome_blob(parent1.growth_bias, parent1.mobility_bias, parent1.branching_bias, parent1.resilience, parent1.sigma)
+                };
+                let child_vg = if determinism::unit_f32(e_seed) < self.config.crossover_rate {
                     let p2_seed = determinism::next_u64(e_seed);
                     let p2_idx = batch_fitness::tournament_select(&fitnesses, 3, p2_seed);
-                    let parent2 = flat_elite[p2_idx];
-                    parent1.crossover(&parent2, e_seed).mutate(e_seed, self.config.mutation_sigma)
+                    let parent2_vg = if p2_idx < flat_vg.len() { flat_vg[p2_idx] } else { parent_vg };
+                    let crossed = variable_genome::crossover_variable(&parent_vg, &parent2_vg, e_seed);
+                    variable_genome::mutate_variable(&crossed, e_seed)
                 } else {
-                    parent1.mutate(e_seed, self.config.mutation_sigma)
+                    variable_genome::mutate_variable(&parent_vg, e_seed)
+                };
+
+                // Derive GenomeBlob from VariableGenome (effective biases for EntitySlot)
+                let (biases, sigma) = variable_genome::to_genome_blob_biases(&child_vg);
+                let genome = GenomeBlob {
+                    growth_bias: biases[0], mobility_bias: biases[1],
+                    branching_bias: biases[2], resilience: biases[3],
+                    sigma, ..parent1
                 };
 
                 let mut slot = crate::batch::arena::EntitySlot::default();
@@ -259,7 +328,9 @@ impl GeneticHarness {
                     determinism::range_f32(s1, 1.0, 15.0),
                     determinism::range_f32(s2, 1.0, 15.0),
                 ];
-                world.spawn(slot);
+                if let Some(idx) = world.spawn(slot) {
+                    world.genomes[idx] = child_vg;
+                }
             }
             for cell in &mut world.nutrient_grid { *cell = 5.0; }
             world.update_total_qe();
@@ -279,6 +350,82 @@ fn compute_diversity(elite_genomes: &[Vec<GenomeBlob>]) -> f32 {
         }
     }
     if count > 0 { sum / count as f32 } else { 0.0 }
+}
+
+/// Complexity stats: genes, codons, graphs, proteins, colonies.
+struct ComplexityStats {
+    gene_count_mean: f32,
+    metabolic_graph_rate: f32,
+    protein_function_rate: f32,
+    codon_count_mean: f32,
+    multicellular_rate: f32,
+}
+
+fn compute_complexity_stats(worlds: &[SimWorldFlat]) -> ComplexityStats {
+    use crate::blueprint::equations::{metabolic_genome, multicellular, protein_fold};
+
+    let mut total_genes = 0u64;
+    let mut total_codons = 0u64;
+    let mut total_entities = 0u64;
+    let mut with_graph = 0u64;
+    let mut with_protein = 0u64;
+    let mut in_colony = 0u64;
+
+    for w in worlds {
+        // Colony detection for this world (lightweight: just count, don't modulate)
+        let mut adjacency = [[false; MAX_ENTITIES]; MAX_ENTITIES];
+        let mut mask = w.alive_mask;
+        while mask != 0 {
+            let i = mask.trailing_zeros() as usize;
+            mask &= mask - 1;
+            // Check pairs by proximity (simplified: radius overlap)
+            let mut mask2 = if i >= 127 { 0 } else { w.alive_mask & !((1u128 << (i + 1)) - 1) };
+            while mask2 != 0 {
+                let j = mask2.trailing_zeros() as usize;
+                mask2 &= mask2 - 1;
+                let dx = w.entities[i].position[0] - w.entities[j].position[0];
+                let dy = w.entities[i].position[1] - w.entities[j].position[1];
+                let dist = (dx * dx + dy * dy).sqrt();
+                let contact = w.entities[i].radius + w.entities[j].radius;
+                if dist < contact * 2.0 {
+                    let aff = multicellular::adhesion_affinity(
+                        w.entities[i].frequency_hz, w.entities[j].frequency_hz,
+                        dist, w.entities[i].radius, w.entities[j].radius,
+                    );
+                    if multicellular::should_bond(aff) {
+                        adjacency[i][j] = true; adjacency[j][i] = true;
+                    }
+                }
+            }
+        }
+        let colonies = multicellular::detect_colonies(&adjacency, w.alive_mask);
+
+        mask = w.alive_mask;
+        while mask != 0 {
+            let i = mask.trailing_zeros() as usize;
+            mask &= mask - 1;
+            total_entities += 1;
+            total_genes += w.genomes[i].gene_count() as u64;
+            total_codons += w.codon_genomes[i].codon_count() as u64;
+
+            let expr = w.entities[i].expression_mask;
+            if metabolic_genome::metabolic_graph_from_variable_genome(&w.genomes[i], &expr).is_ok() {
+                with_graph += 1;
+            }
+            let phenotype = protein_fold::compute_protein_phenotype(&w.genomes[i], w.seed ^ i as u64);
+            if phenotype.function.is_some() { with_protein += 1; }
+            if colonies.colony_id[i] > 0 { in_colony += 1; }
+        }
+    }
+
+    let n = total_entities.max(1) as f32;
+    ComplexityStats {
+        gene_count_mean: total_genes as f32 / n,
+        metabolic_graph_rate: with_graph as f32 / n,
+        protein_function_rate: with_protein as f32 / n,
+        codon_count_mean: total_codons as f32 / n,
+        multicellular_rate: in_colony as f32 / n,
+    }
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────

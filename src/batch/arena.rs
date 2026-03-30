@@ -4,6 +4,8 @@
 
 use crate::blueprint::equations;
 use crate::blueprint::equations::radial_field::{AXIAL, RADIAL};
+use crate::blueprint::equations::codon_genome::{CodonGenome, CodonTable};
+use crate::blueprint::equations::variable_genome::VariableGenome;
 
 use super::constants::{GRID_CELLS, MAX_ENTITIES, QE_MIN_EXISTENCE};
 use super::events::EventBuffer;
@@ -105,7 +107,7 @@ impl Default for EntitySlot {
             growth_bias: 0.0, mobility_bias: 0.0,
             branching_bias: 0.0, resilience: 0.0,
             satiation: 0.0,
-            expression_mask: [0.0; 4],
+            expression_mask: [1.0; 4], // fully expressed by default (ET-6)
             qe_field: [[0.0; RADIAL]; AXIAL],
             freq_field: [[0.0; RADIAL]; AXIAL],
             alive: false, archetype: 0, matter_state: 0,
@@ -119,7 +121,7 @@ impl Default for EntitySlot {
 
 /// Complete world state. Fixed-size. Zero heap allocation.
 ///
-/// `alive_mask` is a `u64` bitmask: bit `i` set ↔ `entities[i].alive == true`.
+/// `alive_mask` is a `u128` bitmask: bit `i` set ↔ `entities[i].alive == true`.
 /// All mutation of entity liveness MUST go through `spawn()` / `kill()` to keep
 /// `alive_mask` and `entity_count` consistent.
 #[derive(Clone)]
@@ -128,9 +130,16 @@ pub struct SimWorldFlat {
     pub seed:            u64,
     pub dt:              f32,
     pub entity_count:    u8,
-    pub alive_mask:      u64,
+    pub alive_mask:      u128,
     pub next_id:         u32,
     pub entities:        [EntitySlot; MAX_ENTITIES],
+    /// Side-table: variable-length genomes per entity (cold data, DoD separation).
+    /// Synced with entities[] by index. Only accessed during reproduction + metabolic inference.
+    pub genomes:         [VariableGenome; MAX_ENTITIES],
+    /// Side-table: codon genomes (PD-5). Cold data, DoD.
+    pub codon_genomes:   [CodonGenome; MAX_ENTITIES],
+    /// Side-table: genetic code per lineage (PD-5). Evolves with organism.
+    pub codon_tables:    [CodonTable; MAX_ENTITIES],
     pub total_qe:        f32,
     pub nutrient_grid:   [f32; GRID_CELLS],
     pub irradiance_grid: [f32; GRID_CELLS],
@@ -148,6 +157,9 @@ impl SimWorldFlat {
             alive_mask: 0,
             next_id: 0,
             entities: [EntitySlot::default(); MAX_ENTITIES],
+            genomes: [VariableGenome::default(); MAX_ENTITIES],
+            codon_genomes: [CodonGenome::default(); MAX_ENTITIES],
+            codon_tables: [CodonTable::default(); MAX_ENTITIES],
             total_qe: 0.0,
             nutrient_grid: [0.0; GRID_CELLS],
             irradiance_grid: [0.0; GRID_CELLS],

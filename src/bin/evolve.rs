@@ -37,8 +37,8 @@ fn main() {
     let mut harness = GeneticHarness::new(config);
     let start = Instant::now();
 
-    println!("  Gen │  Best  │  Mean  │ Worst  │ Diversity │ Survivors │ Species │ Time");
-    println!("──────┼────────┼────────┼────────┼───────────┼───────────┼─────────┼──────");
+    println!("  Gen │  Best  │  Mean  │ Worst  │ Diversity │ Surv │ Spp  │ Genes │ Graph │ Prot │ Time");
+    println!("──────┼────────┼────────┼────────┼───────────┼──────┼──────┼───────┼───────┼──────┼──────");
 
     for g in 0..gens as u32 {
         let gen_start = Instant::now();
@@ -47,7 +47,7 @@ fn main() {
 
         if g < 10 || g % 10 == 0 || g == gens as u32 - 1 {
             println!(
-                " {:>4} │ {:>6.3} │ {:>6.3} │ {:>6.3} │   {:>6.3}   │   {:>5.1}   │  {:>4.1}  │ {:>4}ms",
+                " {:>4} │ {:>6.3} │ {:>6.3} │ {:>6.3} │   {:>6.3}   │{:>5.1} │{:>5.1} │ {:>5.1} │{:>5.0}% │{:>4.0}% │{:>4}ms",
                 stats.generation,
                 stats.best_fitness,
                 stats.mean_fitness,
@@ -55,6 +55,9 @@ fn main() {
                 stats.diversity,
                 stats.survivors_mean,
                 stats.species_mean,
+                stats.gene_count_mean,
+                stats.metabolic_graph_rate * 100.0,
+                stats.protein_function_rate * 100.0,
                 gen_ms,
             );
         }

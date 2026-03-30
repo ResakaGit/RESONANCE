@@ -119,6 +119,9 @@ impl Plugin for LayersPlugin {
             // Capa V5 (optimización)
             .register_type::<crate::layers::PerformanceCachePolicy>()
             .register_type::<crate::layers::CacheScope>()
+            // Exact-cache components (zero-precision-loss optimization)
+            .register_type::<crate::layers::KleiberCache>()
+            .register_type::<crate::layers::GompertzCache>()
             // Eco-Boundaries + materialización E6
             .register_type::<crate::eco::contracts::ZoneClass>()
             .register_type::<crate::eco::contracts::TransitionType>()

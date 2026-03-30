@@ -193,6 +193,25 @@ pub fn shape_cache_signature(
     (fineness_b << 12) | (qe_b << 9) | (radius_b << 6) | (hunger_b << 4) | (food_b << 2) | (hostile_b << 1)
 }
 
+/// Extiende la firma base con modulación de rugosidad y albedo.
+/// Extends base signature with rugosity and albedo modulation.
+///
+/// Layout adicional: bits `[1:3]` = rugosity (3 bits), `[5:6]` = albedo (2 bits), vía `wrapping_add`.
+#[inline]
+pub fn shape_cache_signature_with_surface(
+    base_sig: u16,
+    rugosity: Option<f32>,
+    albedo: Option<f32>,
+) -> u16 {
+    let rug_bucket = rugosity
+        .map(|s| ((s - 1.0) / 3.0 * 7.0) as u16 & 0x7)
+        .unwrap_or(0);
+    let alb_bucket = albedo
+        .map(|a| (a * 3.0) as u16 & 0x3)
+        .unwrap_or(0);
+    base_sig.wrapping_add(rug_bucket.wrapping_shl(1) | alb_bucket.wrapping_shl(5))
+}
+
 /// Computes bilateral quadruped attachment positions (head, tail, 4 legs) for MOVE entities.
 ///
 /// Returns `(positions, directions, symmetry, active_count)` ready for `BodyPlanLayout::new`.
@@ -637,5 +656,56 @@ mod tests {
     fn optimal_appendage_extreme_inputs_do_not_panic() {
         let _ = optimal_appendage_count(f32::MAX, f32::MAX, f32::MAX, f32::MAX, 0.1, 0.4, 0.08, 8);
         let _ = optimal_appendage_count(0.001, 0.1, 0.001, 0.001, 0.001, 0.001, 0.001, 0);
+    }
+
+    // ── shape_cache_signature_with_surface ──
+
+    #[test]
+    fn surface_sig_no_modulation_equals_base() {
+        let base = shape_cache_signature(2.0, 0.5, 1.0, 0.0, f32::MAX, false);
+        assert_eq!(shape_cache_signature_with_surface(base, None, None), base);
+    }
+
+    #[test]
+    fn surface_sig_rugosity_only_changes_result() {
+        let base = shape_cache_signature(2.0, 0.5, 1.0, 0.0, f32::MAX, false);
+        let with_rug = shape_cache_signature_with_surface(base, Some(2.5), None);
+        assert_ne!(with_rug, base);
+    }
+
+    #[test]
+    fn surface_sig_albedo_only_changes_result() {
+        let base = shape_cache_signature(2.0, 0.5, 1.0, 0.0, f32::MAX, false);
+        let with_alb = shape_cache_signature_with_surface(base, None, Some(0.8));
+        assert_ne!(with_alb, base);
+    }
+
+    #[test]
+    fn surface_sig_both_modulations_compose() {
+        let base = shape_cache_signature(2.0, 0.5, 1.0, 0.0, f32::MAX, false);
+        let rug_only = shape_cache_signature_with_surface(base, Some(2.5), None);
+        let alb_only = shape_cache_signature_with_surface(base, None, Some(0.8));
+        let both     = shape_cache_signature_with_surface(base, Some(2.5), Some(0.8));
+        assert_ne!(both, rug_only);
+        assert_ne!(both, alb_only);
+    }
+
+    #[test]
+    fn surface_sig_rugosity_clamped_to_3_bits() {
+        let base = 0u16;
+        // max rugosity → bucket should be ≤ 7 (3 bits)
+        let sig = shape_cache_signature_with_surface(base, Some(100.0), None);
+        // Extract rugosity contribution: bits shifted left by 1
+        let rug_contrib = sig >> 1;
+        assert!(rug_contrib <= 7, "rugosity bucket exceeds 3 bits: {rug_contrib}");
+    }
+
+    #[test]
+    fn surface_sig_albedo_clamped_to_2_bits() {
+        let base = 0u16;
+        let sig = shape_cache_signature_with_surface(base, None, Some(100.0));
+        // Extract albedo contribution: bits shifted left by 5
+        let alb_contrib = sig >> 5;
+        assert!(alb_contrib <= 3, "albedo bucket exceeds 2 bits: {alb_contrib}");
     }
 }

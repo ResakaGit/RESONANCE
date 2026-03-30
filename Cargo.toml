@@ -103,6 +103,10 @@ name = "ecosystem_music"
 path = "src/bin/ecosystem_music.rs"
 
 [[bin]]
+name = "cancer_therapy"
+path = "src/bin/cancer_therapy.rs"
+
+[[bin]]
 name = "planet_viewer"
 path = "src/bin/planet_viewer.rs"
 

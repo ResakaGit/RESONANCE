@@ -56,12 +56,12 @@ pub fn locomotion_n_ticks(qe: f32, speed: f32, terrain_factor: f32, n: u32) -> f
 /// If isolated, analytical stepping is exact (no interactions to miss).
 pub fn is_isolated(
     positions: &[[f32; 2]],
-    alive_mask: u64,
+    alive_mask: u128,
     entity_idx: usize,
     range_sq: f32,
 ) -> bool {
     let pos = positions[entity_idx];
-    let mut mask = alive_mask & !(1u64 << entity_idx);
+    let mut mask = alive_mask & !(1u128 << entity_idx);
     while mask != 0 {
         let j = mask.trailing_zeros() as usize;
         mask &= mask - 1;

@@ -133,7 +133,7 @@ pub fn load_genomes(path: &std::path::Path) -> std::io::Result<Vec<GenomeBlob>> 
         return Ok(Vec::new());
     }
     let count = u32::from_le_bytes([data[0], data[1], data[2], data[3]]) as usize;
-    let expected = 4 + count * 18;
+    let expected = 4 + count * 22;
     if data.len() < expected {
         return Err(std::io::Error::new(
             std::io::ErrorKind::InvalidData,

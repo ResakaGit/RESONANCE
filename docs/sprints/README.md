@@ -10,14 +10,14 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 
 | Métrica | Valor |
 |---------|-------|
-| Sprints pendientes | **8** |
-| Tracks activos | **2** |
+| Sprints pendientes | **40** |
+| Tracks activos | **9** |
 | Oleadas restantes | **3** |
-| Tracks archivados | **39** |
+| Tracks archivados | **47** |
 
 ---
 
-## 8 sprints pendientes
+## 38 sprints pendientes
 
 ### GAMEPLAY_SYSTEMS (6 sprints pendientes)
 
@@ -44,6 +44,102 @@ Sprints archivados del track: [archive/GAMEPLAY_SYSTEMS/](archive/GAMEPLAY_SYSTE
 Sprints archivados del track: [archive/SURVIVAL_MODE/](archive/SURVIVAL_MODE/) (SV-1 ✅)
 
 Track README: [SURVIVAL_MODE/](SURVIVAL_MODE/)
+
+---
+
+### PARTICLE_CHARGE (7 sprints — infraestructura + átomos)
+
+| Sprint | Descripción | Esfuerzo | Bloqueado por |
+|--------|-------------|----------|---------------|
+| PC-0 | Entity Scale (64→1024, bitset) | 2 sem | — |
+| PC-1 | Spatial Acceleration (Barnes-Hut O(N log N)) | 2 sem | — |
+| PC-2 | Continuous Forces (force accumulator) | 1 sem | — |
+| PC-3 | Charge Layer (L-1: charge + mass) | 1 sem | PC-0,1,2 |
+| PC-4 | Coulomb Force + Lennard-Jones | 1 sem | PC-3 |
+| PC-5 | Emergent Bonding (stable pairs) | 2 sem | PC-4 |
+| PC-6 | Element Emergence (observability) | 2 sem | PC-5 |
+
+Track README: [PARTICLE_CHARGE/](PARTICLE_CHARGE/)
+
+---
+
+### NERVOUS_SYSTEM (4 sprints)
+
+| Sprint | Descripción | Esfuerzo | Bloqueado por |
+|--------|-------------|----------|---------------|
+| NS-1 | Signal Propagation (freq pulse por links) | 1 sem | MC ✅ |
+| NS-2 | Activation Threshold (fire or not) | 1 sem | NS-1 |
+| NS-3 | Reflex Arc (sensory → signal → motor) | 1 sem | NS-2 |
+| NS-4 | Batch Integration + observability | 1 sem | NS-3 |
+
+Track README: [NERVOUS_SYSTEM/](NERVOUS_SYSTEM/)
+
+---
+
+### EMERGENT_INTELLIGENCE (3 sprints)
+
+| Sprint | Descripción | Esfuerzo | Bloqueado por |
+|--------|-------------|----------|---------------|
+| EI-1 | Prediction Quality (SelfModel accuracy) | 1 sem | NS ✅ |
+| EI-2 | Planning Horizon (action selection) | 1 sem | EI-1 |
+| EI-3 | Batch Integration + intelligence_score | 1 sem | EI-2 |
+
+Track README: [EMERGENT_INTELLIGENCE/](EMERGENT_INTELLIGENCE/)
+
+---
+
+### TOOL_USE (4 sprints — herramientas + agricultura)
+
+| Sprint | Descripción | Esfuerzo | Bloqueado por |
+|--------|-------------|----------|---------------|
+| TU-1 | Modify Intent (change without consume) | 1 sem | EI ✅ |
+| TU-2 | Tool Crafting (modify bond_energy) | 1 sem | TU-1 |
+| TU-3 | Farming (harvest without killing) | 1 sem | TU-1 |
+| TU-4 | Batch Integration + tool_use_rate | 1 sem | TU-2, TU-3 |
+
+Track README: [TOOL_USE/](TOOL_USE/)
+
+---
+
+### EMERGENT_LANGUAGE (4 sprints)
+
+| Sprint | Descripción | Esfuerzo | Bloqueado por |
+|--------|-------------|----------|---------------|
+| EL-1 | Signal Emission (freq pulse + label) | 1 sem | NS ✅ |
+| EL-2 | Signal-Event Association (learning) | 1 sem | EL-1 |
+| EL-3 | Compositionality (combine 2 signals) | 1 sem | EL-2 |
+| EL-4 | Batch Integration + vocab_size_mean | 1 sem | EL-3 |
+
+Track README: [EMERGENT_LANGUAGE/](EMERGENT_LANGUAGE/)
+
+---
+
+### CIVILIZATION (4 sprints)
+
+| Sprint | Descripción | Esfuerzo | Bloqueado por |
+|--------|-------------|----------|---------------|
+| CV-1 | Persistent Structures (buildings) | 1 sem | TU ✅ |
+| CV-2 | Access Rules (coalition-based) | 1 sem | CV-1, EL ✅ |
+| CV-3 | Resource Trade (qe exchange) | 1 sem | CV-2 |
+| CV-4 | Batch Integration + civilization_score | 1 sem | CV-3 |
+
+Track README: [CIVILIZATION/](CIVILIZATION/)
+
+---
+
+### BRIDGE_STRATEGY_DECOUPLING (5 sprints pendientes)
+
+| Sprint | Descripción | Esfuerzo | Bloqueado por |
+|--------|-------------|----------|---------------|
+| BS-1 | NormStrategy enum + desacople normalización | Medio | — |
+| BS-4 | 6 bridges nuevos (basal, senescence, awakening, rad, shape, epi) | Alto | BS-1 |
+| BS-5 | TDD: tests unitarios + integración tier 1 | Alto | BS-4 |
+| BS-6 | HOF composition (NormPipeline) | Medio | BS-1 |
+| BS-7 | RON presets para estrategias + validación keys | Bajo | BS-6 |
+
+Sprints archivados del track: BS-2 ✅ (bug fixes), BS-3 parcial ✅ (exact cache components)
+
+Track README: [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
 
 ---
 
@@ -120,17 +216,29 @@ Track README: [SURVIVAL_MODE/](SURVIVAL_MODE/)
 | **EM** | 4 | EMERGENT_MORPHOLOGY | 4 | ✅ COMPLETA | — |
 | **AS** | 3 | ANALYTICAL_STEPPING | 3 | ✅ COMPLETA | — |
 | **SV** | 3 | SURVIVAL_MODE | 1 ✅ → 1 → 1 | ⏳ SV-1 done | — (independiente) |
+| **VG** | 6 | VARIABLE_GENOME | 6 serie | ✅ COMPLETA | — |
+| **MGN** | 7 | METABOLIC_GENOME | 4 serie → 3 paralelo | ✅ COMPLETA | VG ✅ |
 | **2** | 3 | GS | 3 | ⏳ Desbloqueada | Oleada 1 ✅ |
 | **3** | 3 | GS | 2 → 1 | 🔒 | Oleada 2 |
 | **4** | 1 | DEMO | 1 | 🔒 | Oleada 3 |
-| **Total** | **55** | — | — | 47 ✅ · 8 ⏳ | |
+| **PD** | 5 | PROTO_DNA | 5 serie | ✅ COMPLETA | VG ✅ |
+| **MC** | 5 | MULTICELLULARITY | 5 serie | ✅ COMPLETA | — |
+| **PC** | 7 | PARTICLE_CHARGE | 3 infra → 4 core | ⏳ Diseñado | — |
+| **NS** | 4 | NERVOUS_SYSTEM | 4 serie | ⏳ Diseñado | MC ✅ |
+| **EI** | 3 | EMERGENT_INTELLIGENCE | 3 serie | ⏳ Diseñado | NS |
+| **TU** | 4 | TOOL_USE | 2 serie + 2 paralelo | ⏳ Diseñado | EI |
+| **EL** | 4 | EMERGENT_LANGUAGE | 4 serie | ⏳ Diseñado | NS |
+| **CV** | 4 | CIVILIZATION | 4 serie | ⏳ Diseñado | TU + EL |
+| **BSD** | 7 | BRIDGE_STRATEGY_DECOUPLING | 2 ✅ → 5 pendiente | ⏳ BS-2/3 done | — (independiente) |
+| **SO** | 5 | SCIENTIFIC_OBSERVABILITY | 5 ✅ | ✅ COMPLETA | — (independiente) |
+| **Total** | **112** | — | — | 70 ✅ · 40 ⏳ · 1 🔒 | |
 
 ### Tracks por estado
 
 | Estado | Tracks | Sprints |
 |--------|--------|---------|
-| ✅ Archivados | 39 tracks | 47 sprints |
-| ⏳ Activos | GAMEPLAY_SYSTEMS (6), SURVIVAL_MODE (2) | 8 sprints |
+| ✅ Archivados | 47 tracks | 75 sprints |
+| ⏳ Activos | GS(6), SV(2), PC(7), NS(4), EI(3), TU(4), EL(4), CV(4), BSD(5) | 39 sprints |
 | 🔒 Bloqueados | DEMO (1) | 1 sprint |
 
 ---
@@ -139,6 +247,12 @@ Track README: [SURVIVAL_MODE/](SURVIVAL_MODE/)
 
 Implementation in `src/`, contracts in `docs/design/` and `docs/arquitectura/`. Full list in [`archive/README.md`](archive/README.md):
 
+- **BRIDGE_STRATEGY_DECOUPLING (parcial)** — BS-2 ✅: CompetitionNormBridge wired + hot reload fix. BS-3 parcial ✅: exact_cache (KleiberCache, GompertzCache, Converged\<T\>), shape_cache_signature extraction. 52 tests (2026-03-30) — [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
+- **SCIENTIFIC_OBSERVABILITY** — SO-1–SO-5 ✅: lineage tracking, population census, CSV/JSON export, HOF orchestrators (ablate, ensemble, sweep), CSV wired to fermi/cancer/convergence binaries. 32 tests (2026-03-30) — [SCIENTIFIC_OBSERVABILITY/](SCIENTIFIC_OBSERVABILITY/)
+- **PROTO_DNA** — PD-1–PD-5: CodonGenome (tripletes), CodonTable (64→8 amino, evolucionable), translate_genome, silent mutations, neutral drift, batch wiring. 28 tests (2026-03-30) — [archive/PROTO_DNA/](archive/PROTO_DNA/)
+- **MULTICELLULARITY** — MC-1–MC-5: cell adhesion (freq×distance), colony detection (Union-Find), positional signaling, differential expression (borde=defensa, interior=metabolismo), batch wiring. 33 tests (2026-03-30) — [archive/MULTICELLULARITY/](archive/MULTICELLULARITY/)
+- **METABOLIC_GENOME** — MGN-1–MGN-7: gene→ExergyNode, topology inference, graph from genome, evolution integration, node competition, Hebbian rewiring, internal catalysis. 80 tests, 100% metabolic networks. (2026-03-29) — [archive/METABOLIC_GENOME/](archive/METABOLIC_GENOME/)
+- **VARIABLE_GENOME** — VG-1–VG-6: VariableGenome (4-32 genes), maintenance cost (Kleiber), duplication/deletion mutation, expression mapping, epigenetic gating, bridge/serialization. 62 tests. (2026-03-29) — [archive/VARIABLE_GENOME/](archive/VARIABLE_GENOME/)
 - **SURVIVAL_MODE (parcial)** — SV-1: apply_input() wiring (InputCommand → WillActuator via WorldEntityId lookup). 5 LOC in sim_world.rs (2026-03-28) — [archive/SURVIVAL_MODE/](archive/SURVIVAL_MODE/)
 - **ANALYTICAL_STEPPING** — AS-1–AS-3: O(1) analytical equations (dissipation_n, growth_n, senescence_n, locomotion_n), convergence detection (radial_max_delta, field_converged), tick_fast pipeline. 16 tests (2026-03-28) — [archive/ANALYTICAL_STEPPING/](archive/ANALYTICAL_STEPPING/)
 - **EMERGENT_MORPHOLOGY** — EM-1–EM-4: 2D radial field (16×8=128 nodes), peak detection, bilateral emergence, appendage inference, joint articulation. Gravity + climate + asteroids. 30+ tests (2026-03-28) — [archive/EMERGENT_MORPHOLOGY/](archive/EMERGENT_MORPHOLOGY/)

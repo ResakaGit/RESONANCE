@@ -4,8 +4,8 @@
 
 pub use crate::blueprint::constants::QE_MIN_EXISTENCE;
 
-/// Maximum entity slots per world. Power of 2, fits in `u64` bitmask.
-pub const MAX_ENTITIES: usize = 64;
+/// Maximum entity slots per world. Power of 2, fits in `u128` bitmask.
+pub const MAX_ENTITIES: usize = 128;
 
 /// Nutrient/irradiance grid cell count (GRID_SIDE × GRID_SIDE).
 pub const GRID_CELLS: usize = 256;

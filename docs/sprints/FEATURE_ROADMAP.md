@@ -1,14 +1,14 @@
 # Feature Roadmap — Casos de Uso Curados
 
-> 94K LOC · 2567+ tests · 55 sprints (46 ✅) · 128-node radial field · 8 axiomas · 4 constantes
+> 87K+ LOC · 2,834 tests · 98 sprints (64 ✅) · 128-node radial field · 8 axiomas · 4 constantes
 >
-> Última actualización: 2026-03-28
+> Última actualización: 2026-03-30
 
 Casos de uso filtrados por viabilidad, impacto, y respeto axiomático.
 Cada uno incluye: qué es, quién lo usa, cómo se implementa sin hardcode, y qué ya existe.
 
 **Estado global:** 13/16 implementables hoy. 3 necesitan 1-2 semanas. 1 es ciencia abierta.
-**Tracks activos:** GAMEPLAY_SYSTEMS (6 sprints), SURVIVAL_MODE (3 sprints, diseñado).
+**Tracks activos:** GAMEPLAY_SYSTEMS (6 sprints), SURVIVAL_MODE (3 sprints, diseñado), SCIENTIFIC_OBSERVABILITY (5 sprints), BRIDGE_STRATEGY_DECOUPLING (7 sprints).
 
 ---
 
@@ -127,7 +127,7 @@ Muere → game over. Score = ticks sobrevividos.
 **Ya existe:**
 - Batch harness con `GenerationStats` por generación
 - Determinismo (INV-4) — reproducibilidad perfecta
-- Conservation audit (2567 tests)
+- Conservation audit (2840+ tests)
 
 **Falta:** Export CSV automático de `harness.history`. Plotting tool (o export a Python/R).
 

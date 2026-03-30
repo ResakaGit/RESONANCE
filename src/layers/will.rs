@@ -184,6 +184,8 @@ impl Default for AbilityCastSpec {
 /// Slot de habilidad individual dentro de un Grimoire (≤4 campos top-level).
 #[derive(Clone, Debug, Reflect, Serialize, Deserialize)]
 pub struct AbilitySlot {
+    // DEBT: String retained because AbilityDef deserializes from external MCP/AI sources.
+    // Cold path (≤8 slots per hero, Grimoire read-only after spawn).
     /// Nombre de la habilidad (debug / UI).
     pub name: String,
     /// Qué produce la habilidad al activarse.

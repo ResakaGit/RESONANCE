@@ -2,7 +2,7 @@
 //!
 //! Usage: `cargo run --release --bin convergence -- --seeds 20 --gens 100 --ticks 500`
 
-use resonance::use_cases::cli::{parse_arg, archetype_label};
+use resonance::use_cases::cli::{parse_arg, find_arg, archetype_label};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
@@ -27,5 +27,22 @@ fn main() {
             archetype_label(g.archetype),
             g.growth_bias, g.mobility_bias, g.branching_bias, g.resilience);
     }
+
+    // CSV export: genome biases per seed for clustering analysis
+    if let Some(out_path) = find_arg(&args, "--out") {
+        let mut csv = String::from("seed,archetype,trophic,growth,mobility,branching,resilience\n");
+        for (i, g) in report.top_genomes.iter().enumerate() {
+            csv.push_str(&format!(
+                "{},{},{},{:.4},{:.4},{:.4},{:.4}\n",
+                i, g.archetype, g.trophic_class,
+                g.growth_bias, g.mobility_bias, g.branching_bias, g.resilience,
+            ));
+        }
+        match std::fs::write(&out_path, &csv) {
+            Ok(()) => println!("  Exported {seeds} genomes to {out_path}"),
+            Err(e) => eprintln!("  Export failed: {e}"),
+        }
+    }
+
     println!();
 }

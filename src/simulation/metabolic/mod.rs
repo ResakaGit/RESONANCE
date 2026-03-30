@@ -3,6 +3,7 @@ pub mod basal_drain;
 pub mod competition_dynamics;
 pub mod ecology_dynamics;
 pub mod growth_budget;
+pub mod metabolic_graph_genome;
 pub mod metabolic_stress;
 pub mod morphogenesis;
 pub mod nutrient_uptake;

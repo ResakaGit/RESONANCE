@@ -1,8 +1,8 @@
 # Design Docs — Index
 
-> 94K LOC · 2567+ tests · 55 sprints (46 ✅) · 2 tracks activos · 38 archivados
+> 87K+ LOC · 2,834 tests · 98 sprints (64 ✅) · 8 tracks activos · 44 archivados
 >
-> Última actualización: 2026-03-28
+> Última actualización: 2026-03-30
 
 Especificaciones de alto nivel del proyecto Resonance. Para contratos runtime por modulo ver `docs/arquitectura/`. Para backlog de sprints ver `docs/sprints/`.
 
@@ -50,7 +50,17 @@ Especificaciones de alto nivel del proyecto Resonance. Para contratos runtime po
 | [MACRO_STEPPING.md](MACRO_STEPPING.md) | `simulation/` | Temporal LOD: analytical solvers O(1) para entidades lejanas |
 | [BATCH_SIMULATOR.md](../arquitectura/blueprint_batch_simulator.md) | `batch/` | Simulador masivo sin Bevy: SimWorldFlat, WorldBatch ×1M, GeneticHarness, evolucion real |
 | [EMERGENT_MORPHOLOGY.md](EMERGENT_MORPHOLOGY.md) | `batch/`, `equations/`, `geometry_flow/` | 2D radial energy field → bilateral organisms emergentes. 100% axiom-pure. |
-| [USE_CASE_ARCHITECTURE.md](USE_CASE_ARCHITECTURE.md) | `use_cases/` (nuevo) | HOFs + Traits + Presets: Experiment/Presenter contracts, UniversePreset, evolve_with() |
+| [USE_CASE_ARCHITECTURE.md](USE_CASE_ARCHITECTURE.md) | `use_cases/` | HOFs + Traits + Presets: Experiment/Presenter contracts, UniversePreset, evolve_with() |
+
+## Deep Simulation (2026-03-30)
+
+| Módulo | Archivo | Descripcion |
+|--------|---------|-------------|
+| Variable Genome | `equations/variable_genome.rs` | 4-32 genes, duplication/deletion, Kleiber cost, epigenetic gating. 62 tests. |
+| Metabolic Genome | `equations/metabolic_genome.rs` | Gene→ExergyNode, DAG topology, competition, Hebb rewiring, catalysis. 80 tests. |
+| Protein Fold | `equations/protein_fold.rs` | HP lattice fold, contact map, active sites, catalytic function. 27 tests. |
+| Proto-DNA | `equations/codon_genome.rs` | CodonGenome, CodonTable (evolucionable), translation, silent mutations. 28 tests. |
+| Multicellularity | `equations/multicellular.rs` | Adhesion, colony detection (Union-Find), positional signal, differential expression. 27 tests. |
 
 ## Gameplay
 

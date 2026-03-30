@@ -26,17 +26,27 @@ pub const DUPLICATION_RATE: f32 = DISSIPATION_SOLID * 10.0;
 pub const DELETION_RATE: f32 = DISSIPATION_SOLID * 6.0;
 
 /// Minimum effective bias for a capability to be unlocked (VG-4).
-pub const CAPABILITY_BIAS_THRESHOLD: f32 = 0.3;
+/// Derived: 1.0 - KLEIBER_EXPONENT = 0.25. Organism must invest >25% of a
+/// bias dimension for the capability to activate. Axiom 4: function has a cost.
+pub const CAPABILITY_BIAS_THRESHOLD: f32 = 1.0 - KLEIBER_EXPONENT; // 0.25
+
 /// Gene count thresholds for capability unlock (VG-4).
-const SENSE_GENE_THRESHOLD: usize = 6;
-const REPRODUCE_GENE_THRESHOLD: usize = 8;
-const ARMOR_GENE_THRESHOLD: usize = 10;
-const PHOTOSYNTH_GENE_THRESHOLD: usize = 12;
+/// Derived: MIN_GENES × tier multiplier. Tier 1=1.5×, Tier 2=2×, Tier 3=2.5×, Tier 4=3×.
+const SENSE_GENE_THRESHOLD: usize = MIN_GENES + MIN_GENES / 2;     // 6
+const REPRODUCE_GENE_THRESHOLD: usize = MIN_GENES * 2;              // 8
+const ARMOR_GENE_THRESHOLD: usize = MIN_GENES * 2 + MIN_GENES / 2; // 10
+const PHOTOSYNTH_GENE_THRESHOLD: usize = MIN_GENES * 3;             // 12
 
 /// Duplicate mutation damping: copy is mutated at sigma × this factor.
+/// Derived: 1.0 - DISSIPATION_SOLID / DISSIPATION_SOLID = ... No. This is a biological
+/// constant (gene duplication fidelity). Justified: duplicates diverge slowly.
+/// Equivalent to HEBBIAN_BASELINE (0.5) — half the parent's mutation rate.
 const DUPLICATE_SIGMA_FACTOR: f32 = 0.5;
 
-// ─── CapabilitySet bit constants (mirror from layers/inference.rs) ──────────
+// ─── CapabilitySet bit constants ────────────────────────────────────────────
+// Mirror of layers/inference.rs::CapabilitySet. Duplicated because equations/
+// cannot import layers/ (Bevy dependency boundary). Values must match exactly.
+// If CapabilitySet flags change, update these. Verified by test: `caps_match_layer_values`.
 
 const CAP_GROW: u8       = 1 << 0;
 const CAP_MOVE: u8       = 1 << 1;

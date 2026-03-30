@@ -8,7 +8,10 @@ mod chemical;
 mod input;
 mod internal_field;
 mod metabolic;
+mod metabolic_graph;
 mod morphological;
+mod multicellular;
+mod protein;
 mod thermodynamic;
 
 // Phase::Input
@@ -31,6 +34,11 @@ pub use metabolic::{
     cooperation_eval, culture_transmission, pool_distribution, social_pack,
     trophic_forage, trophic_predation,
 };
+
+// Phase::MetabolicLayer (metabolic graph + protein fold)
+pub use metabolic_graph::metabolic_graph_infer;
+pub use protein::protein_fold_infer;
+pub use multicellular::multicellular_step;
 
 // Phase::MorphologicalLayer (internal field)
 pub use internal_field::internal_diffusion;

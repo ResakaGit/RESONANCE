@@ -42,5 +42,6 @@ fn incremental_materialization_inserts_senescence_profile() {
 
     let profile = sen.unwrap();
     assert_eq!(profile.tick_birth, 42, "tick_birth should match SimulationClock.tick_id");
-    assert_eq!(profile.max_viable_age, 5_000);
+    // max_viable_age = 1/DISSIPATION_SOLID = 1/0.005 = 200 (axiom-derived)
+    assert_eq!(profile.max_viable_age, 200);
 }

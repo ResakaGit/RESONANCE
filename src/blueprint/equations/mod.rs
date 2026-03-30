@@ -59,7 +59,12 @@ pub mod determinism;
 pub mod radial_field;
 pub mod internal_field;
 pub mod variable_genome;
+pub mod metabolic_genome;
+pub mod protein_fold;
+pub mod codon_genome;
+pub mod multicellular;
 pub mod morph_robustness;
+pub mod exact_cache;
 pub mod observability;
 pub mod sensitivity;
 pub mod surrogate_error;
@@ -134,7 +139,7 @@ pub use entity_shape::{
     bilateral_quadruped_attachments, entity_geometry_influence, entity_lod_detail,
     fineness_to_spine_params, frequency_to_tint_rgb, matter_to_gf1_resistance,
     optimal_appendage_count, organ_slot_scale, projected_area_with_limbs,
-    shape_cache_signature,
+    shape_cache_signature, shape_cache_signature_with_surface,
 };
 
 // MG-1 — re-export morphogenesis (descubrimiento vía `equations::`)

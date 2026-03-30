@@ -8,6 +8,8 @@ use crate::batch::systems::thermodynamic::grid_cell;
 use crate::blueprint::{constants, equations};
 use crate::blueprint::equations::determinism;
 use crate::blueprint::equations::emergence::senescence as senescence_eq;
+use crate::blueprint::equations::codon_genome;
+use crate::blueprint::equations::variable_genome;
 
 /// Age-dependent dissipation: older entities lose energy faster.
 ///
@@ -127,8 +129,20 @@ pub fn reproduction(world: &mut SimWorldFlat) {
 
         let Some(child_idx) = world.first_free_slot() else { continue; };
 
+        // Mutate via VariableGenome (supports gene duplication/deletion)
+        let parent_vg = &world.genomes[parent_idx];
+        let child_vg = variable_genome::mutate_variable(parent_vg, rng);
+
+        // Also produce classic GenomeBlob for EntitySlot (backward compatible)
+        let (child_biases, _sigma) = variable_genome::to_genome_blob_biases(&child_vg);
         let parent_genome = GenomeBlob::from_slot(&world.entities[parent_idx]);
-        let child_genome = parent_genome.mutate(rng, DEFAULT_MUTATION_SIGMA);
+        let child_genome = GenomeBlob {
+            growth_bias: child_biases[0],
+            mobility_bias: child_biases[1],
+            branching_bias: child_biases[2],
+            resilience: child_biases[3],
+            ..parent_genome
+        };
 
         let transfer = world.entities[parent_idx].qe * REPRODUCTION_TRANSFER_FRACTION;
         world.entities[parent_idx].qe -= transfer;
@@ -151,6 +165,12 @@ pub fn reproduction(world: &mut SimWorldFlat) {
         ];
 
         world.entities[child_idx] = child;
+        world.genomes[child_idx] = child_vg;
+        // PD-5: Propagate codon genome + code table with mutation
+        let parent_cg = world.codon_genomes[parent_idx];
+        let parent_ct = world.codon_tables[parent_idx];
+        world.codon_genomes[child_idx] = codon_genome::mutate_codon(&parent_cg, rng);
+        world.codon_tables[child_idx] = codon_genome::mutate_table(&parent_ct, determinism::next_u64(rng));
         world.alive_mask |= 1 << child_idx;
         world.entity_count += 1;
         world.events.record_reproduction(pi, child_idx as u8);
@@ -186,6 +206,13 @@ pub fn abiogenesis(world: &mut SimWorldFlat) {
     ];
 
     world.entities[idx] = cell;
+    world.genomes[idx] = variable_genome::VariableGenome::from_biases(
+        cell.growth_bias, cell.mobility_bias, cell.branching_bias, cell.resilience,
+    );
+    world.codon_genomes[idx] = codon_genome::CodonGenome::from_seed(
+        determinism::next_u64(rng ^ 0xCD),
+    );
+    world.codon_tables[idx] = codon_genome::CodonTable::default();
     world.alive_mask |= 1 << idx;
     world.entity_count += 1;
 }
@@ -387,7 +414,9 @@ mod tests {
         reproduction(&mut w);
         // Child genome should be close to parent but not identical
         let child = &w.entities[1];
-        assert!((child.growth_bias - 0.8).abs() < 0.3, "growth_bias near parent");
+        // With VariableGenome mutation, effective biases may shift more than classic mutation
+        // due to gene duplication + modulation. Allow wider tolerance.
+        assert!((child.growth_bias - 0.8).abs() < 0.5, "growth_bias in range of parent");
         assert_eq!(child.archetype, 2, "archetype inherited");
     }
 

@@ -59,9 +59,57 @@ pub fn gaussian_f32(state: u64, sigma: f32) -> f32 {
     z * sigma
 }
 
+// ─── Shared math: Gaussian frequency alignment (Axiom 8) ────────────────────
+
+/// Gaussian frequency alignment. Axiom 8: oscillatory interaction modulated by Δf.
+///
+/// `alignment = exp(-Δf² / (2 × bandwidth²))`.
+/// Same frequency → 1.0. Far frequencies → 0.0. Bandwidth = coherence window.
+///
+/// Centralized: used by protein_fold, metabolic_genome, multicellular.
+/// Each caller passes their domain-specific bandwidth constant.
+#[inline]
+pub fn gaussian_frequency_alignment(f_a: f32, f_b: f32, bandwidth: f32) -> f32 {
+    if !f_a.is_finite() || !f_b.is_finite() || bandwidth <= 0.0 { return 0.0; }
+    let delta = (f_a - f_b).abs();
+    (-delta * delta / (2.0 * bandwidth * bandwidth)).exp()
+}
+
+/// Sanitize f32 to unit range [0,1]. NaN/Inf → 0.0.
+#[inline]
+pub fn sanitize_unit(v: f32) -> f32 {
+    if v.is_finite() { v.clamp(0.0, 1.0) } else { 0.0 }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn gaussian_same_freq_is_one() {
+        assert!((gaussian_frequency_alignment(400.0, 400.0, 50.0) - 1.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn gaussian_different_freq_less_than_one() {
+        assert!(gaussian_frequency_alignment(400.0, 600.0, 50.0) < 1.0);
+    }
+
+    #[test]
+    fn gaussian_nan_safe() {
+        assert_eq!(gaussian_frequency_alignment(f32::NAN, 400.0, 50.0), 0.0);
+    }
+
+    #[test]
+    fn gaussian_zero_bandwidth_safe() {
+        assert_eq!(gaussian_frequency_alignment(400.0, 400.0, 0.0), 0.0);
+    }
+
+    #[test]
+    fn sanitize_unit_nan_zero() { assert_eq!(sanitize_unit(f32::NAN), 0.0); }
+
+    #[test]
+    fn sanitize_unit_clamps() { assert_eq!(sanitize_unit(2.0), 1.0); assert_eq!(sanitize_unit(-1.0), 0.0); }
 
     #[test]
     fn hash_f32_slice_same_input_same_output() {

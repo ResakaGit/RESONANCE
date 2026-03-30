@@ -8,9 +8,9 @@ use bevy::prelude::*;
 
 use crate::bridge::cache::BridgeCache;
 use crate::bridge::config::{
-    BridgeKind, CatalysisBridge, CollisionTransferBridge, DensityBridge, DissipationBridge,
-    DragBridge, EngineBridge, InterferenceBridge, OsmosisBridge, PhaseTransitionBridge,
-    TemperatureBridge, WillBridge,
+    BridgeKind, CatalysisBridge, CollisionTransferBridge, CompetitionNormBridge, DensityBridge,
+    DissipationBridge, DragBridge, EngineBridge, InterferenceBridge, OsmosisBridge,
+    PhaseTransitionBridge, TemperatureBridge, WillBridge,
 };
 use crate::bridge::context_fill::{BridgePhase, BridgePhaseState};
 use crate::runtime_platform::simulation_tick::SimulationClock;
@@ -197,6 +197,7 @@ pub fn bridge_cache_fill_report(world: &World) -> String {
         CatalysisBridge,
         CollisionTransferBridge,
         OsmosisBridge,
+        CompetitionNormBridge,
     );
     format!(
         "Bridge optimizer → Active — snapshot caches:\n{}",
@@ -225,6 +226,7 @@ pub fn bridge_layer_name<B: BridgeKind>() -> &'static str {
         CatalysisBridge => "catalysis",
         CollisionTransferBridge => "collision_transfer",
         OsmosisBridge => "osmosis",
+        CompetitionNormBridge => "competition_norm",
     );
     "unknown_bridge"
 }
@@ -267,6 +269,7 @@ pub fn bridge_metrics_collect_all(world: &mut World) {
     collect_one_bridge::<CatalysisBridge>(world);
     collect_one_bridge::<CollisionTransferBridge>(world);
     collect_one_bridge::<OsmosisBridge>(world);
+    collect_one_bridge::<CompetitionNormBridge>(world);
 }
 
 fn bridge_metrics_layer_rows(world: &World, cfg: &BridgeMetricsConfig) -> Vec<BridgeLayerRow> {
@@ -301,6 +304,7 @@ fn bridge_metrics_layer_rows(world: &World, cfg: &BridgeMetricsConfig) -> Vec<Br
         CatalysisBridge,
         CollisionTransferBridge,
         OsmosisBridge,
+        CompetitionNormBridge,
     );
     layers
 }

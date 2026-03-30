@@ -179,5 +179,18 @@ impl Plugin for MetabolicPlugin {
                 .after(simulation::metabolic_stress::metabolic_stress_death_system)
                 .before(faction_identity_system),
         );
+
+        // MGN-4: Genome → MetabolicGraph inference + maintenance cost drain.
+        app.add_systems(
+            FixedUpdate,
+            (
+                simulation::metabolic::metabolic_graph_genome::genome_to_metabolic_graph_system,
+                simulation::metabolic::metabolic_graph_genome::genome_maintenance_drain_system,
+            )
+                .chain()
+                .in_set(Phase::MetabolicLayer)
+                .run_if(in_state(GameState::Playing).and(in_state(PlayState::Active)))
+                .before(simulation::morphogenesis::metabolic_graph_step_system),
+        );
     }
 }

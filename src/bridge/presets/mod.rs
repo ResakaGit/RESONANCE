@@ -470,6 +470,17 @@ pub fn bridge_config_hot_reload_system(world: &mut World) {
     let clear_caches = had_built_before;
     apply_bridge_config_asset(&mut *world, &asset, clear_caches);
 
+    // Hot reload con nuevos parámetros invalida la calibración del context-fill:
+    // bandas/capacidad cambiaron → fill ratio y hit rate ya no son representativos.
+    // Resetear a Warmup re-calibra el ciclo con la nueva configuración.
+    if clear_caches {
+        if let Some(phase_state) = world.get_resource::<crate::bridge::context_fill::BridgePhaseState>() {
+            if phase_state.phase != crate::bridge::context_fill::BridgePhase::Active {
+                crate::bridge::context_fill::bridge_phase_reset(world);
+            }
+        }
+    }
+
     if let Some(mut s) = world.get_resource_mut::<BridgeConfigAssetState>() {
         s.dirty = false;
         s.built = true;

@@ -17,6 +17,7 @@ use crate::blueprint::equations::{
     albedo_luminosity_blend, entity_geometry_influence, entity_lod_detail,
     frequency_to_tint_rgb, matter_to_gf1_resistance, normalized_qe,
     organ_slot_scale, rugosity_to_detail_multiplier, shape_cache_signature,
+    shape_cache_signature_with_surface,
 };
 use crate::geometry_flow::{build_flow_mesh, build_flow_spine, merge_meshes, GeometryInfluence};
 use crate::layers::{
@@ -82,14 +83,11 @@ pub fn entity_shape_inference_system(
         let base_sig = shape_cache_signature(
             fineness_base, qe_norm, volume.radius, hunger, food_dist, has_hostile,
         );
-        // Incorporate rugosity + albedo into cache key via XOR of extra buckets
-        let rug_bucket = surface_opt
-            .map(|s| ((s.rugosity() - 1.0) / 3.0 * 7.0) as u16 & 0x7)
-            .unwrap_or(0);
-        let alb_bucket = albedo_opt
-            .map(|a| (a.albedo() * 3.0) as u16 & 0x3)
-            .unwrap_or(0);
-        let new_sig = base_sig.wrapping_add(rug_bucket.wrapping_shl(1) | alb_bucket.wrapping_shl(5));
+        let new_sig = shape_cache_signature_with_surface(
+            base_sig,
+            surface_opt.map(|s| s.rugosity()),
+            albedo_opt.map(|a| a.albedo()),
+        );
 
         // ── Cache hit check ───────────────────────────────────────────────────
         if shape_inferred.is_some() {
