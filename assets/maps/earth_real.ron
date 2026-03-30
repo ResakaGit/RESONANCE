@@ -1,0 +1,273 @@
+(
+  // ── Earth (Real Geography) ─────────────────────────────────────────────────
+  //
+  // Continentes mapeados a posiciones reales en proyección equirectangular.
+  // Continents mapped to real positions in equirectangular projection.
+  //
+  // Grid 64×32: X = longitud (-180° → +180°), Y = latitud (-90° → +90°).
+  // Cada celda ≈ 5.6° × 5.6° ≈ 625 km.
+  //
+  // Nuclei Terra (85 Hz) = tierra firme.
+  // Nuclei Aqua (200 Hz) = océanos profundos.
+  // Sol infinito arriba. Geotermia en el centro.
+  //
+  width_cells: 64,
+  height_cells: 32,
+  cell_size: 2.0,
+  origin: (-64.0, -32.0),
+  warmup_ticks: Some(200),
+  seed: Some(137),
+  fog_of_war: false,
+  playfield_margin_cells: None,
+
+  initial_field_qe: Some(8.0),
+  initial_field_freq: Some(150.0),
+  initial_nutrient_water: Some(0.5),
+  day_period_ticks: Some(600.0),
+  year_period_ticks: Some(219000.0),
+  axial_tilt: Some(0.26),
+  self_sustaining_qe: Some(10.0),
+
+  nuclei: [
+    // ── SOL — infinite ───────────────────────────────────────────────────────
+    (
+      name: "sol",
+      position: (0.0, 28.0),
+      frequency_hz: 400.0,
+      emission_rate_qe_s: 800.0,
+      propagation_radius: 60.0,
+      decay: InverseSquare,
+      ambient_pressure: None,
+    ),
+
+    // ── GEOTHERMAL CORE ──────────────────────────────────────────────────────
+    (
+      name: "geo_core",
+      position: (0.0, 0.0),
+      frequency_hz: 50.0,
+      emission_rate_qe_s: 5.0,
+      propagation_radius: 30.0,
+      decay: InverseSquare,
+      ambient_pressure: None,
+    ),
+
+    // ── ATMOSPHERE ───────────────────────────────────────────────────────────
+    (
+      name: "atmosphere",
+      position: (0.0, 5.0),
+      frequency_hz: 600.0,
+      emission_rate_qe_s: 30.0,
+      propagation_radius: 55.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+
+    // ── CONTINENTES (Terra 82-92 Hz) ─────────────────────────────────────────
+    // Posiciones: X = longitud normalizada, Y = latitud normalizada al grid.
+    // Grid center (0,0) ≈ 0°N, 0°E (Golfo de Guinea).
+
+    // Europa occidental
+    (
+      name: "europe_west",
+      position: (2.0, 15.0),
+      frequency_hz: 86.0,
+      emission_rate_qe_s: 200.0,
+      propagation_radius: 6.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Europa oriental / Rusia
+    (
+      name: "eurasia_east",
+      position: (15.0, 17.0),
+      frequency_hz: 84.0,
+      emission_rate_qe_s: 250.0,
+      propagation_radius: 10.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Siberia
+    (
+      name: "siberia",
+      position: (28.0, 19.0),
+      frequency_hz: 83.0,
+      emission_rate_qe_s: 180.0,
+      propagation_radius: 8.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Africa norte
+    (
+      name: "africa_north",
+      position: (2.0, 7.0),
+      frequency_hz: 90.0,
+      emission_rate_qe_s: 220.0,
+      propagation_radius: 7.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Africa sur
+    (
+      name: "africa_south",
+      position: (5.0, -2.0),
+      frequency_hz: 88.0,
+      emission_rate_qe_s: 180.0,
+      propagation_radius: 5.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // India
+    (
+      name: "india",
+      position: (18.0, 6.0),
+      frequency_hz: 87.0,
+      emission_rate_qe_s: 160.0,
+      propagation_radius: 5.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // China / SE Asia
+    (
+      name: "east_asia",
+      position: (26.0, 10.0),
+      frequency_hz: 85.0,
+      emission_rate_qe_s: 200.0,
+      propagation_radius: 7.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Australia
+    (
+      name: "australia",
+      position: (28.0, -7.0),
+      frequency_hz: 91.0,
+      emission_rate_qe_s: 150.0,
+      propagation_radius: 6.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Norteamérica este
+    (
+      name: "north_america_east",
+      position: (-22.0, 13.0),
+      frequency_hz: 86.0,
+      emission_rate_qe_s: 200.0,
+      propagation_radius: 6.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Norteamérica oeste
+    (
+      name: "north_america_west",
+      position: (-30.0, 14.0),
+      frequency_hz: 84.0,
+      emission_rate_qe_s: 180.0,
+      propagation_radius: 5.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Centroamérica
+    (
+      name: "central_america",
+      position: (-24.0, 5.0),
+      frequency_hz: 89.0,
+      emission_rate_qe_s: 100.0,
+      propagation_radius: 3.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Sudamérica norte (Amazonia)
+    (
+      name: "south_america_north",
+      position: (-18.0, 0.0),
+      frequency_hz: 85.0,
+      emission_rate_qe_s: 200.0,
+      propagation_radius: 6.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Sudamérica sur (Patagonia)
+    (
+      name: "south_america_south",
+      position: (-19.0, -10.0),
+      frequency_hz: 82.0,
+      emission_rate_qe_s: 140.0,
+      propagation_radius: 4.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Groenlandia
+    (
+      name: "greenland",
+      position: (-12.0, 21.0),
+      frequency_hz: 82.0,
+      emission_rate_qe_s: 80.0,
+      propagation_radius: 4.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Antártida
+    (
+      name: "antarctica",
+      position: (0.0, -26.0),
+      frequency_hz: 80.0,
+      emission_rate_qe_s: 60.0,
+      propagation_radius: 10.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+
+    // ── OCEANOS (Aqua 195-210 Hz) ────────────────────────────────────────────
+    // Pacífico
+    (
+      name: "pacific",
+      position: (-42.0, 0.0),
+      frequency_hz: 200.0,
+      emission_rate_qe_s: 100.0,
+      propagation_radius: 15.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Atlántico
+    (
+      name: "atlantic",
+      position: (-10.0, 5.0),
+      frequency_hz: 205.0,
+      emission_rate_qe_s: 90.0,
+      propagation_radius: 10.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Índico
+    (
+      name: "indian_ocean",
+      position: (18.0, -5.0),
+      frequency_hz: 198.0,
+      emission_rate_qe_s: 80.0,
+      propagation_radius: 10.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Ártico
+    (
+      name: "arctic",
+      position: (0.0, 26.0),
+      frequency_hz: 195.0,
+      emission_rate_qe_s: 40.0,
+      propagation_radius: 8.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+    // Antártico
+    (
+      name: "southern_ocean",
+      position: (0.0, -20.0),
+      frequency_hz: 202.0,
+      emission_rate_qe_s: 50.0,
+      propagation_radius: 12.0,
+      decay: InverseLinear,
+      ambient_pressure: None,
+    ),
+  ],
+  seasons: [],
+)
