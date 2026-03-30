@@ -15,3 +15,4 @@ pub mod mesh_export;
 pub mod fossil;
 pub mod sonification;
 pub mod cancer_therapy;
+pub mod particle_lab;

@@ -141,7 +141,7 @@ Energy (qe) → matter states → metabolism → reproduction → variable genom
 
 **Nothing programmed. Everything emerged from 8 axioms and 4 constants.**
 
-## Use Cases (13/16 implemented)
+## Use Cases (15 experiments + 22 binaries)
 
 | ID | Use Case | Command |
 |----|----------|---------|
@@ -158,20 +158,27 @@ Energy (qe) → matter states → metabolism → reproduction → variable genom
 | D1 | Personal Universe | `cargo run --bin personal_universe -- "your name"` |
 | D2 | Convergent Evolution | `cargo run --bin convergence` |
 | D3 | Ecosystem Music | `cargo run --bin ecosystem_music` |
+| E1 | Cancer Therapy | `cargo run --bin cancer_therapy` |
+| E2 | Particle Lab | `cargo run --bin particle_lab` |
+| **LAB** | **Universal Lab (all experiments + Live 2D)** | **`cargo run --release --bin lab`** |
+| **SV** | **Survival Mode (play as evolved creature)** | **`cargo run --release --bin survival -- --seed 42`** |
 
 **Additional binaries:**
 
 ```bash
-cargo run --bin evolve              # Headless evolution with gene/protein/colony observability
-cargo run --bin evolve_and_view     # Evolution + 3D GF1 visualization
-cargo run --bin headless_sim        # Full sim → PPM image (no GPU)
-cargo run --bin sim_viewer          # Real-time viewer (terminal or pixel window)
+cargo run --release --bin lab                # Universal lab: 8 experiments + Live 2D + ablation + CSV export
+cargo run --release --bin survival           # Survival: WASD, play as evolved creature
+cargo run --release --bin evolve             # Headless evolution with gene/protein/colony observability
+cargo run --release --bin evolve_and_view    # Evolution + 3D GF1 visualization
+cargo run --release --bin cancer_therapy -- --out tumor.csv   # Cancer therapy → CSV
+cargo run --release --bin fermi -- --out fermi.csv            # Fermi paradox → CSV
+cargo run --release --bin headless_sim -- --ticks 5000 --out world.ppm
 ```
 
 ## Tests
 
 ```bash
-cargo test    # 2,834 tests (87K+ LOC)
+cargo test    # 2,994 tests (109K LOC)
 cargo bench   # batch + bridge benchmarks
 ```
 

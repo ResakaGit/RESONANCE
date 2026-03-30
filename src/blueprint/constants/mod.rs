@@ -149,6 +149,9 @@ pub use cooperation_ac5::*;
 pub use nucleus_lifecycle::*;
 pub use senescence::*;
 
+// Re-export fundamental constants from derived_thresholds for ergonomic access.
+pub use super::equations::derived_thresholds::COHERENCE_BANDWIDTH;
+
 pub use morphogenesis_track::morphogenesis;
 pub use morphogenesis::{
     ALBEDO_EPSILON, ALBEDO_FALLBACK, ALBEDO_IRRADIANCE_FLUX_EPS, ALBEDO_LUMINOSITY_ALBEDO_WEIGHT,

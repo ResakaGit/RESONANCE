@@ -7,6 +7,22 @@ use crate::blueprint::equations::emergence::symbiosis::{
 };
 use crate::layers::{BaseEnergy, SymbiosisLink, SymbiosisType};
 
+/// Fracción de qe propia usada como ingreso base en mutualismo.
+/// Fraction of own qe used as base intake in mutualism.
+const MUTUALISM_INTAKE_FRACTION: f32 = 0.01;
+
+/// Fracción de pérdida por transferencia en mutualismo (Axiom 4: disipación).
+/// Transfer loss fraction in mutualism (Axiom 4: dissipation).
+const MUTUALISM_TRANSFER_LOSS: f32 = 0.05;
+
+/// Fracción de pérdida por transferencia en parasitismo (Axiom 4: disipación).
+/// Transfer loss fraction in parasitism (Axiom 4: dissipation).
+const PARASITISM_TRANSFER_LOSS: f32 = 0.1;
+
+/// Fracción de qe propia usada como ingreso base en comensalismo.
+/// Fraction of own qe used as base intake in commensalism.
+const COMMENSALISM_INTAKE_FRACTION: f32 = 0.005;
+
 /// Applies symbiosis effects each tick. Removes unstable links.
 pub fn symbiosis_effect_system(
     mut commands: Commands,
@@ -16,17 +32,15 @@ pub fn symbiosis_effect_system(
         let qe = energy.qe();
         let (benefit_self, cost) = match link.relationship {
             SymbiosisType::Mutualism => {
-                // mutualism_benefit(own_intake, partner_bonus_factor)
-                let b = mutualism_benefit(qe * 0.01, link.bonus_factor);
-                (b, b * 0.05) // 5% transfer loss (Axiom 4)
+                let b = mutualism_benefit(qe * MUTUALISM_INTAKE_FRACTION, link.bonus_factor);
+                (b, b * MUTUALISM_TRANSFER_LOSS)
             }
             SymbiosisType::Parasitism => {
-                // parasitism_drain(host_qe, drain_rate) — self is parasite, gains
                 let drain = parasitism_drain(qe, link.drain_rate);
-                (drain, drain * 0.1)
+                (drain, drain * PARASITISM_TRANSFER_LOSS)
             }
             SymbiosisType::Commensalism => {
-                let b = mutualism_benefit(qe * 0.005, link.bonus_factor);
+                let b = mutualism_benefit(qe * COMMENSALISM_INTAKE_FRACTION, link.bonus_factor);
                 (b, 0.0)
             }
         };

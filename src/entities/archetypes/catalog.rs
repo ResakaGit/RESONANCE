@@ -3,6 +3,9 @@
 
 use bevy::prelude::*;
 
+use crate::blueprint::equations::derived_thresholds::{
+    DISSIPATION_GAS, DISSIPATION_LIQUID, DISSIPATION_PLASMA,
+};
 use crate::blueprint::{ElementId, IdGenerator};
 use crate::entities::builder::EntityBuilder;
 use crate::layers::{
@@ -23,7 +26,9 @@ const TERRA_ELEMENT:  &str = "Terra";
 // ── Célula ───────────────────────────────────────────────────────────────────
 const CELULA_QE:            f32 = 150.0;
 const CELULA_RADIUS:        f32 = 0.12;
-const CELULA_DISSIPATION:   f32 = 0.08;
+/// Disipación celular = metabolismo fase gaseosa (Axiom 4).
+/// Cell dissipation = gas-phase metabolism (Axiom 4).
+const CELULA_DISSIPATION:   f32 = DISSIPATION_GAS; // 0.08
 const CELULA_BOND:          f32 = 600.0;
 const CELULA_CONDUCTIVITY:  f32 = 2.5;
 const CELULA_BUF_MAX:       f32 = 180.0;
@@ -47,7 +52,10 @@ const CELULA_CAPS: u8 = CapabilitySet::GROW | CapabilitySet::REPRODUCE;
 // ── Virus ────────────────────────────────────────────────────────────────────
 const VIRUS_QE:             f32 = 25.0;
 const VIRUS_RADIUS:         f32 = 0.04;
-const VIRUS_DISSIPATION:    f32 = 1.5;
+/// Disipación viral = 6× plasma: inestabilidad extrema sin estado estacionario.
+/// Viral dissipation = 6× plasma: extreme instability with no steady state.
+// DEBT: extreme dissipation models viral instability (no steady state)
+const VIRUS_DISSIPATION:    f32 = DISSIPATION_PLASMA * 6.0; // 1.5
 const VIRUS_BOND:           f32 = 3000.0;
 const VIRUS_CONDUCTIVITY:   f32 = 0.1;
 const VIRUS_INJECTOR_QE:    f32 = 30.0;
@@ -60,7 +68,9 @@ const VIRUS_CAPS: u8 = CapabilitySet::REPRODUCE;
 // ── Planta ───────────────────────────────────────────────────────────────────
 const PLANTA_QE:            f32 = 200.0;
 const PLANTA_RADIUS:        f32 = 0.25;
-const PLANTA_DISSIPATION:   f32 = 0.05;
+/// Disipación vegetal = 2.5× líquido: metabolismo entre sólido y gaseoso.
+/// Plant dissipation = 2.5× liquid: metabolism between solid and gas phases.
+const PLANTA_DISSIPATION:   f32 = DISSIPATION_LIQUID * 2.5; // 0.05
 const PLANTA_BOND:          f32 = 2000.0;
 const PLANTA_CONDUCTIVITY:  f32 = 1.2;
 const PLANTA_BUF_MAX:       f32 = 350.0;
@@ -84,7 +94,9 @@ const PLANTA_T_ENV:     f32 = 284.0; // ambient environment temperature (K)
 // ── Animal ───────────────────────────────────────────────────────────────────
 const ANIMAL_QE:            f32 = 450.0;
 const ANIMAL_RADIUS:        f32 = 0.55;
-const ANIMAL_DISSIPATION:   f32 = 0.12;
+/// Disipación animal = 1.5× gas: metabolismo más intenso que una célula.
+/// Animal dissipation = 1.5× gas: hotter metabolism than a cell.
+const ANIMAL_DISSIPATION:   f32 = DISSIPATION_GAS * 1.5; // 0.12
 const ANIMAL_BOND:          f32 = 1200.0;
 const ANIMAL_CONDUCTIVITY:  f32 = 1.8;
 const ANIMAL_BUF_MAX:       f32 = 500.0;

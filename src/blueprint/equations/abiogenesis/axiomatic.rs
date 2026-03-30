@@ -18,7 +18,8 @@ use crate::layers::MatterState;
 // No hardcoded constants. See docs/sprints/AXIOMATIC_INFERENCE/ for derivations.
 
 /// Frequency alignment bandwidth (Hz). Axiom 8: observation window.
-const COHERENCE_BANDWIDTH_HZ: f32 = 50.0;
+/// Centralized in derived_thresholds.rs (4th fundamental constant).
+use crate::blueprint::equations::derived_thresholds::COHERENCE_BANDWIDTH;
 
 // ── Profile derivation scales (derived from density thresholds) ─────────────
 
@@ -32,7 +33,7 @@ fn profile_velocity_reference() -> f32 { dt::gas_density_threshold().sqrt() }
 /// Frequency alignment factor (Axiom 8, time-averaged). Delegates to centralized impl.
 #[inline]
 pub fn frequency_alignment(freq_a: f32, freq_b: f32) -> f32 {
-    super::super::determinism::gaussian_frequency_alignment(freq_a, freq_b, COHERENCE_BANDWIDTH_HZ)
+    super::super::determinism::gaussian_frequency_alignment(freq_a, freq_b, COHERENCE_BANDWIDTH)
 }
 
 /// Coherence gain from neighboring cells (Axioms 7 + 8).
@@ -173,11 +174,11 @@ pub fn dissipation_from_state(state: MatterState) -> f32 {
 
 /// Element symbol from dominant frequency (Axiom 8: frequency = identity).
 ///
-/// Buckets by COHERENCE_BANDWIDTH_HZ (50 Hz) bands. Returns a static str
+/// Buckets by COHERENCE_BANDWIDTH (50 Hz) bands. Returns a static str
 /// suitable for `ElementId::from_name`. Used by both abiogenesis and EntityBuilder.
 #[inline]
 pub fn element_symbol_from_frequency(frequency_hz: f32) -> &'static str {
-    let band = (frequency_hz / COHERENCE_BANDWIDTH_HZ) as u32;
+    let band = (frequency_hz / COHERENCE_BANDWIDTH) as u32;
     match band {
         0       => "Um",  // Umbra    ~0–50 Hz
         1       => "Te",  // Terra    ~50–100 Hz

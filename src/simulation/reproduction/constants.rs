@@ -1,5 +1,7 @@
 //! Tuning EA6 — alinear con `blueprint::constants` y valores numéricos de `abiogenesis/constants.rs` (Flora).
 
+use crate::blueprint::equations::derived_thresholds::{DISSIPATION_GAS, DISSIPATION_SOLID};
+
 pub use crate::blueprint::constants::ABIOGENESIS_FLORA_ELEMENT_SYMBOL as FLORA_ELEMENT_SYMBOL;
 pub use crate::blueprint::constants::REPRODUCTION_RADIUS_FACTOR;
 
@@ -37,8 +39,9 @@ pub const SEED_GROWTH_LIMITER: u8 = 0;
 pub const SEED_GROWTH_EFFICIENCY: f32 = 0.8;
 /// Mismo valor que `abiogenesis::constants::EMERGENT_MATTER_THERMAL_CONDUCTIVITY`.
 pub const SEED_MATTER_THERMAL_CONDUCTIVITY: f32 = 0.05;
-/// Mismo valor que `abiogenesis::constants::EMERGENT_FLOW_DISSIPATION`.
-pub const SEED_FLOW_DISSIPATION: f32 = 0.005;
+/// Disipación de semilla = fase sólida (Axiom 4). Igual que flora emergente.
+/// Seed dissipation = solid-phase (Axiom 4). Same as emergent flora.
+pub const SEED_FLOW_DISSIPATION: f32 = DISSIPATION_SOLID; // 0.005
 
 pub const SEED_NUTRIENT_CARBON: f32 = 32.0;
 pub const SEED_NUTRIENT_NITROGEN: f32 = 24.0;
@@ -56,8 +59,9 @@ pub const FAUNA_OFFSPRING_INITIAL_RADIUS: f32 = 0.2;
 pub const FAUNA_OFFSPRING_FREQ_BASE: f32 = 75.0;
 /// Frequency scale from parent mobility_bias (Hz).
 pub const FAUNA_OFFSPRING_FREQ_SCALE: f32 = 400.0;
-/// Flow dissipation rate for fauna offspring.
-pub const FAUNA_OFFSPRING_FLOW_DISSIPATION: f32 = 0.08;
+/// Disipación de cría fauna = fase gaseosa (Axiom 4). Misma base que célula.
+/// Fauna offspring dissipation = gas-phase (Axiom 4). Same base as cell.
+pub const FAUNA_OFFSPRING_FLOW_DISSIPATION: f32 = DISSIPATION_GAS; // 0.08
 /// Bond energy for fauna offspring (Solid matter).
 pub const FAUNA_OFFSPRING_BOND_EB: f32 = 1000.0;
 /// Thermal conductivity for fauna offspring.

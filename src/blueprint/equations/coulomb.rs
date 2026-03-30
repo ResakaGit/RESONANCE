@@ -12,7 +12,7 @@ use crate::blueprint::constants::{
     BOND_ENERGY_THRESHOLD, COULOMB_SCALE, FORCE_SOFTENING, LJ_EPSILON,
     LJ_SIGMA, MAX_FORCE,
 };
-use super::determinism::{gaussian_frequency_alignment, sanitize_unit};
+use super::determinism::gaussian_frequency_alignment;
 
 // ─── PC-3: Charge types ────────────────────────────────────────────────────
 

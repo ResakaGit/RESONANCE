@@ -17,6 +17,10 @@ use crate::runtime_platform::simulation_tick::SimulationElapsed;
 use crate::world::SpatialIndex;
 use crate::worldgen::NutrientFieldGrid;
 
+/// Límite de profundidad al recorrer cadenas de StructuralLink para tamaño de manada.
+/// Max depth when traversing StructuralLink chains for pack size.
+const PACK_TRAVERSE_MAX_SIZE: u32 = 8;
+
 /// Cursor de throttle para queries espaciales tróficas por frame.
 #[derive(Resource, Default)]
 pub struct TrophicScanCursor {
@@ -143,7 +147,7 @@ pub fn trophic_predation_attempt_system(
                 let mut prev = e;
                 let mut current = link.map(|l| l.target);
                 while let Some(target) = current {
-                    if target == prev || target == e || size >= 8 { break; }
+                    if target == prev || target == e || size >= PACK_TRAVERSE_MAX_SIZE { break; }
                     if link_count_query.get(target).is_err() { break; }
                     size += 1;
                     let next = predator_query.get(target).ok()

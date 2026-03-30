@@ -22,6 +22,10 @@ pub const DISSIPATION_PLASMA: f32 = 0.25;
 /// Spatial density normalization factor (grid-scale). Fundamental.
 pub const DENSITY_SCALE: f32 = 20.0;
 
+/// Ancho de banda de coherencia (Hz). Axiom 8: ventana de observación para interferencia de frecuencia.
+/// Coherence bandwidth (Hz). Axiom 8: observation window for frequency interference.
+pub const COHERENCE_BANDWIDTH: f32 = 50.0;
+
 /// Amplification from passive field dissipation to active metabolic drain.
 /// `amplification = 1 / DISSIPATION_SOLID` — the inverse of base dissipation.
 /// At DISSIPATION_SOLID = 0.005: amplification = 200.

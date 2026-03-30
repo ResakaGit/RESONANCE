@@ -56,8 +56,8 @@ pub fn radiation_pressure_transfer_coherent(
 
 /// Default bandwidth for pressure frequency alignment (Hz).
 /// Controls how far in frequency space pressure can reach.
-/// 50 Hz ≈ Terra band width. Transfers within a band, not across.
-pub const PRESSURE_FREQUENCY_BANDWIDTH: f32 = 50.0;
+/// Alias for COHERENCE_BANDWIDTH (4th fundamental constant).
+pub use super::derived_thresholds::COHERENCE_BANDWIDTH as PRESSURE_FREQUENCY_BANDWIDTH;
 
 #[cfg(test)]
 mod tests {

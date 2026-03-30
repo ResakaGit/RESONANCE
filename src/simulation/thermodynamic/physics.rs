@@ -25,19 +25,45 @@ use crate::topology::{TerrainField, TerrainType};
 use crate::world::{SpatialEntry, SpatialIndex, update_spatial_index_after_move_system};
 use crate::worldgen::EnergyFieldGrid;
 
+// ── Modificadores de travesía por terreno (T8 gameplay) ──
+// ── Terrain traverse cost modifiers (T8 gameplay) ──
+// Positivo = más lento, negativo = más rápido.
+// Positive = slower, negative = faster.
+
+/// Bonus de velocidad para líquidos en cauces y cuencas.
+/// Speed bonus for liquids in riverbeds and basins.
+const LIQUID_WATER_CHANNEL_BONUS: f32 = -0.3;
+
+/// Penalización para líquidos en pendientes y acantilados.
+/// Penalty for liquids on slopes and cliffs.
+const LIQUID_SLOPE_PENALTY: f32 = 0.2;
+
+/// Penalización para sólidos en picos y acantilados.
+/// Penalty for solids on peaks and cliffs.
+const SOLID_CLIFF_PENALTY: f32 = 0.5;
+
+/// Penalización para sólidos en pendientes.
+/// Penalty for solids on slopes.
+const SOLID_SLOPE_PENALTY: f32 = 0.2;
+
+/// Bonus de velocidad para sólidos en valles y cauces.
+/// Speed bonus for solids in valleys and riverbeds.
+const SOLID_VALLEY_BONUS: f32 = -0.1;
+
 /// Costo de travesía por topología (T8 gameplay). Positivo = más lento, negativo = más rápido.
+/// Traverse cost by topology (T8 gameplay). Positive = slower, negative = faster.
 pub fn traverse_cost_modifier(terrain_type: TerrainType, entity_state: MatterState) -> f32 {
     match entity_state {
         MatterState::Gas | MatterState::Plasma => 0.0,
         MatterState::Liquid => match terrain_type {
-            TerrainType::Riverbed | TerrainType::Basin => -0.3,
-            TerrainType::Slope | TerrainType::Cliff => 0.2,
+            TerrainType::Riverbed | TerrainType::Basin => LIQUID_WATER_CHANNEL_BONUS,
+            TerrainType::Slope | TerrainType::Cliff => LIQUID_SLOPE_PENALTY,
             _ => 0.0,
         },
         MatterState::Solid => match terrain_type {
-            TerrainType::Peak | TerrainType::Cliff => 0.5,
-            TerrainType::Slope => 0.2,
-            TerrainType::Valley | TerrainType::Riverbed => -0.1,
+            TerrainType::Peak | TerrainType::Cliff => SOLID_CLIFF_PENALTY,
+            TerrainType::Slope => SOLID_SLOPE_PENALTY,
+            TerrainType::Valley | TerrainType::Riverbed => SOLID_VALLEY_BONUS,
             _ => 0.0,
         },
     }

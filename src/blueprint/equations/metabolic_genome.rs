@@ -341,12 +341,10 @@ pub const CATALYSIS_COST_FRACTION: f32 = DISSIPATION_SOLID * 4.0;
 /// Derived: DISSIPATION_SOLID × 100 = 0.5.
 pub const CATALYSIS_MIN_ACTIVATION: f32 = DISSIPATION_SOLID * 100.0;
 
-/// Coherence bandwidth for catalytic frequency alignment (Hz). Axiom 8.
-const CATALYSIS_BANDWIDTH_HZ: f32 = 50.0;
-
 /// Axiom 8: frequency alignment. Delegates to centralized implementation.
 fn catalytic_freq_alignment(f_a: f32, f_b: f32) -> f32 {
-    super::determinism::gaussian_frequency_alignment(f_a, f_b, CATALYSIS_BANDWIDTH_HZ)
+    use super::derived_thresholds::COHERENCE_BANDWIDTH;
+    super::determinism::gaussian_frequency_alignment(f_a, f_b, COHERENCE_BANDWIDTH)
 }
 
 /// Compute catalytic reduction of activation_energy for each node.

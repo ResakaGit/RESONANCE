@@ -2,6 +2,65 @@
 
 ## [Unreleased] — 2026-03-30
 
+### Added — Scientific Observability Pipeline (SO-1–SO-5)
+- `batch/lineage.rs`: LineageId + TrackedGenome (deterministic FNV-1a ancestry, 10 tests)
+- `batch/census.rs`: EntitySnapshot + PopulationCensus (per-gen capture, HOF distribution/mean, 8 tests)
+- `use_cases/export.rs`: CSV/JSON stateless adapters (zero-alloc write_*_csv, 9 tests)
+- `use_cases/orchestrators.rs`: ablate(closure), ensemble(), sweep(2 closures), aggregate_ensemble (5 tests)
+- CSV export wired to `fermi.rs`, `cancer_therapy.rs`, `convergence.rs` (--out flag)
+
+### Added — Exact Cache Components (zero precision loss)
+- `blueprint/equations/exact_cache.rs`: kleiber_volume_factor, exact_death_tick, frequency_alignment_exact (23 tests)
+- `layers/kleiber_cache.rs`: KleiberCache SparseSet (precompute radius^0.75, 8 tests)
+- `layers/gompertz_cache.rs`: GompertzCache SparseSet (precompute death tick, 8 tests)
+- `layers/converged.rs`: Converged<T> generic convergence flag (7 tests)
+
+### Added — Dashboard Bridge + Visual Panels (VIS-1/2/4)
+- `runtime_platform/dashboard_bridge.rs`: SimTickSummary, SimTimeSeries, RingBuffer, ViewConfig, SimSpeedConfig, DashboardBridgePlugin (11 tests)
+- `runtime_platform/dashboard_panels.rs`: DashboardPanelsPlugin (3 egui systems: top_bar, controls, charts)
+- bevy_egui 0.31 + egui_plot 0.29 added to Cargo.toml
+
+### Added — Survival Mode (SV-2 + SV-3)
+- `bin/survival.rs`: genome load/evolve, arena spawn, WASD control, score, death detection, game over UI, restart. Zero src/ changes.
+
+### Added — Lab Universal + Live 2D
+- `bin/lab.rs`: 8 experiments (Universe Lab, Fermi, Speciation, Cambrian, Debate, Convergence, Cancer Therapy, Live 2D Sim)
+- Ablation mode (8 steps), Ensemble mode (10 seeds), CSV export button
+- Live 2D: batch SimWorldFlat step-by-step with egui::Painter (nutrient heatmap + entity circles + velocity vectors)
+
+### Fixed — Bridge Optimizer Bugs (BS-2)
+- CompetitionNormBridge wired in all 5 lifecycle macros (context_fill, metrics)
+- Hot reload resets BridgePhaseState to Warmup when not in Active
+- shape_cache_signature_with_surface extracted from inline to equations/ (6 tests)
+
+### Fixed — Hexagonal Boundary Cleanup
+- bevy::color::Color removed from equations/field_color/ (3 files) → pure srgb_to_linear()
+- bevy::prelude::Reflect removed from equations/energy_competition/{extraction,scale}.rs
+- 7 DEBT markers added for remaining justified Bevy imports in equations/
+- DEFAULT_FINENESS duplication eliminated (2 files → constants::FINENESS_DEFAULT)
+
+### Added — PC-1: Particle Charge Physics (Coulomb + LJ)
+- `blueprint/equations/coulomb.rs`: ChargedParticle, Coulomb force, Lennard-Jones, bond detection, molecule classification (26 tests)
+- `blueprint/constants/particle_charge.rs`: all constants derived from fundamentals (COULOMB_SCALE = 1/DENSITY_SCALE, LJ_EPSILON = DISSIPATION_SOLID × 100)
+- `batch/systems/particle_forces.rs`: particle_forces, detect_particle_bonds, count_molecules (9 tests)
+- ForceStrategy enum (Disabled/CoulombOnly/Full, default=Disabled for backward compat)
+- `use_cases/experiments/particle_lab.rs`: lightweight experiment (no batch overhead), 6 tests
+- `bin/particle_lab`: emergent molecules from charged particles in 3ms
+
+### Added — CT-1: Cancer Therapy Simulation
+- `use_cases/experiments/cancer_therapy.rs`: Hill dose-response, PK ramp, stem cell quiescence, microenvironment (21 tests)
+- Drug = dissipation increase (Axiom 4 pure), cancer trophic_class=4 (Warburg detritivore)
+- Calibrated against Bozic 2013 (eLife): monotherapy resistance dynamics reproduced
+
+### Fixed — Codebase Audit (2026-03-30)
+- **COHERENCE_BANDWIDTH centralized**: 6 duplicate definitions (50.0 Hz) → single source in `derived_thresholds.rs`
+- **Archetype dissipations derived from fundamentals**: catalog.rs magic numbers → algebraic expressions from DISSIPATION_{SOLID,LIQUID,GAS,PLASMA}
+- **Duplicate SOLAR_FLUX_BASE removed**: batch/systems/thermodynamic.rs shadowed batch/constants.rs
+- **Hardcoded pack size extracted**: trophic.rs `8` → `PACK_TRAVERSE_MAX_SIZE`
+- **Symbiosis rates named**: 4 inline magic numbers → `MUTUALISM_INTAKE_FRACTION`, `PARASITISM_TRANSFER_LOSS`, etc.
+- **Terrain costs named**: physics.rs inline floats → `LIQUID_WATER_CHANNEL_BONUS`, `SOLID_CLIFF_PENALTY`, etc.
+- **Doc comments added**: theory_of_mind, reactions constants documented bilingually
+
 ### Added — VG-1–6: Variable-Length Genome
 - `VariableGenome` (4-32 genes) in `blueprint/equations/variable_genome.rs` (62 tests)
 - Gene duplication/deletion (Schwefel self-adaptive). Kleiber maintenance cost.
@@ -50,10 +109,11 @@
 - `sanitize_unit()` in `determinism.rs` (universal NaN/Inf guard)
 
 ### Stats
-- Tests: 2,567 → **2,834** (+267)
-- LOC: ~80K → **~87K** (+7K)
-- Sprints completed: 47 → **64** (+17)
-- Binaries: 4 → **18** (+14)
+- Tests: 2,834 → **2,994** (+160)
+- LOC: ~87K → **~109K** (+22K)
+- Binaries: 18 → **22** (+4: cancer_therapy, particle_lab, evolve_and_view, survival)
+- Hardcoded constants eliminated: **13**
+- Duplicate definitions removed: **7**
 
 ---
 

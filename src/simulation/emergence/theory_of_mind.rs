@@ -12,8 +12,16 @@ use crate::layers::{BaseEnergy, BehavioralAgent, OscillatorySignature};
 use crate::layers::other_model::{MAX_MODELS, OtherModel, OtherModelSet};
 use crate::world::SpatialIndex;
 
+/// Radio de escaneo para detectar vecinos observables (unidades mundo).
+/// Scan radius for detecting observable neighbors (world units).
 const MODEL_SCAN_RADIUS: f32 = 10.0;
+
+/// Tasa de aprendizaje del modelo predictivo (exponential moving average blend).
+/// Learning rate for predictive model updates (exponential moving average blend).
 const MODEL_LEARNING_RATE: f32 = 0.1;
+
+/// Desviación máxima de frecuencia para calcular precisión del modelo (Hz).
+/// Maximum frequency deviation for model accuracy calculation (Hz).
 const MODEL_MAX_FREQ_DEVIATION: f32 = 500.0;
 
 /// Updates mental models of nearby entities. Learns from observation, evicts unprofitable models.

@@ -20,6 +20,8 @@ use crate::simulation::Phase;
 use crate::simulation::structural_runtime;
 use crate::world::SpatialIndex;
 
+/// Umbral mínimo de efecto catalítico (qe). Resultados menores se descartan como ruido.
+/// Minimum catalysis effect threshold (qe). Results below this are discarded as noise.
 const CATALYSIS_MIN_EFFECT_QE: f32 = 0.01;
 
 /// Marcador para entidades que son hechizos activos.

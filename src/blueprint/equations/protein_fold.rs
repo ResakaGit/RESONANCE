@@ -11,7 +11,7 @@
 //!
 //! Based on: Dill (1985) HP model, simplified for emergent evolution.
 
-use super::derived_thresholds::{DISSIPATION_SOLID, KLEIBER_EXPONENT};
+use super::derived_thresholds::{COHERENCE_BANDWIDTH, DISSIPATION_SOLID, KLEIBER_EXPONENT};
 use super::determinism;
 use super::variable_genome::{VariableGenome, MIN_GENES, MAX_GENES};
 use crate::layers::OrganRole;
@@ -26,13 +26,9 @@ const HYDROPHOBIC_THRESHOLD: f32 = 1.0 - KLEIBER_EXPONENT;
 /// Negative = attractive (minimized by fold). Axiom 4.
 const HH_CONTACT_ENERGY: f32 = -(DISSIPATION_SOLID * 200.0);
 
-/// Frequency alignment bandwidth for contact strength. Axiom 8.
-/// Same as COHERENCE_BANDWIDTH (4th fundamental constant).
-const FOLD_BANDWIDTH_HZ: f32 = 50.0;
-
 /// Frequency modulation range (Hz). Gene value offsets base frequency by ±this.
-/// Derived: FOLD_BANDWIDTH_HZ × 4 = 200. Spans 4 bandwidths for full diversity.
-pub const FREQ_MODULATION_RANGE: f32 = FOLD_BANDWIDTH_HZ * 4.0;
+/// Derived: COHERENCE_BANDWIDTH × 4 = 200. Spans 4 bandwidths for full diversity.
+pub const FREQ_MODULATION_RANGE: f32 = COHERENCE_BANDWIDTH * 4.0;
 
 /// Base frequencies per dimension (same as bridge::frequency_for_archetype).
 /// Derived from COHERENCE_BANDWIDTH spacing: bands separated by ≥ 2×BW.
@@ -287,7 +283,7 @@ pub fn infer_protein_function(
             d * d
         })
         .sum::<f32>() / site_count.max(1) as f32;
-    let specificity = (-freq_variance / (2.0 * FOLD_BANDWIDTH_HZ * FOLD_BANDWIDTH_HZ)).exp();
+    let specificity = (-freq_variance / (2.0 * COHERENCE_BANDWIDTH * COHERENCE_BANDWIDTH)).exp();
 
     Some(ProteinFunction {
         catalytic_target: target,
@@ -377,7 +373,7 @@ fn in_lattice(x: i8, y: i8) -> bool {
 
 /// Axiom 8: frequency alignment. Delegates to centralized implementation.
 fn frequency_alignment(f_a: f32, f_b: f32) -> f32 {
-    super::determinism::gaussian_frequency_alignment(f_a, f_b, FOLD_BANDWIDTH_HZ)
+    super::determinism::gaussian_frequency_alignment(f_a, f_b, COHERENCE_BANDWIDTH)
 }
 
 /// H-H contact contribution between two monomers. Extracted to avoid duplication.

@@ -11,9 +11,12 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 | Métrica | Valor |
 |---------|-------|
 | Sprints pendientes | **37** |
-| Tracks activos | **7** |
+| Tracks activos | **8** |
 | Oleadas restantes | **3** |
 | Tracks archivados | **48** |
+| Tests | **2994** |
+| LOC | **109K** |
+| Binarios | **22** |
 
 ---
 

@@ -3,7 +3,8 @@
 use super::super::equations::derived_thresholds::{DISSIPATION_SOLID, KLEIBER_EXPONENT};
 
 /// Frequency alignment bandwidth for cell adhesion (Hz). Axiom 8.
-pub const ADHESION_FREQ_BANDWIDTH: f32 = 50.0; // COHERENCE_BANDWIDTH
+/// Alias for COHERENCE_BANDWIDTH (4th fundamental constant).
+pub use super::super::equations::derived_thresholds::COHERENCE_BANDWIDTH as ADHESION_FREQ_BANDWIDTH;
 /// Minimum adhesion affinity to form bond. Derived: KLEIBER_EXPONENT = 0.75.
 pub const ADHESION_THRESHOLD: f32 = KLEIBER_EXPONENT;
 /// Energy cost per bond per tick. Derived: DISSIPATION_SOLID × 2 = 0.01.

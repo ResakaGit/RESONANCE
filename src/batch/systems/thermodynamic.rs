@@ -48,9 +48,6 @@ pub fn irradiance_update(world: &mut SimWorldFlat) {
     }
 }
 
-/// Base solar irradiance per grid cell per tick.
-const SOLAR_FLUX_BASE: f32 = 2.0;
-
 /// Map world position to flat grid index.
 #[inline]
 pub fn grid_cell(position: [f32; 2]) -> usize {
