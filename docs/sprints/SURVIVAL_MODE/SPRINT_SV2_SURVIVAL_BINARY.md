@@ -3,7 +3,7 @@
 **Modulo:** `src/bin/survival.rs` (nuevo, standalone)
 **Tipo:** Bevy binary que compone módulos existentes.
 **Onda:** SV-1 → SV-2.
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ COMPLETADO (2026-03-30)
 
 ---
 

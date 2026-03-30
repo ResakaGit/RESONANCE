@@ -356,11 +356,10 @@ pub fn run(config: &TherapyConfig) -> TherapyReport {
         let mut gen_drain = 0.0f32;
 
         for (wi, world) in worlds.iter_mut().enumerate() {
-            // Drug applied per-tick (not per-gen) for correct dose accumulation
-            // Potency per tick = total potency / ticks_per_gen
-            let tick_potency = eff_pot / config.ticks_per_gen.max(1) as f32;
+            // Drug applied every tick at full potency (continuous infusion model).
+            // Potency = qe drain per tick per entity at full alignment.
             for _ in 0..config.ticks_per_gen {
-                if tick_potency > 0.0 { gen_drain += apply_drug(world, config, tick_potency); }
+                if eff_pot > 0.0 { gen_drain += apply_drug(world, config, eff_pot); }
                 world.tick(&mut scratches[wi]);
             }
             apply_microenvironment(world, config);

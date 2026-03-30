@@ -3,7 +3,7 @@
 **Modulo:** `src/bin/survival.rs` (extensión del binario SV-2)
 **Tipo:** UI overlay + state transitions.
 **Onda:** SV-2 → SV-3.
-**Estado:** ⏳ Pendiente
+**Estado:** ✅ COMPLETADO (2026-03-30) — integrado en SV-2 binary
 
 ---
 

@@ -10,8 +10,8 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 
 | Métrica | Valor |
 |---------|-------|
-| Sprints pendientes | **39** |
-| Tracks activos | **8** |
+| Sprints pendientes | **37** |
+| Tracks activos | **7** |
 | Oleadas restantes | **3** |
 | Tracks archivados | **48** |
 
@@ -34,16 +34,13 @@ Sprints archivados del track: [archive/GAMEPLAY_SYSTEMS/](archive/GAMEPLAY_SYSTE
 
 ---
 
-### SURVIVAL_MODE (2 sprints pendientes)
+### SURVIVAL_MODE ✅ COMPLETADO
 
-| Sprint | Descripción | Esfuerzo | Bloqueado por | Doc |
-|--------|-------------|----------|---------------|-----|
-| [SV-2](SURVIVAL_MODE/SPRINT_SV2_SURVIVAL_BINARY.md) | Survival binary: load genomes + spawn + play | Medio | SV-1 ✅ | |
-| [SV-3](SURVIVAL_MODE/SPRINT_SV3_GAME_OVER.md) | Game over: death detection + score + restart | Bajo | SV-2 | |
+Sprints archivados: SV-1 ✅ (input wiring), SV-2 ✅ (survival binary), SV-3 ✅ (game over + restart).
 
-Sprints archivados del track: [archive/SURVIVAL_MODE/](archive/SURVIVAL_MODE/) (SV-1 ✅)
+`cargo run --release --bin survival -- --genomes assets/evolved/seed_42.bin`
 
-Track README: [SURVIVAL_MODE/](SURVIVAL_MODE/)
+Track README: [SURVIVAL_MODE/](SURVIVAL_MODE/) — [archive/SURVIVAL_MODE/](archive/SURVIVAL_MODE/)
 
 ---
 
@@ -215,7 +212,7 @@ Track README: [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
 | **BS** | 7 | BATCH_SIMULATOR | 7 | ✅ COMPLETA | — |
 | **EM** | 4 | EMERGENT_MORPHOLOGY | 4 | ✅ COMPLETA | — |
 | **AS** | 3 | ANALYTICAL_STEPPING | 3 | ✅ COMPLETA | — |
-| **SV** | 3 | SURVIVAL_MODE | 1 ✅ → 1 → 1 | ⏳ SV-1 done | — (independiente) |
+| **SV** | 3 | SURVIVAL_MODE | 3 ✅ | ✅ ARCHIVADA | — |
 | **VG** | 6 | VARIABLE_GENOME | 6 serie | ✅ COMPLETA | — |
 | **MGN** | 7 | METABOLIC_GENOME | 4 serie → 3 paralelo | ✅ COMPLETA | VG ✅ |
 | **2** | 3 | GS | 3 | ⏳ Desbloqueada | Oleada 1 ✅ |
@@ -237,8 +234,8 @@ Track README: [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
 
 | Estado | Tracks | Sprints |
 |--------|--------|---------|
-| ✅ Archivados | 48 tracks | 76 sprints |
-| ⏳ Activos | GS(6), SV(2), PC(7), NS(4), EI(3), TU(4), EL(4), CV(4), BSD(5) | 39 sprints |
+| ✅ Archivados | 49 tracks | 78 sprints |
+| ⏳ Activos | GS(6), PC(7), NS(4), EI(3), TU(4), EL(4), CV(4), BSD(5) | 37 sprints |
 | 🔒 Bloqueados | DEMO (1) | 1 sprint |
 
 ---
@@ -253,7 +250,7 @@ Implementation in `src/`, contracts in `docs/design/` and `docs/arquitectura/`. 
 - **MULTICELLULARITY** — MC-1–MC-5: cell adhesion (freq×distance), colony detection (Union-Find), positional signaling, differential expression (borde=defensa, interior=metabolismo), batch wiring. 33 tests (2026-03-30) — [archive/MULTICELLULARITY/](archive/MULTICELLULARITY/)
 - **METABOLIC_GENOME** — MGN-1–MGN-7: gene→ExergyNode, topology inference, graph from genome, evolution integration, node competition, Hebbian rewiring, internal catalysis. 80 tests, 100% metabolic networks. (2026-03-29) — [archive/METABOLIC_GENOME/](archive/METABOLIC_GENOME/)
 - **VARIABLE_GENOME** — VG-1–VG-6: VariableGenome (4-32 genes), maintenance cost (Kleiber), duplication/deletion mutation, expression mapping, epigenetic gating, bridge/serialization. 62 tests. (2026-03-29) — [archive/VARIABLE_GENOME/](archive/VARIABLE_GENOME/)
-- **SURVIVAL_MODE (parcial)** — SV-1: apply_input() wiring (InputCommand → WillActuator via WorldEntityId lookup). 5 LOC in sim_world.rs (2026-03-28) — [archive/SURVIVAL_MODE/](archive/SURVIVAL_MODE/)
+- **SURVIVAL_MODE** — SV-1–SV-3 ✅: input wiring, survival binary (WASD + genome load + arena + score + death + game over + restart). Zero src/ changes. (2026-03-30) — [archive/SURVIVAL_MODE/](archive/SURVIVAL_MODE/)
 - **ANALYTICAL_STEPPING** — AS-1–AS-3: O(1) analytical equations (dissipation_n, growth_n, senescence_n, locomotion_n), convergence detection (radial_max_delta, field_converged), tick_fast pipeline. 16 tests (2026-03-28) — [archive/ANALYTICAL_STEPPING/](archive/ANALYTICAL_STEPPING/)
 - **EMERGENT_MORPHOLOGY** — EM-1–EM-4: 2D radial field (16×8=128 nodes), peak detection, bilateral emergence, appendage inference, joint articulation. Gravity + climate + asteroids. 30+ tests (2026-03-28) — [archive/EMERGENT_MORPHOLOGY/](archive/EMERGENT_MORPHOLOGY/)
 - **AXIOMATIC_INFERENCE** — AI-1–AI-7: derived_thresholds module (12 tests), matter state thresholds from dissipation ratios, capability thresholds from density+coherence, senescence from metabolic rate (Kleiber), basal drain+pressure from dissipation, inline extraction+duplicates, visual_calibration.rs separation. 0 DEBT, 0 hardcode. (2026-03-27) — [archive/AXIOMATIC_INFERENCE/](archive/AXIOMATIC_INFERENCE/)
