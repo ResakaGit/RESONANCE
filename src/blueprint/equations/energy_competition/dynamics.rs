@@ -3,6 +3,7 @@
 //! EC-5B: Detección de equilibrio, dominancia estable (ESS), y colapso.
 //! EC-5C: Predicción lineal de trayectoria.
 
+// DEBT: Reflect required because PoolHealthStatus is stored in Component (competition_dynamics.rs).
 use bevy::prelude::Reflect;
 
 use crate::blueprint::constants::{

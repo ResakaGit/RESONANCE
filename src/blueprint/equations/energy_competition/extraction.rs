@@ -1,4 +1,3 @@
-use bevy::prelude::Reflect;
 use crate::blueprint::constants::*;
 use crate::layers::pool_link::ExtractionType;
 use super::pool_equations::{
@@ -24,7 +23,7 @@ pub struct ExtractionContext {
 // ─── EC-3B: Modificadores de Extracción ──────────────────────────────────────
 
 /// Modificadores aplicados en orden sobre el resultado base. Stack de hasta MAX_EXTRACTION_MODIFIERS.
-#[derive(Clone, Copy, Debug, PartialEq, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ExtractionModifier {
     /// Bajo estrés (`pool_ratio < threshold`), multiplica la extracción.
     StressResponse { threshold: f32, multiplier: f32 },
@@ -40,7 +39,7 @@ pub enum ExtractionModifier {
 
 /// Perfil completo de extracción: función base + stack de modificadores.
 /// Es el "fenotipo funcional" evaluable como pura — no se almacena, se evalúa.
-#[derive(Clone, Copy, Debug, PartialEq, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ExtractionProfile {
     /// Función base (una de las 5 primitivas).
     pub base: ExtractionType,

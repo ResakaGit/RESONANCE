@@ -13,7 +13,6 @@ pub use role_modulation::{
     organ_role_modulated_rgb, organ_role_opacity, organ_role_scale,
 };
 
-use bevy::color::Color;
 use crate::blueprint::constants::*;
 
 // ═══════════════════════════════════════════════
@@ -62,12 +61,18 @@ pub(super) fn linear_rgba_lerp_preclamped(a: [f32; 4], b: [f32; 4], t: f32) -> [
     ]
 }
 
+/// Conversión sRGB → lineal (IEC 61966-2-1). Bevy-free.
+/// sRGB to linear conversion (IEC 61966-2-1). Bevy-free.
+#[inline]
+pub(super) fn srgb_to_linear(c: f32) -> f32 {
+    if c <= 0.04045 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) }
+}
+
 /// RGB lineal del gris neutro de campo.
 #[inline]
 pub fn neutral_field_visual_linear_rgb() -> [f32; 3] {
-    let c = FIELD_VISUAL_NEUTRAL_GRAY_CHANNEL;
-    let lin = Color::srgb(c, c, c).to_linear();
-    [lin.red, lin.green, lin.blue]
+    let lin = srgb_to_linear(FIELD_VISUAL_NEUTRAL_GRAY_CHANNEL);
+    [lin, lin, lin]
 }
 
 /// Canales RGB lineal: si alguno no es finito → gris neutro.

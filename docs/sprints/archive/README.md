@@ -9,7 +9,7 @@ Live contracts: `docs/design/` (specs) and `docs/arquitectura/` (runtime bluepri
 | Track | Description | Closed |
 |-------|-------------|--------|
 | **BRIDGE_STRATEGY_DECOUPLING (parcial)** | BS-2: CompetitionNormBridge wired (5 macros), hot reload phase reset, shape_cache_signature extraction. BS-3 parcial: exact_cache.rs (kleiber_volume_factor, exact_death_tick, frequency_alignment_exact), KleiberCache, GompertzCache, Converged\<T\> components. 52 tests. BS-1/BS-4–BS-7 pendientes. | 2026-03-30 |
-| **SCIENTIFIC_OBSERVABILITY** | SO-1–SO-5: LineageId+TrackedGenome (deterministic ancestry), PopulationCensus+EntitySnapshot (per-gen capture), CSV/JSON export adapters (stateless, zero IO), HOF orchestrators (ablate, ensemble, sweep), CSV export wired to fermi/cancer/convergence binaries. 32 tests. | 2026-03-30 |
+| **SCIENTIFIC_OBSERVABILITY** | SO-1–SO-5: lineage (FNV-1a u64), census (alive_mask capture + HOF distribution/mean), CSV/JSON adapters (zero-alloc write), HOF orchestrators (ablate, ensemble, sweep), CSV wired to fermi/cancer/convergence binaries. 32 tests. | 2026-03-30 |
 | **PROTO_DNA** | PD-1–5: CodonGenome, CodonTable (evolucionable), translation, silent mutations, neutral drift, batch wiring. 28 tests. | 2026-03-30 |
 | **MULTICELLULARITY** | MC-1–5: cell adhesion, colony detection (Union-Find), positional signal, differential expression, batch wiring. 33 tests. | 2026-03-30 |
 | **METABOLIC_GENOME** | MGN-1–7: gene→ExergyNode mapping, topology inference, graph from genome, evolution integration, node competition (Axiom 3), Hebbian rewiring (Hebb 1949), internal catalysis with frequency alignment (Axiom 8). 80 tests, 100% metabolic networks. | 2026-03-29 |

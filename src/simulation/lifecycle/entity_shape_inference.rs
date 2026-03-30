@@ -12,7 +12,7 @@
 
 use bevy::prelude::*;
 
-use crate::blueprint::constants::VISUAL_QE_REFERENCE;
+use crate::blueprint::constants::{FINENESS_DEFAULT, VISUAL_QE_REFERENCE};
 use crate::blueprint::equations::{
     albedo_luminosity_blend, entity_geometry_influence, entity_lod_detail,
     frequency_to_tint_rgb, matter_to_gf1_resistance, normalized_qe,
@@ -29,7 +29,6 @@ use crate::layers::{
 use crate::runtime_platform::render_bridge_3d::V6VisualRoot;
 use crate::worldgen::ShapeInferred;
 
-const DEFAULT_FINENESS:      f32 = 1.5;
 const DEFAULT_Z:             f32 = 0.0;
 const HUNGER_FINENESS_BOOST: f32 = 0.25;  // max +25% elongation when fully hungry
 const HOSTILE_RESIST_MULT:   f32 = 1.35;  // +35% stiffness when predator is nearby
@@ -74,7 +73,7 @@ pub fn entity_shape_inference_system(
         in query.iter_mut()
     {
         let qe_norm        = normalized_qe(energy.qe(), VISUAL_QE_REFERENCE);
-        let fineness_base  = shape_opt.map(|s| s.fineness_ratio()).unwrap_or(DEFAULT_FINENESS);
+        let fineness_base  = shape_opt.map(|s| s.fineness_ratio()).unwrap_or(FINENESS_DEFAULT);
         let hunger         = hunger_opt.map(|e| e.hunger_fraction).unwrap_or(0.0);
         let (food_dist, has_hostile) = sensory_opt
             .map(|s| (s.food_distance, s.hostile_entity.is_some()))

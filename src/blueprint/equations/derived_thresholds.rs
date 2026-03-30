@@ -81,6 +81,9 @@ pub fn branch_qe_min() -> f32 { self_sustaining_qe_min() * 2.0 }
 
 // ─── Cosmological anchor (single calibration constant) ──────────────────────
 
+// DEBT: Resource derive for SelfSustainingQeMin injection. This is the only mutable
+// input to the derivation chain — everything else is const. Bevy-coupled by design:
+// runtime-tunable constant requires Resource marker.
 use bevy::prelude::Resource;
 
 /// The universe's cosmological anchor: minimum qe for self-sustaining patterns.

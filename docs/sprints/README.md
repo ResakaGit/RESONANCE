@@ -10,10 +10,10 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 
 | Métrica | Valor |
 |---------|-------|
-| Sprints pendientes | **40** |
-| Tracks activos | **9** |
+| Sprints pendientes | **39** |
+| Tracks activos | **8** |
 | Oleadas restantes | **3** |
-| Tracks archivados | **47** |
+| Tracks archivados | **48** |
 
 ---
 
@@ -230,14 +230,14 @@ Track README: [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
 | **EL** | 4 | EMERGENT_LANGUAGE | 4 serie | ⏳ Diseñado | NS |
 | **CV** | 4 | CIVILIZATION | 4 serie | ⏳ Diseñado | TU + EL |
 | **BSD** | 7 | BRIDGE_STRATEGY_DECOUPLING | 2 ✅ → 5 pendiente | ⏳ BS-2/3 done | — (independiente) |
-| **SO** | 5 | SCIENTIFIC_OBSERVABILITY | 5 ✅ | ✅ COMPLETA | — (independiente) |
+| **SO** | 5 | SCIENTIFIC_OBSERVABILITY | 5 ✅ | ✅ ARCHIVADA | — |
 | **Total** | **112** | — | — | 70 ✅ · 40 ⏳ · 1 🔒 | |
 
 ### Tracks por estado
 
 | Estado | Tracks | Sprints |
 |--------|--------|---------|
-| ✅ Archivados | 47 tracks | 75 sprints |
+| ✅ Archivados | 48 tracks | 76 sprints |
 | ⏳ Activos | GS(6), SV(2), PC(7), NS(4), EI(3), TU(4), EL(4), CV(4), BSD(5) | 39 sprints |
 | 🔒 Bloqueados | DEMO (1) | 1 sprint |
 
@@ -248,7 +248,7 @@ Track README: [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
 Implementation in `src/`, contracts in `docs/design/` and `docs/arquitectura/`. Full list in [`archive/README.md`](archive/README.md):
 
 - **BRIDGE_STRATEGY_DECOUPLING (parcial)** — BS-2 ✅: CompetitionNormBridge wired + hot reload fix. BS-3 parcial ✅: exact_cache (KleiberCache, GompertzCache, Converged\<T\>), shape_cache_signature extraction. 52 tests (2026-03-30) — [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
-- **SCIENTIFIC_OBSERVABILITY** — SO-1–SO-5 ✅: lineage tracking, population census, CSV/JSON export, HOF orchestrators (ablate, ensemble, sweep), CSV wired to fermi/cancer/convergence binaries. 32 tests (2026-03-30) — [SCIENTIFIC_OBSERVABILITY/](SCIENTIFIC_OBSERVABILITY/)
+- **SCIENTIFIC_OBSERVABILITY** — SO-1–SO-5 ✅: lineage, census, CSV/JSON export, HOF orchestrators, CSV in binaries. 32 tests (2026-03-30) — [archive/SCIENTIFIC_OBSERVABILITY/](archive/SCIENTIFIC_OBSERVABILITY/)
 - **PROTO_DNA** — PD-1–PD-5: CodonGenome (tripletes), CodonTable (64→8 amino, evolucionable), translate_genome, silent mutations, neutral drift, batch wiring. 28 tests (2026-03-30) — [archive/PROTO_DNA/](archive/PROTO_DNA/)
 - **MULTICELLULARITY** — MC-1–MC-5: cell adhesion (freq×distance), colony detection (Union-Find), positional signaling, differential expression (borde=defensa, interior=metabolismo), batch wiring. 33 tests (2026-03-30) — [archive/MULTICELLULARITY/](archive/MULTICELLULARITY/)
 - **METABOLIC_GENOME** — MGN-1–MGN-7: gene→ExergyNode, topology inference, graph from genome, evolution integration, node competition, Hebbian rewiring, internal catalysis. 80 tests, 100% metabolic networks. (2026-03-29) — [archive/METABOLIC_GENOME/](archive/METABOLIC_GENOME/)

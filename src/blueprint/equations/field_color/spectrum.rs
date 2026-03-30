@@ -54,8 +54,7 @@ fn hsv01_to_linear_rgb(h: f32, s: f32, v: f32) -> [f32; 3] {
         4 => (t, p, v),
         _ => (v, p, q),
     };
-    let lin = bevy::color::Color::srgb(rp, gp, bp).to_linear();
-    [lin.red, lin.green, lin.blue]
+    [super::srgb_to_linear(rp), super::srgb_to_linear(gp), super::srgb_to_linear(bp)]
 }
 
 /// Arco iris de juego: Hz normalizado al span + pureza como saturación HSV.

@@ -2,7 +2,6 @@
 //! EC-7A: `infer_pool_fitness`, `infer_intake_rate`.
 //! EC-7B: `propagate_fitness_to_link`, `classify_competitive_regime`, `CompetitiveRegime`.
 
-use bevy::prelude::Reflect;
 
 use crate::blueprint::constants::{
     COMPLEXITY_CAP, COMPLEXITY_FITNESS_WEIGHT, EXTRACTION_EPSILON, FITNESS_MAX,
@@ -13,7 +12,7 @@ use super::dynamics::PoolHealthStatus;
 // ─── EC-7B: Régimen Competitivo ───────────────────────────────────────────────
 
 /// Régimen competitivo de un pool energético inferido desde sus métricas.
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Reflect)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum CompetitiveRegime {
     /// Recursos abundantes, poca competencia.
     Abundance,

@@ -1,4 +1,10 @@
 //! IWG-5 — Water surface inference equations: height, color, mesh generation.
+//!
+//! DEBT: This equation file imports Bevy Mesh/Indices/PrimitiveTopology to construct
+//! render-ready meshes. The pure math (height, color interpolation) is Bevy-free,
+//! but `water_surface_mesh()` returns `bevy::Mesh` directly. Proper fix: return raw
+//! vertex/index arrays and let a system/bridge construct the Mesh. Low priority because
+//! this is cold-path (called once per water body, not per tick).
 
 use crate::math_types::Vec3;
 use bevy::prelude::Mesh;

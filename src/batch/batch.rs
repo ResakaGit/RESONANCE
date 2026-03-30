@@ -123,6 +123,9 @@ impl WorldBatch {
 
 use std::cell::RefCell;
 
+// DEBT: thread_local for rayon zero-contention parallelism. Each thread owns its
+// ScratchPad — no shared mutable state. Required because rayon par_iter_mut needs
+// per-thread scratch without Arc<Mutex>. Batch-only; never used in Bevy runtime.
 thread_local! {
     static THREAD_SCRATCH: RefCell<ScratchPad> = RefCell::new(ScratchPad::new());
 }

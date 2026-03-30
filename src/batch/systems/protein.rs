@@ -37,8 +37,13 @@ pub fn protein_fold_infer(world: &mut SimWorldFlat) {
             // Codon path: translate codons → monomers → fold
             let ct = &world.codon_tables[i];
             let (chain, len) = codon_genome::translate_genome(cg, ct);
+            // Frequency from hydrophobicity: base + modulation (same as protein_fold pipeline)
             let mut freq = [0.0f32; protein_fold::MAX_CHAIN];
-            for j in 0..len { freq[j] = 400.0 + (chain[j].hydrophobicity - 0.5) * 200.0; }
+            for j in 0..len {
+                let dim = j % 4;
+                freq[j] = protein_fold::DIM_BASE_FREQ[dim]
+                    + (chain[j].hydrophobicity - 0.5) * protein_fold::FREQ_MODULATION_RANGE;
+            }
             let fold = protein_fold::fold_greedy(&chain, len, &freq, seed);
             let contacts = protein_fold::contact_map(&fold, len);
             let density = protein_fold::contact_density(&contacts, len);

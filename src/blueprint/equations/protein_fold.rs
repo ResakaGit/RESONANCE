@@ -32,11 +32,11 @@ const FOLD_BANDWIDTH_HZ: f32 = 50.0;
 
 /// Frequency modulation range (Hz). Gene value offsets base frequency by ±this.
 /// Derived: FOLD_BANDWIDTH_HZ × 4 = 200. Spans 4 bandwidths for full diversity.
-const FREQ_MODULATION_RANGE: f32 = FOLD_BANDWIDTH_HZ * 4.0;
+pub const FREQ_MODULATION_RANGE: f32 = FOLD_BANDWIDTH_HZ * 4.0;
 
 /// Base frequencies per dimension (same as bridge::frequency_for_archetype).
 /// Derived from COHERENCE_BANDWIDTH spacing: bands separated by ≥ 2×BW.
-const DIM_BASE_FREQ: [f32; 4] = [400.0, 600.0, 300.0, 800.0];
+pub const DIM_BASE_FREQ: [f32; 4] = [400.0, 600.0, 300.0, 800.0];
 
 /// Maximum chain length for folding (= MAX_GENES).
 pub const MAX_CHAIN: usize = MAX_GENES;

@@ -13,12 +13,11 @@ use crate::blueprint::constants::{
 };
 use crate::blueprint::equations::optimal_appendage_count;
 use crate::geometry_flow::{build_flow_spine, GeometryInfluence};
+use crate::blueprint::constants::FINENESS_DEFAULT;
 use crate::layers::{
     AmbientPressure, BodyPlanLayout, CapabilitySet, FlowVector,
     HasInferredShape, InferenceProfile, MorphogenesisShapeParams, SpatialVolume,
 };
-
-const DEFAULT_FINENESS: f32 = 1.5;
 
 /// Infers body plan from constructal optimization of appendage count.
 ///
@@ -52,7 +51,7 @@ pub fn constructal_body_plan_system(
         if !caps.has(CapabilitySet::MOVE) { continue; }
 
         let radius    = volume.radius;
-        let fineness  = shape_opt.map(|s| s.fineness_ratio()).unwrap_or(DEFAULT_FINENESS);
+        let fineness  = shape_opt.map(|s| s.fineness_ratio()).unwrap_or(FINENESS_DEFAULT);
         let velocity  = flow.speed(); // Axiom 1: only real energy state drives form
         let density   = pressure.terrain_viscosity;
         let limb_len  = radius * CONSTRUCTAL_LIMB_LENGTH_RATIO;

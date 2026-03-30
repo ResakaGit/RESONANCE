@@ -29,15 +29,10 @@ fn profile_density_reference() -> f32 { dt::gas_density_threshold() * 2.0 }
 /// Derived: sqrt(gas_density_threshold) — flow speed at gas transition energy.
 fn profile_velocity_reference() -> f32 { dt::gas_density_threshold().sqrt() }
 
-/// Frequency alignment factor (Axiom 8, time-averaged).
-///
-/// Gaussian decay: `exp(-Δf² / (2 × bandwidth²))`.
-/// Δf = 0 → 1.0 (perfect constructive). Δf ≫ bandwidth → 0.0.
+/// Frequency alignment factor (Axiom 8, time-averaged). Delegates to centralized impl.
 #[inline]
 pub fn frequency_alignment(freq_a: f32, freq_b: f32) -> f32 {
-    let delta = (freq_a - freq_b).abs();
-    let sigma_sq = COHERENCE_BANDWIDTH_HZ * COHERENCE_BANDWIDTH_HZ * 2.0;
-    (-delta * delta / sigma_sq.max(f32::EPSILON)).exp()
+    super::super::determinism::gaussian_frequency_alignment(freq_a, freq_b, COHERENCE_BANDWIDTH_HZ)
 }
 
 /// Coherence gain from neighboring cells (Axioms 7 + 8).

@@ -18,8 +18,7 @@ fn element_def_color_to_linear_rgb(def: &ElementDef) -> [f32; 3] {
     let r = field_visual_sanitize_unit(def.color.0, nch);
     let g = field_visual_sanitize_unit(def.color.1, nch);
     let b = field_visual_sanitize_unit(def.color.2, nch);
-    let lin = bevy::color::Color::srgb(r, g, b).to_linear();
-    [lin.red, lin.green, lin.blue]
+    [super::srgb_to_linear(r), super::srgb_to_linear(g), super::srgb_to_linear(b)]
 }
 
 /// Hz dominante + pureza → RGB lineal. Misma semántica que `worldgen::visual_derivation::derive_color`.

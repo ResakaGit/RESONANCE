@@ -2,6 +2,8 @@
 
 use std::f32::consts::TAU;
 
+// DEBT: Bevy prelude for Reflect derive + Vec3. Pure math should use crate::math_types
+// and extract Reflect to bridge layer. Low priority: struct defs only, no runtime coupling.
 use bevy::prelude::*;
 
 use crate::blueprint::constants::inferred_world_geometry::{
