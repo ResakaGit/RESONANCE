@@ -131,7 +131,7 @@ fn render_simulation_charts(ui: &mut egui::Ui, series: &SimTimeSeries) {
         .height(chart_height)
         .allow_drag(false)
         .show(ui, |plot_ui| {
-            plot_ui.line(Line::new(pop_data).name("alive").color(egui::Color32::GREEN));
+            plot_ui.line(Line::new(pop_data).name("alive").color(COLOR_POPULATION));
         });
 
     ui.add_space(CHART_SPACING);
@@ -143,7 +143,7 @@ fn render_simulation_charts(ui: &mut egui::Ui, series: &SimTimeSeries) {
         .height(chart_height)
         .allow_drag(false)
         .show(ui, |plot_ui| {
-            plot_ui.line(Line::new(qe_data).name("total qe").color(egui::Color32::from_rgb(100, 150, 255)));
+            plot_ui.line(Line::new(qe_data).name("total qe").color(COLOR_ENERGY));
         });
 }
 
@@ -216,7 +216,7 @@ fn render_analysis_charts(ui: &mut egui::Ui, series: &SimTimeSeries) {
         .height(chart_height)
         .allow_drag(false)
         .show(ui, |plot_ui| {
-            plot_ui.line(Line::new(species_data).name("species").color(egui::Color32::from_rgb(255, 180, 50)));
+            plot_ui.line(Line::new(species_data).name("species").color(COLOR_SPECIES));
         });
 
     ui.add_space(CHART_SPACING);
@@ -231,7 +231,7 @@ fn render_analysis_charts(ui: &mut egui::Ui, series: &SimTimeSeries) {
         .height(chart_height)
         .allow_drag(false)
         .show(ui, |plot_ui| {
-            plot_ui.line(Line::new(scatter).name("pop×qe").color(egui::Color32::from_rgb(200, 100, 200)));
+            plot_ui.line(Line::new(scatter).name("pop×qe").color(COLOR_CORRELATION));
         });
 }
 

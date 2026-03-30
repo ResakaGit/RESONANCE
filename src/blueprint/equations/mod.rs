@@ -63,6 +63,7 @@ pub mod metabolic_genome;
 pub mod protein_fold;
 pub mod codon_genome;
 pub mod multicellular;
+pub mod coulomb;
 pub mod morph_robustness;
 pub mod exact_cache;
 pub mod observability;
