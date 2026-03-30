@@ -17,7 +17,10 @@ use resonance::blueprint::equations;
 use resonance::events::DeathEvent;
 use resonance::geometry_flow::creature_builder;
 use resonance::layers::{BaseEnergy, WillActuator};
-use resonance::plugins::{DashboardBridgePlugin, LayersPlugin, SimulationPlugin, SimulationTickPlugin};
+use resonance::plugins::{
+    DashboardBridgePlugin, DashboardPanelsPlugin, LayersPlugin, SimulationPlugin,
+    SimulationTickPlugin,
+};
 use resonance::runtime_platform::dashboard_bridge::SimTickSummary;
 use resonance::use_cases::cli::{find_arg, parse_arg};
 
@@ -104,6 +107,7 @@ fn main() {
         .add_plugins(LayersPlugin)
         .add_plugins(SimulationPlugin)
         .add_plugins(DashboardBridgePlugin)
+        .add_plugins(DashboardPanelsPlugin)
         .init_state::<Phase>()
         .insert_resource(LoadedGenomes(genomes))
         .insert_resource(SurvivalState::new())

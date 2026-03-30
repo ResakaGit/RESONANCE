@@ -16,3 +16,4 @@ pub mod scenario_isolation;
 pub mod simulation_tick;
 pub mod spatial_index_backend;
 pub mod dashboard_bridge;
+pub mod dashboard_panels;

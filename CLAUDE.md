@@ -505,6 +505,7 @@ If following a coding rule makes the game worse, break the rule and explain why.
 - `src/blueprint/equations/exact_cache.rs` — zero-loss precompute (kleiber_volume_factor, exact_death_tick, frequency_alignment_exact)
 - `src/use_cases/export.rs` — CSV/JSON stateless adapters (zero IO, String output)
 - `src/use_cases/orchestrators.rs` — HOF composition (ablate, ensemble, sweep)
+- `src/runtime_platform/dashboard_bridge.rs` — SimTickSummary, SimTimeSeries, RingBuffer, ViewConfig, DashboardBridgePlugin
 - `src/simulation/reproduction/mod.rs` — flora seed + fauna offspring (with mutation)
 - `src/simulation/emergence/` — theory_of_mind, symbiosis_effect, epigenetic_adaptation, niche_adaptation
 - `src/blueprint/constants/stellar.rs` — stellar-scale constants (star/planet gravity, radii, emission)
