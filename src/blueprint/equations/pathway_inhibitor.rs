@@ -389,6 +389,116 @@ pub fn find_escape_frequency(
     (best_freq, min_disruption)
 }
 
+// ─── PI-10: Adaptive Controller (pure decision functions) ───────────────────
+
+/// Snapshot del tumor para decisiones del controlador. Datos puros, sin ECS.
+/// Tumor snapshot for controller decisions. Pure data, no ECS.
+#[derive(Clone, Copy, Debug)]
+pub struct TumorSnapshot {
+    pub alive_count:    f32,
+    pub mean_freq:      f32,
+    pub freq_spread:    f32,
+    pub mean_efficiency: f32,
+    pub growth_rate:    f32, // delta alive vs previous gen
+}
+
+/// Decisión del controlador adaptativo. Puro valor, sin side effects.
+/// Adaptive controller decision. Pure value, no side effects.
+#[derive(Clone, Debug, PartialEq)]
+pub struct TherapyDecision {
+    pub inhibitors:    Vec<(f32, f32)>, // (frequency, concentration) per drug
+    pub rationale:     &'static str,
+}
+
+/// Controlador adaptativo: snapshot del tumor → decisión terapéutica.
+/// Adaptive controller: tumor snapshot → therapy decision.
+///
+/// Strategy:
+/// 1. If tumor growing (growth_rate > 0): increase dose at dominant frequency
+/// 2. If tumor stable (growth_rate ≈ 0): maintain current dose (control achieved)
+/// 3. If efficiency recovering (> 80% baseline): tumor escaping → add drug at escape frequency
+/// 4. If population dropping: reduce dose (avoid elimination → maintain competition)
+///
+/// All thresholds derived from DISSIPATION_SOLID (Axiom 4).
+pub fn adaptive_decision(
+    snapshot: &TumorSnapshot,
+    current_drugs: &[(f32, f32)],
+    baseline_efficiency: f32,
+    tick: u64,
+) -> TherapyDecision {
+    let growth_threshold = pi::OFF_TARGET_THRESHOLD;   // 0.2: growth is significant
+    let stability_band  = pi::INHIBITION_DISSIPATION_COST; // 0.02: growth ≈ 0
+    let recovery_ratio  = 1.0 - pi::OFF_TARGET_THRESHOLD;  // 0.8: efficiency recovered 80%
+
+    // No tumor → no therapy
+    if snapshot.alive_count < 1.0 {
+        return TherapyDecision { inhibitors: vec![], rationale: "no_tumor" };
+    }
+
+    // Tumor efficiency recovering → escaping → add drug at predicted escape frequency
+    if snapshot.mean_efficiency > baseline_efficiency * recovery_ratio && !current_drugs.is_empty() {
+        let drug_freqs: Vec<f32> = current_drugs.iter().map(|&(f, _)| f).collect();
+        let drug_concs: Vec<f32> = current_drugs.iter().map(|&(_, c)| c).collect();
+        let (escape_freq, _) = find_escape_frequency(
+            &drug_freqs, &drug_concs, 100.0, 900.0, 200, tick,
+        );
+        let mut new_drugs: Vec<(f32, f32)> = current_drugs.to_vec();
+        new_drugs.push((escape_freq, pi::OFF_TARGET_THRESHOLD)); // Low dose at escape
+        return TherapyDecision { inhibitors: new_drugs, rationale: "escape_detected_add_drug" };
+    }
+
+    // Tumor growing → increase dose
+    if snapshot.growth_rate > growth_threshold {
+        let boosted: Vec<(f32, f32)> = current_drugs.iter()
+            .map(|&(f, c)| (f, (c * 1.5).min(1.0))) // 50% dose increase, cap at 1.0
+            .collect();
+        if boosted.is_empty() {
+            // No drugs yet → start therapy at tumor's dominant frequency
+            return TherapyDecision {
+                inhibitors: vec![(snapshot.mean_freq, pi::OFF_TARGET_THRESHOLD * 2.0)],
+                rationale: "tumor_growing_start_therapy",
+            };
+        }
+        return TherapyDecision { inhibitors: boosted, rationale: "tumor_growing_increase_dose" };
+    }
+
+    // Tumor stable (growth ≈ 0) → maintain if treating, start if not
+    if snapshot.growth_rate.abs() < stability_band {
+        if current_drugs.is_empty() {
+            // Stable but untreated → start therapy at tumor frequency
+            return TherapyDecision {
+                inhibitors: vec![(snapshot.mean_freq, pi::OFF_TARGET_THRESHOLD * 2.0)],
+                rationale: "stable_untreated_start_therapy",
+            };
+        }
+        return TherapyDecision { inhibitors: current_drugs.to_vec(), rationale: "stable_maintain" };
+    }
+
+    // Tumor shrinking → reduce dose (keep sensitive population alive for competition)
+    let reduced: Vec<(f32, f32)> = current_drugs.iter()
+        .map(|&(f, c)| (f, (c * 0.7).max(pi::MIN_RESIDUAL_EFFICIENCY))) // 30% reduction
+        .collect();
+    TherapyDecision { inhibitors: reduced, rationale: "shrinking_reduce_dose" }
+}
+
+/// Computa growth_rate desde dos snapshots consecutivos.
+/// Compute growth_rate from two consecutive snapshots.
+#[inline]
+pub fn compute_growth_rate(prev_alive: f32, curr_alive: f32) -> f32 {
+    if prev_alive < 1.0 { return 0.0; }
+    (curr_alive - prev_alive) / prev_alive
+}
+
+/// Computa frequency spread (std dev) de un slice de frecuencias.
+/// Compute frequency spread (std dev) from a frequency slice.
+pub fn frequency_spread(frequencies: &[f32]) -> f32 {
+    let n = frequencies.len();
+    if n < 2 { return 0.0; }
+    let mean: f32 = frequencies.iter().sum::<f32>() / n as f32;
+    let variance: f32 = frequencies.iter().map(|&f| (f - mean) * (f - mean)).sum::<f32>() / n as f32;
+    variance.sqrt()
+}
+
 // ─── Tests (BDD) ────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -702,5 +812,80 @@ mod tests {
         let d2 = (best - 500.0).abs();
         // Should be far from at least one drug
         assert!(d1 > 30.0 || d2 > 30.0, "should avoid drugs: best={best}");
+    }
+
+    // ── PI-10: Adaptive Controller ──────────────────────────────────────
+
+    fn snapshot(alive: f32, freq: f32, eff: f32, growth: f32) -> TumorSnapshot {
+        TumorSnapshot { alive_count: alive, mean_freq: freq, freq_spread: 50.0, mean_efficiency: eff, growth_rate: growth }
+    }
+
+    #[test]
+    fn controller_no_tumor_no_therapy() {
+        let d = adaptive_decision(&snapshot(0.0, 400.0, 0.0, 0.0), &[], 1.0, 0);
+        assert_eq!(d.rationale, "no_tumor");
+        assert!(d.inhibitors.is_empty());
+    }
+
+    #[test]
+    fn controller_growing_tumor_starts_therapy() {
+        let d = adaptive_decision(&snapshot(50.0, 400.0, 1.0, 0.5), &[], 1.0, 0);
+        assert_eq!(d.rationale, "tumor_growing_start_therapy");
+        assert!(!d.inhibitors.is_empty());
+        assert!((d.inhibitors[0].0 - 400.0).abs() < 1e-3, "should target tumor freq");
+    }
+
+    #[test]
+    fn controller_growing_with_drugs_increases_dose() {
+        let drugs = vec![(400.0, 0.5)];
+        let d = adaptive_decision(&snapshot(50.0, 400.0, 0.6, 0.3), &drugs, 1.0, 0);
+        assert_eq!(d.rationale, "tumor_growing_increase_dose");
+        assert!(d.inhibitors[0].1 > 0.5, "dose should increase");
+    }
+
+    #[test]
+    fn controller_stable_maintains() {
+        let drugs = vec![(400.0, 0.5)];
+        let d = adaptive_decision(&snapshot(50.0, 400.0, 0.5, 0.01), &drugs, 1.0, 0);
+        assert_eq!(d.rationale, "stable_maintain");
+        assert!((d.inhibitors[0].1 - 0.5).abs() < 1e-5, "dose unchanged");
+    }
+
+    #[test]
+    fn controller_shrinking_reduces_dose() {
+        let drugs = vec![(400.0, 0.8)];
+        let d = adaptive_decision(&snapshot(50.0, 400.0, 0.4, -0.3), &drugs, 1.0, 0);
+        assert_eq!(d.rationale, "shrinking_reduce_dose");
+        assert!(d.inhibitors[0].1 < 0.8, "dose should decrease");
+    }
+
+    #[test]
+    fn controller_escape_adds_second_drug() {
+        let drugs = vec![(400.0, 0.8)];
+        // Efficiency recovering (0.85 > 1.0 * 0.8) → escape
+        let d = adaptive_decision(&snapshot(50.0, 300.0, 0.85, 0.05), &drugs, 1.0, 100);
+        assert_eq!(d.rationale, "escape_detected_add_drug");
+        assert!(d.inhibitors.len() > 1, "should add second drug");
+    }
+
+    #[test]
+    fn growth_rate_zero_when_no_previous() {
+        assert_eq!(compute_growth_rate(0.0, 50.0), 0.0);
+    }
+
+    #[test]
+    fn growth_rate_positive_when_growing() {
+        assert!(compute_growth_rate(50.0, 60.0) > 0.0);
+    }
+
+    #[test]
+    fn frequency_spread_single_is_zero() {
+        assert_eq!(frequency_spread(&[400.0]), 0.0);
+    }
+
+    #[test]
+    fn frequency_spread_uniform_is_positive() {
+        let s = frequency_spread(&[300.0, 400.0, 500.0]);
+        assert!(s > 50.0, "spread={s}");
     }
 }

@@ -693,6 +693,127 @@ pub fn run_bozic_validation(config: &BozicValidationConfig) -> BozicValidationRe
     }
 }
 
+// ─── Adaptive Control Loop ──────────────────────────────────────────────────
+
+/// Snapshot del tumor desde mundos batch. Función pura: worlds → TumorSnapshot.
+/// Tumor snapshot from batch worlds. Pure function: worlds → TumorSnapshot.
+fn snapshot_tumor(worlds: &[SimWorldFlat], prev_alive: f32) -> pi::TumorSnapshot {
+    let nw = worlds.len().max(1) as f32;
+    let (mut alive, mut freq_sum, mut eff_sum, mut count) = (0.0f32, 0.0f32, 0.0f32, 0u32);
+    let mut freqs = [0.0f32; 256];
+    let mut freq_count = 0usize;
+
+    for w in worlds {
+        let mut mask = w.alive_mask;
+        while mask != 0 {
+            let i = mask.trailing_zeros() as usize;
+            mask &= mask - 1;
+            alive += 1.0;
+            freq_sum += w.entities[i].frequency_hz;
+            eff_sum += mean_expression(&w.entities[i]);
+            count += 1;
+            if freq_count < 256 { freqs[freq_count] = w.entities[i].frequency_hz; freq_count += 1; }
+        }
+    }
+
+    let n = count.max(1) as f32;
+    pi::TumorSnapshot {
+        alive_count:     alive / nw,
+        mean_freq:       freq_sum / n,
+        freq_spread:     pi::frequency_spread(&freqs[..freq_count]),
+        mean_efficiency: eff_sum / n,
+        growth_rate:     pi::compute_growth_rate(prev_alive, alive / nw),
+    }
+}
+
+/// Reporte del controlador adaptativo.
+/// Adaptive controller report.
+#[derive(Debug)]
+pub struct AdaptiveReport {
+    pub snapshots:  Vec<pi::TumorSnapshot>,
+    pub decisions:  Vec<pi::TherapyDecision>,
+    pub drug_count_timeline: Vec<usize>,
+    pub final_stability: bool,
+    pub stability_gen:   Option<u32>,
+    pub wall_time_ms:    u64,
+}
+
+/// Experimento de control adaptativo. El controlador decide dosis cada generación.
+/// Adaptive control experiment. Controller decides dose each generation.
+///
+/// HOF: config → report. Stateless. Deterministic.
+pub fn run_adaptive(config: &BozicValidationConfig) -> AdaptiveReport {
+    let start = Instant::now();
+    let target_role = OrganRole::Root;
+
+    let mut worlds: Vec<SimWorldFlat> = (0..config.worlds).map(|wi| {
+        let ws = determinism::next_u64(config.seed ^ (wi as u64));
+        let mut w = SimWorldFlat::new(ws, 0.05);
+        for cell in w.nutrient_grid.iter_mut() { *cell = config.nutrient_level; }
+        for cell in w.irradiance_grid.iter_mut() { *cell = config.nutrient_level * 0.3; }
+        spawn_bozic_tumor(&mut w, config, ws);
+        w
+    }).collect();
+
+    let mut scratches: Vec<ScratchPad> = (0..config.worlds).map(|_| ScratchPad::new()).collect();
+    let mut snapshots = Vec::with_capacity(config.generations as usize);
+    let mut decisions = Vec::with_capacity(config.generations as usize);
+    let mut drug_counts = Vec::with_capacity(config.generations as usize);
+
+    let mut current_drugs: Vec<(f32, f32)> = vec![];
+    let mut prev_alive = config.tumor_count as f32;
+    let baseline_eff = 1.0f32;
+    let stability_threshold = crate::blueprint::constants::pathway_inhibitor::INHIBITION_DISSIPATION_COST;
+
+    for generation in 0..config.generations {
+        // Build inhibitors from current_drugs
+        let inhibitors: Vec<Inhibitor> = current_drugs.iter()
+            .map(|&(freq, conc)| Inhibitor {
+                target_frequency: freq, concentration: conc,
+                ki: config.drug_a_ki, mode: InhibitionMode::Competitive,
+            })
+            .collect();
+
+        let drug_active = generation >= config.treatment_start_gen;
+        for (wi, world) in worlds.iter_mut().enumerate() {
+            for _ in 0..config.ticks_per_gen {
+                multi_drug_tick(world, &mut scratches[wi], &inhibitors, target_role, drug_active);
+            }
+        }
+
+        let snap = snapshot_tumor(&worlds, prev_alive);
+        prev_alive = snap.alive_count;
+
+        // Controller decides next generation's therapy
+        let decision = if drug_active {
+            pi::adaptive_decision(&snap, &current_drugs, baseline_eff, generation as u64 * config.ticks_per_gen as u64)
+        } else {
+            pi::TherapyDecision { inhibitors: vec![], rationale: "pre_treatment" }
+        };
+
+        current_drugs = decision.inhibitors.clone();
+        drug_counts.push(current_drugs.len());
+        snapshots.push(snap);
+        decisions.push(decision);
+    }
+
+    // Stability = growth_rate within band for last 5 generations
+    let final_stability = snapshots.iter().rev().take(5)
+        .all(|s| s.growth_rate.abs() < stability_threshold);
+    let stability_gen = snapshots.iter().enumerate()
+        .find(|(i, _)| {
+            if *i < 5 { return false; }
+            snapshots[i-4..*i+1].iter().all(|s| s.growth_rate.abs() < stability_threshold)
+        })
+        .map(|(i, _)| i as u32);
+
+    AdaptiveReport {
+        snapshots, decisions, drug_count_timeline: drug_counts,
+        final_stability, stability_gen,
+        wall_time_ms: start.elapsed().as_millis() as u64,
+    }
+}
+
 // ─── Tests (BDD) ────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -1014,5 +1135,73 @@ mod tests {
         // (drug inhibits growth, doesn't kill directly)
         assert!(last.alive_mean > 0.0,
             "drug should control, not eliminate: alive={}", last.alive_mean);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // ADAPTIVE CONTROL LOOP TESTS
+    // ══════════════════════════════════════════════════════════════════════
+
+    fn adaptive_config() -> BozicValidationConfig {
+        BozicValidationConfig {
+            tumor_count: 15, worlds: 5, generations: 20, ticks_per_gen: 50,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn adaptive_controller_runs_without_panic() {
+        let report = run_adaptive(&adaptive_config());
+        assert_eq!(report.snapshots.len(), 20);
+        assert_eq!(report.decisions.len(), 20);
+    }
+
+    #[test]
+    fn adaptive_controller_prescribes_therapy() {
+        let report = run_adaptive(&adaptive_config());
+        // After treatment starts, controller should have non-empty decisions
+        let active_decisions = report.decisions.iter()
+            .filter(|d| d.rationale != "pre_treatment")
+            .count();
+        assert!(active_decisions > 0, "controller should make active decisions");
+        // At least one decision should have a rationale other than pre_treatment
+        let has_therapy = report.decisions.iter()
+            .any(|d| !d.inhibitors.is_empty());
+        assert!(has_therapy, "controller should prescribe at least one drug");
+    }
+
+    #[test]
+    fn adaptive_suppresses_more_than_no_treatment() {
+        let cfg = adaptive_config();
+
+        // No treatment baseline
+        let mut no_drug_cfg = cfg.clone();
+        no_drug_cfg.treatment_start_gen = 999;
+        let no_drug = run_arm(&no_drug_cfg, &[], "no_drug");
+
+        // Adaptive
+        let adaptive = run_adaptive(&cfg);
+        let adaptive_eff = adaptive.snapshots.last().unwrap().mean_efficiency;
+
+        assert!(adaptive_eff <= no_drug.final_efficiency,
+            "adaptive should suppress: adaptive={adaptive_eff}, no_drug={}", no_drug.final_efficiency);
+    }
+
+    #[test]
+    fn adaptive_deterministic() {
+        let cfg = adaptive_config();
+        let a = run_adaptive(&cfg);
+        let b = run_adaptive(&cfg);
+        assert_eq!(
+            a.snapshots.last().unwrap().mean_efficiency.to_bits(),
+            b.snapshots.last().unwrap().mean_efficiency.to_bits(),
+        );
+    }
+
+    #[test]
+    fn adaptive_decisions_have_rationale() {
+        let report = run_adaptive(&adaptive_config());
+        for d in &report.decisions {
+            assert!(!d.rationale.is_empty(), "every decision must have rationale");
+        }
     }
 }
