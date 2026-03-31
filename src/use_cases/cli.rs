@@ -3,8 +3,16 @@
 //! Eliminates duplication of `parse_arg`, `find_arg`, and archetype labeling
 //! across 10+ binaries.
 
-/// Parse a numeric CLI flag. Returns `default` if absent or unparseable.
+/// Parse an integer CLI flag. Returns `default` if absent or unparseable.
 pub fn parse_arg(args: &[String], flag: &str, default: i64) -> i64 {
+    args.windows(2)
+        .find(|w| w[0] == flag)
+        .and_then(|w| w[1].parse().ok())
+        .unwrap_or(default)
+}
+
+/// Parse a float CLI flag. Returns `default` if absent or unparseable.
+pub fn parse_arg_f32(args: &[String], flag: &str, default: f32) -> f32 {
     args.windows(2)
         .find(|w| w[0] == flag)
         .and_then(|w| w[1].parse().ok())

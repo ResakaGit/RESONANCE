@@ -5,7 +5,7 @@
 //!   cargo run --release --bin cancer_therapy -- --potency 5 --bandwidth 30 --gens 200
 //!   cargo run --release --bin cancer_therapy -- --intermittent 10 --worlds 500
 
-use resonance::use_cases::cli::{parse_arg, find_arg};
+use resonance::use_cases::cli::{parse_arg, parse_arg_f32, find_arg};
 use resonance::use_cases::experiments::cancer_therapy::{self, TherapyConfig, TherapySnapshot};
 
 fn main() {
@@ -17,8 +17,8 @@ fn main() {
         normal_freq:         parse_arg(&args, "--normal-freq", 250) as f32,
         cancer_freq:         parse_arg(&args, "--cancer-freq", 400) as f32,
         drug_target_freq:    parse_arg(&args, "--target-freq", 400) as f32,
-        drug_potency:        parse_arg(&args, "--potency", 2) as f32,
-        drug_bandwidth:      parse_arg(&args, "--bandwidth", 50) as f32,
+        drug_potency:        parse_arg_f32(&args, "--potency", 2.0),
+        drug_bandwidth:      parse_arg_f32(&args, "--bandwidth", 50.0),
         treatment_start_gen: parse_arg(&args, "--start", 5) as u32,
         treatment_pause_gens: parse_arg(&args, "--intermittent", 0) as u32,
         worlds:              parse_arg(&args, "--worlds", 100) as usize,

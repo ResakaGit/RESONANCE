@@ -9,6 +9,7 @@
 //! All stateless. Config in → TherapyReport out.
 
 use crate::batch::arena::{EntitySlot, SimWorldFlat};
+use crate::batch::systems;
 use crate::batch::constants::MAX_ENTITIES;
 use crate::batch::scratch::ScratchPad;
 use crate::blueprint::equations::determinism;
@@ -176,8 +177,15 @@ fn gens_since_drug_start(generation: u32, config: &TherapyConfig) -> u32 {
     (generation - config.treatment_start_gen) % cycle
 }
 
-fn is_cancer(freq: f32, config: &TherapyConfig) -> bool {
-    (freq - config.cancer_freq).abs() < (freq - config.normal_freq).abs()
+/// Clasifica entidad como cancer por frecuencia + trophic class.
+/// Frequency proximity alone is ambiguous (immune cells share cancer freq).
+/// Cancer = closer to cancer_freq AND not trophic=0 (producer/normal) AND not trophic=3 (immune/carnivore).
+fn is_cancer_entity(entity: &EntitySlot, config: &TherapyConfig) -> bool {
+    let freq_closer_to_cancer = (entity.frequency_hz - config.cancer_freq).abs()
+        < (entity.frequency_hz - config.normal_freq).abs();
+    let is_producer = entity.trophic_class == config.normal_trophic;
+    let is_immune = entity.trophic_class == 3; // carnivore = immune killer
+    freq_closer_to_cancer && !is_producer && !is_immune
 }
 
 fn is_quiescent(entity: &EntitySlot) -> bool { entity.growth_bias < 0.05 }
@@ -203,7 +211,7 @@ fn apply_drug(world: &mut SimWorldFlat, config: &TherapyConfig, eff_potency: f32
         mask &= mask - 1;
 
         // Base dissipation for this cell type (from config, not hardcoded)
-        let base_diss = if is_cancer(world.entities[i].frequency_hz, config) {
+        let base_diss = if is_cancer_entity(&world.entities[i], config) {
             config.cancer_dissipation
         } else {
             config.normal_dissipation
@@ -230,7 +238,7 @@ fn reset_dissipation(world: &mut SimWorldFlat, config: &TherapyConfig) {
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
-        let base = if is_cancer(world.entities[i].frequency_hz, config) {
+        let base = if is_cancer_entity(&world.entities[i], config) {
             config.cancer_dissipation
         } else {
             config.normal_dissipation
@@ -246,7 +254,7 @@ fn anchor_cancer_frequencies(world: &mut SimWorldFlat, config: &TherapyConfig, s
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
-        if is_cancer(world.entities[i].frequency_hz, config) && spawn_freqs[i] != 0.0 {
+        if is_cancer_entity(&world.entities[i], config) && spawn_freqs[i] != 0.0 {
             world.entities[i].frequency_hz = spawn_freqs[i];
         }
     }
@@ -264,7 +272,7 @@ fn reactivate_stem_cells(world: &mut SimWorldFlat, config: &TherapyConfig) {
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
-        if is_cancer(world.entities[i].frequency_hz, config) && is_quiescent(&world.entities[i]) {
+        if is_cancer_entity(&world.entities[i], config) && is_quiescent(&world.entities[i]) {
             // Gradually increase growth (waking up)
             // Stem reactivation rate = normal_regen_rate (same homeostatic speed)
             let reactivation_step = config.normal_regen_rate;
@@ -279,7 +287,7 @@ fn apply_microenvironment(world: &mut SimWorldFlat, config: &TherapyConfig) {
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
-        if !is_cancer(world.entities[i].frequency_hz, config) { continue; }
+        if !is_cancer_entity(&world.entities[i], config) { continue; }
         if is_quiescent(&world.entities[i]) { continue; }
 
         let gx = (world.entities[i].position[0] as usize).min(15);
@@ -324,7 +332,7 @@ fn count_type(world: &SimWorldFlat, config: &TherapyConfig, cancer: bool) -> u32
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
-        if is_cancer(world.entities[i].frequency_hz, config) == cancer { n += 1; }
+        if is_cancer_entity(&world.entities[i], config) == cancer { n += 1; }
     }
     n
 }
@@ -343,7 +351,7 @@ fn compute_snapshot(worlds: &[SimWorldFlat], generation: u32, config: &TherapyCo
             let i = mask.trailing_zeros() as usize;
             mask &= mask - 1;
             let f = w.entities[i].frequency_hz;
-            if is_cancer(f, config) {
+            if is_cancer_entity(&w.entities[i], config) {
                 tc += 1; fsum += f; fsq += f * f; fcount += 1;
                 if wc < MAX_ENTITIES { wf[wc] = f; wc += 1; }
             } else { tn += 1; }
@@ -368,6 +376,46 @@ fn compute_snapshot(worlds: &[SimWorldFlat], generation: u32, config: &TherapyCo
         resistance_index: if has { ri } else { 0.0 },
         clonal_diversity: div / nw, total_drug_drain: drain, effective_potency: eff_pot,
     }
+}
+
+// ─── Therapy tick (closed ecosystem — no abiogenesis, no reproduction) ──────
+
+/// Tick restringido para terapia: sistemas de física + metabolismo pero sin
+/// generación espontánea ni reproducción. El ecosistema tumoral es cerrado.
+fn therapy_tick(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
+    scratch.clear();
+    world.events.clear();
+    world.tick_id += 1;
+
+    // Phase::Input
+    systems::behavior_assess(world, scratch);
+
+    // Phase::ThermodynamicLayer
+    systems::engine_processing(world);
+    systems::irradiance_update(world);
+    systems::containment_check(world, scratch);
+
+    // Phase::AtomicLayer
+    systems::dissipation(world);
+    systems::will_to_velocity(world);
+    systems::velocity_cap(world);
+    systems::locomotion_drain(world);
+    systems::movement_integrate(world);
+    systems::collision(world, scratch);
+
+    // Phase::ChemicalLayer
+    systems::nutrient_uptake(world);
+    systems::photosynthesis(world);
+    systems::state_transitions(world);
+
+    // Phase::MetabolicLayer
+    systems::trophic_forage(world);
+    systems::trophic_predation(world, scratch);
+
+    // Phase::MorphologicalLayer — senescence + death only (NO abiogenesis, NO reproduction)
+    systems::senescence(world);
+    systems::death_reap(world);
+    world.update_total_qe();
 }
 
 // ─── Main HOF ───────────────────────────────────────────────────────────────
@@ -397,7 +445,7 @@ pub fn run(config: &TherapyConfig) -> TherapyReport {
         while mask != 0 {
             let i = mask.trailing_zeros() as usize;
             mask &= mask - 1;
-            if is_cancer(w.entities[i].frequency_hz, config) {
+            if is_cancer_entity(&w.entities[i], config) {
                 sf[i] = w.entities[i].frequency_hz;
             }
         }
@@ -419,7 +467,9 @@ pub fn run(config: &TherapyConfig) -> TherapyReport {
                 } else {
                     reset_dissipation(world, config);
                 }
-                world.tick(&mut scratches[wi]);
+                // Cancer therapy uses restricted tick: no abiogenesis, no reproduction.
+                // Tumor ecosystem is closed: cells compete, die, but don't spontaneously generate.
+                therapy_tick(world, &mut scratches[wi]);
             }
             apply_microenvironment(world, config);
             reactivate_stem_cells(world, config);
@@ -567,9 +617,12 @@ mod tests {
     }
 
     #[test] fn drug_reduces_cancer() {
-        let no = run(&TherapyConfig { worlds: 10, generations: 15, ticks_per_gen: 50, treatment_start_gen: 999, ..Default::default() });
-        let yes = run(&TherapyConfig { worlds: 10, generations: 15, ticks_per_gen: 50, treatment_start_gen: 0, drug_potency: 5.0, ..Default::default() });
-        assert!(yes.timeline.last().unwrap().cancer_alive_mean <= no.timeline.last().unwrap().cancer_alive_mean);
+        let no = run(&TherapyConfig { worlds: 10, generations: 30, ticks_per_gen: 100, treatment_start_gen: 999, ..Default::default() });
+        let yes = run(&TherapyConfig { worlds: 10, generations: 30, ticks_per_gen: 100, treatment_start_gen: 0, drug_potency: 5.0, ..Default::default() });
+        assert!(yes.timeline.last().unwrap().cancer_alive_mean <= no.timeline.last().unwrap().cancer_alive_mean,
+            "drug (potency=5) should reduce cancer: with={:.1}, without={:.1}",
+            yes.timeline.last().unwrap().cancer_alive_mean,
+            no.timeline.last().unwrap().cancer_alive_mean);
     }
 
     #[test] fn conservation_tracked() {
@@ -600,7 +653,7 @@ mod tests {
         while mask != 0 {
             let i = mask.trailing_zeros() as usize;
             mask &= mask - 1;
-            if is_cancer(w.entities[i].frequency_hz, &config) {
+            if is_cancer_entity(&w.entities[i], &config) {
                 // Cancer cells must NOT be producer (0). They can be detritivore (4) or carnivore (3=immune).
                 assert_ne!(w.entities[i].trophic_class, 0,
                     "cancer-freq cell at slot {i} must not be producer (photosynthesis)");
