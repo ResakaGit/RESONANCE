@@ -1,7 +1,7 @@
 # Distribution Posts — Copy & Paste
 
-Reemplazar `[ARXIV_URL]` con el link real (ej: `https://arxiv.org/abs/2603.xxxxx`).
-Repo: `https://github.com/ResakaGit/RESONANCE`
+Paper: https://zenodo.org/records/19342036
+Repo: https://github.com/ResakaGit/RESONANCE
 
 ---
 
@@ -14,7 +14,7 @@ Show HN: Life emerges from 4 constants — cancer resistance included (109K LOC 
 
 ### URL field:
 ```
-[ARXIV_URL]
+https://zenodo.org/records/19342036
 ```
 
 ### Primer comentario (postear inmediatamente después):
@@ -40,7 +40,7 @@ Try it:
   cargo test                                 # 2,994 tests
 
 Code: https://github.com/ResakaGit/RESONANCE (AGPL-3.0)
-Paper: [ARXIV_URL]
+Paper: https://zenodo.org/records/19342036
 
 Happy to answer questions about the axioms, the derivation chain, or the oncology model.
 ```
@@ -80,7 +80,7 @@ cargo test                                 # 2,994 tests
 
 **The drug model:** A drug increases dissipation rate (Second Law). Cells with frequencies far from the target survive via Gaussian attenuation. Resistance emerges from heterogeneity, not from a programmed gene.
 
-Paper: [ARXIV_URL]
+Paper: https://zenodo.org/records/19342036
 Repo: https://github.com/ResakaGit/RESONANCE (AGPL-3.0)
 
 Feedback welcome — especially on the axiomatic derivation chain.
@@ -97,7 +97,7 @@ Emergent life from 4 constants: simulation engine deriving cancer resistance fro
 
 ### Body:
 ```
-Paper: [ARXIV_URL]
+Paper: https://zenodo.org/records/19342036
 
 We present an open-source simulation engine (109K LOC Rust, 2,994 tests) where ~40 lifecycle parameters are algebraically derived from 4 fundamental constants.
 
@@ -144,7 +144,7 @@ cargo run --release --bin lab  # egui dashboard, select "Cancer Therapy"
 cargo run --release --bin cancer_therapy -- --potency 0.5 --out resistance.csv
 ```
 
-Paper: [ARXIV_URL]
+Paper: https://zenodo.org/records/19342036
 Code: https://github.com/ResakaGit/RESONANCE
 
 Looking for feedback from computational oncology researchers. Would love to collaborate on clinical calibration.
@@ -185,7 +185,7 @@ The most surprising result: chemotherapy resistance emerges from the same freque
 - `cargo run --release --bin survival` — play as an evolved creature (WASD)
 - `cargo run --release --bin fermi` — how many random universes develop life?
 
-Paper: [ARXIV_URL]
+Paper: https://zenodo.org/records/19342036
 Code: https://github.com/ResakaGit/RESONANCE (109K LOC Rust, 2,994 tests, AGPL-3.0)
 ```
 
@@ -250,7 +250,7 @@ cargo run --release --bin lab
 cargo run --release --bin survival
 → play as an evolved creature (WASD)
 
-Paper: [ARXIV_URL]
+Paper: https://zenodo.org/records/19342036
 Code: github.com/ResakaGit/RESONANCE
 License: AGPL-3.0
 
@@ -273,7 +273,7 @@ Key results:
 
 The engine includes a universal lab (egui dashboard) with experiments for cancer therapy, speciation, convergent evolution, and the Fermi paradox — all from the same 4 constants.
 
-Paper: [ARXIV_URL]
+Paper: https://zenodo.org/records/19342036
 Code: https://github.com/ResakaGit/RESONANCE
 
 Looking to connect with computational oncology researchers for clinical calibration. If you work in drug resistance modeling, I'd love to hear your perspective.
