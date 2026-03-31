@@ -1,7 +1,10 @@
 //! EC-7C: Scale Composition System — fitness inferido + propagación cross-scale.
 //! Lee PoolConservationLedger + EnergyPool. Escribe PoolParentLink.primary_param
 //! en pools que son también hijos de otro pool (jerarquía multi-nivel).
-//! Fase: Phase::MetabolicLayer, after pool_conservation_system.
+//!
+//! STATUS: IMPLEMENTED, NOT REGISTERED. Used in integration tests only.
+//! Designed for Phase::MetabolicLayer after pool_conservation_system, but
+//! no plugin wires it into the schedule.
 
 use bevy::prelude::*;
 

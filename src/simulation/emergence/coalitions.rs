@@ -1,4 +1,9 @@
 //! ET-8: Dynamic Coalitions — alianzas con estabilidad Nash.
+//!
+//! STATUS: IMPLEMENTED, NOT REGISTERED. Both systems (coalition_stability_system,
+//! coalition_intake_bonus_system) are complete but no plugin wires them.
+//! CoalitionRegistry has no consumers outside this module.
+//! To activate: register in MorphologicalPlugin after epigenetic_adaptation_system.
 
 use bevy::prelude::*;
 

@@ -14,9 +14,9 @@ fn main() {
     let config = TherapyConfig {
         normal_count:        parse_arg(&args, "--normals", 30) as u8,
         cancer_count:        parse_arg(&args, "--cancers", 15) as u8,
-        normal_freq:         parse_arg(&args, "--normal-freq", 250) as f32,
-        cancer_freq:         parse_arg(&args, "--cancer-freq", 400) as f32,
-        drug_target_freq:    parse_arg(&args, "--target-freq", 400) as f32,
+        normal_freq:         parse_arg_f32(&args, "--normal-freq", 250.0),
+        cancer_freq:         parse_arg_f32(&args, "--cancer-freq", 400.0),
+        drug_target_freq:    parse_arg_f32(&args, "--target-freq", 400.0),
         drug_potency:        parse_arg_f32(&args, "--potency", 2.0),
         drug_bandwidth:      parse_arg_f32(&args, "--bandwidth", 50.0),
         treatment_start_gen: parse_arg(&args, "--start", 5) as u32,

@@ -1,9 +1,14 @@
-//! Pure equations for entity shape inference (Gaps 2–3 — MG-9/MG-10).
+//! Ecuaciones puras para inferencia de forma (MG-9/MG-10) — etapa geométrica.
+//! Pure equations for entity shape inference (MG-9/MG-10) — geometric stage.
 //!
 //! Converts entity physics layers into a [`GeometryInfluence`] packet
 //! consumed by the GF1 mesh pipeline in `entity_shape_inference_system`,
 //! and computes bilateral quadruped body plan layouts for MOVE-capable entities.
 //! No ECS reads; all inputs are scalars already extracted from components.
+//!
+//! **Note:** Constructal optimization (drag vs vascular cost, Hagen-Poiseuille,
+//! gradient descent on fineness) lives in [`crate::blueprint::morphogenesis::constructal`].
+//! This module applies the optimized parameters to mesh geometry.
 
 use crate::math_types::Vec3;
 

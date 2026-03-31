@@ -21,7 +21,8 @@ pub(crate) const MIN_DISTANCE_M: f32 = 1e-4;
 pub const SEASON_TRANSITION_TICKS: u32 = 60;
 
 /// Mínimo de qe en celda para materializar. Derived: self_sustaining_qe_min / 2 = 10.0.
-pub const MIN_MATERIALIZATION_QE: f32 = 10.0; // Matches derived_thresholds::min_materialization_qe()
+/// Must match `derived_thresholds::min_materialization_qe()` — verified in tests below.
+pub const MIN_MATERIALIZATION_QE: f32 = 10.0;
 
 /// Tamaño de celda del campo en unidades de mundo.
 pub const FIELD_CELL_SIZE: f32 = 2.0;
@@ -29,13 +30,15 @@ pub const FIELD_CELL_SIZE: f32 = 2.0;
 /// `Name` de entidades de abiogénesis (EA5): anclan celda sin componente [`Materialized`](crate::worldgen::Materialized).
 pub const ABIOGENESIS_FIELD_OCCUPANT_NAME: &str = "flora_emergent";
 
-/// Pérdida base de qe por celda/s (Axiom 4). Matches derived_thresholds::field_decay_rate().
+/// Pérdida base de qe por celda/s (Axiom 4).
+/// Must match `derived_thresholds::field_decay_rate()` — verified in tests below.
 pub const FIELD_DECAY_RATE: f32 = 1.0;
 
 /// Densidad de referencia visual (visual calibration, not axiom-derived).
 pub const REFERENCE_DENSITY: f32 = super::visual_calibration::VISUAL_REFERENCE_DENSITY;
 
-/// Umbral de densidad clase baja (Axiom 1). Matches DENSITY_SCALE fundamental.
+/// Umbral de densidad clase baja (Axiom 1).
+/// Must match `DENSITY_SCALE` fundamental — verified in tests below.
 pub const DENSITY_LOW_THRESHOLD: f32 = 20.0;
 
 /// Umbral de densidad clase alta (visual calibration).
@@ -145,5 +148,24 @@ mod tests {
         assert!(DENSITY_LOW_THRESHOLD < DENSITY_HIGH_THRESHOLD);
         assert!(MIN_CONTRIBUTION_INTENSITY > 0.0);
         assert!(MAX_FREQUENCY_CONTRIBUTIONS > 0);
+    }
+
+    /// Verify hardcoded worldgen constants match their derived_thresholds sources.
+    /// If a fundamental changes, this test fails — forcing the hardcode to update.
+    #[test]
+    fn worldgen_hardcodes_match_derived_thresholds() {
+        use crate::blueprint::equations::derived_thresholds as dt;
+        assert!(
+            (super::MIN_MATERIALIZATION_QE - dt::min_materialization_qe()).abs() < 1e-5,
+            "MIN_MATERIALIZATION_QE diverged from derived_thresholds::min_materialization_qe()"
+        );
+        assert!(
+            (super::FIELD_DECAY_RATE - dt::field_decay_rate()).abs() < 1e-5,
+            "FIELD_DECAY_RATE diverged from derived_thresholds::field_decay_rate()"
+        );
+        assert!(
+            (super::DENSITY_LOW_THRESHOLD - dt::DENSITY_SCALE).abs() < 1e-5,
+            "DENSITY_LOW_THRESHOLD diverged from DENSITY_SCALE fundamental"
+        );
     }
 }

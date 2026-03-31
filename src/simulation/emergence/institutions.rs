@@ -1,4 +1,8 @@
 //! ET-14: Institutions — coordinación colectiva que trasciende individuos.
+//!
+//! STATUS: IMPLEMENTED, NOT REGISTERED. Systems are complete but no plugin
+//! wires them into the schedule. No consumers read InstitutionRegistry yet.
+//! To activate: register in MetabolicPlugin after coalition_intake_bonus_system.
 
 use bevy::prelude::*;
 

@@ -44,6 +44,15 @@ const ROLE_MAP: [[OrganRole; 3]; 4] = [
     [OrganRole::Shell, OrganRole::Thorn, OrganRole::Sensory], // resilience
 ];
 
+/// Dimensión metabólica de un OrganRole (0=growth, 1=mobility, 2=branching, 3=resilience).
+/// Metabolic dimension of an OrganRole. Inverse lookup on ROLE_MAP.
+pub fn organ_role_dimension(role: OrganRole) -> u32 {
+    for (dim, roles) in ROLE_MAP.iter().enumerate() {
+        if roles.contains(&role) { return dim as u32; }
+    }
+    0
+}
+
 // ─── MGN-1: Gene → ExergyNode ───────────────────────────────────────────────
 
 /// Infer OrganRole from gene position. Dimension = index % 4, tier = distance from core.

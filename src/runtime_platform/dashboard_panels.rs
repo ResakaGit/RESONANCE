@@ -89,7 +89,7 @@ pub fn dashboard_controls_system(
 pub fn dashboard_charts_system(
     mut contexts: EguiContexts,
     tab:          Res<DashboardTab>,
-    summary:      Res<SimTickSummary>,
+    _summary:     Res<SimTickSummary>,
     series:       Res<SimTimeSeries>,
     view:         Res<ViewConfig>,
 ) {

@@ -1,4 +1,8 @@
 //! ET-11: Multi-Scale Information — MultiscaleSignalGrid resource + aggregation system.
+//!
+//! STATUS: IMPLEMENTED, NOT REGISTERED. System complete, no plugin wires it.
+//! No consumers read MultiscaleSignalGrid yet.
+//! To activate: register in MetabolicPlugin after ecology_dynamics.
 
 use bevy::prelude::*;
 

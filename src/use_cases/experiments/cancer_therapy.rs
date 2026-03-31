@@ -1,6 +1,6 @@
 //! Cancer Therapy Simulation — resistance dynamics under selective pressure.
 //!
-//! Drug = frequency-selective dissipation (Axiom 4 + 8).
+//! Drug = frequency-selective CYTOTOXIC drain (Axiom 4 + 8).
 //! Resistance = mutation shifts frequency away from target (NOT ecological drift).
 //! Relapse = quiescent stem cells survive, reactivate when niche empties (Axiom 6).
 //! Pharmacokinetics = Hill equation dose-response + ramp up/down (Axiom 4).
@@ -43,8 +43,6 @@ pub struct TherapyConfig {
     pub relapse_threshold: f32,
     /// Immune cells per world (attack cancer by frequency proximity).
     pub immune_count: u8,
-    /// Scaling: 1 entity = this many real cells.
-    pub cells_per_entity: f32,
     /// Pharmacokinetic ramp: generations to reach full potency.
     pub pk_ramp_gens: u32,
 
@@ -59,7 +57,7 @@ pub struct TherapyConfig {
     pub cancer_growth: f32,
     pub cancer_resilience: f32,
     pub cancer_dissipation: f32,
-    /// Cancer cell trophic class. 3=carnivore (Warburg: consumes host glucose, no photosynthesis).
+    /// Cancer cell trophic class. 4=detritivore (Warburg: scavenges nutrients, no photosynthesis).
     pub cancer_trophic: u8,
 
     // Microenvironment
@@ -85,14 +83,14 @@ impl Default for TherapyConfig {
             quiescent_fraction: 0.05, quiescent_drug_sensitivity: 0.1,
             stem_reactivation_threshold: 0.2,
             normal_regen_rate: 0.15, relapse_threshold: 3.0,
-            immune_count: 5, cells_per_entity: 1e7,
+            immune_count: 5,
             pk_ramp_gens: 3,
             normal_qe: 30.0, normal_growth: 0.3,
             normal_resilience: 0.8, normal_dissipation: 0.01,
             normal_trophic: 0,  // producer: healthy tissue receives energy from environment
             cancer_qe: 80.0, cancer_growth: 0.9,
             cancer_resilience: 0.2, cancer_dissipation: 0.005,
-            cancer_trophic: 4,  // detritivore: Warburg effect, scavenges nutrients passively (no photosynthesis, no hunting)
+            cancer_trophic: 4,  // detritivore: Warburg effect, scavenges nutrients passively
             nutrient_level: 50.0, // well-vascularized tumor: must sustain ~50 entities competing
             worlds: 100, generations: 100,
             ticks_per_gen: 300, seed: 42,
@@ -128,8 +126,9 @@ pub struct TherapyReport {
 
 // ─── Pure equations ─────────────────────────────────────────────────────────
 
-/// Hill equation dose-response. Standard pharmacology: `E = Emax × C^n / (EC50^n + C^n)`.
-/// Axiom 4: energy dissipation follows thermodynamic response curve.
+/// Hill equation dose-response (experiment-specific: includes potency scaling).
+/// Canonical pure Hill in `pathway_inhibitor::hill_response()`. This variant
+/// folds potency into the response for the cytotoxic drain model.
 fn hill_response(alignment: f32, potency: f32, hill_n: f32) -> f32 {
     if alignment <= 0.0 || potency <= 0.0 { return 0.0; }
     let c_n = alignment.powf(hill_n);
@@ -137,21 +136,26 @@ fn hill_response(alignment: f32, potency: f32, hill_n: f32) -> f32 {
     potency * c_n / (ec50_n + c_n)
 }
 
-/// Drug-induced dissipation increase. Axiom 4+8.
+/// Drenaje citotóxico base: qe/tick que el fármaco drena a potency=1 y alineación perfecta.
+/// Base cytotoxic drain: qe/tick the drug removes at potency=1 and perfect alignment.
 ///
-/// Potency is a MULTIPLIER on the cell's base dissipation rate.
-/// potency=1.0 → doubles dissipation (100% increase). potency=0.3 → 30% increase.
-/// Scaled by frequency alignment (Axiom 8) and Hill pharmacology.
-/// This makes potency scale-invariant: works regardless of absolute dissipation values.
-fn drug_drain(entity_freq: f32, target_freq: f32, potency: f32, bandwidth: f32, hill_n: f32) -> f32 {
-    let alignment = determinism::gaussian_frequency_alignment(entity_freq, target_freq, bandwidth);
-    hill_response(alignment, potency, hill_n)
-}
+/// Calibration: cancer_qe=80, ticks_per_gen=300. At potency=1, Hill(1.0,1,2)≈1.6,
+/// drain≈0.8/tick. Nutrient intake≈0.5/tick. Net loss≈0.3/tick → 90 qe over 300 ticks → lethal.
+/// At potency=0.1 → 0.08/tick → insufficient → tumor survives. Correct.
+const DRUG_CYTOTOXIC_DRAIN_BASE: f32 = 0.5;
 
-/// Drug effect as fraction of base dissipation. Potency is a relative multiplier.
-fn drug_dissipation_effect(entity_freq: f32, config: &TherapyConfig, eff_potency: f32, base_diss: f32) -> f32 {
-    let raw = drug_drain(entity_freq, config.drug_target_freq, eff_potency, config.drug_bandwidth, config.hill_coefficient);
-    raw * base_diss // potency=1.0 → adds 100% of base dissipation. Scale-invariant.
+/// Citotoxicidad directa: qe drenado por tick. Axiom 4+8.
+/// Direct cytotoxicity: qe drained per tick. Axiom 4+8.
+///
+/// Unlike dissipation (qe × rate → exponential decay → asymptotic to 0, never kills),
+/// cytotoxicity drains FLAT qe per tick. This pushes qe to 0 → death_reap kills.
+/// Pharmacologically correct: chemo agents impose fixed damage per exposure
+/// (DNA alkylation, antimetabolite inhibition), not accelerated entropy.
+fn drug_cytotoxic_drain(entity_freq: f32, config: &TherapyConfig, eff_potency: f32) -> f32 {
+    let alignment = determinism::gaussian_frequency_alignment(
+        entity_freq, config.drug_target_freq, config.drug_bandwidth);
+    let hill = hill_response(alignment, eff_potency, config.hill_coefficient);
+    hill * DRUG_CYTOTOXIC_DRAIN_BASE
 }
 
 /// Pharmacokinetic ramp: potency builds up over pk_ramp_gens. Axiom 4.
@@ -192,59 +196,36 @@ fn is_quiescent(entity: &EntitySlot) -> bool { entity.growth_bias < 0.05 }
 
 // ─── Per-generation world operations ────────────────────────────────────────
 
-/// Apply drug by setting dissipation rate of targeted cells. Axiom 4 pure.
+/// Aplica fármaco: drenaje citotóxico directo de qe. Axiom 4+8.
+/// Apply drug: direct cytotoxic qe drain. Axiom 4+8.
 ///
-/// Drug effect = temporary increase in dissipation rate, proportional to
-/// frequency alignment (Axiom 8) × potency (Hill pharmacology).
-/// The batch dissipation system then drains qe naturally each tick.
+/// Drug DIRECTLY removes qe each tick (flat drain, not rate-based).
+/// This is pharmacologically correct: cytotoxic agents impose fixed damage
+/// per exposure regardless of cell energy level. At qe=0 → death_reap kills.
 ///
-/// Dissipation is SET (not accumulated) to: base_dissipation + drug_effect.
-/// When drug is off, dissipation returns to baseline automatically.
-/// This is Axiom 4 pure: drug accelerates entropy, doesn't create/destroy energy.
+/// Selectivity: gaussian_frequency_alignment (Axiom 8) ensures cancer cells
+/// (freq ≈ target) receive full drain while normal cells (distant freq) get ~0.
 ///
-/// Returns total drug-induced dissipation increase (observability).
+/// Returns total qe drained this tick (observability).
 fn apply_drug(world: &mut SimWorldFlat, config: &TherapyConfig, eff_potency: f32) -> f32 {
-    let mut total_effect = 0.0f32;
+    let mut total_drain = 0.0f32;
     let mut mask = world.alive_mask;
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
 
-        // Base dissipation for this cell type (from config, not hardcoded)
-        let base_diss = if is_cancer_entity(&world.entities[i], config) {
-            config.cancer_dissipation
-        } else {
-            config.normal_dissipation
-        };
-
-        let mut drug_effect = drug_dissipation_effect(
-            world.entities[i].frequency_hz, config, eff_potency, base_diss,
-        );
+        let mut drain = drug_cytotoxic_drain(
+            world.entities[i].frequency_hz, config, eff_potency);
 
         if is_quiescent(&world.entities[i]) {
-            drug_effect *= config.quiescent_drug_sensitivity;
+            drain *= config.quiescent_drug_sensitivity;
         }
 
-        // SET dissipation = base + drug effect. Not accumulated. Axiom 4.
-        world.entities[i].dissipation = base_diss + drug_effect;
-        total_effect += drug_effect;
+        // Direct qe drain: drug actively destroys cellular energy. Axiom 4.
+        world.entities[i].qe = (world.entities[i].qe - drain).max(0.0);
+        total_drain += drain;
     }
-    total_effect
-}
-
-/// Reset dissipation to baseline when drug is off. Pure.
-fn reset_dissipation(world: &mut SimWorldFlat, config: &TherapyConfig) {
-    let mut mask = world.alive_mask;
-    while mask != 0 {
-        let i = mask.trailing_zeros() as usize;
-        mask &= mask - 1;
-        let base = if is_cancer_entity(&world.entities[i], config) {
-            config.cancer_dissipation
-        } else {
-            config.normal_dissipation
-        };
-        world.entities[i].dissipation = base;
-    }
+    total_drain
 }
 
 /// Anchor cancer cell frequencies: only changes via reproduction mutation, not drift.
@@ -380,9 +361,14 @@ fn compute_snapshot(worlds: &[SimWorldFlat], generation: u32, config: &TherapyCo
 
 // ─── Therapy tick (closed ecosystem — no abiogenesis, no reproduction) ──────
 
-/// Tick restringido para terapia: sistemas de física + metabolismo pero sin
-/// generación espontánea ni reproducción. El ecosistema tumoral es cerrado.
-fn therapy_tick(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
+/// Tick restringido para terapia: física + metabolismo + fármaco, sin abiogénesis ni reproducción.
+/// Restricted therapy tick: physics + metabolism + drug, no abiogenesis or reproduction.
+///
+/// Drug application is positioned AFTER nutrient intake but BEFORE death_reap.
+/// This is critical: if drug drains before nutrients, nutrient_uptake resurrects the cell
+/// (adds ~0.25 qe) and death_reap never sees qe < QE_MIN_EXISTENCE (0.01).
+/// By draining after intake, the drug overcomes nutrient replenishment → qe reaches 0 → cell dies.
+fn therapy_tick(world: &mut SimWorldFlat, scratch: &mut ScratchPad, config: &TherapyConfig, eff_potency: f32) -> f32 {
     scratch.clear();
     world.events.clear();
     world.tick_id += 1;
@@ -412,10 +398,18 @@ fn therapy_tick(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
     systems::trophic_forage(world);
     systems::trophic_predation(world, scratch);
 
+    // ── Drug: AFTER metabolic intake, BEFORE death_reap ────────────────
+    // Cytotoxic drain must overcome nutrient replenishment to be lethal.
+    let drug_drain = if eff_potency > 0.0 {
+        apply_drug(world, config, eff_potency)
+    } else { 0.0 };
+
     // Phase::MorphologicalLayer — senescence + death only (NO abiogenesis, NO reproduction)
     systems::senescence(world);
     systems::death_reap(world);
     world.update_total_qe();
+
+    drug_drain
 }
 
 // ─── Main HOF ───────────────────────────────────────────────────────────────
@@ -460,16 +454,9 @@ pub fn run(config: &TherapyConfig) -> TherapyReport {
         let mut gen_drain = 0.0f32;
 
         for (wi, world) in worlds.iter_mut().enumerate() {
-            // Drug: set dissipation each tick (Axiom 4). Reset when drug off.
+            // Drug is applied WITHIN therapy_tick (after nutrient intake, before death_reap).
             for _ in 0..config.ticks_per_gen {
-                if eff_pot > 0.0 {
-                    gen_drain += apply_drug(world, config, eff_pot);
-                } else {
-                    reset_dissipation(world, config);
-                }
-                // Cancer therapy uses restricted tick: no abiogenesis, no reproduction.
-                // Tumor ecosystem is closed: cells compete, die, but don't spontaneously generate.
-                therapy_tick(world, &mut scratches[wi]);
+                gen_drain += therapy_tick(world, &mut scratches[wi], config, eff_pot);
             }
             apply_microenvironment(world, config);
             reactivate_stem_cells(world, config);
@@ -507,7 +494,7 @@ pub fn run(config: &TherapyConfig) -> TherapyReport {
 
 fn spawn_population(world: &mut SimWorldFlat, config: &TherapyConfig, seed: u64) {
     let mut s = seed;
-    /// Spawn a single cell. Pure factory: config → EntitySlot. No side effects.
+    // Spawn a single cell. Pure factory: config → EntitySlot. No side effects.
     let spawn_cell = |s: &mut u64, freq: f32, freq_sigma: f32, qe: f32, growth: f32,
                       resilience: f32, dissipation: f32, trophic: u8, pos_range: (f32, f32)| -> EntitySlot {
         *s = determinism::next_u64(*s);
@@ -534,7 +521,7 @@ fn spawn_population(world: &mut SimWorldFlat, config: &TherapyConfig, seed: u64)
         world.spawn(slot);
     }
 
-    // Active cancer cells: trophic from config (default: carnivore=Warburg, no photosynthesis)
+    // Active cancer cells: trophic from config (default: detritivore=Warburg, no photosynthesis)
     let quiescent_n = (config.cancer_count as f32 * config.quiescent_fraction) as u8;
     for _ in 0..(config.cancer_count - quiescent_n) {
         let slot = spawn_cell(&mut s, config.cancer_freq, 15.0, config.cancer_qe,
@@ -585,9 +572,21 @@ mod tests {
         assert!(h2 < h1, "steeper Hill → less effect at low alignment");
     }
 
-    #[test] fn drain_on_target() { assert!(drug_drain(400.0, 400.0, 2.0, 50.0, 2.0) > 1.5); }
-    #[test] fn drain_off_target() { assert!(drug_drain(600.0, 400.0, 2.0, 50.0, 2.0) < drug_drain(400.0, 400.0, 2.0, 50.0, 2.0)); }
-    #[test] fn drain_nan_safe() { assert_eq!(drug_drain(f32::NAN, 400.0, 2.0, 50.0, 2.0), 0.0); }
+    #[test] fn cytotoxic_drain_on_target() {
+        let c = TherapyConfig::default();
+        let d = drug_cytotoxic_drain(400.0, &c, 2.0);
+        assert!(d > 0.5, "on-target drain should be significant: {d}");
+    }
+    #[test] fn cytotoxic_drain_off_target() {
+        let c = TherapyConfig::default();
+        let on = drug_cytotoxic_drain(400.0, &c, 2.0);
+        let off = drug_cytotoxic_drain(600.0, &c, 2.0);
+        assert!(off < on, "off-target drain ({off}) < on-target ({on})");
+    }
+    #[test] fn cytotoxic_drain_nan_safe() {
+        let c = TherapyConfig::default();
+        assert_eq!(drug_cytotoxic_drain(f32::NAN, &c, 2.0), 0.0);
+    }
 
     #[test] fn pk_ramp_gradual() {
         let c = TherapyConfig { treatment_start_gen: 0, pk_ramp_gens: 10, ..Default::default() };
@@ -619,10 +618,21 @@ mod tests {
     #[test] fn drug_reduces_cancer() {
         let no = run(&TherapyConfig { worlds: 10, generations: 30, ticks_per_gen: 100, treatment_start_gen: 999, ..Default::default() });
         let yes = run(&TherapyConfig { worlds: 10, generations: 30, ticks_per_gen: 100, treatment_start_gen: 0, drug_potency: 5.0, ..Default::default() });
-        assert!(yes.timeline.last().unwrap().cancer_alive_mean <= no.timeline.last().unwrap().cancer_alive_mean,
-            "drug (potency=5) should reduce cancer: with={:.1}, without={:.1}",
-            yes.timeline.last().unwrap().cancer_alive_mean,
-            no.timeline.last().unwrap().cancer_alive_mean);
+        let with = yes.timeline.last().unwrap().cancer_alive_mean;
+        let without = no.timeline.last().unwrap().cancer_alive_mean;
+        assert!(with < without,
+            "drug (potency=5) must STRICTLY reduce cancer: with={with:.1}, without={without:.1}");
+    }
+
+    #[test] fn strong_drug_eliminates_tumor() {
+        let r = run(&TherapyConfig {
+            worlds: 10, generations: 30, ticks_per_gen: 300,
+            treatment_start_gen: 0, drug_potency: 5.0,
+            ..Default::default()
+        });
+        let final_cancer = r.timeline.last().unwrap().cancer_alive_mean;
+        assert!(final_cancer < 1.0,
+            "potency=5 over 300 ticks should eliminate tumor: got {final_cancer:.1}");
     }
 
     #[test] fn conservation_tracked() {
@@ -654,7 +664,6 @@ mod tests {
             let i = mask.trailing_zeros() as usize;
             mask &= mask - 1;
             if is_cancer_entity(&w.entities[i], &config) {
-                // Cancer cells must NOT be producer (0). They can be detritivore (4) or carnivore (3=immune).
                 assert_ne!(w.entities[i].trophic_class, 0,
                     "cancer-freq cell at slot {i} must not be producer (photosynthesis)");
             }

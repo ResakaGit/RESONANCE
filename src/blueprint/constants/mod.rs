@@ -77,6 +77,7 @@ mod cooperation_ac5;
 pub mod nucleus_lifecycle;
 mod senescence;
 pub mod stellar;
+pub mod pathway_inhibitor;
 
 pub use almanac_coherence::*;
 pub use allometry_tl6::*;

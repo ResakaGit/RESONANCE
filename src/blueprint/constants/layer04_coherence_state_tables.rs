@@ -8,7 +8,9 @@ pub const DEFAULT_THERMAL_CONDUCTIVITY: f32 = 0.2;
 /// Límite de velocidad para líquidos (sólido = 0 vía capa motor).
 pub const VELOCITY_LIMIT_LIQUID: f32 = 5.0;
 
-/// Multiplicador de disipación en sólido (baja entropía aparente).
+/// Multiplicador de disipación L4 (coherence-internal, NOT axiom dissipation rates).
+/// These scale bond_energy degradation in MatterCoherence, distinct from the
+/// fundamental DISSIPATION_SOLID/LIQUID/GAS/PLASMA in derived_thresholds.rs.
 pub const DISSIPATION_MULT_SOLID: f32 = 0.2;
 
 /// Multiplicador de disipación en líquido.

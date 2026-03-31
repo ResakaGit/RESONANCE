@@ -64,6 +64,7 @@ pub mod protein_fold;
 pub mod codon_genome;
 pub mod multicellular;
 pub mod coulomb;
+pub mod pathway_inhibitor;
 pub mod morph_robustness;
 pub mod exact_cache;
 pub mod observability;

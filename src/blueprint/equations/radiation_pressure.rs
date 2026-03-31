@@ -1,19 +1,21 @@
+/// Factor de alineación de frecuencia para transferencia de presión.
 /// Frequency alignment factor for radiation pressure transfer.
-/// Same frequency = easy transfer (alignment ≈ 1). Different frequency = resists mixing.
 ///
-/// `alignment = exp(-Δf² / (2 × bandwidth²))`
-///
-/// Axiom 8: interaction modulated by frequency difference.
+/// Delegates to canonical `gaussian_frequency_alignment` (Axiom 8).
+/// Same frequency → 1.0. Far frequencies → 0.0.
 #[inline]
 pub fn pressure_frequency_alignment(source_freq: f32, target_freq: f32, bandwidth: f32) -> f32 {
-    let bw = bandwidth.max(1.0);
-    let df = source_freq - target_freq;
-    (-df * df / (2.0 * bw * bw)).exp()
+    super::determinism::gaussian_frequency_alignment(source_freq, target_freq, bandwidth.max(1.0))
 }
 
-/// Non-linear radiation pressure: excess energy pushes outward, modulated by frequency alignment.
+/// Redistribución de excedente modulada por frecuencia (análogo a presión de radiación estelar).
+/// Frequency-modulated surplus redistribution (stellar radiation pressure analogy).
 ///
 /// `transfer = rate × excess × alignment / n_neighbors`
+///
+/// Named "radiation pressure" by analogy: stars push matter outward via energy surplus.
+/// Mechanism here is energy redistribution, not photon momentum transfer (no P = I/c).
+/// The analogy holds: high-energy cells shed surplus to neighbors, frequency-gated.
 ///
 /// - Excess = `max(source_qe - threshold, 0)` (Axiom 4: only surplus does work)
 /// - Alignment = `exp(-Δf²/2σ²)` (Axiom 8: coherent neighbors transfer easily)

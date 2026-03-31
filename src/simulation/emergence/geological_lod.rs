@@ -1,4 +1,8 @@
 //! ET-13: Geological Time LOD — física comprimida para escalas geológicas.
+//!
+//! STATUS: IMPLEMENTED, NOT REGISTERED. System complete, no plugin wires it.
+//! No consumers read GeologicalLODState yet.
+//! To activate: register in a dedicated GeologyPlugin or MorphologicalPlugin.
 
 use bevy::prelude::*;
 

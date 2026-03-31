@@ -1,5 +1,8 @@
 //! EC-6B: Verificación de conservación de pools post-distribución.
-//! Fase: [`crate::simulation::Phase::MetabolicLayer`], después de `pool_distribution_system`.
+//!
+//! STATUS: IMPLEMENTED, NOT REGISTERED. Used in integration tests only.
+//! Designed for Phase::MetabolicLayer after pool_distribution_system, but
+//! no plugin wires it into the schedule.
 
 use bevy::prelude::*;
 

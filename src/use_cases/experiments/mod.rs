@@ -16,3 +16,4 @@ pub mod fossil;
 pub mod sonification;
 pub mod cancer_therapy;
 pub mod particle_lab;
+pub mod pathway_inhibitor_exp;

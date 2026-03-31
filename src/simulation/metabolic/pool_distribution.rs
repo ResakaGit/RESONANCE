@@ -1,7 +1,9 @@
 //! EC-4: Pool Distribution System — tick de extracción competitiva.
 //! Tres sistemas en cadena: intake → distribution → dissipation.
-//! Fase: [`crate::simulation::Phase::MetabolicLayer`].
 //! Sin HashMap, sin allocations en hot path. Buffer stack-allocated, orden determinista.
+//!
+//! STATUS: IMPLEMENTED, NOT REGISTERED. Used in integration tests only.
+//! Designed for Phase::MetabolicLayer, but no plugin wires it into the schedule.
 
 use bevy::prelude::*;
 

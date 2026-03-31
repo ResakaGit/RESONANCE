@@ -13,7 +13,14 @@
 /// Kleiber's 3/4-power law: metabolic rate ∝ mass^0.75.
 pub const KLEIBER_EXPONENT: f32 = 0.75;
 
+/// Tasas de disipación por estado de materia (qe/qe/tick). Axioma 4: Segunda Ley.
 /// Dissipation rates per matter state (qe/qe/tick). Axiom 4: Second Law.
+///
+/// Ratios 1:4:16:50 — molecular mobility increases ~4× per phase transition
+/// (solid→liquid→gas), consistent with self-diffusion coefficient scaling in
+/// condensed matter (e.g., D_liquid/D_solid ≈ 10³ in metals, but here normalized
+/// to simulation timescale). Plasma ratio elevated (50×) for unbound high-energy state.
+/// These are physically motivated calibration values, not measured from a specific system.
 pub const DISSIPATION_SOLID: f32 = 0.005;
 pub const DISSIPATION_LIQUID: f32 = 0.02;
 pub const DISSIPATION_GAS: f32 = 0.08;
@@ -85,13 +92,15 @@ pub fn branch_qe_min() -> f32 { self_sustaining_qe_min() * 2.0 }
 
 // ─── Cosmological anchor (single calibration constant) ──────────────────────
 
-// DEBT: Resource derive for SelfSustainingQeMin injection. This is the only mutable
-// input to the derivation chain — everything else is const. Bevy-coupled by design:
-// runtime-tunable constant requires Resource marker.
+// Runtime-tunable cosmological anchor. Default = DENSITY_SCALE (derived, not arbitrary).
+// Bevy-coupled by design: allows calibration experiments without recompilation.
 use bevy::prelude::Resource;
 
-/// The universe's cosmological anchor: minimum qe for self-sustaining patterns.
-/// Default 20.0. Injectable as a Bevy Resource to tune at runtime.
+/// Ancla cosmológica: mínima qe para patrones auto-sustentables.
+/// Cosmological anchor: minimum qe for self-sustaining patterns.
+///
+/// Default = DENSITY_SCALE (20.0). Derived: 1 normalized density unit.
+/// Injectable as Bevy Resource for runtime calibration experiments.
 /// All lifecycle thresholds scale from this single value.
 #[derive(Resource, Debug, Clone, Copy)]
 pub struct SelfSustainingQeMin(pub f32);
@@ -102,12 +111,21 @@ impl Default for SelfSustainingQeMin {
 
 // ─── Derived: awakening / abiogenesis ────────────────────────────────────────
 
-/// Minimum qe for self-sustaining patterns. Reads the cosmological anchor.
-/// When no Bevy world is available, use `SelfSustainingQeMin::default().0`.
+/// Mínima qe para patrones auto-sustentables: 1 unidad de densidad normalizada.
+/// Minimum qe for self-sustaining patterns: 1 normalized density unit.
+///
+/// Derived: `self_sustaining_qe_min = DENSITY_SCALE` — the minimum energy
+/// that fills one grid cell at unit density. Below this, no stable structure.
+/// Runtime-tunable via `SelfSustainingQeMin` Resource (default = DENSITY_SCALE).
 #[inline]
 pub fn self_sustaining_qe_min() -> f32 { SelfSustainingQeMin::default().0 }
 
-/// Break-even: coherence = 2× dissipation → potential = 1/3.
+/// Umbral de spawn derivado del Axiom 2 (Pool Invariant).
+/// Spawn threshold derived from Axiom 2 (Pool Invariant).
+///
+/// At threshold: parent retains `min`, child receives `min`, so `qe = 2×min`.
+/// Net surplus = `min`. `potential = min / (min + 2×min) = 1/3`.
+/// A cell needs 3× the sustaining minimum (2 to keep, 1 surplus) to spawn.
 #[inline]
 pub fn spawn_potential_threshold() -> f32 { 1.0 / 3.0 }
 

@@ -1,5 +1,8 @@
 // ── Capa 4: Transiciones de Fase ──
-/// Constante de Boltzmann del juego (convierte densidad a temperatura equivalente).
+/// Constante de Boltzmann normalizada (convierte densidad → temperatura equivalente).
+/// Game Boltzmann constant: normalized to 1.0 so equivalent_temperature = density.
+/// Semantic placeholder: in real physics k_B = 1.38×10⁻²³ J/K, but simulation
+/// operates in abstract qe units where density IS temperature (natural units).
 pub const GAME_BOLTZMANN: f32 = 1.0;
 
 /// Umbral: T < SOLID_TRANSITION * eb → Sólido

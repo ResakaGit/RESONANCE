@@ -1,12 +1,19 @@
-//! Axiomatic abiogenesis — life emergence derived from the 8 foundational axioms.
+//! Emergencia de vida desde surplus energético — condición de viabilidad axiomática.
+//! Life emergence from energy surplus — axiomatic viability condition.
 //!
 //! No hardcoded bands, no element-specific catalysts.
 //! Life emerges wherever constructive interference gain exceeds dissipation loss.
 //!
-//! **Axiom 1:** Everything is energy (qe). Existence = qe > 0.
-//! **Axiom 4:** All processes dissipate energy. loss ≥ qe × rate.
-//! **Axiom 7:** Interaction decays with distance. attenuation = 1 / (1 + d²).
-//! **Axiom 8:** Every concentration oscillates at frequency f. Interference = cos(2π Δf t + Δφ).
+//! **Model:** Sigmoid viability potential `net/(net+qe)` — ratio of free surplus to total
+//! energy. NOT a Prigogine dissipative-structure model (no far-from-equilibrium dynamics,
+//! no nonlinear feedback). Simpler: if coherence gain > dissipation cost, the local energy
+//! field can sustain a self-maintaining pattern.
+//!
+//! **Axiom grounding:**
+//! - **Axiom 1:** Everything is energy (qe). Existence = qe > 0.
+//! - **Axiom 4:** All processes dissipate energy. loss ≥ qe × rate.
+//! - **Axiom 7:** Interaction decays with distance. attenuation = 1 / (1 + d²).
+//! - **Axiom 8:** Every concentration oscillates at frequency f. Interference = cos(2π Δf t + Δφ).
 //!
 //! Derived: spawn_condition = coherence_gain(neighbors) > dissipation_cost(local).
 //! Entity properties (matter_state, capabilities, morph profile) derived from energy density.

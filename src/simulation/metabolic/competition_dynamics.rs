@@ -1,6 +1,9 @@
 //! EC-5D: Competition Dynamics System — diagnóstico analítico de pools por tick.
 //! Read-only sobre EnergyPool y PoolParentLink. Escribe PoolDiagnostic (SparseSet).
-//! Fase: Phase::MetabolicLayer, after pool_dissipation_system.
+//!
+//! STATUS: IMPLEMENTED, NOT REGISTERED. Used in integration tests only.
+//! Designed for Phase::MetabolicLayer after pool_dissipation_system, but
+//! no plugin wires it into the schedule.
 
 use bevy::prelude::*;
 

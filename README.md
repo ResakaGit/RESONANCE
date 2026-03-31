@@ -30,7 +30,7 @@ Define the laws of physics. Press play. Watch life emerge.
 | Constant | Value | Source |
 |----------|-------|--------|
 | `KLEIBER_EXPONENT` | 0.75 | Biological universal (metabolic scaling) |
-| `DISSIPATION_{SOLID→PLASMA}` | 0.005 → 0.25 | Second Law (empirical ratios 1:4:16:50) |
+| `DISSIPATION_{SOLID→PLASMA}` | 0.005 → 0.25 | Second Law (ratios 1:4:16:50, physically motivated) |
 | `COHERENCE_BANDWIDTH` | 50.0 Hz | Frequency observation window |
 | `DENSITY_SCALE` | 20.0 | Spatial normalization |
 
@@ -130,16 +130,44 @@ Energy field accumulates → coherence > dissipation → abiogenesis (entity spa
 
 No step is programmed. Each emerges from the previous via axiom-derived thresholds.
 
-## Simulation Stack (levels 0→10, all emergent)
+**9 emergence systems active in runtime:** entrainment (Kuramoto), theory of mind, cultural transmission, infrastructure, cooperation (Nash), symbiosis, niche adaptation (Hutchinson), epigenetic adaptation, infrastructure intake. 7 additional systems are implemented but not yet wired into the schedule (coalitions, institutions, tectonics, multiscale, geological LOD).
 
-```
-Energy (qe) → matter states → metabolism → reproduction → variable genome (4→32 genes)
-→ codon-based genetic code (64→8 amino, evolucionable) → proto-proteins (lattice fold)
-→ metabolic networks (DAG 12 nodes, competition, Hebb, catalysis)
-→ multicellularity (adhesion, colonies, differential expression)
-→ epigenetics (environment silences genes) → 16 tiers social emergence
-→ bilateral morphology (128 nodes, appendages)
-```
+## Biological Hierarchy (10 levels, all emergent)
+
+| Level | Phenomenon | Mechanism | Reference | Tests |
+|-------|-----------|-----------|-----------|-------|
+| 0 | Energy fields | Nucleus emission + diffusion | Axioms 1, 4, 7 | 17 |
+| 1 | Matter states | Density thresholds (derived from 4 constants) | Axiom 4 | 17 |
+| 2 | Molecular bonding | Coulomb + Lennard-Jones + frequency alignment | Coulomb 1785, LJ 1924 | 26 |
+| 3 | Entities (life) | Abiogenesis: coherence > dissipation | Axioms 4, 7, 8 | 42 |
+| 4 | Variable genome | 4-32 genes, Schwefel self-adaptive mutation | Schwefel 1981 | 62 |
+| 5 | Genetic code | 64 codons → 8 amino acids, evolvable table | Dill 1985 | 28 |
+| 6 | Proto-proteins | HP lattice fold, catalytic function inference | Dill 1985 | 27 |
+| 7 | Metabolic networks | DAG (12 nodes), competitive flow, Hebbian rewiring | Systems biology | 68 |
+| 8 | Multicellularity | Cell adhesion, Union-Find colonies, differential expression | Dev biology | 33 |
+| 9 | Social emergence | Theory of mind, coalitions, cultural transmission | Game theory | 40+ |
+
+### Molecular Physics (Level 2)
+
+Particles interact via classical potentials derived from the 4 fundamental constants:
+
+- **Coulomb:** `F = k_C * q1 * q2 / (r^2 + eps^2)` where `k_C = 1/DENSITY_SCALE = 0.05`
+- **Lennard-Jones:** `V(r) = 4*eps_LJ * [(sigma/r)^12 - (sigma/r)^6]` where `sigma = 1/DENSITY_SCALE`, `eps_LJ = DISSIPATION_SOLID * 100`
+- **Bond detection:** pair is stable when `|E_bond| > threshold` (negative energy = bound state)
+- **Frequency modulation:** bond strength scaled by `exp(-df^2 / (2*B^2))` (Axiom 8)
+
+No bond tables, no molecule templates. Opposite charges attract, reach equilibrium, and form stable bonds. 26 tests verify inverse-square law, LJ zero-crossing, Newton 3, charge conservation, and deterministic reproducibility.
+
+### Drug Resistance (Cancer Therapy Experiment)
+
+Drug resistance emerges from the same axioms that govern particle bonding:
+
+- **Drug model:** increases dissipation rate (Axiom 4), modulated by frequency alignment (Axiom 8) and Hill pharmacokinetics (n=2)
+- **Resistance mechanism:** cells with frequencies far from drug target experience reduced effect — clonal expansion of "mismatched" subpopulation
+- **Quiescent stem cells:** growth_bias < 0.05, drug_sensitivity = 0.1 — escape chemotherapy, reactivate on tumor regression
+- **Qualitatively consistent** with Bozic et al. 2013 (eLife) predictions for monotherapy failure
+
+**Honest limitations:** abstract energy units (not molar concentrations), no molecular targets (no EGFR/BCR-ABL), no tumor microenvironment (no vasculature/hypoxia/immune), not validated against patient data. This is a theoretical model for exploring resistance dynamics, not a clinical tool.
 
 **Nothing programmed. Everything emerged from 8 axioms and 4 constants.**
 
@@ -180,7 +208,7 @@ cargo run --release --bin headless_sim -- --ticks 5000 --out world.ppm
 ## Tests
 
 ```bash
-cargo test    # 2,994 tests (109K LOC)
+cargo test    # 2,997 tests (109K LOC)
 cargo bench   # batch + bridge benchmarks
 ```
 

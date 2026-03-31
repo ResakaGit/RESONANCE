@@ -1,4 +1,8 @@
 //! ET-12: Continental Drift — modificación tectónica del EnergyFieldGrid.
+//!
+//! STATUS: IMPLEMENTED, NOT REGISTERED. System complete, no plugin wires it.
+//! No consumers read TectonicGrid modifications yet.
+//! To activate: register in ThermodynamicPlugin or a dedicated GeologyPlugin.
 
 use bevy::prelude::*;
 
