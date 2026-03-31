@@ -9,15 +9,14 @@
 //! All stateless. Config in → InhibitorReport out. BDD-tested.
 
 use crate::batch::arena::{EntitySlot, SimWorldFlat};
-use crate::batch::constants::MAX_ENTITIES;
 use crate::batch::scratch::ScratchPad;
 use crate::batch::systems;
 use crate::blueprint::equations::determinism;
 use crate::blueprint::equations::metabolic_genome;
 use crate::blueprint::equations::pathway_inhibitor::{
-    self as pi, Inhibitor, InhibitionMode, PathwayInhibitionResult,
+    self as pi, Inhibitor, InhibitionMode,
 };
-use crate::blueprint::equations::derived_thresholds::{DISSIPATION_SOLID, KLEIBER_EXPONENT};
+use crate::blueprint::equations::derived_thresholds::DISSIPATION_SOLID;
 use crate::layers::OrganRole;
 use std::time::Instant;
 
@@ -308,9 +307,11 @@ fn compute_snapshot(
 // ─── Spawn ──────────────────────────────────────────────────────────────────
 
 fn spawn_population(world: &mut SimWorldFlat, config: &InhibitorConfig, seed: u64) {
+    use crate::blueprint::equations::variable_genome::VariableGenome;
+
     let mut s = seed;
 
-    let spawn = |s: &mut u64, freq: f32, sigma: f32, qe: f32, growth: f32| -> EntitySlot {
+    let spawn = |s: &mut u64, freq: f32, sigma: f32, qe: f32, growth: f32, n_genes: u8| -> (EntitySlot, VariableGenome) {
         *s = determinism::next_u64(*s);
         let mut e = EntitySlot::default();
         e.qe = qe;
@@ -327,17 +328,30 @@ fn spawn_population(world: &mut SimWorldFlat, config: &InhibitorConfig, seed: u6
             determinism::range_f32(*s, 1.0, 15.0),
             determinism::range_f32(determinism::next_u64(*s), 1.0, 15.0),
         ];
-        e
+
+        // Expand genome beyond 4 core biases so metabolic_graph_infer produces a graph.
+        // Genes 4+ map to metabolic nodes via gene_dimension/gene_tier (MGN-1).
+        let mut vg = VariableGenome::from_biases(growth, 0.3, 0.4, 0.5);
+        let target_len = (n_genes as usize).min(32);
+        for g in 4..target_len {
+            *s = determinism::next_u64(*s);
+            vg.genes[g] = determinism::unit_f32(*s).max(0.3);
+        }
+        vg.len = target_len as u8;
+
+        (e, vg)
     };
 
     for _ in 0..config.wildtype_count {
-        let e = spawn(&mut s, config.wildtype_freq, 15.0, config.wildtype_qe, 0.7);
-        world.spawn(e);
+        let (e, vg) = spawn(&mut s, config.wildtype_freq, 15.0, config.wildtype_qe, 0.7, 12);
+        let idx = world.spawn(e);
+        if let Some(i) = idx { world.genomes[i] = vg; }
     }
 
     for _ in 0..config.resistant_count {
-        let e = spawn(&mut s, config.resistant_freq, 20.0, config.wildtype_qe * 0.8, 0.5);
-        world.spawn(e);
+        let (e, vg) = spawn(&mut s, config.resistant_freq, 20.0, config.wildtype_qe * 0.8, 0.5, 8);
+        let idx = world.spawn(e);
+        if let Some(i) = idx { world.genomes[i] = vg; }
     }
 }
 
