@@ -13,10 +13,6 @@ use bevy::prelude::*;
 use bevy_egui::{EguiContexts, EguiPlugin, egui};
 use egui_plot::{Line, Plot, PlotPoints};
 
-use resonance::batch::arena::{EntitySlot, SimWorldFlat};
-use resonance::batch::genome::GenomeBlob;
-use resonance::batch::scratch::ScratchPad;
-use resonance::blueprint::equations::determinism;
 use resonance::use_cases::cli::archetype_label;
 use resonance::use_cases::experiments::{
     cambrian, cancer_therapy, convergence, debate, fermi, lab as lab_exp, speciation,
@@ -24,6 +20,12 @@ use resonance::use_cases::experiments::{
 use resonance::use_cases::export;
 use resonance::use_cases::orchestrators;
 use resonance::use_cases::presets;
+use resonance::plugins::{LayersPlugin, SimulationPlugin, SimulationTickPlugin};
+use resonance::rendering::quantized_color::PaletteRegistry;
+use resonance::runtime_platform::compat_2d3d::SimWorldTransformParams;
+use resonance::runtime_platform::simulation_tick::SimulationClock;
+use resonance::worldgen::EnergyFieldGrid;
+use resonance::layers::{BaseEnergy, OscillatorySignature, SpatialVolume};
 
 // ─── Layout / range constants (visual calibration, no physics) ──────────────
 
@@ -50,10 +52,6 @@ const CANCER_MAX_TICKS: u32       = 500;
 const ABLATION_STEPS: usize       = 8;
 const ENSEMBLE_SEEDS: usize       = 10;
 const DEFAULT_EXPORT_PATH: &str   = "lab_results.csv";
-const SIM2D_TICKS_PER_FRAME: u32  = 5;
-const SIM2D_INITIAL_ENTITIES: u8  = 12;
-const SIM2D_CELL_PX: f32          = 8.0;
-const GRID_SIZE: u32               = 16; // batch nutrient_grid is 16×16
 
 // ─── Chart colors (visual identity) ─────────────────────────────────────────
 
@@ -186,17 +184,9 @@ struct LabState {
     last_csv: String,
 }
 
-/// Estado de la simulación 2D en vivo. Batch-only, sin Bevy ECS.
-struct LiveSim {
-    world:   SimWorldFlat,
-    scratch: ScratchPad,
-    paused:  bool,
-    tick:    u64,
-}
-
-/// Resource opcional: solo existe cuando Live2D está activo.
+/// Flag: indica si el runtime de simulación fue inicializado.
 #[derive(Resource, Default)]
-struct LiveSimState(Option<LiveSim>);
+struct LiveSimInitialized(bool);
 
 // ─── Main ───────────────────────────────────────────────────────────────────
 
@@ -211,14 +201,20 @@ fn main() {
             ..default()
         }))
         .add_plugins(EguiPlugin)
+        // Simulation runtime (for Live 2D — uses real EnergyFieldGrid)
+        .add_plugins(SimulationTickPlugin)
+        .init_resource::<PaletteRegistry>()
+        .insert_resource(SimWorldTransformParams::default())
+        .add_plugins(LayersPlugin)
+        .add_plugins(SimulationPlugin)
+        // Lab state
         .init_resource::<LabParams>()
         .init_resource::<CancerParams>()
         .init_resource::<LabState>()
-        .init_resource::<LiveSimState>()
+        .init_resource::<LiveSimInitialized>()
         .add_systems(Update, (
             lab_controls_system,
             lab_live2d_system,
-            live_sim_tick_system,
         ).chain())
         .run();
 }
@@ -254,23 +250,118 @@ fn lab_controls_system(
 }
 
 fn lab_live2d_system(
-    mut contexts: EguiContexts,
-    params:       Res<LabParams>,
-    mut live:     ResMut<LiveSimState>,
+    mut contexts:  EguiContexts,
+    params:        Res<LabParams>,
+    grid:          Option<Res<EnergyFieldGrid>>,
+    clock:         Option<Res<SimulationClock>>,
+    entity_query:  Query<(&Transform, &BaseEnergy, &SpatialVolume, &OscillatorySignature)>,
 ) {
     if params.experiment != Experiment::Live2D { return; }
     let Some(ctx) = contexts.try_ctx_mut() else { return };
 
-    // Initialize outside the closure to avoid borrow conflict
-    init_live_sim_if_needed(&mut live, &params);
-
-    let mut should_reset = false;
     egui::CentralPanel::default().show(ctx, |ui| {
-        should_reset = render_live_2d_inner(ui, &mut live.0);
+        let tick = clock.as_ref().map(|c| c.tick_id).unwrap_or(0);
+        let alive = entity_query.iter().filter(|(_, e, _, _)| e.qe() > 0.0).count();
+
+        ui.horizontal(|ui| {
+            ui.label(format!("Tick: {} | Alive: {}", tick, alive));
+        });
+        ui.separator();
+
+        let Some(grid) = grid.as_ref() else {
+            ui.label("Waiting for simulation to initialize (loading map)...");
+            return;
+        };
+
+        // Scale to fill panel
+        let available = ui.available_size();
+        let canvas_side = available.x.min(available.y).max(200.0);
+        let cell_px = canvas_side / grid.width.max(1) as f32;
+
+        let (response, painter) = ui.allocate_painter(
+            egui::Vec2::new(canvas_side, canvas_side),
+            egui::Sense::hover(),
+        );
+        let origin = response.rect.min;
+
+        // Layer 1: Energy field heatmap from real EnergyFieldGrid
+        let mut max_qe = 1.0_f32;
+        for cell in grid.iter_cells() {
+            max_qe = max_qe.max(cell.accumulated_qe);
+        }
+
+        let w = grid.width as usize;
+        for (idx, cell) in grid.iter_cells().enumerate() {
+            let gx = (idx % w) as f32;
+            let gy = (idx / w) as f32;
+            let t = (cell.accumulated_qe / max_qe).clamp(0.0, 1.0);
+
+            // Color by frequency + energy: hue from dominant freq, brightness from qe
+            let hue = if cell.dominant_frequency_hz > 0.0 {
+                (cell.dominant_frequency_hz / 800.0).clamp(0.0, 1.0)
+            } else {
+                0.0
+            };
+            let sat = cell.purity.clamp(0.1, 1.0);
+            let val = (t.sqrt() * 1.2).min(1.0); // sqrt for better low-end visibility
+            let (r, g, b) = hsv_to_rgb_tuple(hue, sat, val);
+
+            let rect = egui::Rect::from_min_size(
+                egui::Pos2::new(origin.x + gx * cell_px, origin.y + gy * cell_px),
+                egui::Vec2::splat(cell_px),
+            );
+            painter.rect_filled(rect, 0.0, egui::Color32::from_rgb(r, g, b));
+        }
+
+        // Layer 2: Grid lines
+        let grid_side = grid.width.max(grid.height);
+        for i in 0..=grid_side {
+            let offset = i as f32 * cell_px;
+            let line_color = egui::Color32::from_rgba_premultiplied(255, 255, 255, 12);
+            painter.line_segment(
+                [egui::Pos2::new(origin.x + offset, origin.y),
+                 egui::Pos2::new(origin.x + offset, origin.y + canvas_side)],
+                egui::Stroke::new(0.5, line_color),
+            );
+            painter.line_segment(
+                [egui::Pos2::new(origin.x, origin.y + offset),
+                 egui::Pos2::new(origin.x + canvas_side, origin.y + offset)],
+                egui::Stroke::new(0.5, line_color),
+            );
+        }
+
+        // Layer 3: Entities from real Bevy ECS
+        let xz_ground = true; // Resonance uses XZ ground plane
+        for (transform, energy, volume, osc) in &entity_query {
+            if energy.qe() <= 0.0 { continue; }
+            let pos = if xz_ground {
+                (transform.translation.x, transform.translation.z)
+            } else {
+                (transform.translation.x, transform.translation.y)
+            };
+            // Convert world pos to grid pos
+            let rel_x = pos.0 - grid.origin.x;
+            let rel_y = pos.1 - grid.origin.y;
+            let px = origin.x + (rel_x / grid.cell_size) * cell_px;
+            let py = origin.y + (rel_y / grid.cell_size) * cell_px;
+
+            let radius_px = (volume.radius * cell_px * 0.3).clamp(3.0, cell_px * 0.4);
+            let hue = (osc.frequency_hz() / 800.0).clamp(0.0, 1.0);
+            let brightness = (energy.qe() / 50.0).clamp(0.4, 1.0);
+            let (r, g, b) = hsv_to_rgb_tuple(hue, 0.9, brightness);
+            let center = egui::Pos2::new(px, py);
+
+            painter.circle_filled(center, radius_px, egui::Color32::from_rgb(r, g, b));
+            painter.circle_stroke(center, radius_px, egui::Stroke::new(1.0, egui::Color32::WHITE));
+        }
+
+        // Layer 4: Border
+        painter.rect_stroke(
+            egui::Rect::from_min_size(origin, egui::Vec2::splat(canvas_side)),
+            2.0,
+            egui::Stroke::new(2.0, egui::Color32::from_rgb(100, 100, 100)),
+        );
     });
-    if should_reset {
-        live.0 = None; // reinit next frame
-    }
 }
 
 // ─── Left panel sections ────────────────────────────────────────────────────
@@ -632,220 +723,15 @@ fn render_cancer_result(ui: &mut egui::Ui, r: &cancer_therapy::TherapyReport) {
 
 // ─── Live 2D Simulation ─────────────────────────────────────────────────────
 
-/// Tick system: avanza la simulación batch si Live2D activo y no pausado.
-fn live_sim_tick_system(mut live: ResMut<LiveSimState>) {
-    let Some(sim) = live.0.as_mut() else { return };
-    if sim.paused { return; }
-    for _ in 0..SIM2D_TICKS_PER_FRAME {
-        sim.world.tick(&mut sim.scratch);
-        sim.tick += 1;
-    }
-}
-
-/// Inicializa un mundo con ecosistema viable: gradiente de nutrientes, flora + fauna.
-fn init_live_sim_if_needed(live: &mut LiveSimState, params: &LabParams) {
-    if live.0.is_some() { return; }
-    let seed = params.seed;
-    let mut world = SimWorldFlat::new(seed, 0.05);
-
-    // 1. Nutrient gradient: rich center, poor edges (simulates fertile valley)
-    for y in 0..GRID_SIZE as usize {
-        for x in 0..GRID_SIZE as usize {
-            let cx = (x as f32 - 7.5) / 7.5; // -1 to 1
-            let cy = (y as f32 - 7.5) / 7.5;
-            let dist_sq = cx * cx + cy * cy;
-            let nutrient = 3.0 + 7.0 * (1.0 - dist_sq).max(0.0); // 3 at edges, 10 at center
-            world.nutrient_grid[y * GRID_SIZE as usize + x] = nutrient;
-        }
-    }
-
-    // 2. Irradiance gradient: top bright, bottom dim (solar latitude)
-    for y in 0..GRID_SIZE as usize {
-        for x in 0..GRID_SIZE as usize {
-            let latitude_factor = 1.0 - (y as f32 / GRID_SIZE as f32); // 1.0 at top, 0.0 at bottom
-            world.irradiance_grid[y * GRID_SIZE as usize + x] = 0.5 + 1.5 * latitude_factor;
-        }
-    }
-
-    let mut s = seed;
-
-    // 3. Flora (producers): spread across the map, varied frequencies
-    let flora_freqs = [150.0, 250.0, 350.0, 450.0]; // 4 "species" of plants
-    for (i, &freq) in flora_freqs.iter().enumerate() {
-        s = determinism::next_u64(s);
-        let mut slot = EntitySlot::default();
-        slot.qe = 40.0;
-        slot.radius = 0.4;
-        slot.frequency_hz = freq + determinism::gaussian_f32(s, 10.0);
-        slot.growth_bias = 0.7;
-        slot.mobility_bias = 0.0; // plants don't move
-        slot.branching_bias = 0.5;
-        slot.resilience = 0.6;
-        slot.archetype = 1; // flora
-        slot.trophic_class = 0; // producer
-        slot.dissipation = 0.005;
-        slot.expression_mask = [1.0; 4];
-        // Spread in quadrants
-        let qx = (i % 2) as f32 * 8.0 + 2.0;
-        let qy = (i / 2) as f32 * 8.0 + 2.0;
-        s = determinism::next_u64(s);
-        slot.position = [
-            qx + determinism::range_f32(s, 0.0, 4.0),
-            qy + determinism::range_f32(determinism::next_u64(s), 0.0, 4.0),
-        ];
-        world.spawn(slot);
-    }
-
-    // 4. Fauna (herbivores): mobile, hunt for food
-    for i in 0..4u8 {
-        s = determinism::next_u64(s);
-        let mut slot = EntitySlot::default();
-        slot.qe = 60.0;
-        slot.radius = 0.5;
-        slot.frequency_hz = 200.0 + i as f32 * 100.0 + determinism::gaussian_f32(s, 15.0);
-        slot.growth_bias = 0.4;
-        slot.mobility_bias = 0.6; // mobile
-        slot.branching_bias = 0.1;
-        slot.resilience = 0.5;
-        slot.archetype = 2; // fauna
-        slot.trophic_class = 1; // herbivore
-        slot.dissipation = 0.01;
-        slot.expression_mask = [1.0; 4];
-        s = determinism::next_u64(s);
-        slot.position = [
-            determinism::range_f32(s, 2.0, 14.0),
-            determinism::range_f32(determinism::next_u64(s), 2.0, 14.0),
-        ];
-        // Give initial velocity so they visibly move
-        s = determinism::next_u64(s);
-        slot.velocity = [
-            determinism::range_f32(s, -0.3, 0.3),
-            determinism::range_f32(determinism::next_u64(s), -0.3, 0.3),
-        ];
-        world.spawn(slot);
-    }
-
-    live.0 = Some(LiveSim { world, scratch: ScratchPad::new(), paused: false, tick: 0 });
-}
-
-/// Renderiza la simulación 2D. Retorna `true` si hay que resetear.
-fn render_live_2d_inner(ui: &mut egui::Ui, sim_opt: &mut Option<LiveSim>) -> bool {
-    let Some(sim) = sim_opt.as_mut() else { return false; };
-    let mut reset = false;
-
-    // Controls
-    ui.horizontal(|ui| {
-        if ui.button(if sim.paused { "Resume" } else { "Pause" }).clicked() {
-            sim.paused = !sim.paused;
-        }
-        if ui.button("Reset").clicked() {
-            reset = true;
-        }
-        ui.label(format!("Tick: {} | Alive: {}", sim.tick, sim.world.alive_mask.count_ones()));
-    });
-    if reset { return true; }
-
-    ui.separator();
-
-    // Scale grid to fill available space (square, centered)
-    let available = ui.available_size();
-    let canvas_side = available.x.min(available.y).max(200.0);
-    let cell_px = canvas_side / GRID_SIZE as f32;
-
-    let (response, painter) = ui.allocate_painter(
-        egui::Vec2::new(canvas_side, canvas_side),
-        egui::Sense::hover(),
-    );
-    let origin = response.rect.min;
-
-    // Layer 1: Nutrient heatmap (viridis-inspired: dark blue → green → yellow)
-    let grid_len = sim.world.nutrient_grid.len();
-    let max_nutrient = sim.world.nutrient_grid.iter().fold(1.0_f32, |a, &b| a.max(b));
-    for idx in 0..grid_len.min((GRID_SIZE * GRID_SIZE) as usize) {
-        let gx = (idx % GRID_SIZE as usize) as f32;
-        let gy = (idx / GRID_SIZE as usize) as f32;
-        let t = (sim.world.nutrient_grid[idx] / max_nutrient).clamp(0.0, 1.0);
-        let color = heatmap_viridis(t);
-        let rect = egui::Rect::from_min_size(
-            egui::Pos2::new(origin.x + gx * cell_px, origin.y + gy * cell_px),
-            egui::Vec2::splat(cell_px),
-        );
-        painter.rect_filled(rect, 0.0, color);
-    }
-
-    // Layer 2: Grid lines (subtle)
-    for i in 0..=GRID_SIZE {
-        let offset = i as f32 * cell_px;
-        let line_color = egui::Color32::from_rgba_premultiplied(255, 255, 255, 15);
-        painter.line_segment(
-            [egui::Pos2::new(origin.x + offset, origin.y),
-             egui::Pos2::new(origin.x + offset, origin.y + canvas_side)],
-            egui::Stroke::new(0.5, line_color),
-        );
-        painter.line_segment(
-            [egui::Pos2::new(origin.x, origin.y + offset),
-             egui::Pos2::new(origin.x + canvas_side, origin.y + offset)],
-            egui::Stroke::new(0.5, line_color),
-        );
-    }
-
-    // Layer 3: Entities (circles with border)
-    let mut mask = sim.world.alive_mask;
-    while mask != 0 {
-        let i = mask.trailing_zeros() as usize;
-        mask &= mask - 1;
-        let e = &sim.world.entities[i];
-        let px = origin.x + e.position[0] * cell_px;
-        let py = origin.y + e.position[1] * cell_px;
-        let radius_px = (e.radius * cell_px * 0.4).clamp(3.0, cell_px * 0.45);
-
-        // Color by frequency (Axiom 8)
-        let hue = ((e.frequency_hz / 800.0) * 360.0) % 360.0;
-        let brightness = (e.qe / 80.0).clamp(0.3, 1.0);
-        let color = hue_to_rgb(hue, brightness);
-        let center = egui::Pos2::new(px, py);
-
-        // Filled circle + white border for visibility
-        painter.circle_filled(center, radius_px, color);
-        painter.circle_stroke(center, radius_px, egui::Stroke::new(1.0, egui::Color32::WHITE));
-
-        // Velocity vector
-        let vel_scale = cell_px * 3.0;
-        let vx = e.velocity[0] * vel_scale;
-        let vy = e.velocity[1] * vel_scale;
-        if vx.abs() + vy.abs() > 1.0 {
-            painter.line_segment(
-                [center, egui::Pos2::new(px + vx, py + vy)],
-                egui::Stroke::new(1.5, egui::Color32::from_rgba_premultiplied(255, 255, 255, 180)),
-            );
-        }
-    }
-
-    // Layer 4: Border
-    painter.rect_stroke(
-        egui::Rect::from_min_size(origin, egui::Vec2::splat(canvas_side)),
-        2.0,
-        egui::Stroke::new(2.0, egui::Color32::from_rgb(100, 100, 100)),
-    );
-
-    false
-}
-
-/// Heatmap viridis-inspired: dark blue → teal → green → yellow. Stateless.
-fn heatmap_viridis(t: f32) -> egui::Color32 {
-    let t = t.clamp(0.0, 1.0);
-    let r = (68.0 + t * (255.0 - 68.0) * t).min(255.0) as u8;
-    let g = (1.0 + t * 220.0).min(255.0) as u8;
-    let b = (84.0 + (1.0 - t) * 150.0).min(255.0) as u8;
-    egui::Color32::from_rgb(r, g, b)
-}
-
-/// Convierte hue (0-360) + brightness (0-1) a Color32 saturado. Stateless.
-fn hue_to_rgb(hue: f32, brightness: f32) -> egui::Color32 {
-    let h = (hue / 60.0).rem_euclid(6.0);
-    let c = brightness;
-    let x = c * (1.0 - (h.rem_euclid(2.0) - 1.0).abs());
-    let (r, g, b) = match h as u8 {
+/// HSV to RGB tuple. Pure, stateless. h in [0,1], s in [0,1], v in [0,1].
+fn hsv_to_rgb_tuple(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
+    let h = h.clamp(0.0, 1.0) * 6.0;
+    let s = s.clamp(0.0, 1.0);
+    let v = v.clamp(0.0, 1.0);
+    let c = v * s;
+    let x = c * (1.0 - (h % 2.0 - 1.0).abs());
+    let m = v - c;
+    let (r, g, b) = match h as u32 {
         0 => (c, x, 0.0),
         1 => (x, c, 0.0),
         2 => (0.0, c, x),
@@ -853,11 +739,7 @@ fn hue_to_rgb(hue: f32, brightness: f32) -> egui::Color32 {
         4 => (x, 0.0, c),
         _ => (c, 0.0, x),
     };
-    egui::Color32::from_rgb(
-        (r * 255.0) as u8,
-        (g * 255.0) as u8,
-        (b * 255.0) as u8,
-    )
+    (((r + m) * 255.0) as u8, ((g + m) * 255.0) as u8, ((b + m) * 255.0) as u8)
 }
 
 // ─── Ablation / Ensemble results ────────────────────────────────────────────
