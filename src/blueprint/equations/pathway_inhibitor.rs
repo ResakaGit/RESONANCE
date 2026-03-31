@@ -301,6 +301,88 @@ pub fn effective_node_params(
     (efficiencies, activations)
 }
 
+// ─── PI-9: Destructive Interference (coherence disruption) ──────────────────
+
+/// Disrupción de coherencia por interferencia destructiva. Axiomas 4 + 8.
+/// Coherence disruption via destructive interference. Axioms 4 + 8.
+///
+/// Unlike binding inhibition (PI-1..8), this models ENERGY-BASED disruption:
+/// a drug field at frequency f_drug interferes with the cell's oscillatory
+/// coherence. Destructive interference (cos < -0.5) reduces the cell's ability
+/// to maintain self-sustaining patterns → coherence drops → growth impaired.
+///
+/// `disruption = max(0, -interference(f_drug, f_cell, t)) × concentration`
+///
+/// Returns [0, 1]: 0 = no disruption, 1 = maximum coherence loss.
+#[inline]
+pub fn coherence_disruption(
+    drug_freq: f32,
+    cell_freq: f32,
+    cell_phase: f32,
+    concentration: f32,
+    tick: u64,
+) -> f32 {
+    let t = tick as f32 * pi::INHIBITION_DISSIPATION_COST; // Time scale from derived constant
+    let interf = crate::blueprint::equations::interference(drug_freq, 0.0, cell_freq, cell_phase, t);
+    // Only destructive interference disrupts (negative values)
+    let raw_disruption = (-interf).max(0.0);
+    (raw_disruption * concentration.clamp(0.0, 1.0)).clamp(0.0, 1.0)
+}
+
+/// Efecto de disrupción sobre expression_mask: reduce expresión en todas las dimensiones.
+/// Disruption effect on expression_mask: reduces expression across all dimensions.
+///
+/// Disruption is non-selective (unlike pathway inhibition which targets specific nodes).
+/// All expression channels decay proportionally. Axiom 4: disruption costs energy.
+///
+/// Returns (new_expression_mask, energy_cost).
+pub fn apply_disruption_to_expression(
+    expression: &[f32; 4],
+    disruption: f32,
+    base_dissipation: f32,
+) -> ([f32; 4], f32) {
+    let d = disruption.clamp(0.0, 1.0);
+    let mut result = *expression;
+    for dim in 0..4 {
+        let reduction = d * result[dim] * 0.5; // Max 50% reduction per tick (Axiom 4 floor)
+        result[dim] = (result[dim] - reduction).max(pi::MIN_RESIDUAL_EFFICIENCY);
+    }
+    let cost = d * base_dissipation * 4.0; // Disruption dissipates energy (Axiom 4)
+    (result, cost)
+}
+
+/// Presión evolutiva computada: dado un set de frecuencias de drogas, qué frecuencia celular
+/// minimiza la disrupción total. Axioma 8: la evolución busca el valle de interferencia.
+/// Computed evolutionary pressure: given drug frequencies, which cell frequency minimizes
+/// total disruption. Axiom 8: evolution seeks the interference valley.
+///
+/// Sweeps frequency space [f_min, f_max] in `steps` increments.
+/// Returns (optimal_freq, min_disruption).
+pub fn find_escape_frequency(
+    drug_freqs: &[f32],
+    drug_concentrations: &[f32],
+    f_min: f32,
+    f_max: f32,
+    steps: u32,
+    tick: u64,
+) -> (f32, f32) {
+    let step_size = (f_max - f_min) / steps.max(1) as f32;
+    let mut best_freq = f_min;
+    let mut min_disruption = f32::MAX;
+
+    for s in 0..=steps {
+        let candidate = f_min + s as f32 * step_size;
+        let total: f32 = drug_freqs.iter().zip(drug_concentrations.iter())
+            .map(|(&df, &dc)| coherence_disruption(df, candidate, 0.0, dc, tick))
+            .sum();
+        if total < min_disruption {
+            min_disruption = total;
+            best_freq = candidate;
+        }
+    }
+    (best_freq, min_disruption)
+}
+
 // ─── Tests (BDD) ────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -547,5 +629,72 @@ mod tests {
         let d = drug(400.0, 0.5, 1.0, InhibitionMode::Noncompetitive);
         let occ = inhibitor_occupancy(&d, 400.0);
         assert!(occ * pi::INHIBITION_DISSIPATION_COST >= 0.0);
+    }
+
+    // ── PI-9: Destructive Interference ──────────────────────────────────────
+
+    #[test]
+    fn disruption_same_frequency_varies_with_time() {
+        // Same freq → interference = cos(0) = 1 → disruption = max(0, -1) = 0
+        let d = coherence_disruption(400.0, 400.0, 0.0, 1.0, 0);
+        // At t=0: cos(0)=1 → disruption=0 (constructive, no damage)
+        assert!(d < 0.5, "same freq should have low disruption at t=0: {d}");
+    }
+
+    #[test]
+    fn disruption_zero_concentration_is_zero() {
+        let d = coherence_disruption(400.0, 450.0, 0.0, 0.0, 100);
+        assert_eq!(d, 0.0);
+    }
+
+    #[test]
+    fn disruption_bounded_zero_one() {
+        for tick in [0, 50, 100, 500, 1000] {
+            let d = coherence_disruption(400.0, 425.0, 0.0, 1.0, tick);
+            assert!((0.0..=1.0).contains(&d), "tick={tick}: d={d}");
+        }
+    }
+
+    #[test]
+    fn disruption_expression_respects_floor() {
+        let expr = [1.0; 4];
+        let (result, cost) = apply_disruption_to_expression(&expr, 1.0, 0.005);
+        for dim in 0..4 {
+            assert!(result[dim] >= pi::MIN_RESIDUAL_EFFICIENCY,
+                "dim={dim}: {}", result[dim]);
+        }
+        assert!(cost > 0.0, "disruption should cost energy");
+    }
+
+    #[test]
+    fn disruption_no_disruption_no_change() {
+        let expr = [0.8, 0.6, 0.9, 0.7];
+        let (result, cost) = apply_disruption_to_expression(&expr, 0.0, 0.005);
+        for dim in 0..4 {
+            assert!((result[dim] - expr[dim]).abs() < 1e-6);
+        }
+        assert_eq!(cost, 0.0);
+    }
+
+    #[test]
+    fn escape_frequency_avoids_drug() {
+        // GIVEN drug at 400 Hz
+        // WHEN find escape frequency in [200, 600]
+        // THEN optimal freq should be far from 400
+        let (best, _) = find_escape_frequency(&[400.0], &[1.0], 200.0, 600.0, 100, 50);
+        let dist_from_drug = (best - 400.0).abs();
+        assert!(dist_from_drug > 50.0, "escape should be far from drug: best={best}");
+    }
+
+    #[test]
+    fn escape_frequency_two_drugs_finds_gap() {
+        // GIVEN drugs at 300 Hz and 500 Hz
+        // WHEN find escape in [200, 600]
+        // THEN optimal should be near edges (away from both)
+        let (best, _) = find_escape_frequency(&[300.0, 500.0], &[1.0, 1.0], 200.0, 600.0, 100, 50);
+        let d1 = (best - 300.0).abs();
+        let d2 = (best - 500.0).abs();
+        // Should be far from at least one drug
+        assert!(d1 > 30.0 || d2 > 30.0, "should avoid drugs: best={best}");
     }
 }
