@@ -197,4 +197,4 @@ cargo bench   # batch + bridge benchmarks
 
 ## License
 
-Private — All rights reserved.
+AGPL-3.0 — Free to use, study, modify, and distribute. Companies using this in production must open-source their code. See [LICENSE](./LICENSE).

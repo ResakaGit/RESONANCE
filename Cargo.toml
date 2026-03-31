@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 rust-version = "1.85"
 description = "Simulación alquímica MOBA basada en resonancia de ondas - Motor ECS con Bevy"
+license = "AGPL-3.0-or-later"
 
 [features]
 default = []
