@@ -1,6 +1,8 @@
 # Resonance — Emergent Life Simulation Engine
 
-Energy-first simulation where life, behavior, and ecosystems emerge from **8 axioms** and **4 fundamental constants**. Built with **Rust** and **Bevy 0.15 ECS**.
+Simulation engine where life, evolution, ecology, and drug resistance emerge from **8 thermodynamic axioms** and **4 fundamental constants**. Built with **Rust** and **Bevy 0.15 ECS**. Open source (AGPL-3.0).
+
+Paper: https://zenodo.org/records/19342036
 
 ## What It Does
 
