@@ -642,31 +642,89 @@ fn live_sim_tick_system(mut live: ResMut<LiveSimState>) {
     }
 }
 
-/// Inicializa la simulación batch si no existe.
+/// Inicializa un mundo con ecosistema viable: gradiente de nutrientes, flora + fauna.
 fn init_live_sim_if_needed(live: &mut LiveSimState, params: &LabParams) {
     if live.0.is_some() { return; }
     let seed = params.seed;
     let mut world = SimWorldFlat::new(seed, 0.05);
-    for i in 0..SIM2D_INITIAL_ENTITIES {
-        let s = determinism::next_u64(seed.wrapping_add(i as u64 * 31));
-        let genome = GenomeBlob::random(s);
+
+    // 1. Nutrient gradient: rich center, poor edges (simulates fertile valley)
+    for y in 0..GRID_SIZE as usize {
+        for x in 0..GRID_SIZE as usize {
+            let cx = (x as f32 - 7.5) / 7.5; // -1 to 1
+            let cy = (y as f32 - 7.5) / 7.5;
+            let dist_sq = cx * cx + cy * cy;
+            let nutrient = 3.0 + 7.0 * (1.0 - dist_sq).max(0.0); // 3 at edges, 10 at center
+            world.nutrient_grid[y * GRID_SIZE as usize + x] = nutrient;
+        }
+    }
+
+    // 2. Irradiance gradient: top bright, bottom dim (solar latitude)
+    for y in 0..GRID_SIZE as usize {
+        for x in 0..GRID_SIZE as usize {
+            let latitude_factor = 1.0 - (y as f32 / GRID_SIZE as f32); // 1.0 at top, 0.0 at bottom
+            world.irradiance_grid[y * GRID_SIZE as usize + x] = 0.5 + 1.5 * latitude_factor;
+        }
+    }
+
+    let mut s = seed;
+
+    // 3. Flora (producers): spread across the map, varied frequencies
+    let flora_freqs = [150.0, 250.0, 350.0, 450.0]; // 4 "species" of plants
+    for (i, &freq) in flora_freqs.iter().enumerate() {
+        s = determinism::next_u64(s);
         let mut slot = EntitySlot::default();
-        slot.qe = 50.0 + determinism::unit_f32(s) * 100.0;
-        slot.radius = 0.3 + determinism::unit_f32(determinism::next_u64(s)) * 0.5;
-        slot.frequency_hz = 100.0 + determinism::range_f32(determinism::next_u64(s.wrapping_mul(3)), 0.0, 600.0);
-        slot.growth_bias = genome.growth_bias;
-        slot.mobility_bias = genome.mobility_bias;
-        slot.branching_bias = genome.branching_bias;
-        slot.resilience = genome.resilience;
-        slot.archetype = genome.archetype;
+        slot.qe = 40.0;
+        slot.radius = 0.4;
+        slot.frequency_hz = freq + determinism::gaussian_f32(s, 10.0);
+        slot.growth_bias = 0.7;
+        slot.mobility_bias = 0.0; // plants don't move
+        slot.branching_bias = 0.5;
+        slot.resilience = 0.6;
+        slot.archetype = 1; // flora
+        slot.trophic_class = 0; // producer
+        slot.dissipation = 0.005;
         slot.expression_mask = [1.0; 4];
-        let pos_s = determinism::next_u64(s.wrapping_add(7));
+        // Spread in quadrants
+        let qx = (i % 2) as f32 * 8.0 + 2.0;
+        let qy = (i / 2) as f32 * 8.0 + 2.0;
+        s = determinism::next_u64(s);
         slot.position = [
-            determinism::range_f32(pos_s, 1.0, 15.0),
-            determinism::range_f32(determinism::next_u64(pos_s), 1.0, 15.0),
+            qx + determinism::range_f32(s, 0.0, 4.0),
+            qy + determinism::range_f32(determinism::next_u64(s), 0.0, 4.0),
         ];
         world.spawn(slot);
     }
+
+    // 4. Fauna (herbivores): mobile, hunt for food
+    for i in 0..4u8 {
+        s = determinism::next_u64(s);
+        let mut slot = EntitySlot::default();
+        slot.qe = 60.0;
+        slot.radius = 0.5;
+        slot.frequency_hz = 200.0 + i as f32 * 100.0 + determinism::gaussian_f32(s, 15.0);
+        slot.growth_bias = 0.4;
+        slot.mobility_bias = 0.6; // mobile
+        slot.branching_bias = 0.1;
+        slot.resilience = 0.5;
+        slot.archetype = 2; // fauna
+        slot.trophic_class = 1; // herbivore
+        slot.dissipation = 0.01;
+        slot.expression_mask = [1.0; 4];
+        s = determinism::next_u64(s);
+        slot.position = [
+            determinism::range_f32(s, 2.0, 14.0),
+            determinism::range_f32(determinism::next_u64(s), 2.0, 14.0),
+        ];
+        // Give initial velocity so they visibly move
+        s = determinism::next_u64(s);
+        slot.velocity = [
+            determinism::range_f32(s, -0.3, 0.3),
+            determinism::range_f32(determinism::next_u64(s), -0.3, 0.3),
+        ];
+        world.spawn(slot);
+    }
+
     live.0 = Some(LiveSim { world, scratch: ScratchPad::new(), paused: false, tick: 0 });
 }
 
