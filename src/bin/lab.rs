@@ -689,82 +689,117 @@ fn render_live_2d_inner(ui: &mut egui::Ui, sim_opt: &mut Option<LiveSim>) -> boo
 
     ui.separator();
 
-    // Paint 2D grid
-    let grid_px = GRID_SIZE as f32 * SIM2D_CELL_PX;
-    let (response, painter) = ui.allocate_painter(egui::Vec2::new(grid_px, grid_px), egui::Sense::hover());
+    // Scale grid to fill available space (square, centered)
+    let available = ui.available_size();
+    let canvas_side = available.x.min(available.y).max(200.0);
+    let cell_px = canvas_side / GRID_SIZE as f32;
+
+    let (response, painter) = ui.allocate_painter(
+        egui::Vec2::new(canvas_side, canvas_side),
+        egui::Sense::hover(),
+    );
     let origin = response.rect.min;
 
-    // Layer 1: Nutrient grid (background heatmap)
+    // Layer 1: Nutrient heatmap (viridis-inspired: dark blue → green → yellow)
     let grid_len = sim.world.nutrient_grid.len();
     let max_nutrient = sim.world.nutrient_grid.iter().fold(1.0_f32, |a, &b| a.max(b));
     for idx in 0..grid_len.min((GRID_SIZE * GRID_SIZE) as usize) {
         let gx = (idx % GRID_SIZE as usize) as f32;
         let gy = (idx / GRID_SIZE as usize) as f32;
-        let nutrient = sim.world.nutrient_grid[idx];
-        let t = (nutrient / max_nutrient).clamp(0.0, 1.0);
-        let r = (t * 40.0) as u8;
-        let g = (t * 80.0) as u8 + 15;
-        let b = (t * 30.0) as u8;
+        let t = (sim.world.nutrient_grid[idx] / max_nutrient).clamp(0.0, 1.0);
+        let color = heatmap_viridis(t);
         let rect = egui::Rect::from_min_size(
-            egui::Pos2::new(origin.x + gx * SIM2D_CELL_PX, origin.y + gy * SIM2D_CELL_PX),
-            egui::Vec2::splat(SIM2D_CELL_PX),
+            egui::Pos2::new(origin.x + gx * cell_px, origin.y + gy * cell_px),
+            egui::Vec2::splat(cell_px),
         );
-        painter.rect_filled(rect, 0.0, egui::Color32::from_rgb(r, g, b));
+        painter.rect_filled(rect, 0.0, color);
     }
 
-    // Layer 2: Entities (circles on top of grid)
+    // Layer 2: Grid lines (subtle)
+    for i in 0..=GRID_SIZE {
+        let offset = i as f32 * cell_px;
+        let line_color = egui::Color32::from_rgba_premultiplied(255, 255, 255, 15);
+        painter.line_segment(
+            [egui::Pos2::new(origin.x + offset, origin.y),
+             egui::Pos2::new(origin.x + offset, origin.y + canvas_side)],
+            egui::Stroke::new(0.5, line_color),
+        );
+        painter.line_segment(
+            [egui::Pos2::new(origin.x, origin.y + offset),
+             egui::Pos2::new(origin.x + canvas_side, origin.y + offset)],
+            egui::Stroke::new(0.5, line_color),
+        );
+    }
+
+    // Layer 3: Entities (circles with border)
     let mut mask = sim.world.alive_mask;
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
         let e = &sim.world.entities[i];
-        let px = origin.x + e.position[0] * SIM2D_CELL_PX;
-        let py = origin.y + e.position[1] * SIM2D_CELL_PX;
-        let radius_px = (e.radius * SIM2D_CELL_PX * 0.5).clamp(2.0, SIM2D_CELL_PX);
+        let px = origin.x + e.position[0] * cell_px;
+        let py = origin.y + e.position[1] * cell_px;
+        let radius_px = (e.radius * cell_px * 0.4).clamp(3.0, cell_px * 0.45);
 
-        // Color by frequency (Axiom 8: identity = frequency band)
+        // Color by frequency (Axiom 8)
         let hue = ((e.frequency_hz / 800.0) * 360.0) % 360.0;
-        let color = hue_to_rgb(hue, e.qe.min(100.0) / 100.0);
+        let brightness = (e.qe / 80.0).clamp(0.3, 1.0);
+        let color = hue_to_rgb(hue, brightness);
+        let center = egui::Pos2::new(px, py);
 
-        painter.circle_filled(egui::Pos2::new(px, py), radius_px, color);
+        // Filled circle + white border for visibility
+        painter.circle_filled(center, radius_px, color);
+        painter.circle_stroke(center, radius_px, egui::Stroke::new(1.0, egui::Color32::WHITE));
 
-        // Velocity vector (thin line)
-        let vx = e.velocity[0] * SIM2D_CELL_PX * 2.0;
-        let vy = e.velocity[1] * SIM2D_CELL_PX * 2.0;
-        if vx.abs() + vy.abs() > 0.5 {
+        // Velocity vector
+        let vel_scale = cell_px * 3.0;
+        let vx = e.velocity[0] * vel_scale;
+        let vy = e.velocity[1] * vel_scale;
+        if vx.abs() + vy.abs() > 1.0 {
             painter.line_segment(
-                [egui::Pos2::new(px, py), egui::Pos2::new(px + vx, py + vy)],
-                egui::Stroke::new(1.0, egui::Color32::WHITE),
+                [center, egui::Pos2::new(px + vx, py + vy)],
+                egui::Stroke::new(1.5, egui::Color32::from_rgba_premultiplied(255, 255, 255, 180)),
             );
         }
     }
 
-    // Layer 3: Grid border
+    // Layer 4: Border
     painter.rect_stroke(
-        egui::Rect::from_min_size(origin, egui::Vec2::splat(grid_px)),
-        0.0,
-        egui::Stroke::new(1.0, egui::Color32::GRAY),
+        egui::Rect::from_min_size(origin, egui::Vec2::splat(canvas_side)),
+        2.0,
+        egui::Stroke::new(2.0, egui::Color32::from_rgb(100, 100, 100)),
     );
 
     false
 }
 
-/// Convierte hue (0-360) + brightness (0-1) a Color32. Stateless, pure.
+/// Heatmap viridis-inspired: dark blue → teal → green → yellow. Stateless.
+fn heatmap_viridis(t: f32) -> egui::Color32 {
+    let t = t.clamp(0.0, 1.0);
+    let r = (68.0 + t * (255.0 - 68.0) * t).min(255.0) as u8;
+    let g = (1.0 + t * 220.0).min(255.0) as u8;
+    let b = (84.0 + (1.0 - t) * 150.0).min(255.0) as u8;
+    egui::Color32::from_rgb(r, g, b)
+}
+
+/// Convierte hue (0-360) + brightness (0-1) a Color32 saturado. Stateless.
 fn hue_to_rgb(hue: f32, brightness: f32) -> egui::Color32 {
-    let h = (hue / 60.0) % 6.0;
-    let f = h - h.floor();
-    let b = (brightness * 255.0) as u8;
-    let p = 0u8;
-    let q = ((1.0 - f) * brightness * 255.0) as u8;
-    let t = (f * brightness * 255.0) as u8;
-    match h as u8 {
-        0 => egui::Color32::from_rgb(b, t, p),
-        1 => egui::Color32::from_rgb(q, b, p),
-        2 => egui::Color32::from_rgb(p, b, t),
-        3 => egui::Color32::from_rgb(p, q, b),
-        4 => egui::Color32::from_rgb(t, p, b),
-        _ => egui::Color32::from_rgb(b, p, q),
-    }
+    let h = (hue / 60.0).rem_euclid(6.0);
+    let c = brightness;
+    let x = c * (1.0 - (h.rem_euclid(2.0) - 1.0).abs());
+    let (r, g, b) = match h as u8 {
+        0 => (c, x, 0.0),
+        1 => (x, c, 0.0),
+        2 => (0.0, c, x),
+        3 => (0.0, x, c),
+        4 => (x, 0.0, c),
+        _ => (c, 0.0, x),
+    };
+    egui::Color32::from_rgb(
+        (r * 255.0) as u8,
+        (g * 255.0) as u8,
+        (b * 255.0) as u8,
+    )
 }
 
 // ─── Ablation / Ensemble results ────────────────────────────────────────────
