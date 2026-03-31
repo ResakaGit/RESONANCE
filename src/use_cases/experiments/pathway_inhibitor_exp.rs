@@ -869,6 +869,40 @@ mod tests {
         assert_eq!(a.combo_ab.final_efficiency.to_bits(), b.combo_ab.final_efficiency.to_bits());
     }
 
+    // ══════════════════════════════════════════════════════════════════════
+    // SCIENTIFIC ROBUSTNESS: multi-seed validation
+    // If the result depends on the seed, it's not science — it's luck.
+    // ══════════════════════════════════════════════════════════════════════
+
+    #[test]
+    fn bozic_combo_advantage_holds_across_10_seeds() {
+        let base = small_bozic();
+        let mut combo_wins = 0u32;
+        let mut combo_beats_double = 0u32;
+        let n_seeds = 10u64;
+
+        for seed in 0..n_seeds {
+            let mut cfg = base.clone();
+            cfg.seed = seed * 0x9E3779B9 + 1; // Golden ratio hash spread
+            let result = run_bozic_validation(&cfg);
+
+            // Combo ≤ mono_A?
+            if result.combo_ab.final_efficiency <= result.mono_a.final_efficiency + 0.01 {
+                combo_wins += 1;
+            }
+            // Combo ≤ double_A?
+            if result.combo_ab.final_efficiency <= result.double_a.final_efficiency + 0.01 {
+                combo_beats_double += 1;
+            }
+        }
+
+        // Scientific threshold: result must hold in ≥ 80% of independent runs
+        assert!(combo_wins >= 8,
+            "combo > mono should hold in ≥8/10 seeds: got {combo_wins}/10");
+        assert!(combo_beats_double >= 8,
+            "combo > double should hold in ≥8/10 seeds: got {combo_beats_double}/10");
+    }
+
     // ── organ_role_dimension covers all roles ───────────────────────────
 
     #[test]
