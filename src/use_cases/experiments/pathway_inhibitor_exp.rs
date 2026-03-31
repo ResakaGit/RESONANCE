@@ -168,7 +168,7 @@ fn apply_pathway_inhibition(
         let node_freqs: [f32; 12] = {
             let mut f = [0.0f32; 12];
             for j in 0..nc.min(12) {
-                let dim = organ_role_dimension(nodes[j].role);
+                let dim = metabolic_genome::organ_role_dimension(nodes[j].role);
                 f[j] = dimension_base_frequency(dim);
             }
             f
@@ -179,8 +179,8 @@ fn apply_pathway_inhibition(
         // Epigenetic effect: reduce expression_mask for affected dimensions.
         // Cells with inhibited pathways silence those genes (Axiom 6: adaptation).
         for j in 0..nc.min(12) {
-            if result.effects[j].occupancy <= 0.01 { continue; }
-            let dim = organ_role_dimension(nodes[j].role) as usize;
+            if result.effects[j].occupancy <= DISSIPATION_SOLID * 2.0 { continue; }
+            let dim = metabolic_genome::organ_role_dimension(nodes[j].role) as usize;
             if dim < 4 {
                 let reduction = result.effects[j].occupancy * DISSIPATION_SOLID * 20.0;
                 world.entities[i].expression_mask[dim] =
@@ -200,18 +200,8 @@ fn apply_pathway_inhibition(
     total_cost
 }
 
-/// Dimensión del OrganRole. Delega a fuente canónica en metabolic_genome.
-/// OrganRole dimension. Delegates to canonical source in metabolic_genome.
-fn organ_role_dimension(role: OrganRole) -> u32 {
-    metabolic_genome::organ_role_dimension(role)
-}
-
-/// Frecuencia base por dimensión metabólica. Axioma 8.
-/// Base frequency per metabolic dimension. Axiom 8.
-///
-/// Canonical source: `protein_fold::DIM_BASE_FREQ` — [400, 600, 300, 800] Hz.
-/// dim 0 (growth) = 400 Hz, dim 1 (mobility) = 600 Hz,
-/// dim 2 (branching) = 300 Hz, dim 3 (resilience) = 800 Hz.
+/// Frecuencia base por dimensión metabólica. Fuente canónica: protein_fold::DIM_BASE_FREQ.
+/// Base frequency per metabolic dimension. Canonical source: protein_fold::DIM_BASE_FREQ.
 fn dimension_base_frequency(dim: u32) -> f32 {
     use crate::blueprint::equations::protein_fold::DIM_BASE_FREQ;
     DIM_BASE_FREQ[dim.min(3) as usize]
@@ -275,7 +265,6 @@ fn compute_snapshot(
 ) -> InhibitorSnapshot {
     let nw = worlds.len().max(1) as f32;
     let (mut alive, mut wt, mut rs, mut eff, mut expr0) = (0u32, 0u32, 0u32, 0.0f32, 0.0f32);
-    let mut n_total = 0u32;
 
     for w in worlds {
         let mut mask = w.alive_mask;
@@ -283,14 +272,13 @@ fn compute_snapshot(
             let i = mask.trailing_zeros() as usize;
             mask &= mask - 1;
             alive += 1;
-            n_total += 1;
             eff += mean_expression(&w.entities[i]);
             expr0 += w.entities[i].expression_mask[0];
             if is_resistant(&w.entities[i], config) { rs += 1; } else { wt += 1; }
         }
     }
 
-    let n = n_total.max(1) as f32;
+    let n = alive.max(1) as f32;
     InhibitorSnapshot {
         generation: generation_id,
         alive_mean:           alive as f32 / nw,
@@ -298,7 +286,7 @@ fn compute_snapshot(
         resistant_alive_mean: rs as f32 / nw,
         mean_efficiency:      eff / n,
         mean_expression_dim0: expr0 / n,
-        selectivity_index:    0.0, // Computed in higher-order analysis
+        selectivity_index:    if wt > 0 && rs > 0 { rs as f32 / wt as f32 } else { 0.0 },
         drug_active,
         total_inhibition_cost: cost,
     }
@@ -562,7 +550,6 @@ mod tests {
     // ── Ensemble: different seeds produce variation ──────────────────────
 
     #[test]
-    #[test]
     fn ensemble_different_seeds_different_reports() {
         let base = small_config();
         let reports = ensemble(&base, 3);
@@ -587,7 +574,7 @@ mod tests {
             OrganRole::Shell, OrganRole::Thorn, OrganRole::Sensory,
         ];
         for role in roles {
-            let d = organ_role_dimension(role);
+            let d = metabolic_genome::organ_role_dimension(role);
             assert!(d < 4, "role={role:?} → dim={d} should be < 4");
         }
     }

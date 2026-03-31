@@ -343,11 +343,17 @@ pub fn apply_disruption_to_expression(
 ) -> ([f32; 4], f32) {
     let d = disruption.clamp(0.0, 1.0);
     let mut result = *expression;
+    // Max reduction = MAX_INHIBITION_FRACTION / 2 ≈ 0.4975 per tick (Axiom 4 floor).
+    let max_reduction_rate = pi::MAX_INHIBITION_FRACTION * 0.5;
     for dim in 0..4 {
-        let reduction = d * result[dim] * 0.5; // Max 50% reduction per tick (Axiom 4 floor)
+        let reduction = d * result[dim] * max_reduction_rate;
         result[dim] = (result[dim] - reduction).max(pi::MIN_RESIDUAL_EFFICIENCY);
     }
-    let cost = d * base_dissipation * 4.0; // Disruption dissipates energy (Axiom 4)
+    // Cost = disruption × base_diss × (1/DISSIPATION_SOLID) = disruption × 200 × base_diss.
+    // But since base_diss IS DISSIPATION_SOLID for most entities: cost ≈ disruption × 1.0 per dim.
+    // Scaled by number of dimensions (4) affected. Axiom 4: disruption is never free.
+    let cost_scale = 1.0 / pi::MIN_RESIDUAL_EFFICIENCY; // = 1/DISSIPATION_SOLID = 200
+    let cost = d * base_dissipation * cost_scale.min(pi::COMPETITIVE_EA_MULTIPLIER * 3.0);
     (result, cost)
 }
 
