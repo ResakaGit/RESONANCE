@@ -21,6 +21,7 @@ use resonance::plugins::{
     DashboardBridgePlugin, DashboardPanelsPlugin, LayersPlugin, SimulationPlugin,
     SimulationTickPlugin,
 };
+use resonance::rendering::quantized_color::PaletteRegistry;
 use resonance::runtime_platform::dashboard_bridge::SimTickSummary;
 use resonance::use_cases::cli::{find_arg, parse_arg};
 
@@ -104,6 +105,7 @@ fn main() {
             ..default()
         }))
         .add_plugins(SimulationTickPlugin)
+        .init_resource::<PaletteRegistry>()
         .add_plugins(LayersPlugin)
         .add_plugins(SimulationPlugin)
         .add_plugins(DashboardBridgePlugin)
