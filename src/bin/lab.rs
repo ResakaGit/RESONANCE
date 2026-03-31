@@ -306,31 +306,15 @@ fn lab_live2d_system(
             let val = (t.sqrt() * 1.2).min(1.0); // sqrt for better low-end visibility
             let (r, g, b) = hsv_to_rgb_tuple(hue, sat, val);
 
+            // +1px overlap eliminates sub-pixel gaps between cells
             let rect = egui::Rect::from_min_size(
                 egui::Pos2::new(origin.x + gx * cell_px, origin.y + gy * cell_px),
-                egui::Vec2::splat(cell_px),
+                egui::Vec2::splat(cell_px + 1.0),
             );
             painter.rect_filled(rect, 0.0, egui::Color32::from_rgb(r, g, b));
         }
 
-        // Layer 2: Grid lines
-        let grid_side = grid.width.max(grid.height);
-        for i in 0..=grid_side {
-            let offset = i as f32 * cell_px;
-            let line_color = egui::Color32::from_rgba_premultiplied(255, 255, 255, 12);
-            painter.line_segment(
-                [egui::Pos2::new(origin.x + offset, origin.y),
-                 egui::Pos2::new(origin.x + offset, origin.y + canvas_side)],
-                egui::Stroke::new(0.5, line_color),
-            );
-            painter.line_segment(
-                [egui::Pos2::new(origin.x, origin.y + offset),
-                 egui::Pos2::new(origin.x + canvas_side, origin.y + offset)],
-                egui::Stroke::new(0.5, line_color),
-            );
-        }
-
-        // Layer 3: Entities from real Bevy ECS
+        // Layer 2: Entities from real Bevy ECS
         let xz_ground = true; // Resonance uses XZ ground plane
         for (transform, energy, volume, osc) in &entity_query {
             if energy.qe() <= 0.0 { continue; }
