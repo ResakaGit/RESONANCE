@@ -54,6 +54,8 @@ const CANCER_MAX_TICKS: u32        = 500;
 const ABLATION_STEPS: usize        = 8;
 const ENSEMBLE_SEEDS: usize        = 10;
 const DEFAULT_EXPORT_PATH: &str    = "lab_results.csv";
+const FREQ_HUE_MAX: f32            = 800.0; // max frequency for hue normalization
+const ENTITY_QE_BRIGHTNESS_REF: f32 = 50.0; // qe reference for entity brightness
 
 const COLOR_BEST: egui::Color32       = egui::Color32::GREEN;
 const COLOR_MEAN: egui::Color32       = egui::Color32::YELLOW;
@@ -150,15 +152,15 @@ impl Default for LabParams {
     }
 }
 
-#[derive(Resource, Default)]
+#[derive(Resource)]
 struct CancerParams {
     drug_potency:    f32,
     drug_bandwidth:  f32,
     treatment_start: u32,
 }
 
-impl CancerParams {
-    fn new() -> Self { Self { drug_potency: 2.0, drug_bandwidth: 50.0, treatment_start: 5 } }
+impl Default for CancerParams {
+    fn default() -> Self { Self { drug_potency: 2.0, drug_bandwidth: 50.0, treatment_start: 5 } }
 }
 
 #[derive(Default)]
@@ -202,7 +204,7 @@ fn main() {
         .add_plugins(LayersPlugin)
         .add_plugins(SimulationPlugin)
         .init_resource::<LabParams>()
-        .insert_resource(CancerParams::new())
+        .init_resource::<CancerParams>()
         .init_resource::<LabState>()
         .add_systems(Update, (
             controls_system,
@@ -279,9 +281,9 @@ fn render_batch_controls(
             ui.add(egui::Slider::new(&mut cancer.drug_bandwidth, BANDWIDTH_RANGE).text("Bandwidth (Hz)"));
             ui.add(egui::Slider::new(&mut cancer.treatment_start, TREATMENT_START_RANGE).text("Start (gen)"));
             ui.separator();
-            ui.add(egui::Slider::new(&mut params.worlds, 10..=200).text("Worlds"));
+            ui.add(egui::Slider::new(&mut params.worlds, 10..=CANCER_MAX_WORLDS).text("Worlds"));
             ui.add(egui::Slider::new(&mut params.generations, GENS_RANGE).text("Gens"));
-            ui.add(egui::Slider::new(&mut params.ticks, 50..=500).text("Ticks/gen"));
+            ui.add(egui::Slider::new(&mut params.ticks, 50..=CANCER_MAX_TICKS).text("Ticks/gen"));
         }
         BatchExperiment::Fermi => {
             ui.heading("Fermi Paradox");
@@ -478,7 +480,10 @@ fn result_to_csv(result: &LabResult) -> String {
             }
             csv
         }
-        _ => String::new(),
+        LabResult::Speciation(_)  => String::new(), // TODO: add speciation CSV
+        LabResult::Cambrian(_)    => String::new(), // TODO: add cambrian CSV
+        LabResult::Debate(_)      => String::new(), // TODO: add debate CSV
+        LabResult::Convergence(_) => String::new(), // TODO: add convergence CSV
     }
 }
 
@@ -617,7 +622,7 @@ fn render_live_2d(
 
         let (r, g, b) = match params.view_layer {
             ViewLayer::FrequencyEnergy => {
-                let hue = if cell.dominant_frequency_hz > 0.0 { (cell.dominant_frequency_hz / 800.0).clamp(0.0, 1.0) } else { 0.0 };
+                let hue = if cell.dominant_frequency_hz > 0.0 { (cell.dominant_frequency_hz / FREQ_HUE_MAX).clamp(0.0, 1.0) } else { 0.0 };
                 hsv_to_rgb(hue, cell.purity.clamp(0.1, 1.0), (t.sqrt() * 1.2).min(1.0))
             }
             ViewLayer::EnergyOnly => {
@@ -641,8 +646,8 @@ fn render_live_2d(
         let px = origin.x + (rel_x / grid.cell_size) * cell_px;
         let py = origin.y + (rel_y / grid.cell_size) * cell_px;
         let radius_px = (volume.radius * cell_px * 0.3).clamp(3.0, cell_px * 0.4);
-        let hue = (osc.frequency_hz() / 800.0).clamp(0.0, 1.0);
-        let brightness = (energy.qe() / 50.0).clamp(0.4, 1.0);
+        let hue = (osc.frequency_hz() / FREQ_HUE_MAX).clamp(0.0, 1.0);
+        let brightness = (energy.qe() / ENTITY_QE_BRIGHTNESS_REF).clamp(0.4, 1.0);
         let (r, g, b) = hsv_to_rgb(hue, 0.9, brightness);
         let center = egui::Pos2::new(px, py);
         painter.circle_filled(center, radius_px, egui::Color32::from_rgb(r, g, b));
@@ -658,13 +663,21 @@ fn render_live_2d(
 
 // ─── Shared helpers (pure, stateless) ───────────────────────────────────────
 
+/// HSV to RGB. h in [0,1], s in [0,1], v in [0,1]. Pure, stateless.
 fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
     let h = h.clamp(0.0, 1.0) * 6.0;
     let c = v.clamp(0.0, 1.0) * s.clamp(0.0, 1.0);
     let x = c * (1.0 - (h % 2.0 - 1.0).abs());
     let m = v.clamp(0.0, 1.0) - c;
-    let (r, g, b) = match h as u32 { 0=>(c,x,0.0), 1=>(x,c,0.0), 2=>(0.0,c,x), 3=>(0.0,x,c), 4=>(x,0.0,c), _=>(c,0.0,x) };
-    (((r+m)*255.0) as u8, ((g+m)*255.0) as u8, ((b+m)*255.0) as u8)
+    let (r, g, b) = match h as u32 {
+        0 => (c, x, 0.0),
+        1 => (x, c, 0.0),
+        2 => (0.0, c, x),
+        3 => (0.0, x, c),
+        4 => (x, 0.0, c),
+        _ => (c, 0.0, x),
+    };
+    (((r + m) * 255.0) as u8, ((g + m) * 255.0) as u8, ((b + m) * 255.0) as u8)
 }
 
 fn render_fitness_chart(ui: &mut egui::Ui, history: &[resonance::batch::harness::GenerationStats]) {
