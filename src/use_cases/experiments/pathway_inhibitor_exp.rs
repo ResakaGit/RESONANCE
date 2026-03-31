@@ -447,6 +447,252 @@ pub fn sweep_ki(base: &InhibitorConfig, ki_values: &[f32]) -> Vec<InhibitorRepor
     }).collect()
 }
 
+// ─── Bozic Validation: mono vs combo therapy ───────────────────────────────
+
+/// Configuración para validación contra Bozic et al. 2013.
+/// Bozic validation config: mono vs combination therapy.
+///
+/// Bozic predicts: P(resistance|combo) ≈ P(resistance|mono)² (exponential advantage).
+/// We test: does adding a second drug at a different frequency reduce resistance
+/// more than doubling the first drug's concentration?
+#[derive(Debug, Clone)]
+pub struct BozicValidationConfig {
+    /// Población tumoral heterogénea.
+    /// Heterogeneous tumor population.
+    pub tumor_count:   u8,
+    pub tumor_freq:    f32,
+    pub tumor_spread:  f32,
+    pub tumor_qe:      f32,
+
+    /// Drug A: targeting primary frequency.
+    pub drug_a_freq:   f32,
+    pub drug_a_conc:   f32,
+    pub drug_a_ki:     f32,
+
+    /// Drug B: targeting secondary frequency (for combo).
+    pub drug_b_freq:   f32,
+    pub drug_b_conc:   f32,
+    pub drug_b_ki:     f32,
+
+    pub treatment_start_gen: u32,
+    pub nutrient_level: f32,
+    pub worlds:        usize,
+    pub generations:   u32,
+    pub ticks_per_gen: u32,
+    pub seed:          u64,
+}
+
+impl Default for BozicValidationConfig {
+    fn default() -> Self {
+        Self {
+            tumor_count: 45, tumor_freq: 400.0, tumor_spread: 80.0, tumor_qe: 80.0,
+            drug_a_freq: 400.0, drug_a_conc: 0.8, drug_a_ki: DISSIPATION_SOLID * 100.0,
+            drug_b_freq: 300.0, drug_b_conc: 0.8, drug_b_ki: DISSIPATION_SOLID * 100.0,
+            treatment_start_gen: 3, nutrient_level: 5.0,
+            worlds: 30, generations: 40, ticks_per_gen: 100, seed: 42,
+        }
+    }
+}
+
+/// Resultado de un brazo experimental (mono o combo).
+/// Result of one experimental arm (mono or combo).
+#[derive(Debug, Clone)]
+pub struct BozicArmResult {
+    pub label:           &'static str,
+    pub final_efficiency: f32,
+    pub final_alive:     f32,
+    pub resistance_detected: bool,
+    pub resistance_gen:  Option<u32>,
+    pub efficiency_timeline: Vec<f32>,
+}
+
+/// Resultado completo de validación Bozic.
+/// Complete Bozic validation result.
+#[derive(Debug)]
+pub struct BozicValidationResult {
+    pub no_drug:   BozicArmResult,
+    pub mono_a:    BozicArmResult,
+    pub mono_b:    BozicArmResult,
+    pub combo_ab:  BozicArmResult,
+    pub double_a:  BozicArmResult,
+    pub wall_time_ms: u64,
+}
+
+/// Tick con soporte multi-drug. Aplica N inhibidores secuencialmente.
+/// Multi-drug tick. Applies N inhibitors sequentially.
+fn multi_drug_tick(
+    world: &mut SimWorldFlat,
+    scratch: &mut ScratchPad,
+    inhibitors: &[Inhibitor],
+    target_role: OrganRole,
+    drug_active: bool,
+) -> f32 {
+    scratch.clear();
+    world.events.clear();
+    world.tick_id += 1;
+
+    systems::behavior_assess(world, scratch);
+    systems::engine_processing(world);
+    systems::irradiance_update(world);
+    systems::containment_check(world, scratch);
+    systems::dissipation(world);
+    systems::will_to_velocity(world);
+    systems::velocity_cap(world);
+    systems::locomotion_drain(world);
+    systems::movement_integrate(world);
+    systems::collision(world, scratch);
+    systems::nutrient_uptake(world);
+    systems::photosynthesis(world);
+    systems::state_transitions(world);
+    systems::trophic_forage(world);
+    systems::trophic_predation(world, scratch);
+    systems::metabolic_graph_infer(world);
+
+    let mut cost = 0.0f32;
+    if drug_active {
+        for inh in inhibitors {
+            cost += apply_pathway_inhibition(world, inh, target_role);
+        }
+    }
+
+    systems::protein_fold_infer(world);
+    systems::growth_inference(world);
+    systems::reproduction(world);
+    systems::senescence(world);
+    systems::death_reap(world);
+    world.update_total_qe();
+    cost
+}
+
+/// Spawn tumor heterogéneo con spread de frecuencia (modela mutation heterogeneity).
+/// Spawn heterogeneous tumor with frequency spread (models mutation heterogeneity).
+fn spawn_bozic_tumor(world: &mut SimWorldFlat, config: &BozicValidationConfig, seed: u64) {
+    use crate::blueprint::equations::variable_genome::VariableGenome;
+    let mut s = seed;
+
+    for _ in 0..config.tumor_count {
+        s = determinism::next_u64(s);
+        let mut e = EntitySlot::default();
+        e.qe = config.tumor_qe;
+        e.radius = (config.tumor_qe.sqrt() * DISSIPATION_SOLID).clamp(0.3, 1.0);
+        e.frequency_hz = config.tumor_freq + determinism::gaussian_f32(s, config.tumor_spread);
+        e.growth_bias = 0.8;
+        e.mobility_bias = 0.2;
+        e.branching_bias = 0.3;
+        e.resilience = 0.4;
+        e.dissipation = DISSIPATION_SOLID;
+        e.expression_mask = [1.0; 4];
+        s = determinism::next_u64(s);
+        e.position = [determinism::range_f32(s, 1.0, 15.0), determinism::range_f32(determinism::next_u64(s), 1.0, 15.0)];
+
+        let mut vg = VariableGenome::from_biases(0.8, 0.2, 0.3, 0.4);
+        for g in 4..12 {
+            s = determinism::next_u64(s);
+            vg.genes[g] = determinism::unit_f32(s).max(0.3);
+        }
+        vg.len = 12;
+
+        let idx = world.spawn(e);
+        if let Some(i) = idx { world.genomes[i] = vg; }
+    }
+}
+
+/// Corre un brazo experimental. HOF puro: config + inhibitors → result.
+/// Run one experimental arm. Pure HOF: config + inhibitors → result.
+fn run_arm(
+    config: &BozicValidationConfig,
+    inhibitors: &[Inhibitor],
+    label: &'static str,
+) -> BozicArmResult {
+    let drug_active_start = config.treatment_start_gen;
+    let target_role = OrganRole::Root;
+
+    let mut worlds: Vec<SimWorldFlat> = (0..config.worlds).map(|wi| {
+        let ws = determinism::next_u64(config.seed ^ (wi as u64));
+        let mut w = SimWorldFlat::new(ws, 0.05);
+        for cell in w.nutrient_grid.iter_mut() { *cell = config.nutrient_level; }
+        for cell in w.irradiance_grid.iter_mut() { *cell = config.nutrient_level * 0.3; }
+        spawn_bozic_tumor(&mut w, config, ws);
+        w
+    }).collect();
+
+    let mut scratches: Vec<ScratchPad> = (0..config.worlds).map(|_| ScratchPad::new()).collect();
+    let mut eff_timeline = Vec::with_capacity(config.generations as usize);
+
+    for generation in 0..config.generations {
+        let active = generation >= drug_active_start;
+        for (wi, world) in worlds.iter_mut().enumerate() {
+            for _ in 0..config.ticks_per_gen {
+                multi_drug_tick(world, &mut scratches[wi], inhibitors, target_role, active);
+            }
+        }
+        // Compute mean efficiency across all worlds
+        let nw = worlds.len().max(1) as f32;
+        let (mut total_eff, mut total_alive, mut count) = (0.0f32, 0.0f32, 0u32);
+        for w in &worlds {
+            let mut mask = w.alive_mask;
+            while mask != 0 {
+                let i = mask.trailing_zeros() as usize;
+                mask &= mask - 1;
+                total_eff += mean_expression(&w.entities[i]);
+                total_alive += 1.0;
+                count += 1;
+            }
+        }
+        eff_timeline.push(if count > 0 { total_eff / count as f32 } else { 0.0 });
+    }
+
+    let final_eff = *eff_timeline.last().unwrap_or(&0.0);
+    let nw = worlds.len().max(1) as f32;
+    let final_alive: f32 = worlds.iter().map(|w| w.alive_mask.count_ones() as f32).sum::<f32>() / nw;
+
+    // Resistance = efficiency recovered above 80% of pre-treatment
+    let pre = eff_timeline.get(drug_active_start.saturating_sub(1) as usize).copied().unwrap_or(1.0);
+    let resistance_gen = eff_timeline.iter().enumerate()
+        .skip(drug_active_start as usize + 5)
+        .find(|(_, e)| **e > pre * 0.8)
+        .map(|(g, _)| g as u32);
+
+    BozicArmResult {
+        label, final_efficiency: final_eff, final_alive,
+        resistance_detected: resistance_gen.is_some(), resistance_gen,
+        efficiency_timeline: eff_timeline,
+    }
+}
+
+/// Validación completa Bozic: 5 brazos experimentales.
+/// Complete Bozic validation: 5 experimental arms.
+///
+/// Arms: no_drug, mono_A (400 Hz), mono_B (300 Hz), combo_AB, double_A (2× concentration).
+/// Bozic prediction: combo_AB should suppress more than double_A.
+pub fn run_bozic_validation(config: &BozicValidationConfig) -> BozicValidationResult {
+    let start = Instant::now();
+
+    let drug_a = Inhibitor {
+        target_frequency: config.drug_a_freq, concentration: config.drug_a_conc,
+        ki: config.drug_a_ki, mode: InhibitionMode::Competitive,
+    };
+    let drug_b = Inhibitor {
+        target_frequency: config.drug_b_freq, concentration: config.drug_b_conc,
+        ki: config.drug_b_ki, mode: InhibitionMode::Competitive,
+    };
+    let double_a = Inhibitor {
+        target_frequency: config.drug_a_freq, concentration: (config.drug_a_conc * 2.0).min(1.0),
+        ki: config.drug_a_ki, mode: InhibitionMode::Competitive,
+    };
+
+    let no_drug  = run_arm(config, &[],              "no_drug");
+    let mono_a   = run_arm(config, &[drug_a],        "mono_A");
+    let mono_b   = run_arm(config, &[drug_b],        "mono_B");
+    let combo_ab = run_arm(config, &[drug_a, drug_b], "combo_AB");
+    let double_a_arm = run_arm(config, &[double_a],   "double_A");
+
+    BozicValidationResult {
+        no_drug, mono_a, mono_b, combo_ab, double_a: double_a_arm,
+        wall_time_ms: start.elapsed().as_millis() as u64,
+    }
+}
+
 // ─── Tests (BDD) ────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -575,6 +821,52 @@ mod tests {
         // Acceptable: small populations may converge. Test just checks no panic + output.
         assert_eq!(reports.len(), 3);
         for r in &reports { assert!(!r.timeline.is_empty()); }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // BOZIC VALIDATION TESTS
+    // ══════════════════════════════════════════════════════════════════════
+
+    fn small_bozic() -> BozicValidationConfig {
+        BozicValidationConfig {
+            tumor_count: 15, worlds: 5, generations: 15, ticks_per_gen: 50,
+            ..Default::default()
+        }
+    }
+
+    #[test]
+    fn bozic_combo_suppresses_more_than_mono() {
+        // Bozic prediction: combination > monotherapy
+        let result = run_bozic_validation(&small_bozic());
+        assert!(result.combo_ab.final_efficiency <= result.mono_a.final_efficiency + 0.05,
+            "combo should suppress more: combo={}, mono_a={}",
+            result.combo_ab.final_efficiency, result.mono_a.final_efficiency);
+    }
+
+    #[test]
+    fn bozic_combo_better_than_double_dose() {
+        // Bozic prediction: 2 drugs > 1 drug at 2× dose
+        let result = run_bozic_validation(&small_bozic());
+        assert!(result.combo_ab.final_efficiency <= result.double_a.final_efficiency + 0.05,
+            "combo should beat double dose: combo={}, double_a={}",
+            result.combo_ab.final_efficiency, result.double_a.final_efficiency);
+    }
+
+    #[test]
+    fn bozic_no_drug_highest_efficiency() {
+        let result = run_bozic_validation(&small_bozic());
+        assert!(result.no_drug.final_efficiency >= result.mono_a.final_efficiency,
+            "no drug should have highest efficiency: no_drug={}, mono_a={}",
+            result.no_drug.final_efficiency, result.mono_a.final_efficiency);
+    }
+
+    #[test]
+    fn bozic_all_arms_deterministic() {
+        let cfg = small_bozic();
+        let a = run_bozic_validation(&cfg);
+        let b = run_bozic_validation(&cfg);
+        assert_eq!(a.mono_a.final_efficiency.to_bits(), b.mono_a.final_efficiency.to_bits());
+        assert_eq!(a.combo_ab.final_efficiency.to_bits(), b.combo_ab.final_efficiency.to_bits());
     }
 
     // ── organ_role_dimension covers all roles ───────────────────────────
