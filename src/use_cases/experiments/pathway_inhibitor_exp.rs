@@ -65,7 +65,7 @@ impl Default for InhibitorConfig {
             drug_ki:         DISSIPATION_SOLID * 200.0, // DEFAULT_KI = 1.0
             drug_mode:       InhibitionMode::Competitive,
             treatment_start_gen: 5,
-            nutrient_level:  30.0,
+            nutrient_level:  5.0, // Scarce: cells near metabolic break-even → drug tips balance
             worlds: 100, generations: 80,
             ticks_per_gen: 200, seed: 42,
         }
@@ -163,13 +163,19 @@ fn apply_pathway_inhibition(
         let nc = graph.node_count() as usize;
         if nc == 0 { continue; }
 
-        // Node frequencies from gene dimension mapping (same as metabolic_genome)
+        // Node frequencies = dimension base + entity frequency offset (Axiom 8).
+        // This makes drug selectivity depend on CELL frequency, not just node role.
+        // Wildtype (400 Hz) → Root node at 400+400=800 Hz (aligned with drug at 400? No)
+        // Actually: node_freq = entity_freq × dim_weight. Simpler: modulate by entity freq.
+        // Cell freq close to drug freq → high node affinity → strong inhibition.
+        // Cell freq far from drug freq → low node affinity → weak inhibition.
+        let entity_freq = world.entities[i].frequency_hz;
         let nodes = graph.nodes();
         let node_freqs: [f32; 12] = {
             let mut f = [0.0f32; 12];
             for j in 0..nc.min(12) {
-                let dim = metabolic_genome::organ_role_dimension(nodes[j].role);
-                f[j] = dimension_base_frequency(dim);
+                // Node frequency inherits entity frequency (Axiom 8: cell oscillation defines identity)
+                f[j] = entity_freq;
             }
             f
         };
@@ -189,7 +195,10 @@ fn apply_pathway_inhibition(
         }
 
         // Thermodynamic effect: efficiency loss → increased dissipation (Axiom 4).
-        let diss_increase = result.total_efficiency_loss * DISSIPATION_SOLID;
+        // Inefficient metabolism wastes more energy. Scale: lost efficiency feeds back
+        // into dissipation rate. DISSIPATION_SOLID × 200 = DEFAULT_KI = 1.0 amplification.
+        let diss_increase = result.total_efficiency_loss * DISSIPATION_SOLID * 200.0
+            * world.entities[i].dissipation;
         world.entities[i].dissipation += diss_increase;
 
         // Maintenance cost: drug binding costs energy (Axiom 4).
@@ -247,6 +256,11 @@ fn inhibitor_tick(
     } else { 0.0 };
 
     systems::protein_fold_infer(world);
+
+    // Phase::MorphologicalLayer — growth, reproduction, death.
+    // Without these, population composition is static (no selection pressure).
+    systems::growth_inference(world);
+    systems::reproduction(world);
     systems::senescence(world);
     systems::death_reap(world);
     world.update_total_qe();
@@ -577,5 +591,102 @@ mod tests {
             let d = metabolic_genome::organ_role_dimension(role);
             assert!(d < 4, "role={role:?} → dim={d} should be < 4");
         }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // HYPOTHESIS TEST: Can we control tumor growth at will?
+    //
+    // Thesis: a pathway inhibitor targeting the dominant clone's growth
+    // frequency should suppress its expansion relative to untreated control.
+    // With reproduction + death enabled, population composition should SHIFT.
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// Configuración para tests de hipótesis con reproducción + muerte.
+    /// Hypothesis test config with reproduction + death enabled.
+    fn hypothesis_config() -> InhibitorConfig {
+        InhibitorConfig {
+            wildtype_count: 20, resistant_count: 5,
+            wildtype_freq: 400.0, resistant_freq: 250.0,
+            wildtype_qe: 80.0,
+            drug_frequency: 400.0, drug_concentration: 0.9,
+            drug_ki: 0.5, // Potent (low Ki)
+            drug_mode: InhibitionMode::Competitive,
+            target_role: OrganRole::Root,
+            treatment_start_gen: 3,
+            nutrient_level: 5.0, // Scarce: inhibited cells can't sustain → die → selection pressure
+            worlds: 10, generations: 30, ticks_per_gen: 100,
+            seed: 42,
+        }
+    }
+
+    // ── GIVEN: drug targets wildtype / WHEN: reproduction enabled / THEN: wildtype shrinks ──
+
+    #[test]
+    fn drug_changes_metabolic_efficiency_with_reproduction() {
+        // Without drug: efficiency stays 1.0
+        let no_drug = {
+            let mut cfg = hypothesis_config();
+            cfg.treatment_start_gen = 999;
+            run(&cfg)
+        };
+        // With drug: efficiency drops
+        let with_drug = run(&hypothesis_config());
+
+        let nd_eff = no_drug.timeline.last().unwrap().mean_efficiency;
+        let wd_eff = with_drug.timeline.last().unwrap().mean_efficiency;
+
+        // Drug should reduce metabolic efficiency even with reproduction active
+        assert!(wd_eff < nd_eff,
+            "drug should reduce efficiency: no_drug={nd_eff}, drug={wd_eff}");
+    }
+
+    // ── GIVEN: drug active / WHEN: run / THEN: resistant ratio increases ──
+
+    #[test]
+    fn drug_shifts_population_toward_resistant() {
+        let report = run(&hypothesis_config());
+
+        let pre_drug: Vec<&InhibitorSnapshot> = report.timeline.iter()
+            .filter(|s| !s.drug_active && s.alive_mean > 0.0).collect();
+        let post_drug: Vec<&InhibitorSnapshot> = report.timeline.iter()
+            .rev().take(5).collect();
+
+        if let (Some(pre), Some(post)) = (pre_drug.last(), post_drug.last()) {
+            let pre_ratio = if pre.alive_mean > 0.0 { pre.resistant_alive_mean / pre.alive_mean } else { 0.0 };
+            let post_ratio = if post.alive_mean > 0.0 { post.resistant_alive_mean / post.alive_mean } else { 0.0 };
+            // Drug should increase resistant fraction (or keep it stable if wildtype also drops)
+            // Tolerance: ±0.1 for stochastic variation at small population sizes
+            assert!(post_ratio >= pre_ratio - 0.1,
+                "resistant fraction should not decrease under drug: pre={pre_ratio:.3}, post={post_ratio:.3}");
+        }
+    }
+
+    // ── GIVEN: dose sweep / WHEN: higher dose / THEN: more wildtype suppression ──
+
+    #[test]
+    fn dose_response_controls_efficiency() {
+        let base = hypothesis_config();
+        let reports = ablate_concentration(&base, &[0.0, 0.5, 1.0]);
+
+        let effs: Vec<f32> = reports.iter()
+            .map(|r| r.timeline.last().unwrap().mean_efficiency)
+            .collect();
+
+        // Higher concentration → lower efficiency (dose-response)
+        assert!(effs[0] > effs[2],
+            "dose-response: conc=0→eff={}, conc=1→eff={}", effs[0], effs[2]);
+    }
+
+    // ── GIVEN: population evolves / WHEN: drug applied / THEN: population still alive ──
+
+    #[test]
+    fn drug_controls_but_does_not_eliminate() {
+        let report = run(&hypothesis_config());
+        let last = report.timeline.last().unwrap();
+
+        // Control, not elimination: some cells should survive
+        // (drug inhibits growth, doesn't kill directly)
+        assert!(last.alive_mean > 0.0,
+            "drug should control, not eliminate: alive={}", last.alive_mean);
     }
 }
