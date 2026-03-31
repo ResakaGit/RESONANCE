@@ -158,16 +158,23 @@ Particles interact via classical potentials derived from the 4 fundamental const
 
 No bond tables, no molecule templates. Opposite charges attract, reach equilibrium, and form stable bonds. 26 tests verify inverse-square law, LJ zero-crossing, Newton 3, charge conservation, and deterministic reproducibility.
 
-### Drug Resistance (Cancer Therapy Experiment)
+### Drug Models (Two Levels)
 
-Drug resistance emerges from the same axioms that govern particle bonding:
+**Level 1 — Cytotoxic (cancer_therapy):** Drug drains qe directly (kills cells). Frequency-selective via Axiom 8 + Hill pharmacokinetics (n=2). Quiescent stem cells escape chemo, reactivate on tumor regression. Qualitatively consistent with Bozic et al. 2013 (eLife).
 
-- **Drug model:** increases dissipation rate (Axiom 4), modulated by frequency alignment (Axiom 8) and Hill pharmacokinetics (n=2)
-- **Resistance mechanism:** cells with frequencies far from drug target experience reduced effect — clonal expansion of "mismatched" subpopulation
-- **Quiescent stem cells:** growth_bias < 0.05, drug_sensitivity = 0.1 — escape chemotherapy, reactivate on tumor regression
-- **Qualitatively consistent** with Bozic et al. 2013 (eLife) predictions for monotherapy failure
+**Level 2 — Pathway Inhibitor (pathway_inhibitor):** Drug binds to protein active site, reduces metabolic node efficiency without killing. Three modes: Competitive (raises activation energy), Noncompetitive (lowers max efficiency), Uncompetitive (reduces both). Off-target effects via frequency proximity. Bliss independence for drug combinations. Selectivity index quantifies on-target vs collateral.
 
-**Honest limitations:** abstract energy units (not molar concentrations), no molecular targets (no EGFR/BCR-ABL), no tumor microenvironment (no vasculature/hypoxia/immune), not validated against patient data. This is a theoretical model for exploring resistance dynamics, not a clinical tool.
+```bash
+cargo run --release --bin cancer_therapy       # Level 1: cytotoxic, clonal resistance
+cargo run --release --bin pathway_inhibitor    # Level 2: pathway inhibition, ~6 sec
+```
+
+Level 2 validated output (50 worlds × 40 gens × 150 ticks, 6 sec on Mac):
+- Drug ON → efficiency drops 1.000 → 0.692, expression[0] drops 1.000 → 0.331
+- Dose-response: conc=0.0→eff=1.000, conc=0.4→eff=0.837, conc=0.8→eff=0.692
+- Cells survive (inhibited, not killed) — resistance via metabolic compensation, not frequency escape
+
+**Current limitations (both levels):** abstract qe units, no molecular targets, no tumor microenvironment, not validated against patient data. Level 2 does not yet include reproduction/mortality — population composition is static. Theoretical models for exploring resistance dynamics, not clinical tools.
 
 **Nothing programmed. Everything emerged from 8 axioms and 4 constants.**
 
@@ -188,8 +195,9 @@ Drug resistance emerges from the same axioms that govern particle bonding:
 | D1 | Personal Universe | `cargo run --bin personal_universe -- "your name"` |
 | D2 | Convergent Evolution | `cargo run --bin convergence` |
 | D3 | Ecosystem Music | `cargo run --bin ecosystem_music` |
-| E1 | Cancer Therapy | `cargo run --bin cancer_therapy` |
-| E2 | Particle Lab | `cargo run --bin particle_lab` |
+| E1 | Cancer Therapy (Level 1) | `cargo run --bin cancer_therapy` |
+| E2 | Pathway Inhibitor (Level 2) | `cargo run --release --bin pathway_inhibitor` |
+| E3 | Particle Lab | `cargo run --bin particle_lab` |
 | **LAB** | **Universal Lab (all experiments + Live 2D)** | **`cargo run --release --bin lab`** |
 | **SV** | **Survival Mode (play as evolved creature)** | **`cargo run --release --bin survival -- --seed 42`** |
 
@@ -208,7 +216,7 @@ cargo run --release --bin headless_sim -- --ticks 5000 --out world.ppm
 ## Tests
 
 ```bash
-cargo test    # 2,997 tests (109K LOC)
+cargo test    # 3,036 tests (110K LOC)
 cargo bench   # batch + bridge benchmarks
 ```
 

@@ -5,7 +5,7 @@
 Resonance is an emergent life simulation engine in Rust/Bevy 0.15 where everything is energy (qe). 14 orthogonal ECS layers define all entities by composition. All behavior is 100% emergent from energy interactions — no scripted behavior, no templates.
 
 **Paper:** https://zenodo.org/records/19342036 — "Emergent Life from Four Constants: An Axiomatic Simulation Engine"
-**Repo:** https://github.com/ResakaGit/RESONANCE | **License:** AGPL-3.0 | **Tests:** ~2,997 | **LOC:** 109K
+**Repo:** https://github.com/ResakaGit/RESONANCE | **License:** AGPL-3.0 | **Tests:** ~3,036 | **LOC:** 110K
 
 ## Architecture
 
@@ -196,18 +196,35 @@ Axiom 8: bond strength × alignment(f1, f2)      frequency-compatible particles 
 
 26 tests verify: inverse-square law, LJ zero-crossing at r = 2^(1/6)σ, Newton 3, charge conservation, bond energy negative for opposite charges, bit-exact determinism. Implementation: `blueprint/equations/coulomb.rs`, `batch/systems/particle_forces.rs`.
 
-## Drug Resistance Model (Cancer Therapy)
+## Drug Models (Two Levels)
 
-Drug resistance emerges from the same axioms governing particle bonding and genome evolution.
+### Level 1: Cytotoxic (cancer_therapy)
 
-- **Drug:** increases dissipation rate (Axiom 4), modulated by `alignment(f_drug, f_cell)` (Axiom 8) + Hill pharmacokinetics (n=2)
-- **Resistance:** cells with frequencies far from drug target → reduced drug effect → clonal expansion
-- **Quiescent stem cells:** growth_bias < 0.05, drug_sensitivity = 0.1 → escape chemo, reactivate on tumor regression
-- **Qualitatively consistent** with Bozic et al. 2013 (eLife) on monotherapy failure
-
-**Honest scope:** Theoretical model for exploring resistance dynamics. Abstract qe units (not molar concentrations). No molecular targets (no EGFR/BCR-ABL). No tumor microenvironment (no vasculature/hypoxia/immune). Not validated against patient data. NOT a clinical tool.
+Drug drains qe directly (kills cells). Frequency-selective via Axiom 8 + Hill pharmacokinetics (n=2). Quiescent stem cells escape chemo. Qualitatively consistent with Bozic et al. 2013 (eLife).
 
 **Key files:** `use_cases/experiments/cancer_therapy.rs`, `bin/cancer_therapy.rs`.
+
+### Level 2: Pathway Inhibitor (pathway_inhibitor)
+
+Drug binds to protein active site via frequency alignment (Axiom 8), reduces metabolic node efficiency without killing. Three inhibition modes (Competitive/Noncompetitive/Uncompetitive). Off-target effects via frequency proximity. Bliss independence for drug combinations.
+
+```
+Inhibitor(freq=400, target=Root, Ki=1.0, mode=Competitive, conc=0.8)
+  → binding_affinity(drug_freq, node_freq) via gaussian_frequency_alignment
+  → occupancy = hill(conc × affinity, Ki, n=2)
+  → inhibit_node: Competitive raises E_a, reduces η; Noncompetitive reduces η only
+  → effective_node_params feeds into competitive_flow_distribution
+```
+
+Validated output: drug ON → efficiency 1.0→0.692, expression[0] 1.0→0.331. Dose-response: conc 0→0.4→0.8 = eff 1.0→0.837→0.692. Cells survive (inhibited, not killed).
+
+**Current state:** Population composition is static (no reproduction/mortality in Level 2 pipeline). Resistance by metabolic compensation requires enabling reproduction + basal_drain lethality.
+
+**Key files:** `blueprint/equations/pathway_inhibitor.rs` (8 pure fns, 25 tests), `blueprint/constants/pathway_inhibitor.rs` (7 derived constants, 3 tests), `use_cases/experiments/pathway_inhibitor_exp.rs` (experiment + HOFs, 10 tests), `bin/pathway_inhibitor.rs`.
+
+### Honest scope (both levels)
+
+Theoretical models for exploring resistance dynamics. Abstract qe units (not molar concentrations). No molecular targets (no EGFR/BCR-ABL). No tumor microenvironment. Not validated against patient data. NOT clinical tools.
 
 ## Energy Cycle (Closed Loop)
 
@@ -451,7 +468,7 @@ impl MyComp {
 - **Property** (proptest): `tests/property_conservation.rs` — fuzzes conservation + pool equations with arbitrary inputs.
 - **Batch** (headless): tests in `src/batch/` modules. 156 tests covering 33 systems, arena, genome, harness, bridge. Zero Bevy dependency.
 - **Headless sim**: `cargo run --bin headless_sim -- --ticks N --scale S --out file.ppm` — full sim → PPM image, no GPU.
-- **Run**: `cargo test` (~2998 tests). `cargo bench --bench batch_benchmark` for performance.
+- **Run**: `cargo test` (~3,036 tests). `cargo bench --bench batch_benchmark` for performance.
 - **Maps**: `RESONANCE_MAP={name} cargo run` (genesis_validation, visual_showcase, proving_grounds, four_flowers, demo_animal).
 
 ## Roles
