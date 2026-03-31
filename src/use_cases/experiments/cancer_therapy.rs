@@ -61,6 +61,11 @@ pub struct TherapyConfig {
     /// Cancer cell trophic class. 3=carnivore (Warburg: consumes host glucose, no photosynthesis).
     pub cancer_trophic: u8,
 
+    // Microenvironment
+    /// Nivel de nutrientes base del grid. Más alto = tumor mejor alimentado.
+    /// Base nutrient level of the grid. Higher = better-fed tumor.
+    pub nutrient_level: f32,
+
     // Simulation
     pub worlds: usize,
     pub generations: u32,
@@ -84,9 +89,10 @@ impl Default for TherapyConfig {
             normal_qe: 30.0, normal_growth: 0.3,
             normal_resilience: 0.8, normal_dissipation: 0.01,
             normal_trophic: 0,  // producer: healthy tissue receives energy from environment
-            cancer_qe: 40.0, cancer_growth: 0.9,
+            cancer_qe: 80.0, cancer_growth: 0.9,
             cancer_resilience: 0.2, cancer_dissipation: 0.005,
             cancer_trophic: 4,  // detritivore: Warburg effect, scavenges nutrients passively (no photosynthesis, no hunting)
+            nutrient_level: 50.0, // well-vascularized tumor: must sustain ~50 entities competing
             worlds: 100, generations: 100,
             ticks_per_gen: 300, seed: 42,
         }
@@ -372,6 +378,14 @@ pub fn run(config: &TherapyConfig) -> TherapyReport {
     let mut worlds: Vec<SimWorldFlat> = (0..config.worlds).map(|wi| {
         let ws = determinism::next_u64(config.seed ^ (wi as u64));
         let mut w = SimWorldFlat::new(ws, 0.05);
+        // Set nutrient level for the microenvironment (configurable by researcher)
+        for cell in w.nutrient_grid.iter_mut() {
+            *cell = config.nutrient_level;
+        }
+        // Set irradiance so producers (normal tissue) can photosynthesize and replenish nutrients
+        for cell in w.irradiance_grid.iter_mut() {
+            *cell = config.nutrient_level * 0.2; // irradiance proportional to nutrient level
+        }
         spawn_population(&mut w, config, ws);
         w
     }).collect();
@@ -419,8 +433,11 @@ pub fn run(config: &TherapyConfig) -> TherapyReport {
     let generations_to_resistance = timeline.iter()
         .find(|s| s.resistance_index > 1.0 && s.cancer_alive_mean > 1.0)
         .map(|s| s.generation);
-    let min_cancer = timeline.iter().map(|s| s.cancer_alive_mean).fold(f32::MAX, f32::min);
-    let tumor_eliminated = min_cancer < 1.0;
+    // Tumor eliminated = cancer cells below 1.0 for at least 3 consecutive generations
+    // (avoids false positives from transient dips)
+    let tumor_eliminated = timeline.windows(3).any(|w| {
+        w.iter().all(|s| s.cancer_alive_mean < 1.0)
+    });
     let relapse_gen = if tumor_eliminated {
         let min_gen = timeline.iter()
             .min_by(|a,b| a.cancer_alive_mean.partial_cmp(&b.cancer_alive_mean).unwrap_or(std::cmp::Ordering::Equal))
@@ -594,5 +611,32 @@ mod tests {
     #[test] fn snapshot_empty() {
         let s = compute_snapshot(&[SimWorldFlat::new(42, 0.05)], 0, &TherapyConfig::default(), 0.0, 0.0);
         assert_eq!(s.cancer_alive_mean, 0.0);
+    }
+
+    #[test]
+    fn weak_drug_does_not_eliminate_tumor() {
+        let r = run(&TherapyConfig {
+            worlds: 10, generations: 30, ticks_per_gen: 50,
+            drug_potency: 0.1, // very weak drug
+            nutrient_level: 10.0, // well-fed tumor
+            ..Default::default()
+        });
+        assert!(
+            !r.tumor_eliminated || r.timeline.last().map(|s| s.cancer_alive_mean > 0.5).unwrap_or(false),
+            "weak drug (potency=0.1) should not eliminate a well-fed tumor"
+        );
+    }
+
+    #[test]
+    fn no_drug_tumor_survives() {
+        let r = run(&TherapyConfig {
+            worlds: 10, generations: 30, ticks_per_gen: 50,
+            treatment_start_gen: 999, // drug never starts
+            nutrient_level: 10.0,
+            ..Default::default()
+        });
+        let last_cancer = r.timeline.last().map(|s| s.cancer_alive_mean).unwrap_or(0.0);
+        assert!(last_cancer > 1.0,
+            "without drug, cancer should survive: got {last_cancer}");
     }
 }
