@@ -9,7 +9,7 @@ Repo: https://github.com/ResakaGit/RESONANCE
 
 ### Título (max 80 chars):
 ```
-Show HN: Life emerges from 4 constants — cancer resistance included (109K LOC Rust)
+Show HN: Simulation where cancer resistance emerges from thermodynamics (Rust, AGPL)
 ```
 
 ### URL field:
@@ -17,32 +17,30 @@ Show HN: Life emerges from 4 constants — cancer resistance included (109K LOC 
 https://zenodo.org/records/19342036
 ```
 
-### Primer comentario (postear inmediatamente después):
+### Primer comentario:
 ```
-Author here. Resonance is a simulation engine where everything — from molecular bonds to chemotherapy resistance — derives from 4 physical constants:
+Author here. Resonance is a simulation engine where biological phenomena — including drug resistance — emerge from 4 physical constants and 8 thermodynamic axioms.
 
-- Kleiber exponent (0.75) — metabolic scaling
+The 4 constants:
+- Kleiber exponent (0.75) — metabolic scaling law
 - Dissipation rates (0.005→0.25) — Second Law per matter state
 - Coherence bandwidth (50 Hz) — oscillatory interaction window
 - Density scale (20.0) — spatial normalization
 
-All ~40 lifecycle thresholds are computed algebraically. Zero tuning. Zero per-species parameters.
+All ~40 lifecycle thresholds are algebraically derived from these. No tuning per species.
 
-The drug model: a drug increases the dissipation rate of cells whose frequency matches the target. Cells with different frequencies survive. Resistance isn't programmed — it's a statistical consequence of frequency heterogeneity in the tumor population. Results are consistent with Bozic et al. 2013 (eLife).
+The drug model: a drug increases dissipation rate (Second Law). Cells whose oscillatory frequency differs from the drug target experience less effect (Gaussian attenuation). The surviving cells reproduce, shifting the population frequency. This is emergent resistance — not programmed.
 
-The simulation stack (each level emerges from the previous):
-Energy → matter → molecules (Coulomb+LJ) → abiogenesis → variable genomes (4→32 genes) → codon-based genetic code → proto-proteins → metabolic networks → multicellularity → social emergence
+The resistance dynamics are consistent with predictions from Bozic et al. 2013 (eLife) for monotherapy, but this is a theoretical model — not clinically validated. It needs calibration against real tumor growth data to be useful for medicine.
 
-Try it:
-  cargo run --release --bin lab              # Universal lab with egui dashboard
-  cargo run --release --bin cancer_therapy   # Tumor dynamics → CSV
-  cargo run --release --bin survival         # Play as an evolved creature
-  cargo test                                 # 2,994 tests
+What you can try:
+  cargo run --release --bin lab              # Dashboard with 8 experiments including cancer therapy
+  cargo run --release --bin survival         # Play as an evolved creature (WASD)
+  cargo test                                 # 2,994 tests, 109K LOC
 
 Code: https://github.com/ResakaGit/RESONANCE (AGPL-3.0)
-Paper: https://zenodo.org/records/19342036
 
-Happy to answer questions about the axioms, the derivation chain, or the oncology model.
+Looking for feedback on the axiomatic approach and collaborators for clinical calibration.
 ```
 
 ---
@@ -51,39 +49,46 @@ Happy to answer questions about the axioms, the derivation chain, or the oncolog
 
 ### Título:
 ```
-Emergent life simulation — 109K LOC Rust, 2994 tests, 4 constants → molecules, genomes, cancer resistance
+Emergent life simulation engine in Rust — 109K LOC, 2994 tests, Bevy 0.15 ECS + egui dashboard
 ```
 
 ### Body:
 ```
-I built Resonance, a simulation engine where life emerges from 4 fundamental constants and 8 axioms. Everything is Rust + Bevy 0.15 ECS.
+I built Resonance, a simulation engine where biological organization emerges bottom-up from 4 constants and 8 axioms. Rust + Bevy 0.15 ECS.
 
-**What it does:** Define physics. Press play. Watch life emerge.
+**Architecture:**
+- 14 orthogonal ECS layers (energy, volume, oscillation, flow, coherence, engine, pressure, will, injector, identity, link, tension, homeostasis, structure)
+- 6-phase deterministic FixedUpdate pipeline
+- Batch simulator: millions of worlds in parallel (rayon), deterministic (same seed = identical f32 bits)
+- egui dashboard with real-time charts (bevy_egui 0.31 + egui_plot)
+- Zero unsafe. AGPL-3.0.
 
-- 14 orthogonal ECS layers, 6-phase deterministic pipeline
-- Variable-length genomes grow from 4 to 32 genes
+**What emerges from the physics (not programmed):**
+- Variable-length genomes (4→32 genes via duplication/deletion)
 - Codon-based genetic code (64 codons → 8 amino acids, evolvable)
 - Metabolic networks with Hebbian rewiring
-- Multicellularity via Union-Find colony detection
-- Chemotherapy resistance emerges from the same equations that form molecular bonds
-- All ~40 lifecycle constants algebraically derived from 4 numbers
-
-**Stack:** Rust 2024 edition, Bevy 0.15, glam, rayon, bevy_egui, egui_plot. No unsafe. Deterministic (same seed = identical f32 bits).
+- Multicellularity via colony detection
+- Drug resistance under selective pressure
 
 **Try it:**
 ```bash
-cargo run --release --bin lab              # egui dashboard with 8 experiments
+cargo run --release --bin lab              # egui dashboard, 8 experiments + Live 2D
 cargo run --release --bin survival         # WASD survival mode
 cargo run --release --bin cancer_therapy -- --out tumor.csv
 cargo test                                 # 2,994 tests
 ```
 
-**The drug model:** A drug increases dissipation rate (Second Law). Cells with frequencies far from the target survive via Gaussian attenuation. Resistance emerges from heterogeneity, not from a programmed gene.
+**Rust-specific highlights:**
+- `repr(C)` flat entity for batch (EntitySlot, cache-friendly)
+- RingBuffer<f32> stack-allocated [f32; 512] for dashboard time series
+- Generic BridgeCache<B: BridgeKind> with compile-time type isolation
+- HOF orchestrators: `ablate(closure)`, `ensemble()`, `sweep(closure, closure)`
+- Zero-alloc CSV export via `write!` to String buffer
 
 Paper: https://zenodo.org/records/19342036
-Repo: https://github.com/ResakaGit/RESONANCE (AGPL-3.0)
+Repo: https://github.com/ResakaGit/RESONANCE
 
-Feedback welcome — especially on the axiomatic derivation chain.
+Feedback welcome on the ECS architecture and the axiomatic derivation approach.
 ```
 
 ---
@@ -92,7 +97,7 @@ Feedback welcome — especially on the axiomatic derivation chain.
 
 ### Título:
 ```
-Emergent life from 4 constants: simulation engine deriving cancer resistance from thermodynamic first principles
+Emergent biological organization from thermodynamic first principles — simulation engine with drug resistance dynamics
 ```
 
 ### Body:
@@ -101,15 +106,18 @@ Paper: https://zenodo.org/records/19342036
 
 We present an open-source simulation engine (109K LOC Rust, 2,994 tests) where ~40 lifecycle parameters are algebraically derived from 4 fundamental constants.
 
-Key result: the same equations that produce molecular bonds also produce chemotherapy resistance dynamics consistent with Bozic et al. 2013 (eLife). No cell-type-specific parameterization — resistance emerges from oscillatory frequency heterogeneity under selective pressure.
+10 levels of biological organization emerge bottom-up without type-specific rules:
+energy → matter states → molecular bonding → abiogenesis → variable genomes → genetic code → protein folding → metabolic networks → multicellularity → social behavior
 
-The 4 constants: Kleiber exponent (0.75), dissipation rates per matter state (0.005-0.25), coherence bandwidth (50 Hz), density scale (20.0).
+Key observation: under selective pressure from a frequency-targeted dissipation increase (modeling drug action), the simulated population develops resistance dynamics consistent with theoretical predictions from Bozic et al. 2013 (eLife) for monotherapy failure.
 
-10 levels of biological organization emerge bottom-up: energy → matter → molecules → abiogenesis → genomes → genetic code → proteins → metabolic networks → multicellularity → social behavior.
+Limitations: this is a theoretical model operating on abstract energy units, not calibrated to specific drugs or cell lines. Clinical utility requires validation against real tumor growth curves — which we have not done.
+
+The 4 constants: Kleiber exponent (0.75), dissipation rates (0.005-0.25), coherence bandwidth (50 Hz), density scale (20.0).
 
 Code: https://github.com/ResakaGit/RESONANCE (AGPL-3.0)
 
-Interested in feedback from computational biology and ALife researchers on whether this axiomatic approach has merit for drug resistance modeling.
+Looking for feedback from computational biology and ALife researchers.
 ```
 
 ---
@@ -118,36 +126,41 @@ Interested in feedback from computational biology and ALife researchers on wheth
 
 ### Título:
 ```
-Simulating chemotherapy resistance from first principles — no cell-type parameters, results consistent with Bozic 2013
+Open-source engine for simulating drug resistance from thermodynamic first principles (Rust, AGPL-3.0)
 ```
 
 ### Body:
 ```
-I built a simulation engine (Rust, open-source AGPL-3.0) where drug resistance emerges from fundamental physics rather than cell-type-specific rules.
+I built a simulation engine where drug resistance emerges from fundamental physics rather than cell-type-specific rules.
 
-**Drug mechanism:** Increases dissipation rate (thermodynamic Second Law). Frequency alignment determines selectivity:
+**Drug mechanism:** Increases dissipation rate (thermodynamic Second Law), modulated by frequency alignment (Gaussian selectivity) and Hill dose-response:
 
-effect = Potency × exp(-Δf²/2B²) × base_dissipation
+effect = Hill(alignment(f_drug, f_cell, bandwidth)) × base_dissipation
 
 **What emerges (not programmed):**
-- Monotherapy at moderate potency → tumor persists (resistance rate consistent with Bozic et al. 2013)
-- Sigmoidal dose-response (Hill equation behavior, emergent)
-- Quiescent stem cells reactivate when tumor burden drops
-- Normal tissue regenerates during drug holidays
-- Clonal diversity increases under selective pressure
+- Moderate monotherapy → tumor persists (frequency-mismatched clones survive)
+- Sigmoidal dose-response curve (Hill equation behavior)
+- Quiescent stem cells reactivate when tumor burden drops below threshold
+- Clonal diversity increases under sustained selective pressure
 
-**What's different:** The same 4 constants that determine molecular bonding also determine drug efficacy. No pharmacology module. No resistance genes. Resistance = statistical consequence of frequency diversity.
+**Honest limitations:**
+- The model operates on abstract energy units (qe), not molar concentrations
+- "Frequency" is a simulation abstraction, not a direct biological observable
+- Results are consistent with Bozic et al. 2013 predictions but NOT validated against clinical data
+- No ADME, no molecular targets, no tissue-specific pharmacology
+
+**What it IS useful for:** exploring how resistance dynamics emerge from population heterogeneity without assuming specific resistance mechanisms. It's a hypothesis generator, not a clinical tool.
 
 **Try it:**
 ```bash
-cargo run --release --bin lab  # egui dashboard, select "Cancer Therapy"
-cargo run --release --bin cancer_therapy -- --potency 0.5 --out resistance.csv
+cargo run --release --bin lab  # select "Cancer Therapy", adjust potency/bandwidth
+cargo run --release --bin cancer_therapy -- --potency 0.5 --gens 50 --out resistance.csv
 ```
 
 Paper: https://zenodo.org/records/19342036
 Code: https://github.com/ResakaGit/RESONANCE
 
-Looking for feedback from computational oncology researchers. Would love to collaborate on clinical calibration.
+Would value feedback from computational oncology researchers. Looking for collaborators on calibration against real datasets.
 ```
 
 ---
@@ -156,34 +169,30 @@ Looking for feedback from computational oncology researchers. Would love to coll
 
 ### Título:
 ```
-10 levels of biological organization from 4 constants: molecules, genomes, proteins, metabolism, multicellularity, drug resistance
+Bottom-up emergence of 10 levels of biological organization from 4 thermodynamic constants
 ```
 
 ### Body:
 ```
-I built Resonance — a simulation engine where 10 levels of biological organization emerge bottom-up from 8 axioms and 4 fundamental constants.
+I built Resonance — a simulation engine where 10 levels of biological organization emerge from 8 axioms and 4 fundamental constants. No per-level rules. Each level is a consequence of the previous.
 
-The hierarchy (each level emerges from the previous):
-
-0. Energy fields
-1. Matter states (solid/liquid/gas/plasma from density thresholds)
+The hierarchy:
+0. Energy fields (continuous qe distribution)
+1. Matter states (density thresholds → solid/liquid/gas/plasma)
 2. Molecular bonding (Coulomb + Lennard-Jones + frequency alignment)
-3. Abiogenesis (life where coherence > dissipation)
+3. Abiogenesis (life where coherence gain > dissipation cost)
 4. Variable genomes (4→32 genes via duplication/deletion)
-5. Genetic code (64 codons → 8 amino acids, evolvable)
-6. Proto-proteins (HP lattice folding, active sites)
-7. Metabolic networks (DAG with Hebbian rewiring, competition)
-8. Multicellularity (adhesion, colonies, differential expression)
-9. Social emergence (theory of mind, coalitions, cultural transmission)
+5. Genetic code (64 codons → 8 amino acids, evolvable mapping)
+6. Proto-proteins (HP lattice folding, emergent active sites)
+7. Metabolic networks (directed acyclic graph with Hebbian rewiring)
+8. Multicellularity (frequency-based adhesion, Union-Find colonies, differential expression)
+9. Social behavior (theory of mind, Nash coalitions, cultural transmission)
 
-The 4 constants: Kleiber exponent (0.75), dissipation rates (0.005-0.25), coherence bandwidth (50 Hz), density scale (20.0). Everything else is derived.
+The 4 constants: Kleiber exponent (0.75), dissipation rates (0.005-0.25), coherence bandwidth (50 Hz), density scale (20.0).
 
-The most surprising result: chemotherapy resistance emerges from the same frequency alignment that determines molecular bonding.
+The most unexpected result: applying selective pressure (frequency-targeted dissipation increase, modeling a drug) produces resistance dynamics — from the same equations that determine molecular bonding at level 2.
 
-**22 binaries including:**
-- `cargo run --release --bin lab` — universal lab with Live 2D simulation
-- `cargo run --release --bin survival` — play as an evolved creature (WASD)
-- `cargo run --release --bin fermi` — how many random universes develop life?
+The engine includes a lab with Live 2D visualization where you can watch the simulation run in real time, and a survival mode where you control one creature with WASD.
 
 Paper: https://zenodo.org/records/19342036
 Code: https://github.com/ResakaGit/RESONANCE (109K LOC Rust, 2,994 tests, AGPL-3.0)
@@ -194,67 +203,60 @@ Code: https://github.com/ResakaGit/RESONANCE (109K LOC Rust, 2,994 tests, AGPL-3
 ## 6. Twitter/X Thread
 
 ```
-I derived chemotherapy resistance from 4 physical constants.
+I built a simulation where cancer resistance emerges from the same physics that forms molecular bonds.
 
-Not a metaphor. The same equations that form molecular bonds predict why tumors survive treatment.
+4 constants. 8 axioms. 109K lines of Rust. 2,994 tests. No hardcoded biology.
 
-109,000 lines of Rust. 2,994 tests. Zero hardcoded species.
-
-Thread ↓
+Here's what happens ↓
 ```
 
 ```
 1/ The 4 constants:
-• Kleiber exponent: 0.75 (metabolism ∝ mass^0.75)
-• Dissipation rates: 0.005→0.25 (Second Law per matter state)
-• Coherence bandwidth: 50 Hz (oscillatory window)
-• Density scale: 20.0 (spatial normalization)
+• Kleiber exponent: 0.75 (metabolic scaling)
+• Dissipation rates: 0.005→0.25 (Second Law)
+• Coherence bandwidth: 50 Hz
+• Density scale: 20.0
 
-From these, ~40 lifecycle thresholds are DERIVED algebraically. Not tuned. Computed.
+From these, ~40 thresholds are derived algebraically. Not tuned. Computed.
 ```
 
 ```
-2/ 10 levels of biology emerge bottom-up:
+2/ 10 levels emerge bottom-up:
 
-Energy → matter → molecules (Coulomb) → life (abiogenesis) → genomes (4→32 genes) → genetic code (64 codons) → proteins (lattice fold) → metabolic networks (Hebb) → multicellularity → social behavior
+Energy → matter → molecules → life → genomes → genetic code → proteins → metabolic networks → multicellularity → social behavior
 
-Each from the previous. Nothing programmed.
+Each from the previous. Zero top-down programming.
 ```
 
 ```
 3/ The drug model:
 
-A drug increases dissipation rate (Second Law):
-effect = Potency × alignment(f_drug, f_cell) × base_rate
+A drug increases dissipation (Second Law). Frequency alignment determines selectivity.
 
-Cells with different frequencies? Low alignment → they survive.
+Cells with mismatched frequencies survive → reproduce → population shifts.
 
-That's resistance. Emergent. Not coded.
+That's resistance. Emergent from physics.
 ```
 
 ```
-4/ Results match Bozic et al. 2013 (eLife):
-• Moderate monotherapy → tumor persists
-• Stem cells cause relapse after initial response
-• Clonal diversity increases under treatment
+4/ Consistent with Bozic et al. 2013 (eLife): monotherapy at moderate dose → tumor persists.
 
-All from 4 constants. No oncology parameters.
+But honest caveat: this is a theoretical model. Not clinically validated. Useful for exploring resistance dynamics, not for prescribing treatment.
 ```
 
 ```
-5/ You can try it right now:
+5/ Try it:
 
 cargo run --release --bin lab
-→ egui dashboard with Cancer Therapy experiment
+→ Dashboard with cancer therapy experiment + Live 2D
 
 cargo run --release --bin survival
-→ play as an evolved creature (WASD)
+→ Play as an evolved creature
 
 Paper: https://zenodo.org/records/19342036
-Code: github.com/ResakaGit/RESONANCE
-License: AGPL-3.0
+Code: github.com/ResakaGit/RESONANCE (AGPL-3.0)
 
-Feedback welcome. Especially from oncologists.
+Feedback welcome — especially from computational biologists.
 ```
 
 ---
@@ -262,23 +264,22 @@ Feedback welcome. Especially from oncologists.
 ## 7. LinkedIn
 
 ```
-I just published a paper on arXiv: an open-source simulation engine where chemotherapy resistance emerges from 4 physical constants.
+I published a paper on Zenodo presenting Resonance — an open-source simulation engine where biological phenomena emerge from 4 thermodynamic constants.
 
-No cell-type parameters. No hardcoded resistance genes. The same equations that form molecular bonds predict tumor survival under treatment.
+The engine derives ~40 lifecycle thresholds algebraically. No per-species tuning. 10 levels of biological organization emerge bottom-up: from energy fields to molecular bonds to genomes to metabolic networks to multicellularity.
 
-Key results:
-→ 10 levels of biological organization emerge bottom-up
-→ Drug resistance matches Bozic et al. 2013 (eLife)
-→ 109,000 lines of Rust, 2,994 tests, AGPL-3.0
+Under selective pressure (frequency-targeted dissipation increase), the simulated population develops drug resistance dynamics consistent with theoretical predictions from Bozic et al. 2013 (eLife).
 
-The engine includes a universal lab (egui dashboard) with experiments for cancer therapy, speciation, convergent evolution, and the Fermi paradox — all from the same 4 constants.
+Important caveat: this is a theoretical model, not a clinical tool. It needs calibration against real tumor growth data to be medically useful.
+
+The project includes a universal lab with egui dashboard, survival gameplay mode, and CSV export for data analysis — all built in Rust (109K LOC, 2,994 tests, AGPL-3.0).
 
 Paper: https://zenodo.org/records/19342036
 Code: https://github.com/ResakaGit/RESONANCE
 
-Looking to connect with computational oncology researchers for clinical calibration. If you work in drug resistance modeling, I'd love to hear your perspective.
+Looking to connect with computational biology researchers interested in axiomatic approaches to emergence and drug resistance modeling.
 
-#ComputationalBiology #OpenSource #Rust #CancerResearch #ArtificialLife
+#ComputationalBiology #OpenSource #Rust #Simulation #ArtificialLife
 ```
 
 ---
@@ -287,15 +288,16 @@ Looking to connect with computational oncology researchers for clinical calibrat
 
 | Día | Plataforma | Hora óptima | Nota |
 |-----|-----------|-------------|------|
-| Día 1 (post-arXiv) | Hacker News | 9-10 AM EST, Mar-Jue | Show HN. NO fines de semana. |
-| Día 1 (+2h) | r/rust | Después de HN | Cross-link al HN thread |
-| Día 1 (tarde) | Twitter/X thread | 12-2 PM EST | Con screenshot del lab UI |
-| Día 2 | r/compsci + r/artificial | 9 AM EST | Academic audience |
-| Día 2 | LinkedIn | Mediodía | Professional network |
-| Día 3 | r/bioinformatics | 9 AM EST | Domain specialists |
+| Hoy | Hacker News | 9-10 AM EST, Mar-Jue | Show HN. Paper ya está en Zenodo. |
+| Hoy (+2h) | r/rust | Después de HN | Enfoque en arquitectura Rust |
+| Hoy (tarde) | Twitter/X thread | 12-2 PM EST | Con screenshot del lab Cancer Therapy chart |
+| Día 2 | r/compsci + r/artificial | 9 AM EST | Enfoque académico |
+| Día 2 | LinkedIn | Mediodía | Red profesional |
+| Día 3 | r/bioinformatics | 9 AM EST | Especialistas de dominio |
 
 **Reglas:**
-- NUNCA publicar antes de que arXiv muestre el paper (24-48h post-submit)
-- Incluir screenshot del lab UI (Cancer Therapy chart) en Twitter y Reddit
+- Screenshot del lab UI (Cancer Therapy chart mostrando resistance) en Twitter y Reddit
 - Responder a TODOS los comentarios las primeras 6 horas
-- NO cross-postear el mismo texto en múltiples subreddits — cada uno tiene su versión
+- NO cross-postear el mismo texto — cada subreddit tiene su versión
+- Ser honesto sobre limitaciones en CADA post — la comunidad científica castiga el hype
+- Si preguntan "can this cure cancer?" → responder "No. It can help understand resistance dynamics."
