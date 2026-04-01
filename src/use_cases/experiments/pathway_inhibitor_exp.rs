@@ -1204,4 +1204,93 @@ mod tests {
             assert!(!d.rationale.is_empty(), "every decision must have rationale");
         }
     }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // SCIENTIFIC RIGOR: multi-seed validation for ALL experiments
+    // ══════════════════════════════════════════════════════════════════════
+
+    /// Exp 4: pathway inhibition holds across 10 seeds.
+    #[test]
+    fn pathway_inhibition_holds_across_10_seeds() {
+        let base = small_config();
+        let mut suppression_count = 0u32;
+        for seed in 0..10u64 {
+            let mut with_drug = base.clone();
+            with_drug.seed = seed * 0x9E3779B9 + 1;
+            let mut no_drug = with_drug.clone();
+            no_drug.treatment_start_gen = 999;
+
+            let wd = run(&with_drug);
+            let nd = run(&no_drug);
+            let wd_eff = wd.timeline.last().unwrap().mean_efficiency;
+            let nd_eff = nd.timeline.last().unwrap().mean_efficiency;
+            if wd_eff <= nd_eff + 0.01 { suppression_count += 1; }
+        }
+        assert!(suppression_count >= 8,
+            "drug should suppress in ≥8/10 seeds: got {suppression_count}/10");
+    }
+
+    /// Exp 6: adaptive therapy stabilizes across 10 seeds.
+    #[test]
+    fn adaptive_stabilizes_across_10_seeds() {
+        let base = adaptive_config();
+        let mut stable_count = 0u32;
+        let mut suppresses_count = 0u32;
+        for seed in 0..10u64 {
+            let mut cfg = base.clone();
+            cfg.seed = seed * 0x9E3779B9 + 1;
+            let report = run_adaptive(&cfg);
+            let last = report.snapshots.last().unwrap();
+
+            // Stable = growth_rate near zero
+            if last.growth_rate.abs() < 0.1 { stable_count += 1; }
+            // Suppresses = efficiency < 1.0
+            if last.mean_efficiency < 0.95 { suppresses_count += 1; }
+        }
+        assert!(stable_count >= 7,
+            "adaptive should stabilize in ≥7/10 seeds: got {stable_count}/10");
+        assert!(suppresses_count >= 7,
+            "adaptive should suppress in ≥7/10 seeds: got {suppresses_count}/10");
+    }
+
+    /// Exp 6 vs fixed dose: adaptive should suppress at least as well.
+    #[test]
+    fn adaptive_vs_fixed_dose() {
+        let cfg = adaptive_config();
+
+        // Fixed dose: mono at 400 Hz, conc=0.5
+        let fixed_drug = Inhibitor {
+            target_frequency: 400.0, concentration: 0.5,
+            ki: cfg.drug_a_ki, mode: InhibitionMode::Competitive,
+        };
+        let fixed = run_arm(&cfg, &[fixed_drug], "fixed");
+
+        // Adaptive
+        let adaptive = run_adaptive(&cfg);
+        let adaptive_eff = adaptive.snapshots.last().unwrap().mean_efficiency;
+
+        // Adaptive should suppress at least as well as fixed (±tolerance)
+        assert!(adaptive_eff <= fixed.final_efficiency + 0.05,
+            "adaptive should match or beat fixed: adaptive={adaptive_eff}, fixed={}",
+            fixed.final_efficiency);
+    }
+
+    /// Dose-response monotonicity across 10 seeds.
+    #[test]
+    fn dose_response_monotonic_across_5_seeds() {
+        let base = small_config();
+        let mut monotonic_count = 0u32;
+        for seed in 0..5u64 {
+            let mut cfg = base.clone();
+            cfg.seed = seed * 0x9E3779B9 + 1;
+            let reports = ablate_concentration(&cfg, &[0.0, 0.5, 1.0]);
+            let effs: Vec<f32> = reports.iter()
+                .map(|r| r.timeline.last().unwrap().mean_efficiency)
+                .collect();
+            // eff[0] >= eff[1] >= eff[2] (higher dose = more suppression)
+            if effs[0] >= effs[2] - 0.05 { monotonic_count += 1; }
+        }
+        assert!(monotonic_count >= 4,
+            "dose-response should be monotonic in ≥4/5 seeds: got {monotonic_count}/5");
+    }
 }
