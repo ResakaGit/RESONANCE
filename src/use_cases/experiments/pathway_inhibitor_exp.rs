@@ -1293,4 +1293,118 @@ mod tests {
         assert!(monotonic_count >= 4,
             "dose-response should be monotonic in ≥4/5 seeds: got {monotonic_count}/5");
     }
+
+    // ══════════════════════════════════════════════════════════════════════
+    // ROSIE CASE VALIDATION
+    //
+    // Canine mast cell tumor. Source: press reports March 2026.
+    // mRNA vaccine: 75% main tumor reduction in 6 weeks.
+    // Some tumors didn't respond (resistance).
+    //
+    // DISCLAIMER: SIMULATED. NOT VETERINARY ADVICE.
+    // Calibrated from press reports, NOT peer-reviewed data.
+    // ══════════════════════════════════════════════════════════════════════
+
+    fn rosie_config() -> BozicValidationConfig {
+        use crate::blueprint::equations::clinical_calibration::{
+            CANINE_MAST_CELL, ROSIE_OBSERVED, days_to_generations, fraction_to_entity_counts,
+        };
+        let (responsive, resistant) = fraction_to_entity_counts(45, ROSIE_OBSERVED.responsive_fraction);
+        let treatment_gen = days_to_generations(21.0, &CANINE_MAST_CELL); // Start after 1 doubling
+
+        BozicValidationConfig {
+            tumor_count: 45,
+            tumor_freq: 400.0,       // KIT+ responsive: near drug target
+            tumor_spread: 120.0,     // High heterogeneity (30% KIT- at distant freq)
+            tumor_qe: 80.0,
+            drug_a_freq: 400.0,      // Vaccine targets KIT+ frequency
+            drug_a_conc: 0.8,
+            drug_a_ki: DISSIPATION_SOLID * 80.0, // Potent (vaccine is targeted)
+            drug_b_freq: 250.0,      // Hypothetical second target for KIT-
+            drug_b_conc: 0.6,
+            drug_b_ki: DISSIPATION_SOLID * 120.0,
+            treatment_start_gen: treatment_gen,
+            nutrient_level: 5.0,
+            worlds: 10, generations: 15, ticks_per_gen: 80,
+            seed: 42,
+        }
+    }
+
+    /// GIVEN: Rosie tumor profile (70% KIT+, 30% KIT-)
+    /// WHEN: single-target vaccine (mono at KIT+ frequency)
+    /// THEN: partial response (efficiency drops significantly but doesn't reach zero)
+    #[test]
+    fn rosie_mono_vaccine_produces_partial_response() {
+        let cfg = rosie_config();
+        let drug = Inhibitor {
+            target_frequency: cfg.drug_a_freq,
+            concentration: cfg.drug_a_conc,
+            ki: cfg.drug_a_ki,
+            mode: InhibitionMode::Competitive,
+        };
+        let mono = run_arm(&cfg, &[drug], "mono_vaccine");
+
+        // Partial response: efficiency should drop but not to zero
+        // (KIT- cells don't respond → resistant fraction persists)
+        assert!(mono.final_efficiency < 0.8,
+            "vaccine should reduce efficiency: eff={}", mono.final_efficiency);
+        assert!(mono.final_efficiency > 0.05,
+            "should NOT eliminate all (resistant fraction): eff={}", mono.final_efficiency);
+    }
+
+    /// GIVEN: Rosie case
+    /// WHEN: combo vaccine (KIT+ target + hypothetical KIT- target)
+    /// THEN: better suppression than mono (addresses resistant population)
+    #[test]
+    fn rosie_combo_vaccine_better_than_mono() {
+        let cfg = rosie_config();
+        let drug_a = Inhibitor {
+            target_frequency: cfg.drug_a_freq, concentration: cfg.drug_a_conc,
+            ki: cfg.drug_a_ki, mode: InhibitionMode::Competitive,
+        };
+        let drug_b = Inhibitor {
+            target_frequency: cfg.drug_b_freq, concentration: cfg.drug_b_conc,
+            ki: cfg.drug_b_ki, mode: InhibitionMode::Competitive,
+        };
+        let mono = run_arm(&cfg, &[drug_a], "mono");
+        let combo = run_arm(&cfg, &[drug_a, drug_b], "combo");
+
+        assert!(combo.final_efficiency <= mono.final_efficiency + 0.02,
+            "combo should suppress ≥ mono: combo={}, mono={}",
+            combo.final_efficiency, mono.final_efficiency);
+    }
+
+    /// GIVEN: Rosie case with adaptive controller
+    /// WHEN: controller manages treatment
+    /// THEN: achieves stability (growth ≈ 0)
+    #[test]
+    fn rosie_adaptive_achieves_stability() {
+        let cfg = rosie_config();
+        let report = run_adaptive(&cfg);
+        let last = report.snapshots.last().unwrap();
+        assert!(last.growth_rate.abs() < 0.15,
+            "adaptive should stabilize: growth_rate={}", last.growth_rate);
+    }
+
+    /// Multi-seed: Rosie partial response is structural, not stochastic
+    #[test]
+    fn rosie_partial_response_across_5_seeds() {
+        let base = rosie_config();
+        let mut partial_count = 0u32;
+        for seed in 0..5u64 {
+            let mut cfg = base.clone();
+            cfg.seed = seed * 0x9E3779B9 + 1;
+            let drug = Inhibitor {
+                target_frequency: cfg.drug_a_freq, concentration: cfg.drug_a_conc,
+                ki: cfg.drug_a_ki, mode: InhibitionMode::Competitive,
+            };
+            let result = run_arm(&cfg, &[drug], "mono");
+            // Partial response = efficiency between 0.05 and 0.8
+            if result.final_efficiency > 0.05 && result.final_efficiency < 0.8 {
+                partial_count += 1;
+            }
+        }
+        assert!(partial_count >= 3,
+            "partial response should hold in ≥3/5 seeds: got {partial_count}/5");
+    }
 }

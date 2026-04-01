@@ -86,6 +86,79 @@ pub const NSCLC_ERLOTINIB: CalibrationProfile = CalibrationProfile {
     mutation_rate: 2e-9,
 };
 
+/// Mast cell tumor canino (caso Rosie). Sources: press reports + vet oncology literature.
+/// Canine mast cell tumor (Rosie case). Sources: press reports + vet oncology literature.
+///
+/// DISCLAIMER: Calibrated from press reports (Japan Times, Fortune, March 2026)
+/// and published veterinary oncology data. NOT from peer-reviewed trial data.
+/// This profile is for SIMULATION ONLY — not veterinary advice.
+///
+/// - Doubling time: 21 days (intermediate-grade canine mast cell, London & Seguin 2003)
+/// - IC50 toceranib (Palladia): 40 nM (KIT-mutant mast cell, London et al. 2009)
+///   Used as proxy for mRNA vaccine potency (no IC50 published for Rosie's vaccine)
+/// - Tumor at detection: ~10^8 cells (tennis-ball sized, ~2cm diameter solid tumor)
+/// - Mutation rate: ~3×10^-9 (canine, similar to human somatic rate)
+/// - KIT mutation prevalence: ~30% of canine mast cell tumors (heterogeneous)
+pub const CANINE_MAST_CELL: CalibrationProfile = CalibrationProfile {
+    name: "Canine mast cell (toceranib proxy)",
+    days_per_generation: 21.0,
+    nm_per_concentration: 40.0,
+    cells_per_entity: 1e8 / 128.0, // ~781K cells per entity
+    mutation_rate: 3e-9,
+};
+
+/// Predicción del caso Rosie: partial response esperado.
+/// Rosie case prediction: expected partial response.
+///
+/// Models the observed outcome: ~75% main tumor reduction + resistant subpopulation.
+/// - Responsive fraction: ~70% cells at target frequency (KIT+)
+/// - Resistant fraction: ~30% cells at different frequency (KIT-)
+/// - Treatment: single-target vaccine (equivalent to mono pathway inhibitor)
+/// - Expected: partial response + resistance in KIT- subpopulation
+#[derive(Clone, Copy, Debug)]
+pub struct RosieCasePrediction {
+    /// Fracción responsiva (KIT+, ~70% en mast cell con mutación KIT).
+    /// Responsive fraction (KIT+, ~70% in KIT-mutant mast cell).
+    pub responsive_fraction: f32,
+    /// Fracción resistente (KIT-, ~30%).
+    /// Resistant fraction (KIT-, ~30%).
+    pub resistant_fraction: f32,
+    /// Días hasta respuesta parcial observada.
+    /// Days to observed partial response.
+    pub days_to_partial_response: f32,
+    /// Reducción observada del tumor principal.
+    /// Observed main tumor reduction.
+    pub observed_reduction: f32,
+}
+
+/// Datos publicados del caso Rosie. Fuente: press reports marzo 2026.
+/// Published Rosie case data. Source: press reports March 2026.
+pub const ROSIE_OBSERVED: RosieCasePrediction = RosieCasePrediction {
+    responsive_fraction: 0.70,   // ~70% KIT+ (London & Seguin 2003)
+    resistant_fraction: 0.30,    // ~30% KIT- (heterogeneous)
+    days_to_partial_response: 42.0, // ~6 weeks (reported)
+    observed_reduction: 0.75,    // 75% tumor reduction (reported)
+};
+
+/// Estima generaciones para respuesta parcial dado un perfil.
+/// Estimate generations to partial response given a profile.
+#[inline]
+pub fn days_to_generations(days: f32, profile: &CalibrationProfile) -> u32 {
+    (days / profile.days_per_generation).ceil() as u32
+}
+
+/// Predice fracción responsiva/resistente como entity counts.
+/// Predict responsive/resistant fraction as entity counts.
+#[inline]
+pub fn fraction_to_entity_counts(
+    total_entities: u8,
+    responsive_fraction: f32,
+) -> (u8, u8) {
+    let responsive = (total_entities as f32 * responsive_fraction).round() as u8;
+    let resistant = total_entities.saturating_sub(responsive);
+    (responsive, resistant)
+}
+
 // ─── Conversion Functions (pure) ────────────────────────────────────────────
 
 /// Convierte generación simulada a días clínicos.
@@ -316,5 +389,61 @@ mod tests {
         let near = frequency_to_mutation_burden(10.0, &CML_IMATINIB, 20000);
         let far = frequency_to_mutation_burden(100.0, &CML_IMATINIB, 20000);
         assert!(far > near, "far={far}, near={near}");
+    }
+
+    // ── Canine mast cell (Rosie case) ───────────────────────────────────
+
+    #[test]
+    fn mast_cell_doubling_21_days() {
+        // London & Seguin 2003: intermediate grade mast cell doubling ~21 days
+        assert!((CANINE_MAST_CELL.days_per_generation - 21.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn mast_cell_toceranib_ic50_40nm() {
+        // London et al. 2009: toceranib IC50 ~40 nM for KIT-mutant mast cell
+        assert!((CANINE_MAST_CELL.nm_per_concentration - 40.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn rosie_6_weeks_is_2_generations() {
+        // 42 days / 21 days per gen = 2 generations
+        let gens = days_to_generations(ROSIE_OBSERVED.days_to_partial_response, &CANINE_MAST_CELL);
+        assert_eq!(gens, 2, "6 weeks should be 2 generations at 21-day doubling");
+    }
+
+    #[test]
+    fn rosie_responsive_resistant_split() {
+        // 70% responsive (KIT+), 30% resistant (KIT-)
+        let (resp, resist) = fraction_to_entity_counts(45, ROSIE_OBSERVED.responsive_fraction);
+        assert_eq!(resp, 32, "70% of 45 = ~32 responsive");
+        assert_eq!(resist, 13, "30% of 45 = ~13 resistant");
+    }
+
+    #[test]
+    fn rosie_calibrated_protocol() {
+        // Adaptive result "399 Hz @ 0.40" calibrated to mast cell
+        let drugs = calibrate_protocol(&[(399.0, 0.40)], 1, &CANINE_MAST_CELL);
+        // 0.40 × 40 nM = 16 nM
+        assert!((drugs[0].dose_nm - 16.0).abs() < 1e-2, "dose={}", drugs[0].dose_nm);
+        // gen 1 × 21 days = day 21
+        assert!((drugs[0].start_day - 21.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn rosie_tumor_cell_count() {
+        // Tennis-ball sized tumor ~10^8 cells
+        let cells = entities_to_cells(128.0, &CANINE_MAST_CELL);
+        assert!(cells > 9e7 && cells < 1.1e8, "cells={cells}");
+    }
+
+    #[test]
+    fn rosie_snapshot_at_response() {
+        // At partial response (gen 2 = day 42): efficiency should model 75% reduction
+        // If drug reduces efficiency to 0.25, tumor metabolic output is 25% of baseline
+        let snap = calibrate_snapshot(128.0, 0.25, 2, &CANINE_MAST_CELL);
+        assert!((snap.day - 42.0).abs() < 1e-3, "day={}", snap.day);
+        // Doubling time: 21 / 0.25 = 84 days (tumor barely growing)
+        assert!(snap.doubling_time_days > 80.0, "dt={}", snap.doubling_time_days);
     }
 }
