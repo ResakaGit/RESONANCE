@@ -235,10 +235,10 @@ cargo bench   # batch + bridge benchmarks
 
 ## Docs
 
-- **Design specs:** [docs/design/INDEX.md](./docs/design/INDEX.md)
+- **Architecture (canonical):** [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) — axioms, constants, module map, drug pipeline, Bozic validation, limitations
+- **Design specs (historical):** [docs/design/INDEX.md](./docs/design/INDEX.md)
 - **Module contracts:** [docs/arquitectura/](./docs/arquitectura/)
-- **Sprint backlog:** [docs/sprints/](./docs/sprints/)
-- **Planetary simulation:** [docs/design/PLANETARY_SIMULATION.md](./docs/design/PLANETARY_SIMULATION.md)
+- **Paper:** [docs/paper/](./docs/paper/) — arXiv source + references
 
 ## Requirements
 
