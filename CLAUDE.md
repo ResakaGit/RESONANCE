@@ -78,7 +78,7 @@ worldgen/           → V7: field_grid, nucleus (+NucleusReservoir), propagation
 **Maps:** `RESONANCE_MAP` → `assets/maps/{name}.ron` (`worldgen/map_config.rs`).
 **Headless:** `cargo run --bin headless_sim -- --ticks 10000 --scale 8 --out world.ppm` (sim → PPM image, no GPU).
 **Events:** `simulation/bootstrap.rs` — 15 `Event` types (incl. `TerrainMutationEvent`); `PathRequestEvent` in `Compat2d3dPlugin`.
-**Docs:** `docs/arquitectura/README.md` (module blueprints). Folder structure: `docs/design/FOLDER_STRUCTURE.md`.
+**Docs:** `docs/ARCHITECTURE.md` (canonical). Design specs: `docs/design/`. Module contracts: `docs/arquitectura/`.
 
 ## The 8 Foundational Axioms
 
@@ -597,8 +597,14 @@ If following a coding rule makes the game worse, break the rule and explain why.
 - `src/use_cases/experiments/cancer_therapy.rs` — drug resistance experiment (Hill pharmacology, quiescent stem cells)
 - `docs/paper/resonance_arxiv.tex` — arXiv paper source (3 experiments, 11 references)
 
-## Design Docs (`docs/design/`)
+## Documentation
 
-`FOLDER_STRUCTURE.md` | `GAMEDEV_PATTERNS.md` | `TOPOLOGY.md` | `V7.md` | `ECO_BOUNDARIES.md` | `BRIDGE_OPTIMIZER.md` | `MORPHOGENESIS.md` | `AXIOMATIC_CLOSURE.md` | `EMERGENCE_TIERS.md` | `INFERRED_WORLD_GEOMETRY.md` | `SIMULATION_CORE_DECOUPLING.md` | `EVOLUTION_GROUP_BEHAVIOR.md`
+**Canonical:** `docs/ARCHITECTURE.md` — axioms, constants, module map, drug pipeline, Bozic validation, adaptive controller, emergence status, limitations.
 
-Module narratives: `docs/arquitectura/` (incl. `blueprint_batch_simulator.md`).
+**Design specs (code-referenced only):**
+`docs/design/` — `TOPOLOGY.md` | `ECO_BOUNDARIES.md` | `BRIDGE_OPTIMIZER.md` | `AXIOMATIC_CLOSURE.md` | `SIMULATION_CORE_DECOUPLING.md` | `TERRAIN_MESHER.md` | `QUANTIZED_COLOR_ENGINE.md` | `FOLDER_STRUCTURE.md`
+
+**Module contracts (code-referenced only):**
+`docs/arquitectura/` — `blueprint_batch_simulator.md` | `blueprint_layer_bridge_optimizer.md` | `blueprint_axiomatic_closure.md` | `blueprint_blueprint_math.md`
+
+**Paper:** `docs/paper/resonance_arxiv.tex` — arXiv source (3 experiments, 11 references).
