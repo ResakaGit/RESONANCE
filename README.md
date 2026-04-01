@@ -13,7 +13,7 @@ Define the laws of physics. Press play. Watch life emerge. Design therapeutic st
 - **Adaptive therapy controller** — profiles tumor, selects frequency + dose, stabilizes growth at zero
 - **Bozic 2013 validated** — combination > monotherapy, confirmed 10/10 independent seeds
 - **Clinically calibrated** — output in nM, days, cell count (3 tumor profiles from published data)
-- **3,084 automated tests** — deterministic, bit-exact reproducible
+- **3,095 automated tests** — deterministic, bit-exact reproducible
 
 ## What It Is NOT
 
@@ -93,6 +93,32 @@ Validated across 10 seeds: stabilizes in ≥7/10, suppresses in ≥7/10.
 | 128 entities | ~10⁹ cells |
 | Combo A+B @ 0.8 | 208 nM + 208 nM, day 20 |
 
+### Experiment 7: Rosie Case (Canine Mast Cell Tumor)
+
+Simulation of a real-world case: personalized mRNA cancer vaccine for a dog (press reports, March 2026). Tumor profile: 70% KIT+ responsive, 30% KIT- resistant. Calibrated with published veterinary oncology data (London 2003, London 2009).
+
+| Observed (real) | Predicted (simulation) | Match |
+|----------------|----------------------|-------|
+| Mono vaccine → 75% tumor reduction | Mono → efficiency drops significantly | ✓ |
+| Some tumors didn't respond | Resistant fraction persists (eff > 0.05) | ✓ |
+| Surgery needed after vaccine | Mono insufficient to eliminate | ✓ |
+| Second target not tried | **Combo (KIT+ & KIT-) suppresses more than mono** | Prediction |
+
+Validated across 5 seeds. Partial response is structural, not stochastic.
+
+**Calibrated (canine mast cell):** 21-day doubling, toceranib IC50 = 40 nM proxy, ~10⁸ cells.
+
+*DISCLAIMER: Simulated from press reports. NOT peer-reviewed data. NOT veterinary advice.*
+
+### Clinical Calibration Profiles
+
+| Tumor | Drug | Doubling | IC50 | Source |
+|-------|------|---------|------|--------|
+| CML | Imatinib | 4 days | 260 nM | Bozic 2013 |
+| Prostate | Abiraterone | 30 days | 5.1 nM | Gatenby 2009 |
+| NSCLC | Erlotinib | 7 days | 20 nM | EGFR mutant |
+| Canine mast cell | Toceranib (proxy) | 21 days | 40 nM | London 2009 |
+
 ### Scientific Validation Summary
 
 | Criterion | Status |
@@ -138,7 +164,7 @@ RESONANCE_MAP=earth cargo run --release             # Earth simulation
 ## Tests
 
 ```bash
-cargo test --release    # 3,084 tests (110K LOC, ~33 sec)
+cargo test --release    # 3,095 tests (110K LOC, ~34 sec)
 cargo bench             # batch + bridge benchmarks
 ```
 
