@@ -99,14 +99,21 @@ Simulation of a real-world case: personalized mRNA cancer vaccine for a dog (pre
 
 | Observed (real) | Predicted (simulation) | Match |
 |----------------|----------------------|-------|
-| Mono vaccine → 75% tumor reduction | Mono → efficiency drops significantly | ✓ |
+| Mono vaccine → 75% tumor reduction | Mono → efficiency drops 50-70% | Pattern ✓ |
 | Some tumors didn't respond | Resistant fraction persists (eff > 0.05) | ✓ |
 | Surgery needed after vaccine | Mono insufficient to eliminate | ✓ |
 | Second target not tried | **Combo (KIT+ & KIT-) suppresses more than mono** | Prediction |
 
 Validated across 5 seeds. Partial response is structural, not stochastic.
 
-**Calibrated (canine mast cell):** 21-day doubling, toceranib IC50 = 40 nM proxy, ~10⁸ cells.
+**Calibrated (canine mast cell):** 21-day doubling, toceranib IC50 = 40 nM as pharmacological proxy (not mechanism equivalent — toceranib is a kinase inhibitor, the real vaccine is immune-mediated), ~10⁸ cells.
+
+**Known limitations of this simulation:**
+- Efficiency reduction ≠ tumor volume reduction (we measure metabolic suppression, not cell death)
+- 70/30 KIT+/KIT- split is from population-level prevalence (London 2003), not Rosie's individual tumor
+- No immune system modeled — vaccine is simulated as direct pathway inhibitor, not immune-mediated response
+- Frequency is a computational proxy for genetic identity, not a measured biological observable
+- The partial response pattern matches but the underlying mechanism differs (direct inhibition vs T-cell mediated killing)
 
 *DISCLAIMER: Simulated from press reports. NOT peer-reviewed data. NOT veterinary advice.*
 

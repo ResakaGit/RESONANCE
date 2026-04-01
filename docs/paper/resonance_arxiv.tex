@@ -1066,7 +1066,7 @@ veterinary oncology data \citep{london2003mast,london2009toceranib}:
 \toprule
 \textbf{Observed (press reports)} & \textbf{Simulated (Resonance)} & \textbf{Match} \\
 \midrule
-Mono vaccine $\to$ 75\% tumor reduction & Efficiency drops significantly & \checkmark \\
+Mono vaccine $\to$ 75\% tumor reduction & Efficiency drops 50--70\% & Pattern \checkmark \\
 Some tumors did not respond & Resistant fraction persists (eff $> 0.05$) & \checkmark \\
 Surgery needed after vaccine & Mono insufficient for elimination & \checkmark \\
 Second target not tried & Combo suppresses more than mono & Prediction \\
@@ -1090,9 +1090,31 @@ published tumor heterogeneity statistics alone.
 The prediction (combo $>$ mono for mast cell) is testable in
 the next vaccine iteration.
 
+\paragraph{Known limitations of this experiment.}
+\begin{itemize}
+  \item \emph{Observable mismatch:} We measure metabolic efficiency
+        reduction, not tumor volume reduction. The 50--70\% efficiency
+        drop parallels but does not directly measure the reported
+        75\% tumor shrinkage.
+  \item \emph{Pharmacological proxy:} Toceranib IC50 (40\,nM, kinase
+        inhibitor) is used as a potency proxy. The actual mRNA vaccine
+        operates via immune-mediated killing, a fundamentally different
+        mechanism.
+  \item \emph{Heterogeneity estimate:} The 70/30 KIT+/KIT$-$ split
+        is from population-level prevalence
+        \citep{london2003mast}, not from Rosie's individual
+        tumor profile.
+  \item \emph{No immune system:} The vaccine is modeled as a direct
+        pathway inhibitor, not as an immune response. The partial
+        response pattern matches, but the underlying mechanism differs.
+  \item \emph{Frequency as proxy:} Frequency is a computational proxy
+        for genetic/epigenetic identity, not a measured biological
+        observable. The mapping frequency $\to$ mutation burden is a
+        model hypothesis, not a validated correspondence.
+\end{itemize}
+
 \emph{Disclaimer: simulated from press reports, not peer-reviewed
-clinical data. Toceranib IC50 used as pharmacological proxy.
-Not veterinary advice.}
+clinical data. Not veterinary advice.}
 
 % ═════════════════════════════════════════════════════════════════════════════
 \section{Implementation}
