@@ -1,6 +1,39 @@
 # Changelog
 
-## [Unreleased] — 2026-03-30
+## [Unreleased] — 2026-03-31
+
+### Added — Drug Design + Adaptive Therapy (PI-1–10)
+- **Pathway inhibitor system**: 14 pure functions, 42 tests. Competitive/Noncompetitive/Uncompetitive inhibition. Hill dose-response. Off-target effects. Bliss independence for combinations.
+- **Destructive interference**: coherence disruption via opposing frequencies. Escape frequency prediction.
+- **Adaptive therapy controller**: feedback loop (profile → attack → predict escape → close → adapt). 5 decision states. Protocol output.
+- **Bozic 2013 validation**: 5-arm experiment. Combo (56.5%) > double dose (53.4%). 10/10 seeds, p < 0.001.
+- **Multi-seed robustness**: all experiments validated across 10 independent seeds.
+- 3 new binaries: `pathway_inhibitor`, `bozic_validation`, `adaptive_therapy`.
+
+### Added — Codebase Audit + Doc Honesty Pass
+- `docs/ARCHITECTURE.md`: centralized canonical documentation.
+- Derivation corrections: `SelfSustainingQeMin = DENSITY_SCALE`, `spawn_threshold = 1/3` from Axiom 2.
+- Abiogenesis docs: "NOT Prigogine" explicit. Radiation pressure: "stellar analogy" disclaimer.
+- 9 emergence systems marked ACTIVE, 7 marked NOT REGISTERED, 4 metabolic marked test-only.
+
+### Fixed
+- Duplicate `worldgen/materialization/` removed (identical copy).
+- `pressure_frequency_alignment` → delegates to canonical `gaussian_frequency_alignment`.
+- `organ_role_dimension` extracted to `metabolic_genome.rs` (was duplicated).
+- `dimension_base_frequency` aligned with canonical `DIM_BASE_FREQ`.
+- Worldgen hardcodes → concordance tests against `derived_thresholds`.
+- Duplicate `#[test]` attribute removed. Unused imports cleaned.
+
+### Removed
+- 46 unreferenced docs from `design/` and `arquitectura/`.
+- `docs/guides/`, `docs/ci/`, `docs/extraInfo/`.
+
+### Stats
+- Tests: 2,994 → **3,070** (+76)
+- LOC: ~109K → **~110K**
+- Binaries: 22 → **25** (+3: pathway_inhibitor, bozic_validation, adaptive_therapy)
+
+---
 
 ### Added — Scientific Observability Pipeline (SO-1–SO-5)
 - `batch/lineage.rs`: LineageId + TrackedGenome (deterministic FNV-1a ancestry, 10 tests)
