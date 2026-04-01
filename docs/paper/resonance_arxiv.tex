@@ -65,7 +65,7 @@ Coulomb-bonded molecules through variable-length genomes,
 codon-based genetic codes, lattice protein folding, metabolic
 networks, and multicellularity---without
 a single hardcoded species definition.
-We validate internal consistency with 3{,}066 automated tests
+We validate internal consistency with 3{,}084 automated tests
 across 110{,}000 lines of Rust, demonstrate deterministic
 reproducibility, and show that the same framework produces:
 (1)~emergent chemotherapy resistance dynamics consistent with
@@ -996,6 +996,40 @@ drug-sensitive population to compete with resistant clones
 rather than attempting maximal kill. Our controller
 implements this strategy from first principles.
 
+\subsection{Clinical Calibration}
+
+Simulation output is mapped to clinical units using
+published pharmacological data:
+
+\begin{table}[h]
+\centering
+\caption{Clinical calibration profiles from published data.}
+\label{tab:calibration}
+\small
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+\textbf{Tumor} & \textbf{Drug} & \textbf{Doubling (d)} & \textbf{IC50 (nM)} & \textbf{Source} \\
+\midrule
+CML & Imatinib & 4 & 260 & Bozic 2013, Druker 2001 \\
+Prostate & Abiraterone & 30 & 5.1 & Gatenby 2009, Li 2015 \\
+NSCLC & Erlotinib & 7 & 20 & EGFR mutant data \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The adaptive protocol ``399\,Hz @ 0.40, gen~3'' calibrates to:
+\begin{itemize}
+  \item \textbf{CML}: imatinib 104\,nM, start day~12.
+        Doubling time extended from 4 to 7.5~days.
+  \item \textbf{Prostate}: abiraterone 2.0\,nM, start day~90.
+        Doubling time extended from 30 to 56~days.
+\end{itemize}
+
+Three conversion functions (\texttt{generation\_to\_days},
+\texttt{concentration\_to\_nM}, \texttt{entities\_to\_cells})
+bridge simulation output to clinical units.
+14~tests verify calibration correctness.
+
 % ═════════════════════════════════════════════════════════════════════════════
 \section{Implementation}
 \label{sec:implementation}
@@ -1012,7 +1046,7 @@ implements this strategy from first principles.
 Language & Rust (2024 edition, MSRV 1.85) \\
 Engine & Bevy ECS 0.15 \\
 Lines of code & 110{,}000 \\
-Automated tests & 3{,}066 \\
+Automated tests & 3{,}084 \\
 Source files & 600+ \\
 Executable binaries & 25 \\
 Pure equation files & 50+ \\
@@ -1212,7 +1246,7 @@ genetics, ecology, and pharmacology---and can generate
 actionable therapeutic strategies from first principles.
 
 The engine is open-source, deterministic, and runs at
-$>10^6$ world-ticks per second with 3{,}066 automated tests.
+$>10^6$ world-ticks per second with 3{,}084 automated tests.
 We invite the community to extend, challenge, and falsify it.
 
 % ═════════════════════════════════════════════════════════════════════════════

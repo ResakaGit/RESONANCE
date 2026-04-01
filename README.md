@@ -12,16 +12,16 @@ Define the laws of physics. Press play. Watch life emerge. Design therapeutic st
 - **Pathway-level drug design** — inhibit specific metabolic pathways without killing cells
 - **Adaptive therapy controller** — profiles tumor, selects frequency + dose, stabilizes growth at zero
 - **Bozic 2013 validated** — combination > monotherapy, confirmed 10/10 independent seeds
-- **3,070 automated tests** — deterministic, bit-exact reproducible
+- **Clinically calibrated** — output in nM, days, cell count (3 tumor profiles from published data)
+- **3,084 automated tests** — deterministic, bit-exact reproducible
 
 ## What It Is NOT
 
-- **Not a clinical tool** — abstract energy units (qe), not molar concentrations
-- **Not a drug discovery pipeline** — does not design molecules (no SMILES, no docking)
-- **Not validated against patients** — no clinical data, no tumor doubling times in hours
+- **Not a clinical tool** — not validated against patient outcomes
+- **Not a drug discovery pipeline** — does not design molecules
 - **Not a substitute for oncology** — a simulator for exploring therapeutic strategies
 
-The gap between this simulator and clinical use is **validation against real data** (IC50 databases, patient response curves). The simulator is complete. The bridge to reality is not.
+**Clinically calibrated** — simulation output maps to real units (nM, days, cell count) via published data. Three tumor profiles: CML/imatinib (Bozic 2013), prostate/abiraterone (Gatenby 2009), NSCLC/erlotinib. Example: "399 Hz @ 0.40, gen 3" → "Imatinib 104 nM, start day 12, doubling time 4 → 7.5 days."
 
 ## The 8 Axioms
 
@@ -84,6 +84,15 @@ Protocol: "399 Hz @ 0.40, maintain from gen 3"
 
 Validated across 10 seeds: stabilizes in ≥7/10, suppresses in ≥7/10.
 
+### Calibrated Output (CML/imatinib)
+
+| Simulation | Clinical (Bozic 2013) |
+|-----------|----------------------|
+| Gen 3, 399 Hz @ 0.40 | Day 12, imatinib 104 nM |
+| Efficiency 0.536 | Doubling time 4 → 7.5 days |
+| 128 entities | ~10⁹ cells |
+| Combo A+B @ 0.8 | 208 nM + 208 nM, day 20 |
+
 ### Scientific Validation Summary
 
 | Criterion | Status |
@@ -95,7 +104,8 @@ Validated across 10 seeds: stabilizes in ≥7/10, suppresses in ≥7/10.
 | Pre-registration | ✓ Assertions written before execution |
 | Dose-response monotonicity | ✓ 5/5 seeds |
 | Against published prediction | ✓ Bozic 2013 combo advantage confirmed |
-| Against clinical data | **Not yet** — abstract units, no patient validation |
+| Clinical calibration | ✓ 3 profiles (CML, prostate, NSCLC) from published IC50 + doubling times |
+| Against patient outcomes | **Not yet** — calibrated but not validated against longitudinal patient data |
 
 ## Biological Hierarchy (10 levels, all emergent)
 
@@ -128,7 +138,7 @@ RESONANCE_MAP=earth cargo run --release             # Earth simulation
 ## Tests
 
 ```bash
-cargo test --release    # 3,070 tests (110K LOC, ~31 sec)
+cargo test --release    # 3,084 tests (110K LOC, ~33 sec)
 cargo bench             # batch + bridge benchmarks
 ```
 
