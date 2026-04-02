@@ -6,6 +6,9 @@ version: 1.0
 date: 2026-04-02
 status: DRAFT
 author: Resonance Development Team
+approved_by: PENDING
+review_date: PENDING
+review_status: PENDING
 ---
 
 # Limitations and Scope Report

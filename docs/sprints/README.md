@@ -10,10 +10,10 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 
 | Métrica | Valor |
 |---------|-------|
-| Sprints pendientes | **42** (39 prev + 3 RI) |
-| Tracks activos | **9** |
+| Sprints pendientes | **39** |
+| Tracks activos | **8** |
 | Oleadas restantes | **4** |
-| Tracks archivados | **50** (49 prev + RD ✅) |
+| Tracks archivados | **51** (49 prev + RD ✅ + RI ✅) |
 | Tests | **3,113** |
 | LOC | **113K** |
 | Binarios | **25** |
@@ -22,17 +22,11 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 
 ## 42 sprints pendientes
 
-### REGULATORY_INFRASTRUCTURE (3 sprints — cierra gaps estructurales) — NEW
+### REGULATORY_INFRASTRUCTURE ✅ COMPLETADO (2026-04-02)
 
-| Sprint | Descripción | Esfuerzo | Bloqueado por |
-|--------|-------------|----------|---------------|
-| [RI-1](REGULATORY_INFRASTRUCTURE/SPRINT_RI1_CICD_PIPELINE.md) | CI/CD Pipeline + Branch Protection | Medio | — |
-| [RI-2](REGULATORY_INFRASTRUCTURE/SPRINT_RI2_SIGNING_IDENTITY.md) | Commit Signing + Document Approval | Medio | RI-1 |
-| [RI-3](REGULATORY_INFRASTRUCTURE/SPRINT_RI3_GOVERNANCE_ACTIVATION.md) | Governance + Monitoring Activation | Bajo | RI-1 |
+3 sprints: RI-1 (CI/CD + branch protection), RI-2 (approval workflow + validation script), RI-3 (CCB + training matrix + issue templates + quarterly review). 8 ADRs en [`docs/arquitectura/ADR/`](../arquitectura/ADR/).
 
-Oleada: **0** RI-1 → **1** RI-2 + RI-3 (paralelos)
-
-ADRs: [`docs/arquitectura/ADR/`](../arquitectura/ADR/) — 8 decisiones documentadas
+Track README: [REGULATORY_INFRASTRUCTURE/](REGULATORY_INFRASTRUCTURE/)
 
 ---
 
@@ -261,8 +255,8 @@ Track README: [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
 
 | Estado | Tracks | Sprints |
 |--------|--------|---------|
-| ✅ Archivados | 50 tracks (incl. RD ✅) | 85 sprints |
-| ⏳ Activos | GS(6), PC(7), NS(4), EI(3), TU(4), EL(4), CV(4), BSD(5), RI(3) | 40 sprints |
+| ✅ Archivados | 51 tracks (incl. RD ✅, RI ✅) | 88 sprints |
+| ⏳ Activos | GS(6), PC(7), NS(4), EI(3), TU(4), EL(4), CV(4), BSD(5) | 37 sprints |
 | 🔒 Bloqueados | DEMO (1) | 1 sprint |
 
 ---

@@ -7,6 +7,9 @@ date: 2026-04-02
 status: DRAFT
 author: Resonance Development Team
 commit: 971c7acb99decde45bf28860e6e10372718c51e2
+approved_by: PENDING
+review_date: PENDING
+review_status: PENDING
 ---
 
 # Release Package Definition

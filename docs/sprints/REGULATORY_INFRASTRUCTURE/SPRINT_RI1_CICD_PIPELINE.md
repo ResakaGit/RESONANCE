@@ -2,7 +2,7 @@
 
 **Objetivo:** Establecer la infraestructura minima de integracion continua y proteccion de rama para que cada cambio a `main` sea verificado automaticamente. Cierra el gap #4 (no CI/CD) y habilita parcialmente #3 (GPG via CI) y #1 (approval via PR reviews).
 
-**Estado:** PENDIENTE
+**Estado:** ✅ COMPLETADO (2026-04-02)
 **Esfuerzo:** Medio (5 entregables, configuracion GitHub + workflows)
 **Bloqueado por:** --
 **Desbloquea:** RI-2, RI-3

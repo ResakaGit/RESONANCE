@@ -1,0 +1,32 @@
+name: Regulatory Feedback
+description: Report a gap, error, or improvement in regulatory documentation
+labels: ["regulatory", "documentation"]
+body:
+  - type: input
+    id: document
+    attributes:
+      label: Document Affected
+      description: "e.g., RD-2.3 RISK_EVALUATION.md"
+    validations:
+      required: true
+  - type: input
+    id: standard
+    attributes:
+      label: Standard Reference
+      description: "e.g., ISO 14971 §5.5"
+    validations:
+      required: false
+  - type: textarea
+    id: gap
+    attributes:
+      label: Gap Description
+      description: What is missing or incorrect?
+    validations:
+      required: true
+  - type: textarea
+    id: resolution
+    attributes:
+      label: Proposed Resolution
+      description: How should this be addressed?
+    validations:
+      required: false

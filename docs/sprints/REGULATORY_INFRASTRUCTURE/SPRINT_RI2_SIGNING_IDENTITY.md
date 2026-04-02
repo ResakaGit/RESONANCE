@@ -2,7 +2,7 @@
 
 **Objetivo:** Establecer identidad criptografica en commits y un workflow de aprobacion formal para documentos regulatorios. Cierra los gaps #3 (GPG signing), #1 (approval signatures) y #2 (review records).
 
-**Estado:** PENDIENTE
+**Estado:** ✅ COMPLETADO (2026-04-02)
 **Esfuerzo:** Medio (5 entregables, proceso + tooling)
 **Bloqueado por:** RI-1 (branch protection debe estar activa para enforcement)
 **Desbloquea:** --

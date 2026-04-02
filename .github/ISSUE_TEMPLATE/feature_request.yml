@@ -1,0 +1,29 @@
+name: Feature Request
+description: Propose a new feature or enhancement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What feature would you like?
+    validations:
+      required: true
+  - type: dropdown
+    id: axiom_impact
+    attributes:
+      label: Axiom Impact
+      description: Does this affect any of the 8 axioms?
+      options:
+        - "None — no axiom impact"
+        - "Extends — builds on existing axioms"
+        - "Requires review — may affect axiom compliance"
+    validations:
+      required: true
+  - type: textarea
+    id: layers
+    attributes:
+      label: Layers Affected
+      description: Which of the 14 ECS layers would this touch?
+    validations:
+      required: false

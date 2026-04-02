@@ -6,6 +6,9 @@ version: 1.0
 date: 2026-04-02
 status: DRAFT
 author: Resonance Development Team
+approved_by: PENDING
+review_date: PENDING
+review_status: PENDING
 ---
 
 # Post-Production Monitoring Plan
@@ -251,7 +254,19 @@ If evidence emerges that RESONANCE output is being used to inform clinical decis
 3. **If valid but out of context:** Document as a limitation in RD-6.3. Strengthen intended use boundaries in RD-1.1.
 4. **If invalid:** Document rebuttal. No action.
 
-## 9. Revision History
+## 9. Linked Artifacts
+
+| Artifact | Reference | Description |
+|----------|-----------|-------------|
+| GitHub Issue Templates | `.github/ISSUE_TEMPLATE/bug_report.yml` | Structured bug reporting with severity classification (Critical/High/Medium/Low) |
+| GitHub Issue Templates | `.github/ISSUE_TEMPLATE/feature_request.yml` | Feature requests with axiom impact assessment |
+| GitHub Issue Templates | `.github/ISSUE_TEMPLATE/regulatory_feedback.yml` | Regulatory documentation gap reporting |
+| Dependabot Configuration | `.github/dependabot.yml` | Automated SOUP dependency vulnerability monitoring |
+| Quarterly Review Template | RD-5.11 `docs/regulatory/05_quality_system/QUARTERLY_REVIEW_TEMPLATE.md` | Periodic review of risk file, SOUP, SBOM, and post-production feedback |
+
+**Note:** Monitoring channels activated in sprint RI-3. GitHub Issue templates provide structured intake for the monitoring channels defined in §2.1. Dependabot provides automated SOUP vulnerability scanning (§3.2). Quarterly reviews (RD-5.11) formalize the scheduled review cadence defined in §6.1.
+
+## 10. Revision History
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|

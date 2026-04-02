@@ -6,6 +6,9 @@ version: 1.0
 date: 2026-04-02
 status: DRAFT
 author: Resonance Development Team
+approved_by: PENDING
+review_date: PENDING
+review_status: PENDING
 ---
 
 # Internal Audit Procedure
@@ -238,7 +241,16 @@ For subjective audit criteria (e.g., "design is orthogonal to existing layers"),
 | Derived thresholds | `src/blueprint/equations/derived_thresholds.rs` | Source of audit criterion A2 (17 tests) |
 | Determinism module | `src/blueprint/equations/determinism.rs` | Source of determinism verification (23 tests) |
 
-## 11. Revision History
+## 11. Linked Artifacts
+
+| Artifact | Reference | Description |
+|----------|-----------|-------------|
+| Change Control Board Charter | RD-5.9 `docs/regulatory/05_quality_system/CCB_CHARTER.md` | CCB membership, scope, process, escalation, and quorum for regulatory and safety-critical changes |
+| Quarterly Review Template | RD-5.11 `docs/regulatory/05_quality_system/QUARTERLY_REVIEW_TEMPLATE.md` | Template for periodic management review of risk file, SOUP, SBOM, and test suite |
+
+**Note:** CCB and quarterly review activated in sprint RI-3. The CCB (RD-5.9) provides formal change control for regulatory documents and safety-critical changes referenced in §5.1 (audit criterion D1--D4). Quarterly reviews (RD-5.11) complement the scheduled audit cadence in §3.1.
+
+## 12. Revision History
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|

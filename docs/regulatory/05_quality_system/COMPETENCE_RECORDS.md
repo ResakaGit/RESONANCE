@@ -6,6 +6,9 @@ version: 1.0
 date: 2026-04-02
 status: DRAFT
 author: Resonance Development Team
+approved_by: PENDING
+review_date: PENDING
+review_status: PENDING
 ---
 
 # Personnel Competence and Training Records
@@ -178,7 +181,15 @@ A single individual performing all risk management roles creates a concentration
 
 This limitation would need to be resolved (by adding an independent reviewer) if RESONANCE were reclassified above Class A.
 
-## 7. Revision History
+## 7. Linked Artifacts
+
+| Artifact | Reference | Description |
+|----------|-----------|-------------|
+| Training and Competence Matrix | RD-5.10 `docs/regulatory/05_quality_system/TRAINING_MATRIX.md` | Formal competence evidence per role with evidence sources and status |
+
+**Note:** Formal competence evidence per role maintained in TRAINING_MATRIX.md (RD-5.10). The training matrix provides a concise, auditable summary complementing the detailed competence requirements in this document.
+
+## 8. Revision History
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
