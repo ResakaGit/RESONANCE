@@ -10,17 +10,39 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 
 | Métrica | Valor |
 |---------|-------|
-| Sprints pendientes | **37** |
-| Tracks activos | **8** |
-| Oleadas restantes | **3** |
-| Tracks archivados | **48** |
-| Tests | **2994** |
-| LOC | **109K** |
-| Binarios | **22** |
+| Sprints pendientes | **42** (39 prev + 3 RI) |
+| Tracks activos | **9** |
+| Oleadas restantes | **4** |
+| Tracks archivados | **50** (49 prev + RD ✅) |
+| Tests | **3,113** |
+| LOC | **113K** |
+| Binarios | **25** |
 
 ---
 
-## 38 sprints pendientes
+## 42 sprints pendientes
+
+### REGULATORY_INFRASTRUCTURE (3 sprints — cierra gaps estructurales) — NEW
+
+| Sprint | Descripción | Esfuerzo | Bloqueado por |
+|--------|-------------|----------|---------------|
+| [RI-1](REGULATORY_INFRASTRUCTURE/SPRINT_RI1_CICD_PIPELINE.md) | CI/CD Pipeline + Branch Protection | Medio | — |
+| [RI-2](REGULATORY_INFRASTRUCTURE/SPRINT_RI2_SIGNING_IDENTITY.md) | Commit Signing + Document Approval | Medio | RI-1 |
+| [RI-3](REGULATORY_INFRASTRUCTURE/SPRINT_RI3_GOVERNANCE_ACTIVATION.md) | Governance + Monitoring Activation | Bajo | RI-1 |
+
+Oleada: **0** RI-1 → **1** RI-2 + RI-3 (paralelos)
+
+ADRs: [`docs/arquitectura/ADR/`](../arquitectura/ADR/) — 8 decisiones documentadas
+
+---
+
+### REGULATORY_DOCUMENTATION ✅ COMPLETADO (2026-04-02)
+
+43 documentos + 1 índice en `docs/regulatory/` (~15,400 líneas). 50/50 ítems del checklist externo cubiertos. 8 gaps estructurales → track RI.
+
+Track README: [REGULATORY_DOCUMENTATION/](REGULATORY_DOCUMENTATION/) — Sprint docs: RD-1 through RD-7 ✅
+
+---
 
 ### GAMEPLAY_SYSTEMS (6 sprints pendientes)
 
@@ -231,14 +253,16 @@ Track README: [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
 | **CV** | 4 | CIVILIZATION | 4 serie | ⏳ Diseñado | TU + EL |
 | **BSD** | 7 | BRIDGE_STRATEGY_DECOUPLING | 2 ✅ → 5 pendiente | ⏳ BS-2/3 done | — (independiente) |
 | **SO** | 5 | SCIENTIFIC_OBSERVABILITY | 5 ✅ | ✅ ARCHIVADA | — |
-| **Total** | **112** | — | — | 70 ✅ · 40 ⏳ · 1 🔒 | |
+| **RI** | 3 | REGULATORY_INFRASTRUCTURE | 1 → 2 paralelo | ⏳ Diseñado | RD ✅ |
+| **RD** | 7 | REGULATORY_DOCUMENTATION | 4 oleadas | ✅ COMPLETA | — |
+| **Total** | **115** | — | — | 77 ✅ · 40 ⏳ · 1 🔒 | |
 
 ### Tracks por estado
 
 | Estado | Tracks | Sprints |
 |--------|--------|---------|
-| ✅ Archivados | 49 tracks | 78 sprints |
-| ⏳ Activos | GS(6), PC(7), NS(4), EI(3), TU(4), EL(4), CV(4), BSD(5) | 37 sprints |
+| ✅ Archivados | 50 tracks (incl. RD ✅) | 85 sprints |
+| ⏳ Activos | GS(6), PC(7), NS(4), EI(3), TU(4), EL(4), CV(4), BSD(5), RI(3) | 40 sprints |
 | 🔒 Bloqueados | DEMO (1) | 1 sprint |
 
 ---
