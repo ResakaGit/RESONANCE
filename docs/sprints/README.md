@@ -10,8 +10,8 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 
 | Métrica | Valor |
 |---------|-------|
-| Sprints pendientes | **39** |
-| Tracks activos | **8** |
+| Sprints pendientes | **44** (39 prev + 5 PV) |
+| Tracks activos | **9** |
 | Oleadas restantes | **4** |
 | Tracks archivados | **51** (49 prev + RD ✅ + RI ✅) |
 | Tests | **3,113** |
@@ -21,6 +21,20 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 ---
 
 ## 42 sprints pendientes
+
+### PAPER_VALIDATION (5 sprints — validación contra literatura peer-reviewed) — NEW
+
+| Sprint | Paper | Dato cuantitativo | Esfuerzo | Bloqueado por |
+|--------|-------|-------------------|----------|---------------|
+| [PV-1](PAPER_VALIDATION/SPRINT_PV1_ZHANG_ADAPTIVE.md) | Zhang 2022 (eLife) | TTP 33.5 vs 14.3 meses, adaptive therapy | Medio | — |
+| [PV-2](PAPER_VALIDATION/SPRINT_PV2_SHARMA_PERSISTERS.md) | Sharma 2010 (Cell) | 0.3% persisters, 100× resistencia, 9 doublings recovery | Medio | — |
+| [PV-3](PAPER_VALIDATION/SPRINT_PV3_HILL_CALIBRATION.md) | GDSC/CCLE | Distribución real Hill slopes vs n=2 | Bajo | — |
+| [PV-4](PAPER_VALIDATION/SPRINT_PV4_FOO_PULSED.md) | Foo & Michor 2009 (PLoS) | P(res) = 1-exp(-uB), continuous vs pulsed | Medio | — |
+| [PV-5](PAPER_VALIDATION/SPRINT_PV5_MICHOR_BIPHASIC.md) | Michor 2005 (Nature) | Biphasic CML decline, slope ratio 6-10× | Medio-Alto | — |
+
+Todos paralelos. Zero acoplamiento: cada PV es 1 archivo nuevo en `use_cases/experiments/paper_*.rs`. Track README: [PAPER_VALIDATION/](PAPER_VALIDATION/)
+
+---
 
 ### REGULATORY_INFRASTRUCTURE ✅ COMPLETADO (2026-04-02)
 
