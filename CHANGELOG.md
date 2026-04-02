@@ -1,5 +1,32 @@
 # Changelog
 
+## [Unreleased] — 2026-04-02
+
+### Added — Regulatory Documentation Track (RD-1 through RD-7)
+- **43 regulatory documents** + 1 master audit checklist in `docs/regulatory/` (~15,400 lines)
+- **RD-1 Foundation (8 docs)**: Intended Use (IMDRF N10/N12), Safety Class A (IEC 62304), SRS (32 requirements), Dev Plan, Regulatory Strategy, Medical Device File, Maintenance Plan, Problem Resolution
+- **RD-2 Risk Management (7 docs)**: ISO 14971:2019 complete — Plan, Analysis (12 hazards), Evaluation (5×5 matrix), Controls (52 measures), Residual Risk, Report, Post-Production Monitoring
+- **RD-3 Traceability (4 docs)**: Traceability Matrix (32 reqs → code → tests → risks), SOUP Analysis (15 runtime deps), SBOM (NTIA-compliant), Configuration Management
+- **RD-4 Validation (6 docs)**: Validation Plan, ASME V&V 40 Credibility Model (§4-8), Verification Report (3,113 tests), Validation Report (Bozic + Rosie + 4 experiments), Uncertainty Analysis, User Requirements Spec (GAMP 5)
+- **RD-5 Quality System (8 docs)**: ISO 13485 QMS — Quality Manual, Policy, Document Control, Record Control, Internal Audit, Nonconforming Product, CAPA (3 real CAPAs), Competence Records
+- **RD-6 Clinical (5 docs)**: Clinical Evaluation Plan/Report (IMDRF N41), Limitations Report (CAN/CANNOT/ASSUMPTIONS), Reproducibility Protocol (copy-paste commands), Reference Data Registry (7 datasets with DOIs)
+- **RD-7 Release (5 docs)**: 21 CFR Part 11 Compliance (§11.10 a-k), ALCOA+ Data Integrity, Audit Trail, Cybersecurity Plan (STRIDE), Release Package (12 go/no-go criteria)
+- Standards covered: IEC 62304, ISO 14971, ISO 13485, ASME V&V 40, FDA CMS Guidance 2023, 21 CFR Part 11, IMDRF SaMD, GAMP 5
+- All 50 items from external audit checklist mapped to documents (42 direct, 8 distributed)
+- 8 structural gaps documented honestly (signatures, CI/CD, GPG, CCB, training certs, monitoring)
+
+### Fixed
+- README.md test count: 3,095 → **3,113** (actual `cargo test` output)
+- pathway_inhibitor.rs test count in SRS/traceability: 41 �� **42** (verified by `#[test]` count)
+- INTENDED_USE.md: added IMDRF N12R2:2014 reference for risk categorization (was N10 only)
+
+### Stats
+- Tests: 3,070 → **3,113** (+43)
+- LOC: ~110K → **~113K**
+- Regulatory docs: 0 → **44** (43 documents + 1 index)
+
+---
+
 ## [Unreleased] — 2026-03-31
 
 ### Added — Drug Design + Adaptive Therapy (PI-1–10)

@@ -13,7 +13,7 @@ Define the laws of physics. Press play. Watch life emerge. Design therapeutic st
 - **Adaptive therapy controller** — profiles tumor, selects frequency + dose, stabilizes growth at zero
 - **Bozic 2013 validated** — combination > monotherapy, confirmed 10/10 independent seeds
 - **Clinically calibrated** — output in nM, days, cell count (3 tumor profiles from published data)
-- **3,095 automated tests** — deterministic, bit-exact reproducible
+- **3,113 automated tests** — deterministic, bit-exact reproducible
 
 ## What It Is NOT
 
@@ -171,7 +171,7 @@ RESONANCE_MAP=earth cargo run --release             # Earth simulation
 ## Tests
 
 ```bash
-cargo test --release    # 3,095 tests (110K LOC, ~34 sec)
+cargo test --release    # 3,113 tests (113K LOC, ~36 sec)
 cargo bench             # batch + bridge benchmarks
 ```
 

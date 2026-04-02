@@ -607,4 +607,7 @@ If following a coding rule makes the game worse, break the rule and explain why.
 **Module contracts (code-referenced only):**
 `docs/arquitectura/` — `blueprint_batch_simulator.md` | `blueprint_layer_bridge_optimizer.md` | `blueprint_axiomatic_closure.md` | `blueprint_blueprint_math.md`
 
+**Regulatory documentation:**
+`docs/regulatory/` — 43 documents + master audit checklist (IEC 62304, ISO 14971, ISO 13485, ASME V&V 40, FDA CMS 2023, 21 CFR Part 11, IMDRF SaMD, GAMP 5). Index: `docs/regulatory/AUDIT_CHECKLIST.md`. Classification: Safety Class A (research tool). Sprint plan: `docs/sprints/REGULATORY_DOCUMENTATION/`.
+
 **Paper:** `docs/paper/resonance_arxiv.tex` — arXiv source (3 experiments, 11 references).
