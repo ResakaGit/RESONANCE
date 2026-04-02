@@ -1,5 +1,10 @@
 # Resonance — Emergent Life Simulation Engine
 
+[![CI](https://github.com/ResakaGit/RESONANCE/actions/workflows/ci.yml/badge.svg)](https://github.com/ResakaGit/RESONANCE/actions/workflows/ci.yml)
+[![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](./LICENSE)
+[![Tests: 3,113](https://img.shields.io/badge/tests-3%2C113%20passing-brightgreen)]()
+[![Safety Class: A](https://img.shields.io/badge/IEC%2062304-Class%20A-green)]()
+
 Simulation engine where life, evolution, and therapeutic strategies emerge from **8 axioms** and **4 fundamental constants**. Built with **Rust** and **Bevy 0.15 ECS**. Open source (AGPL-3.0).
 
 Paper: https://zenodo.org/records/19342036 | Repo: https://github.com/ResakaGit/RESONANCE
@@ -190,18 +195,60 @@ src/
 └── bin/                    25 executables
 ```
 
-## Docs
+## Documentation
 
-- **Architecture (canonical):** [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md)
-- **Paper:** [docs/paper/](./docs/paper/) — arXiv source (6 experiments, 12 references)
-- **Design specs:** [docs/design/](./docs/design/) — code-referenced historical specs
+| Document | Description |
+|----------|-------------|
+| [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Canonical architecture — axioms, constants, module map, pipeline |
+| [docs/regulatory/](./docs/regulatory/) | 46 regulatory documents (IEC 62304, ISO 14971, ISO 13485, ASME V&V 40, FDA CMS 2023, 21 CFR Part 11) |
+| [docs/regulatory/AUDIT_CHECKLIST.md](./docs/regulatory/AUDIT_CHECKLIST.md) | Master audit index — 50/50 external checklist items mapped |
+| [docs/arquitectura/ADR/](./docs/arquitectura/ADR/) | 8 Architecture Decision Records |
+| [docs/paper/](./docs/paper/) | arXiv paper source (7 experiments, 12 references) |
+| [docs/design/](./docs/design/) | Code-referenced design specs |
+| [docs/sprints/](./docs/sprints/) | Sprint backlog (39 pending) + [archive/](./docs/sprints/archive/) (88 completed) |
+
+## Regulatory Status
+
+RESONANCE is a **research tool**, not a medical device. Voluntary compliance documentation exists for credibility and partnership readiness.
+
+| Standard | Classification | Document |
+|----------|---------------|----------|
+| IEC 62304 | **Safety Class A** (no injury possible) | [SOFTWARE_SAFETY_CLASS.md](./docs/regulatory/01_foundation/SOFTWARE_SAFETY_CLASS.md) |
+| IMDRF SaMD | **Category I** (Non-serious, Inform) | [INTENDED_USE.md](./docs/regulatory/01_foundation/INTENDED_USE.md) |
+| ISO 14971 | 12 hazards, 52 controls, all ALARP or Acceptable | [RISK_ANALYSIS.md](./docs/regulatory/02_risk_management/RISK_ANALYSIS.md) |
+| ASME V&V 40 | Credibility model complete (§4-8) | [CREDIBILITY_MODEL.md](./docs/regulatory/04_validation/CREDIBILITY_MODEL.md) |
+| ISO 13485 | QMS minimal viable (Quality Manual + 6 procedures) | [QUALITY_MANUAL.md](./docs/regulatory/05_quality_system/QUALITY_MANUAL.md) |
+
+**Disclaimer:** This documentation is voluntary best-practice, not regulatory obligation. RESONANCE is not FDA-cleared, CE-marked, or approved for clinical use. See [INTENDED_USE.md](./docs/regulatory/01_foundation/INTENDED_USE.md) and [LIMITATIONS_REPORT.md](./docs/regulatory/06_clinical/LIMITATIONS_REPORT.md).
+
+## CI/CD
+
+Every push to `main` and every PR runs 5 automated checks:
+
+```
+cargo check    — compilation
+cargo test     — 3,113 tests
+cargo clippy   — zero warnings
+cargo audit    — no known CVEs
+cargo fmt      — formatting
+```
+
+Branch protection requires PR + CI pass + review before merge.
 
 ## Requirements
 
 - Rust 1.85+ (edition 2024)
 - macOS / Linux / Windows
-- No GPU required
+- No GPU required (headless mode available)
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for development workflow, coding rules, and how to submit changes.
+
+## Security
+
+See [SECURITY.md](./SECURITY.md) for vulnerability reporting policy.
 
 ## License
 
-AGPL-3.0 — Free to use, study, modify, and distribute. See [LICENSE](./LICENSE).
+AGPL-3.0 — Free to use, study, modify, and distribute. Copyright (c) 2026 Augusto Gomez Saa. See [LICENSE](./LICENSE).
