@@ -1,6 +1,8 @@
 # Architecture Decision Records (ADR)
 
-Decisions made during the regulatory documentation process for RESONANCE.
+Key design decisions for the RESONANCE project. ADR-001 through ADR-008 cover regulatory documentation decisions. ADR-009 through ADR-013 cover paper validation design.
+
+## Regulatory Documentation (ADR-001 to ADR-008)
 
 | ADR | Title | Status | Date |
 |-----|-------|--------|------|
@@ -12,3 +14,13 @@ Decisions made during the regulatory documentation process for RESONANCE.
 | [006](ADR-006-trunk-based-development.md) | Trunk-Based Development as Change Control | Accepted | 2026-04-02 |
 | [007](ADR-007-github-actions-ci.md) | GitHub Actions for CI/CD Pipeline | Accepted | 2026-04-02 |
 | [008](ADR-008-alcoa-via-git.md) | ALCOA+ Compliance via Git (No Electronic Signatures) | Accepted | 2026-04-02 |
+
+## Paper Validation (ADR-009 to ADR-013)
+
+| ADR | Title | Status | Date |
+|-----|-------|--------|------|
+| [009](ADR-009-zero-coupling-validation.md) | Zero-Coupling Paper Validation | Accepted | 2026-04-02 |
+| [010](ADR-010-qualitative-first-validation.md) | Qualitative-First Validation Strategy | Accepted | 2026-04-02 |
+| [011](ADR-011-multi-comparator-strategy.md) | Multi-Comparator Validation (5 Papers, Not 1 Deep) | Accepted | 2026-04-02 |
+| [012](ADR-012-frequency-as-mutation-proxy.md) | Frequency as Mutation/Identity Proxy | Accepted | 2026-04-02 |
+| [013](ADR-013-stateless-experiment-contract.md) | Stateless Experiment Contract (Config → Report) | Accepted | 2026-04-02 |
