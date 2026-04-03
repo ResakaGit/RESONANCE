@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/ResakaGit/RESONANCE/actions/workflows/ci.yml/badge.svg)](https://github.com/ResakaGit/RESONANCE/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](./LICENSE)
-[![Tests: 3,158](https://img.shields.io/badge/tests-3%2C158%20passing-brightgreen)]()
+[![Tests: 3,166](https://img.shields.io/badge/tests-3%2C166%20passing-brightgreen)]()
 [![Papers: 6/6](https://img.shields.io/badge/papers-6%2F6%20validated-blue)]()
 [![Safety Class: A](https://img.shields.io/badge/IEC%2062304-Class%20A-green)]()
 
@@ -19,7 +19,7 @@ Define the laws of physics. Press play. Watch life emerge. Design therapeutic st
 - **Adaptive therapy controller** — profiles tumor, selects frequency + dose, stabilizes growth at zero
 - **Bozic 2013 validated** — combination > monotherapy, confirmed 10/10 independent seeds
 - **Clinically calibrated** — output in nM, days, cell count (3 tumor profiles from published data)
-- **3,158 automated tests** — deterministic, bit-exact reproducible
+- **3,166 automated tests** — deterministic, bit-exact reproducible
 - **6 published papers validated** — Bozic, Zhang, Sharma, GDSC/CCLE, Foo & Michor, Michor
 
 ## What It Is NOT
@@ -147,7 +147,7 @@ Validated across 5 seeds. Partial response is structural, not stochastic.
 | Clinical calibration | ✓ 4 profiles (CML, prostate, NSCLC, canine MCT) from published IC50 + doubling times |
 | Against patient outcomes | **Not yet** — calibrated but not validated against longitudinal patient data |
 
-### Paper Validation Suite (6 comparators, 5/5 new + Bozic)
+### Paper Validation Suite (6 comparators + unified axiom test)
 
 All qualitative — structural predictions, not absolute values. Run: `cargo run --release --bin paper_validation`
 
@@ -159,6 +159,21 @@ All qualitative — structural predictions, not absolute values. Run: `cargo run
 | GDSC/CCLE (Nature) | Hill n=2 within empirical distribution | Within IQR and 1σ | ✓ Statistical |
 | Foo & Michor 2009 (PLoS) | Pulsed < continuous resistance | 15% vs 25% | ✓ Qualitative |
 | Michor 2005 (Nature) | Biphasic CML decline, stem survive | 8.0× slope ratio | ✓ Quantitative |
+
+### PV-6: Unified Axiom Test (4 constants, zero calibration)
+
+Can 4 numbers reproduce all 6 phenomena without manual tuning? Every parameter derived algebraically from KLEIBER (0.75), DISSIPATION (0.005-0.25), BANDWIDTH (50 Hz), DENSITY_SCALE (20.0).
+
+| Test | Phenomenon | From 4 constants? | Result |
+|------|-----------|-------------------|--------|
+| T1 | Combo > mono | Drug potency = LIQUID/SOLID ratio | **PASS** |
+| T2 | Adaptive > continuous | Fitness cost = LIQUID/GAS ratio | **PASS** |
+| T3 | Persisters survive | Quiescent fraction = DISSIPATION_SOLID | **FAIL** |
+| T4 | Hill n=2 valid | Within published IQR | **PASS** |
+| T5 | Pulsed < continuous | Frequency drift = BANDWIDTH/3 | **PASS** |
+| T6 | Biphasic decline | Stem freq offset = 3× BANDWIDTH | **FAIL** |
+
+**4/6 PASS.** The 2 FAILs reveal a real model boundary: the batch simulator's nutrient-driven carrying capacity prevents net-death regimes needed for Sharma (persisters) and Michor (biphasic). Relative comparisons (T1, T2, T5) work because they don't require absolute population decline. This is an honest result — it shows exactly where the axioms are sufficient and where the simulator's ecology model diverges from clinical kill dynamics.
 
 ## Biological Hierarchy (10 levels, all emergent)
 
@@ -191,7 +206,7 @@ RESONANCE_MAP=earth cargo run --release             # Earth simulation
 ## Tests
 
 ```bash
-cargo test --release    # 3,158 tests (113K LOC, ~33 sec)
+cargo test --release    # 3,166 tests (113K LOC, ~88 sec)
 cargo bench             # batch + bridge benchmarks
 ```
 
