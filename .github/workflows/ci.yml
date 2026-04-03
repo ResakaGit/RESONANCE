@@ -42,9 +42,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
-      - name: Run clippy (warn only, non-blocking — 199 pre-existing warnings)
-        run: cargo clippy --workspace -- -W warnings 2>&1 | tail -5 || true
-        continue-on-error: true
+      - run: cargo clippy --workspace -- -D warnings
 
   audit:
     name: Audit
@@ -61,6 +59,4 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - name: Check formatting (warn only, non-blocking)
-        run: cargo fmt --check || echo "::warning::Code has formatting differences. Run 'cargo fmt' locally to fix."
-        continue-on-error: true
+      - run: cargo fmt --check
