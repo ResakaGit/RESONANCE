@@ -15,8 +15,19 @@ use crate::batch::arena::{EntitySlot, SimWorldFlat};
 use crate::batch::scratch::ScratchPad;
 use crate::batch::systems;
 use crate::blueprint::equations::determinism;
-use crate::blueprint::equations::derived_thresholds::DISSIPATION_SOLID;
+use crate::blueprint::equations::derived_thresholds::{COHERENCE_BANDWIDTH, DISSIPATION_SOLID};
 use std::time::Instant;
+
+// ─── Constants ──────────────────────────────────────────────────────────────
+
+/// Fracción de irradiancia respecto a nutrientes (calibración de grilla).
+/// Irradiance-to-nutrient ratio (grid calibration).
+const IRRADIANCE_NUTRIENT_RATIO: f32 = 0.3;
+
+/// Rango espacial válido para entidades en la grilla 16×16.
+/// Valid spatial range for entities in the 16×16 grid.
+const GRID_POS_MIN: f32 = 1.0;
+const GRID_POS_MAX: f32 = 15.0;
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
@@ -66,7 +77,7 @@ impl Default for FooMichorConfig {
             drug_freq:      400.0,
             dose_levels:    vec![0.2, 0.4, 0.6, 0.8, 1.0],
             drug_ki:        1.0,
-            drug_bandwidth: 50.0,
+            drug_bandwidth: COHERENCE_BANDWIDTH,
             pulse_on_gens:  6,
             pulse_off_gens: 6,
             nutrient_level: 1.5,
@@ -109,6 +120,7 @@ pub struct FooMichorReport {
 
 /// Respuesta Hill con potencia incorporada (consistente con cancer_therapy.rs).
 /// Hill response with potency folded in (consistent with cancer_therapy.rs).
+/// Canonical Hill: potency * alpha^n / (EC50^n + alpha^n), matches cancer_therapy.rs
 fn hill_response(alignment: f32, potency: f32, hill_n: f32) -> f32 {
     if alignment <= 0.0 || potency <= 0.0 { return 0.0; }
     let c_n = alignment.powf(hill_n);
@@ -152,8 +164,8 @@ fn spawn_population(world: &mut SimWorldFlat, config: &FooMichorConfig, seed: u6
         e.expression_mask = [1.0; 4];
         s = determinism::next_u64(s);
         e.position = [
-            determinism::range_f32(s, 1.0, 15.0),
-            determinism::range_f32(determinism::next_u64(s), 1.0, 15.0),
+            determinism::range_f32(s, GRID_POS_MIN, GRID_POS_MAX),
+            determinism::range_f32(determinism::next_u64(s), GRID_POS_MIN, GRID_POS_MAX),
         ];
         world.spawn(e);
     }
@@ -256,7 +268,7 @@ fn run_arm(
         let ws = determinism::next_u64(arm_seed ^ (wi as u64));
         let mut w = SimWorldFlat::new(ws, 0.05);
         for cell in w.nutrient_grid.iter_mut() { *cell = config.nutrient_level; }
-        for cell in w.irradiance_grid.iter_mut() { *cell = config.nutrient_level * 0.3; }
+        for cell in w.irradiance_grid.iter_mut() { *cell = config.nutrient_level * IRRADIANCE_NUTRIENT_RATIO; }
         spawn_population(&mut w, config, ws);
         w
     }).collect();
@@ -309,7 +321,7 @@ fn run_arm(
 
 /// Ejecuta el experimento completo. Stateless: config in → report out.
 /// Run complete experiment. Stateless: config in → report out.
-pub fn run_foo_michor(config: &FooMichorConfig) -> FooMichorReport {
+pub fn run(config: &FooMichorConfig) -> FooMichorReport {
     let start = Instant::now();
 
     // Curva dosis-resistencia (continua).
@@ -322,12 +334,13 @@ pub fn run_foo_michor(config: &FooMichorConfig) -> FooMichorReport {
 
     // Brazo continuo a 0.8.
     // Continuous arm at 0.8.
-    let continuous_08_seed = determinism::next_u64(config.seed ^ 0x0800_C0E7);
+    // Deterministic seeds for dose=0.8 arms (hash of arm label)
+    let continuous_08_seed = determinism::next_u64(config.seed ^ determinism::hash_f32_slice(&[0.8, 1.0]));
     let continuous_08 = run_arm(config, 0.8 * config.drug_ki, false, continuous_08_seed);
 
     // Brazo pulsado a 0.8.
     // Pulsed arm at 0.8.
-    let pulsed_08_seed = determinism::next_u64(config.seed ^ 0x0800_9015);
+    let pulsed_08_seed = determinism::next_u64(config.seed ^ determinism::hash_f32_slice(&[0.8, 2.0]));
     let pulsed_08 = run_arm(config, 0.8 * config.drug_ki, true, pulsed_08_seed);
 
     // Dosis óptima = mínima resistencia.
@@ -382,15 +395,15 @@ mod tests {
     #[test]
     fn given_default_config_when_run_then_no_panic() {
         let config = small_config();
-        let report = run_foo_michor(&config);
+        let report = run(&config);
         assert_eq!(report.dose_resistance_curve.len(), config.dose_levels.len());
     }
 
     #[test]
     fn given_same_seed_when_run_twice_then_deterministic() {
         let config = small_config();
-        let a = run_foo_michor(&config);
-        let b = run_foo_michor(&config);
+        let a = run(&config);
+        let b = run(&config);
         for (i, ((da, ra), (db, rb))) in a.dose_resistance_curve.iter()
             .zip(b.dose_resistance_curve.iter()).enumerate()
         {
@@ -439,7 +452,7 @@ mod tests {
             dose_levels: vec![0.0],
             ..Default::default()
         };
-        let report = run_foo_michor(&config);
+        let report = run(&config);
         // Sin fármaco, la resistencia depende solo del drift natural.
         // Without drug, resistance depends only on natural drift.
         assert!(report.dose_resistance_curve[0].1 <= 1.0,
@@ -450,7 +463,7 @@ mod tests {
     #[test]
     fn given_dose_curve_when_inspected_then_doses_match_config() {
         let config = small_config();
-        let report = run_foo_michor(&config);
+        let report = run(&config);
         for (i, &(dose, _)) in report.dose_resistance_curve.iter().enumerate() {
             assert!((dose - config.dose_levels[i]).abs() < 1e-6,
                 "dose mismatch at {i}: expected {}, got {dose}",

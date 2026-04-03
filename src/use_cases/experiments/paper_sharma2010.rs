@@ -14,6 +14,7 @@ use crate::batch::arena::{EntitySlot, SimWorldFlat};
 use crate::batch::scratch::ScratchPad;
 use crate::batch::systems;
 use crate::blueprint::equations::determinism;
+use crate::blueprint::equations::derived_thresholds::{COHERENCE_BANDWIDTH, DISSIPATION_SOLID};
 use std::time::Instant;
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -25,9 +26,14 @@ const HILL_COEFF: f32 = 2.0;
 /// Base cytotoxic drain per tick.
 const DRUG_DRAIN_BASE: f32 = 0.6;
 
-/// Bandwidth para alineación gaussiana de frecuencia (Axioma 8).
-/// Bandwidth for Gaussian frequency alignment (Axiom 8).
-const DRUG_BANDWIDTH: f32 = 50.0;
+/// Fracción de irradiancia respecto a nutrientes (calibración de grilla).
+/// Irradiance-to-nutrient ratio (grid calibration).
+const IRRADIANCE_NUTRIENT_RATIO: f32 = 0.3;
+
+/// Rango espacial válido para entidades en la grilla 16×16.
+/// Valid spatial range for entities in the 16×16 grid.
+const GRID_POS_MIN: f32 = 1.0;
+const GRID_POS_MAX: f32 = 15.0;
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
@@ -78,7 +84,7 @@ impl Default for SharmaConfig {
             sensitive_freq:       400.0,
             drug_freq:            400.0,
             drug_potency:         0.8,
-            drug_bandwidth:       50.0,
+            drug_bandwidth:       COHERENCE_BANDWIDTH,
             drug_start_gen:       5,
             drug_stop_gen:        40,
             nutrient_level:       2.0,
@@ -121,10 +127,11 @@ pub struct SharmaReport {
 
 /// Hill dose-response para drenaje citotóxico.
 /// Hill dose-response for cytotoxic drain.
-fn hill_response(alignment: f32, potency: f32) -> f32 {
+/// Canonical Hill: potency * alpha^n / (EC50^n + alpha^n), matches cancer_therapy.rs
+fn hill_response(alignment: f32, potency: f32, hill_n: f32) -> f32 {
     if alignment <= 0.0 || potency <= 0.0 { return 0.0; }
-    let c_n = alignment.powf(HILL_COEFF);
-    let ec50_n = 0.5f32.powf(HILL_COEFF);
+    let c_n = alignment.powf(hill_n);
+    let ec50_n = 0.5f32.powf(hill_n);
     potency * c_n / (ec50_n + c_n)
 }
 
@@ -134,7 +141,7 @@ fn cytotoxic_drain(entity_freq: f32, config: &SharmaConfig) -> f32 {
     let alignment = determinism::gaussian_frequency_alignment(
         entity_freq, config.drug_freq, config.drug_bandwidth,
     );
-    let hill = hill_response(alignment, config.drug_potency);
+    let hill = hill_response(alignment, config.drug_potency, HILL_COEFF);
     hill * DRUG_DRAIN_BASE
 }
 
@@ -155,7 +162,7 @@ fn phase_for_generation(generation: u32, config: &SharmaConfig) -> SharmaPhase {
 fn is_persister(entity: &EntitySlot, config: &SharmaConfig) -> bool {
     let growth_low = entity.growth_bias < 0.05;
     let alignment = determinism::gaussian_frequency_alignment(
-        entity.frequency_hz, config.drug_freq, DRUG_BANDWIDTH,
+        entity.frequency_hz, config.drug_freq, COHERENCE_BANDWIDTH,
     );
     growth_low && alignment < 0.3
 }
@@ -279,12 +286,12 @@ fn spawn_population(world: &mut SimWorldFlat, config: &SharmaConfig, seed: u64) 
         e.mobility_bias = 0.2;
         e.branching_bias = 0.3;
         e.resilience = 0.5;
-        e.dissipation = 0.005;
+        e.dissipation = DISSIPATION_SOLID;
         e.expression_mask = [1.0; 4];
         s = determinism::next_u64(s);
         e.position = [
-            determinism::range_f32(s, 1.0, 15.0),
-            determinism::range_f32(determinism::next_u64(s), 1.0, 15.0),
+            determinism::range_f32(s, GRID_POS_MIN, GRID_POS_MAX),
+            determinism::range_f32(determinism::next_u64(s), GRID_POS_MIN, GRID_POS_MAX),
         ];
         world.spawn(e);
     }
@@ -301,12 +308,12 @@ fn spawn_population(world: &mut SimWorldFlat, config: &SharmaConfig, seed: u64) 
         e.mobility_bias = 0.1;
         e.branching_bias = 0.2;
         e.resilience = 0.8; // persisters are more resilient
-        e.dissipation = 0.003; // low metabolism = low dissipation
+        e.dissipation = DISSIPATION_SOLID * 0.6; // Quiescent: 60% of solid-state metabolism
         e.expression_mask = [1.0; 4];
         s = determinism::next_u64(s);
         e.position = [
-            determinism::range_f32(s, 1.0, 15.0),
-            determinism::range_f32(determinism::next_u64(s), 1.0, 15.0),
+            determinism::range_f32(s, GRID_POS_MIN, GRID_POS_MAX),
+            determinism::range_f32(determinism::next_u64(s), GRID_POS_MIN, GRID_POS_MAX),
         ];
         world.spawn(e);
     }
@@ -323,7 +330,7 @@ pub fn run(config: &SharmaConfig) -> SharmaReport {
         let ws = determinism::next_u64(config.seed ^ (wi as u64));
         let mut w = SimWorldFlat::new(ws, 0.05);
         for cell in w.nutrient_grid.iter_mut() { *cell = config.nutrient_level; }
-        for cell in w.irradiance_grid.iter_mut() { *cell = config.nutrient_level * 0.3; }
+        for cell in w.irradiance_grid.iter_mut() { *cell = config.nutrient_level * IRRADIANCE_NUTRIENT_RATIO; }
         spawn_population(&mut w, config, ws);
         w
     }).collect();
@@ -399,12 +406,12 @@ mod tests {
 
     #[test]
     fn hill_response_zero_alignment_returns_zero() {
-        assert_eq!(hill_response(0.0, 0.8), 0.0);
+        assert_eq!(hill_response(0.0, 0.8, 2.0), 0.0);
     }
 
     #[test]
     fn hill_response_full_alignment_near_max() {
-        let h = hill_response(1.0, 0.8);
+        let h = hill_response(1.0, 0.8, 2.0);
         // c_n=1, ec50_n=0.25, h = 0.8 * 1/(0.25+1) = 0.64
         assert!(h > 0.5 && h < 1.0, "full alignment → strong effect: {h}");
     }

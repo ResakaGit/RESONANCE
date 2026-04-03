@@ -18,8 +18,19 @@ use crate::batch::arena::{EntitySlot, SimWorldFlat};
 use crate::batch::scratch::ScratchPad;
 use crate::batch::systems;
 use crate::blueprint::equations::determinism;
-use crate::blueprint::equations::derived_thresholds::DISSIPATION_SOLID;
+use crate::blueprint::equations::derived_thresholds::{COHERENCE_BANDWIDTH, DISSIPATION_SOLID};
 use std::time::Instant;
+
+// ─── Constants ──────────────────────────────────────────────────────────────
+
+/// Fracción de irradiancia respecto a nutrientes (calibración de grilla).
+/// Irradiance-to-nutrient ratio (grid calibration).
+const IRRADIANCE_NUTRIENT_RATIO: f32 = 0.3;
+
+/// Rango espacial válido para entidades en la grilla 16×16.
+/// Valid spatial range for entities in the 16×16 grid.
+const GRID_POS_MIN: f32 = 1.0;
+const GRID_POS_MAX: f32 = 15.0;
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
@@ -78,7 +89,7 @@ impl Default for MichorConfig {
             prog_growth_bias: 0.5,
             drug_freq:      400.0,
             drug_potency:   0.7,
-            drug_bandwidth: 50.0,
+            drug_bandwidth: COHERENCE_BANDWIDTH,
             drug_start_gen: 5,
             nutrient_level: 2.0,
             worlds:         20,
@@ -135,6 +146,7 @@ pub struct MichorReport {
 
 /// Respuesta Hill con potencia (consistente con cancer_therapy.rs).
 /// Hill response with potency (consistent with cancer_therapy.rs).
+/// Canonical Hill: potency * alpha^n / (EC50^n + alpha^n), matches cancer_therapy.rs
 fn hill_response(alignment: f32, potency: f32, hill_n: f32) -> f32 {
     if alignment <= 0.0 || potency <= 0.0 { return 0.0; }
     let c_n = alignment.powf(hill_n);
@@ -266,8 +278,8 @@ fn spawn_subpop(
         e.expression_mask = [1.0; 4];
         *seed = determinism::next_u64(*seed);
         e.position = [
-            determinism::range_f32(*seed, 1.0, 15.0),
-            determinism::range_f32(determinism::next_u64(*seed), 1.0, 15.0),
+            determinism::range_f32(*seed, GRID_POS_MIN, GRID_POS_MAX),
+            determinism::range_f32(determinism::next_u64(*seed), GRID_POS_MIN, GRID_POS_MAX),
         ];
         world.spawn(e);
     }
@@ -384,7 +396,7 @@ pub fn run(config: &MichorConfig) -> MichorReport {
         let ws = determinism::next_u64(config.seed ^ (wi as u64));
         let mut w = SimWorldFlat::new(ws, 0.05);
         for cell in w.nutrient_grid.iter_mut() { *cell = config.nutrient_level; }
-        for cell in w.irradiance_grid.iter_mut() { *cell = config.nutrient_level * 0.3; }
+        for cell in w.irradiance_grid.iter_mut() { *cell = config.nutrient_level * IRRADIANCE_NUTRIENT_RATIO; }
         spawn_population(&mut w, config, ws);
         w
     }).collect();

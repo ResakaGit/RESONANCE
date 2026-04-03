@@ -14,6 +14,7 @@ use crate::batch::arena::{EntitySlot, SimWorldFlat};
 use crate::batch::scratch::ScratchPad;
 use crate::batch::systems;
 use crate::blueprint::equations::determinism;
+use crate::blueprint::equations::derived_thresholds::{COHERENCE_BANDWIDTH, DISSIPATION_SOLID};
 use std::time::Instant;
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -25,9 +26,14 @@ const HILL_COEFF: f32 = 2.0;
 /// Base cytotoxic drain per tick at max alignment and potency.
 const DRUG_DRAIN_BASE: f32 = 0.5;
 
-/// Bandwidth para alineación gaussiana de frecuencia (Axioma 8).
-/// Bandwidth for Gaussian frequency alignment (Axiom 8).
-const DRUG_BANDWIDTH: f32 = 50.0;
+/// Fracción de irradiancia respecto a nutrientes (calibración de grilla).
+/// Irradiance-to-nutrient ratio (grid calibration).
+const IRRADIANCE_NUTRIENT_RATIO: f32 = 0.3;
+
+/// Rango espacial válido para entidades en la grilla 16×16.
+/// Valid spatial range for entities in the 16×16 grid.
+const GRID_POS_MIN: f32 = 1.0;
+const GRID_POS_MAX: f32 = 15.0;
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
@@ -120,21 +126,21 @@ pub struct ZhangReport {
 
 /// Hill dose-response: efecto del fármaco dada alineación y concentración.
 /// Hill dose-response: drug effect given alignment and concentration.
-fn hill_response(alignment: f32, conc: f32, ki: f32) -> f32 {
-    if alignment <= 0.0 || conc <= 0.0 || ki <= 0.0 { return 0.0; }
-    let effective = conc * alignment;
-    let c_n = effective.powf(HILL_COEFF);
-    let ki_n = ki.powf(HILL_COEFF);
-    c_n / (ki_n + c_n)
+/// Canonical Hill: potency * alpha^n / (EC50^n + alpha^n), matches cancer_therapy.rs
+fn hill_response(alignment: f32, potency: f32, hill_n: f32) -> f32 {
+    if alignment <= 0.0 || potency <= 0.0 { return 0.0; }
+    let c_n = alignment.powf(hill_n);
+    let ec50_n = 0.5f32.powf(hill_n);
+    potency * c_n / (ec50_n + c_n)
 }
 
 /// Drenaje citotóxico por tick para una entidad. Axioma 4+8.
 /// Cytotoxic drain per tick for one entity. Axiom 4+8.
 fn cytotoxic_drain(entity_freq: f32, config: &ZhangConfig) -> f32 {
     let alignment = determinism::gaussian_frequency_alignment(
-        entity_freq, config.drug_freq, DRUG_BANDWIDTH,
+        entity_freq, config.drug_freq, COHERENCE_BANDWIDTH,
     );
-    let hill = hill_response(alignment, config.drug_conc, config.drug_ki);
+    let hill = hill_response(alignment, config.drug_conc, HILL_COEFF);
     hill * DRUG_DRAIN_BASE
 }
 
@@ -275,12 +281,12 @@ fn spawn_subpopulation(
         e.mobility_bias = 0.2;
         e.branching_bias = 0.3;
         e.resilience = 0.5;
-        e.dissipation = 0.005;
+        e.dissipation = DISSIPATION_SOLID;
         e.expression_mask = [1.0; 4];
         *seed = determinism::next_u64(*seed);
         e.position = [
-            determinism::range_f32(*seed, 1.0, 15.0),
-            determinism::range_f32(determinism::next_u64(*seed), 1.0, 15.0),
+            determinism::range_f32(*seed, GRID_POS_MIN, GRID_POS_MAX),
+            determinism::range_f32(determinism::next_u64(*seed), GRID_POS_MIN, GRID_POS_MAX),
         ];
         world.spawn(e);
     }
@@ -321,7 +327,7 @@ fn run_arm(
     config: &ZhangConfig,
     adaptive: bool,
 ) -> (Vec<ZhangSnapshot>, u32) {
-    let mut timeline = Vec::with_capacity(config.generations as usize);
+    let mut timeline: Vec<ZhangSnapshot> = Vec::with_capacity(config.generations as usize);
     let mut state = AdaptiveState::new();
     let mut prev_alive = 0.0f32;
 
@@ -335,7 +341,7 @@ fn run_arm(
                 state.drug_on = true; // start with drug on
                 true
             } else {
-                let last: &ZhangSnapshot = timeline.last().unwrap();
+                let Some(last) = timeline.last() else { break; };
                 let eff = last.efficiency;
 
                 if generation == 1 {
@@ -402,7 +408,7 @@ fn detect_ttp(timeline: &[ZhangSnapshot]) -> Option<u32> {
 
 /// Ejecuta el experimento completo Zhang 2022: dos brazos sobre mundos idénticos.
 /// Run complete Zhang 2022 experiment: two arms over identical worlds.
-pub fn run_zhang(config: &ZhangConfig) -> ZhangReport {
+pub fn run(config: &ZhangConfig) -> ZhangReport {
     let start = Instant::now();
 
     // Create initial worlds (shared setup).
@@ -410,7 +416,7 @@ pub fn run_zhang(config: &ZhangConfig) -> ZhangReport {
         let ws = determinism::next_u64(config.seed ^ (wi as u64));
         let mut w = SimWorldFlat::new(ws, 0.05);
         for cell in w.nutrient_grid.iter_mut() { *cell = config.nutrient_level; }
-        for cell in w.irradiance_grid.iter_mut() { *cell = config.nutrient_level * 0.3; }
+        for cell in w.irradiance_grid.iter_mut() { *cell = config.nutrient_level * IRRADIANCE_NUTRIENT_RATIO; }
         spawn_population(&mut w, config, ws);
         w
     }).collect();
@@ -482,7 +488,7 @@ mod tests {
     #[test]
     fn hill_response_full_alignment_near_max() {
         let h = hill_response(1.0, 0.8, 1.0);
-        // c_n = 0.8^2 = 0.64, ki_n = 1.0, h = 0.64/1.64 ≈ 0.39
+        // c_n = 1.0^1 = 1.0, ec50_n = 0.5, h = 0.8 * 1.0/(0.5+1.0) ≈ 0.53
         assert!(h > 0.2 && h < 1.0, "full alignment → partial effect: {h}");
     }
 
@@ -505,17 +511,17 @@ mod tests {
     }
 
     #[test]
-    fn run_zhang_no_panic() {
-        let r = run_zhang(&small_config());
+    fn run_no_panic() {
+        let r = run(&small_config());
         assert_eq!(r.timeline_continuous.len(), 10);
         assert_eq!(r.timeline_adaptive.len(), 10);
     }
 
     #[test]
-    fn run_zhang_deterministic() {
+    fn run_deterministic() {
         let c = small_config();
-        let a = run_zhang(&c);
-        let b = run_zhang(&c);
+        let a = run(&c);
+        let b = run(&c);
         for i in 0..c.generations as usize {
             assert_eq!(
                 a.timeline_continuous[i].alive_mean.to_bits(),
@@ -533,7 +539,7 @@ mod tests {
     #[test]
     fn adaptive_uses_less_drug_exposure() {
         let c = ZhangConfig { worlds: 5, generations: 20, ticks_per_gen: 50, ..Default::default() };
-        let r = run_zhang(&c);
+        let r = run(&c);
         // Adaptive toggles drug on/off → less total exposure than continuous.
         assert!(r.drug_exposure_ratio <= 1.0,
             "adaptive must use <= drug exposure: ratio={}", r.drug_exposure_ratio);

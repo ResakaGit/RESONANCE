@@ -21,7 +21,7 @@ fn main() {
 
     // ── PV-1: Zhang et al. 2022 — Adaptive therapy ──────────────────────────
     print!("  PV-1  Zhang 2022 (adaptive therapy TTP)      ... ");
-    let zhang = paper_zhang2022::run_zhang(&paper_zhang2022::ZhangConfig::default());
+    let zhang = paper_zhang2022::run(&paper_zhang2022::ZhangConfig::default());
     let pv1_pass = zhang.prediction_met;
     if pv1_pass {
         println!("PASS  (TTP ratio: {:.2}×, cycles: {}, drug exposure: {:.0}%)",
@@ -64,7 +64,7 @@ fn main() {
 
     // ── PV-4: Foo & Michor 2009 — Continuous vs pulsed ──────────────────────
     print!("  PV-4  Foo & Michor 2009 (pulsed vs continuous) ... ");
-    let foo = paper_foo_michor2009::run_foo_michor(&paper_foo_michor2009::FooMichorConfig::default());
+    let foo = paper_foo_michor2009::run(&paper_foo_michor2009::FooMichorConfig::default());
     let pv4_pass = foo.pulsed_beats_continuous;
     if pv4_pass {
         println!("PASS  (optimal dose: {:.2}, pulsed res: {:.1}%, continuous res: {:.1}%)",
@@ -112,7 +112,7 @@ fn main() {
     println!("║  PV-5  Michor 2005     biphasic + stem survive       {}      ║",
         if pv5_pass { "  PASS" } else { "  FAIL" });
     println!("║                                                                ║");
-    println!("║  Wall time: PV-1={:.1}s PV-2={:.1}s PV-3=<1ms PV-4={:.1}s PV-5={:.1}s  ║",
+    println!("║  Wall time: PV-1={:.1}s PV-2={:.1}s PV-3=0ms PV-4={:.1}s PV-5={:.1}s   ║",
         zhang.wall_time_ms as f64 / 1000.0,
         sharma.wall_time_ms as f64 / 1000.0,
         foo.wall_time_ms as f64 / 1000.0,
