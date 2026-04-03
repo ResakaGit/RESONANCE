@@ -221,8 +221,8 @@ src/
 ├── batch/                  Headless simulator (NO Bevy, rayon parallel)
 ├── layers/                 14 ECS layers
 ├── simulation/             9 active emergence systems, 7 implemented not registered
-├── use_cases/experiments/  6 validated experiments
-└── bin/                    25 executables
+├── use_cases/experiments/  11 validated experiments (6 papers + PV-6 unified)
+└── bin/                    26 executables
 ```
 
 ## Documentation
@@ -232,10 +232,10 @@ src/
 | [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) | Canonical architecture — axioms, constants, module map, pipeline |
 | [docs/regulatory/](./docs/regulatory/) | 46 regulatory documents (IEC 62304, ISO 14971, ISO 13485, ASME V&V 40, FDA CMS 2023, 21 CFR Part 11) |
 | [docs/regulatory/AUDIT_CHECKLIST.md](./docs/regulatory/AUDIT_CHECKLIST.md) | Master audit index — 50/50 external checklist items mapped |
-| [docs/arquitectura/ADR/](./docs/arquitectura/ADR/) | 8 Architecture Decision Records |
+| [docs/arquitectura/ADR/](./docs/arquitectura/ADR/) | 13 Architecture Decision Records |
 | [docs/paper/](./docs/paper/) | arXiv paper source (7 experiments, 12 references) |
 | [docs/design/](./docs/design/) | Code-referenced design specs |
-| [docs/sprints/](./docs/sprints/) | Sprint backlog (39 pending) + [archive/](./docs/sprints/archive/) (88 completed) |
+| [docs/sprints/](./docs/sprints/) | Sprint backlog (37 pending) + [archive/](./docs/sprints/archive/) (88 completed) |
 
 ## Regulatory Status
 
@@ -257,7 +257,7 @@ Every push to `main` and every PR runs 5 automated checks:
 
 ```
 cargo check    — compilation
-cargo test     — 3,113 tests
+cargo test     — 3,166 tests
 cargo clippy   — zero warnings
 cargo audit    — no known CVEs
 cargo fmt      — formatting
