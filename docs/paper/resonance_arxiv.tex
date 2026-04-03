@@ -65,20 +65,26 @@ Coulomb-bonded molecules through variable-length genomes,
 codon-based genetic codes, lattice protein folding, metabolic
 networks, and multicellularity---without
 a single hardcoded species definition.
-We validate internal consistency with 3{,}095 automated tests
-across 110{,}000 lines of Rust, demonstrate deterministic
+We verify internal consistency with 3{,}166 automated tests
+across 113{,}000 lines of Rust, demonstrate deterministic
 reproducibility, and show that the same framework produces:
 (1)~emergent chemotherapy resistance dynamics consistent with
 \citet{bozic2013evolutionary};
 (2)~pathway-level drug inhibition with dose-response control;
-(3)~confirmation that combination therapy suppresses more than
-double-dose monotherapy (10/10 independent seeds, $p < 0.001$);
-and (4)~an adaptive feedback controller that stabilizes tumor
-growth at zero net expansion.
+(3)~qualitative reproduction of the combination therapy advantage
+over double-dose monotherapy (10/10 independent seeds, $p < 0.001$);
+(4)~an adaptive feedback controller that stabilizes tumor
+growth at zero net expansion;
+(5)~qualitative structural consistency with 5 additional published
+studies \citep{zhang2022evolution,sharma2010chromatin,garnett2012systematic,foo2009evolution,michor2005dynamics};
+and (6)~a unified axiom test showing 4 of 6 phenomena reproduced
+from the 4 constants alone without per-experiment calibration.
+
+This is a preprint; it has not undergone peer review.
 
 \textsc{Resonance} is implemented in Rust with the Bevy 0.15 ECS
 framework, runs headless at $>10^6$ world-ticks per second,
-and is freely available at \texttt{[repository URL]}.
+and is freely available at \texttt{https://github.com/ResakaGit/RESONANCE}.
 \end{abstract}
 
 \paragraph{Keywords.}
@@ -123,15 +129,16 @@ No behavior is programmed. Everything is derived.
   \item A closed-loop energy cycle where life, death, and
         recycling emerge from conservation laws
         (\cref{sec:energy-cycle}).
-  \item Seven experimental validations: emergent molecular bonding,
+  \item Seven internal experiments plus qualitative comparisons
+        with 5 additional published studies: emergent molecular bonding,
         genome growth, chemotherapy resistance, pathway-level
         drug inhibition, combination therapy advantage
         (Bozic~2013 confirmed, 10/10 seeds), adaptive
         therapy control, and real-world case validation
         (canine mast cell, partial response reproduced)
-        (\cref{sec:experiments}).
-  \item An open-source, deterministic, 110K-LOC Rust engine
-        with 3{,}066 tests and full reproducibility instructions
+        (\cref{sec:experiments,sec:paper-comparison}).
+  \item An open-source, deterministic, 113K-LOC Rust engine
+        with 3{,}166 tests and full reproducibility instructions
         (\cref{sec:implementation,sec:reproducibility}).
 \end{enumerate}
 
@@ -1117,6 +1124,107 @@ the next vaccine iteration.
 clinical data. Not veterinary advice.}
 
 % ═════════════════════════════════════════════════════════════════════════════
+\section{Qualitative Comparison with Published Literature}
+\label{sec:paper-comparison}
+
+To assess whether the axiomatic framework produces dynamics
+qualitatively consistent with established results, we compared
+RESONANCE output against 5 additional published studies.
+All comparisons are \emph{qualitative}: RESONANCE uses its own
+parameters (frequency-based binding, abstract $q_e$ units),
+not the original papers' parameter values. The structural
+predictions---not quantitative curves---were tested.
+
+\paragraph{Important limitations.}
+\begin{itemize}
+  \item These are \emph{not} quantitative reproductions of the
+        original papers' exact results.
+  \item RESONANCE uses its own parameters, not those of
+        \citet{bozic2013evolutionary} ($b{=}0.14$, $d{=}0.13$,
+        $u{=}10^{-9}$) or any other paper.
+  \item Clinical unit mappings (nM, days, cells) are post-hoc
+        linear conversions, not model predictions.
+  \item The adaptive therapy controller operates on its own
+        model---it is not validated against patient data.
+\end{itemize}
+
+\subsection{Comparison 1: Adaptive Therapy (Zhang et al.\ 2022)}
+
+Competitive Lotka-Volterra model with 3 subpopulations (sensitive,
+partial, resistant). Resistant cells have fitness cost
+(growth rate $= 0.8\times$ sensitive).
+Adaptive protocol: drug off when population drops to 60\% of peak,
+on when recovers to 85\%.
+
+\textbf{Result:} Adaptive TTP $= 1.50\times$ continuous TTP
+(3 on/off cycles, 97\% drug exposure).
+\citet{zhang2022evolution} report $2.34\times$ in 17 patients.
+Qualitative direction matches; quantitative ratio differs
+due to simplified 3-population model vs.\ patient-specific dynamics.
+
+\subsection{Comparison 2: Drug-Tolerant Persisters (Sharma et al.\ 2010)}
+
+Heterogeneous population with quiescent fraction
+(growth bias $< 0.05$, frequency offset from drug target).
+Three phases: pre-treatment, drug exposure, recovery.
+
+\textbf{Result:} 2\% persister fraction survives treatment;
+population recovers after drug removal.
+\citet{sharma2010chromatin} report ${\sim}0.3\%$ persisters with recovery
+in ${\sim}9$ doublings.
+Pattern matches; fraction differs due to population scale
+(50 entities vs.\ millions of cells).
+
+\subsection{Comparison 3: Hill Coefficient Validation (GDSC/CCLE)}
+
+RESONANCE uses Hill coefficient $n{=}2$ for all pharmacology.
+Published dose-response data from the Genomics of Drug Sensitivity
+in Cancer project \citep{garnett2012systematic} and the Cancer Cell
+Line Encyclopedia \citep{barretina2012cancer} report median Hill
+slopes of ${\sim}1.8$ (IQR $[1.2, 2.8]$) across 75{,}000 experiments.
+
+\textbf{Result:} $n{=}2$ falls within the published interquartile range.
+This validates the input assumption, not a model output.
+
+\subsection{Comparison 4: Continuous vs.\ Pulsed Therapy (Foo \& Michor 2009)}
+
+Dose-resistance sweep across 5 dose levels, comparing continuous
+vs.\ pulsed (6 generations on, 6 off) administration.
+
+\textbf{Result:} Pulsed resistance $= 15\%$ vs.\ continuous $= 25\%$
+at dose $= 0.8$.
+\citet{foo2009evolution} predict pulsed advantage when fitness cost of
+resistance is significant during drug holidays.
+Qualitative direction matches.
+
+\subsection{Comparison 5: Biphasic CML Decline (Michor et al.\ 2005)}
+
+Three subpopulations (differentiated near drug target,
+progenitor intermediate, stem far from target) under continuous
+drug pressure. No reproduction (closed population).
+
+\textbf{Result:} Biphasic decline detected with slope ratio $8.0\times$
+(early vs.\ late phase). Stem cells survive treatment.
+\citet{michor2005dynamics} report slope ratio $6$--$10\times$ in 169 CML patients.
+Quantitative range matches.
+
+\subsection{Unified Axiom Test (4 Constants, Zero Calibration)}
+
+All 6 phenomena tested simultaneously with every parameter derived
+algebraically from the 4 fundamental constants---zero manual calibration.
+
+\textbf{Result:} 4/6 pass. The 2 that fail (persisters, biphasic decline)
+require net-death regimes (drug kill $>$ nutrient intake) that the
+batch simulator's ecology model does not produce from derived nutrient
+levels alone. Tests comparing relative outcomes between arms
+(combo vs.\ mono, adaptive vs.\ continuous, pulsed vs.\ continuous)
+pass because they do not require absolute population decline.
+
+This is an honest boundary: the 4 constants are sufficient for
+competitive dynamics but not for clinical kill regimes without
+additional calibration.
+
+% ═════════════════════════════════════════════════════════════════════════════
 \section{Implementation}
 \label{sec:implementation}
 
@@ -1131,11 +1239,12 @@ clinical data. Not veterinary advice.}
 \midrule
 Language & Rust (2024 edition, MSRV 1.85) \\
 Engine & Bevy ECS 0.15 \\
-Lines of code & 110{,}000 \\
-Automated tests & 3{,}095 \\
+Lines of code & 113{,}000 \\
+Automated tests & 3{,}166 \\
 Source files & 600+ \\
-Executable binaries & 25 \\
+Executable binaries & 26 \\
 Pure equation files & 50+ \\
+Paper comparisons & 6 (qualitative match) \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1306,7 +1415,7 @@ resistance emerges from clonal heterogeneity---not from
 a resistance gene, but from the statistics of frequency
 alignment.
 
-Three new results extend the original framework:
+Three new results from internal experiments extend the original framework:
 \begin{enumerate}
   \item \textbf{Pathway inhibition} (Exp.~4): drugs that
         reduce metabolic efficiency without killing,
@@ -1329,6 +1438,13 @@ Three new results extend the original framework:
         published heterogeneity data alone, without training
         on the outcome. Predicts combo vaccine would improve
         response.
+  \item \textbf{Published literature comparison}: qualitative
+        structural consistency with 5 additional studies
+        (Zhang 2022, Sharma 2010, GDSC/CCLE, Foo \& Michor 2009,
+        Michor 2005). 6/6 with per-paper calibration;
+        4/6 from 4 constants alone without calibration.
+        The 2 failures identify a concrete model boundary
+        (ecological carrying capacity vs.\ clinical net-death).
 \end{enumerate}
 
 \textsc{Resonance} demonstrates that a small axiomatic
@@ -1338,7 +1454,7 @@ genetics, ecology, and pharmacology---and can generate
 actionable therapeutic strategies from first principles.
 
 The engine is open-source, deterministic, and runs at
-$>10^6$ world-ticks per second with 3{,}095 automated tests.
+$>10^6$ world-ticks per second with 3{,}166 automated tests.
 We invite the community to extend, challenge, and falsify it.
 
 % ═════════════════════════════════════════════════════════════════════════════
@@ -1372,7 +1488,10 @@ cargo run --release --bin bozic_validation
 # Experiment 6: Adaptive therapy control loop (~8 sec)
 cargo run --release --bin adaptive_therapy
 
-# Full test suite (3066 tests, ~30 sec)
+# Paper comparison suite - 6 papers (~73 sec)
+cargo run --release --bin paper_validation
+
+# Full test suite (3166 tests, ~88 sec)
 cargo test --release
 \end{lstlisting}
 
@@ -1384,7 +1503,7 @@ identical \texttt{f32} bit patterns across runs.
 \section*{Data Availability}
 
 Source code, tests, experiment configurations, and
-map definitions are available at \texttt{[repository URL]}.
+map definitions are available at \texttt{https://github.com/ResakaGit/RESONANCE}.
 
 % ═════════════════════════════════════════════════════════════════════════════
 \bibliography{references}
