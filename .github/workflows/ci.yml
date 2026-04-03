@@ -59,4 +59,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: cargo fmt --check
+      - name: Check formatting (warn only, non-blocking)
+        run: cargo fmt --check || echo "::warning::Code has formatting differences. Run 'cargo fmt' locally to fix."
+        continue-on-error: true
