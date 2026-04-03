@@ -2,7 +2,8 @@
 
 [![CI](https://github.com/ResakaGit/RESONANCE/actions/workflows/ci.yml/badge.svg)](https://github.com/ResakaGit/RESONANCE/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](./LICENSE)
-[![Tests: 3,113](https://img.shields.io/badge/tests-3%2C113%20passing-brightgreen)]()
+[![Tests: 3,158](https://img.shields.io/badge/tests-3%2C158%20passing-brightgreen)]()
+[![Papers: 6/6](https://img.shields.io/badge/papers-6%2F6%20validated-blue)]()
 [![Safety Class: A](https://img.shields.io/badge/IEC%2062304-Class%20A-green)]()
 
 Simulation engine where life, evolution, and therapeutic strategies emerge from **8 axioms** and **4 fundamental constants**. Built with **Rust** and **Bevy 0.15 ECS**. Open source (AGPL-3.0).
@@ -18,7 +19,8 @@ Define the laws of physics. Press play. Watch life emerge. Design therapeutic st
 - **Adaptive therapy controller** — profiles tumor, selects frequency + dose, stabilizes growth at zero
 - **Bozic 2013 validated** — combination > monotherapy, confirmed 10/10 independent seeds
 - **Clinically calibrated** — output in nM, days, cell count (3 tumor profiles from published data)
-- **3,113 automated tests** — deterministic, bit-exact reproducible
+- **3,158 automated tests** — deterministic, bit-exact reproducible
+- **6 published papers validated** — Bozic, Zhang, Sharma, GDSC/CCLE, Foo & Michor, Michor
 
 ## What It Is NOT
 
@@ -141,9 +143,22 @@ Validated across 5 seeds. Partial response is structural, not stochastic.
 | Falsifiability | ✓ All BDD tests could have failed |
 | Pre-registration | ✓ Assertions written before execution |
 | Dose-response monotonicity | ✓ 5/5 seeds |
-| Against published prediction | ✓ Bozic 2013 combo advantage confirmed |
-| Clinical calibration | ✓ 3 profiles (CML, prostate, NSCLC) from published IC50 + doubling times |
+| Against published prediction | ✓ 6 independent papers (see below) |
+| Clinical calibration | ✓ 4 profiles (CML, prostate, NSCLC, canine MCT) from published IC50 + doubling times |
 | Against patient outcomes | **Not yet** — calibrated but not validated against longitudinal patient data |
+
+### Paper Validation Suite (6 comparators, 5/5 new + Bozic)
+
+All qualitative — structural predictions, not absolute values. Run: `cargo run --release --bin paper_validation`
+
+| Paper | Prediction | Result | Match |
+|-------|-----------|--------|-------|
+| Bozic 2013 (eLife) | Combo > mono therapy | 56.5% vs 51.9% suppression, 10/10 seeds | ✓ Structural |
+| Zhang 2022 (eLife) | Adaptive TTP > continuous | 1.50× ratio, 3 cycles | ✓ Qualitative |
+| Sharma 2010 (Cell) | Drug-tolerant persisters survive + recover | 2% fraction, recovery detected | ✓ Pattern |
+| GDSC/CCLE (Nature) | Hill n=2 within empirical distribution | Within IQR and 1σ | ✓ Statistical |
+| Foo & Michor 2009 (PLoS) | Pulsed < continuous resistance | 15% vs 25% | ✓ Qualitative |
+| Michor 2005 (Nature) | Biphasic CML decline, stem survive | 8.0× slope ratio | ✓ Quantitative |
 
 ## Biological Hierarchy (10 levels, all emergent)
 
@@ -176,7 +191,7 @@ RESONANCE_MAP=earth cargo run --release             # Earth simulation
 ## Tests
 
 ```bash
-cargo test --release    # 3,113 tests (113K LOC, ~36 sec)
+cargo test --release    # 3,158 tests (113K LOC, ~33 sec)
 cargo bench             # batch + bridge benchmarks
 ```
 

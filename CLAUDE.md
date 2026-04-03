@@ -5,7 +5,7 @@
 Resonance is an emergent life simulation engine in Rust/Bevy 0.15 where everything is energy (qe). 14 orthogonal ECS layers define all entities by composition. All behavior is 100% emergent from energy interactions — no scripted behavior, no templates.
 
 **Paper:** https://zenodo.org/records/19342036 — "Emergent Life from Four Constants: An Axiomatic Simulation Engine"
-**Repo:** https://github.com/ResakaGit/RESONANCE | **License:** AGPL-3.0 | **Tests:** ~3,051 | **LOC:** 110K
+**Repo:** https://github.com/ResakaGit/RESONANCE | **License:** AGPL-3.0 | **Tests:** ~3,158 | **LOC:** 113K
 
 ## Architecture
 
@@ -481,7 +481,7 @@ impl MyComp {
 - **Property** (proptest): `tests/property_conservation.rs` — fuzzes conservation + pool equations with arbitrary inputs.
 - **Batch** (headless): tests in `src/batch/` modules. 156 tests covering 33 systems, arena, genome, harness, bridge. Zero Bevy dependency.
 - **Headless sim**: `cargo run --bin headless_sim -- --ticks N --scale S --out file.ppm` — full sim → PPM image, no GPU.
-- **Run**: `cargo test` (~3,051 tests). `cargo bench --bench batch_benchmark` for performance.
+- **Run**: `cargo test` (~3,158 tests). `cargo bench --bench batch_benchmark` for performance.
 - **Maps**: `RESONANCE_MAP={name} cargo run` (genesis_validation, visual_showcase, proving_grounds, four_flowers, demo_animal).
 
 ## Roles
@@ -595,7 +595,13 @@ If following a coding rule makes the game worse, break the rule and explain why.
 - `src/blueprint/equations/coulomb.rs` — Coulomb + Lennard-Jones potentials, bond detection, all constants derived (26 tests)
 - `src/batch/systems/particle_forces.rs` — particle force accumulation, bond detection in batch simulator
 - `src/use_cases/experiments/cancer_therapy.rs` — drug resistance experiment (Hill pharmacology, quiescent stem cells)
-- `docs/paper/resonance_arxiv.tex` — arXiv paper source (3 experiments, 11 references)
+- `src/use_cases/experiments/paper_zhang2022.rs` — Zhang 2022 adaptive therapy (Lotka-Volterra, 3 subpops)
+- `src/use_cases/experiments/paper_sharma2010.rs` — Sharma 2010 drug-tolerant persisters
+- `src/use_cases/experiments/paper_hill_ccle.rs` — GDSC/CCLE Hill slope validation (pure statistics)
+- `src/use_cases/experiments/paper_foo_michor2009.rs` — Foo & Michor 2009 continuous vs pulsed therapy
+- `src/use_cases/experiments/paper_michor2005.rs` — Michor 2005 biphasic CML decline
+- `src/bin/paper_validation.rs` — unified runner: 5 papers, PASS/FAIL per paper
+- `docs/paper/resonance_arxiv.tex` — arXiv paper source (7 experiments, 12 references)
 
 ## Documentation
 

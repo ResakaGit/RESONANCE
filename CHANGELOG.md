@@ -15,15 +15,34 @@
 - All 50 items from external audit checklist mapped to documents (42 direct, 8 distributed)
 - 8 structural gaps documented honestly (signatures, CI/CD, GPG, CCB, training certs, monitoring)
 
+### Added — Paper Validation Suite (PV-1 through PV-5)
+- **5 new experiments** against peer-reviewed literature (6 comparators total with Bozic):
+  - PV-1 Zhang 2022 (eLife): adaptive TTP 1.50x > continuous (Lotka-Volterra, fitness cost)
+  - PV-2 Sharma 2010 (Cell): drug-tolerant persisters, 2% fraction, recovery detected
+  - PV-3 GDSC/CCLE (Nature): Hill n=2 within published IQR
+  - PV-4 Foo & Michor 2009 (PLoS): pulsed < continuous resistance (15% vs 25%)
+  - PV-5 Michor 2005 (Nature): biphasic CML decline, 8.0x slope ratio, stem survive
+- `bin/paper_validation` unified runner: 5/5 PASS (~73 sec)
+- 45 new BDD tests, 5 ADRs (009-013), sprint track PAPER_VALIDATION/
+
+### Added — Regulatory Infrastructure + Community
+- GitHub Actions CI (5 jobs), document approval workflow, CCB charter
+- Training matrix, 3 issue templates, quarterly review template
+- CONTRIBUTING.md, SECURITY.md, CODE_OF_CONDUCT.md
+
 ### Fixed
-- README.md test count: 3,095 → **3,113** (actual `cargo test` output)
-- pathway_inhibitor.rs test count in SRS/traceability: 41 �� **42** (verified by `#[test]` count)
-- INTENDED_USE.md: added IMDRF N12R2:2014 reference for risk categorization (was N10 only)
+- Test counts corrected across README, SRS, traceability
+- INTENDED_USE.md: added IMDRF N12R2:2014 reference
+- Paper experiments: hardcoded constants replaced with derived_thresholds imports
+- Hill response unified to canonical signature across all experiments
 
 ### Stats
-- Tests: 3,070 → **3,113** (+43)
-- LOC: ~110K → **~113K**
-- Regulatory docs: 0 → **44** (43 documents + 1 index)
+- Tests: 3,070 to **3,158** (+88)
+- LOC: ~110K to **~113K**
+- Regulatory docs: 0 to **46** (+1 index +1 review log)
+- Paper validations: 0 to **6** (Bozic + 5 new, all PASS)
+- Binaries: 25 to **26** (+paper_validation)
+- ADRs: 0 to **13**
 
 ---
 
