@@ -4,8 +4,8 @@ use bevy::prelude::*;
 
 use crate::blueprint::{constants, equations};
 use crate::layers::{
-    AlchemicalEngine, AmbientPressure, BaseEnergy, ContainedIn, Homeostasis,
-    MatterCoherence, OscillatorySignature, SpatialVolume,
+    AlchemicalEngine, AmbientPressure, BaseEnergy, ContainedIn, Homeostasis, MatterCoherence,
+    OscillatorySignature, SpatialVolume,
 };
 use crate::simulation::time_compat::simulation_delta_secs;
 
@@ -84,12 +84,7 @@ pub fn thermoregulation_cost_system(
 pub fn homeostasis_stability_check_system(
     mut commands: Commands,
     hosts: Query<&OscillatorySignature, (With<AmbientPressure>, Without<Homeostasis>)>,
-    query: Query<(
-        Entity,
-        &ContainedIn,
-        &Homeostasis,
-        &OscillatorySignature,
-    )>,
+    query: Query<(Entity, &ContainedIn, &Homeostasis, &OscillatorySignature)>,
 ) {
     for (entity, contained, homeostasis, signature) in &query {
         if !homeostasis.enabled {
@@ -102,7 +97,9 @@ pub fn homeostasis_stability_check_system(
 
         let drift = (signature.frequency_hz() - host_wave.frequency_hz()).abs();
         if drift > homeostasis.stability_band_hz {
-            commands.entity(entity).insert(ThermalStressFlag { drift_hz: drift });
+            commands
+                .entity(entity)
+                .insert(ThermalStressFlag { drift_hz: drift });
         } else {
             commands.entity(entity).remove::<ThermalStressFlag>();
         }
@@ -121,7 +118,11 @@ mod tests {
         app.add_event::<DeathEvent>();
         app.add_systems(
             Update,
-            (thermoregulation_cost_system, homeostasis_stability_check_system).chain(),
+            (
+                thermoregulation_cost_system,
+                homeostasis_stability_check_system,
+            )
+                .chain(),
         );
         app
     }
@@ -149,14 +150,13 @@ mod tests {
         let entity = app
             .world_mut()
             .spawn((
-                ContainedIn { host, contact: ContactType::Immersed },
+                ContainedIn {
+                    host,
+                    contact: ContactType::Immersed,
+                },
                 BaseEnergy::new(1000.0),
                 SpatialVolume::new(2.0),
-                MatterCoherence::new(
-                    crate::layers::MatterState::Liquid,
-                    500.0,
-                    0.5,
-                ),
+                MatterCoherence::new(crate::layers::MatterState::Liquid, 500.0, 0.5),
                 AlchemicalEngine::new(100.0, 10.0, 10.0, initial_buffer),
             ))
             .id();
@@ -183,14 +183,13 @@ mod tests {
         let entity = app
             .world_mut()
             .spawn((
-                ContainedIn { host, contact: ContactType::Immersed },
+                ContainedIn {
+                    host,
+                    contact: ContactType::Immersed,
+                },
                 BaseEnergy::new(1000.0),
                 SpatialVolume::new(2.0),
-                MatterCoherence::new(
-                    crate::layers::MatterState::Liquid,
-                    500.0,
-                    0.5,
-                ),
+                MatterCoherence::new(crate::layers::MatterState::Liquid, 500.0, 0.5),
                 AlchemicalEngine::new(100.0, 10.0, 10.0, 5.0),
             ))
             .id();
@@ -216,7 +215,10 @@ mod tests {
         let entity = app
             .world_mut()
             .spawn((
-                ContainedIn { host, contact: ContactType::Immersed },
+                ContainedIn {
+                    host,
+                    contact: ContactType::Immersed,
+                },
                 // Craft density so equivalent_temperature ≈ 310.
                 // equivalent_temperature = density / GAME_BOLTZMANN
                 // density = qe / sphere_volume(radius)
@@ -255,7 +257,10 @@ mod tests {
         let entity = app
             .world_mut()
             .spawn((
-                ContainedIn { host, contact: ContactType::Immersed },
+                ContainedIn {
+                    host,
+                    contact: ContactType::Immersed,
+                },
                 Homeostasis::new(5.0, 1.0, 10.0, true),
                 OscillatorySignature::new(200.0, 0.0),
             ))
@@ -264,7 +269,10 @@ mod tests {
         app.update();
 
         let flag = app.world().get::<ThermalStressFlag>(entity);
-        assert!(flag.is_some(), "entity should be flagged for thermal stress");
+        assert!(
+            flag.is_some(),
+            "entity should be flagged for thermal stress"
+        );
         assert!((flag.unwrap().drift_hz - 100.0).abs() < 1e-5);
     }
 
@@ -278,7 +286,10 @@ mod tests {
         let entity = app
             .world_mut()
             .spawn((
-                ContainedIn { host, contact: ContactType::Immersed },
+                ContainedIn {
+                    host,
+                    contact: ContactType::Immersed,
+                },
                 Homeostasis::new(5.0, 1.0, 10.0, true),
                 OscillatorySignature::new(105.0, 0.0),
             ))
@@ -300,7 +311,10 @@ mod tests {
         let entity = app
             .world_mut()
             .spawn((
-                ContainedIn { host, contact: ContactType::Immersed },
+                ContainedIn {
+                    host,
+                    contact: ContactType::Immersed,
+                },
                 Homeostasis::new(5.0, 1.0, 10.0, true),
                 OscillatorySignature::new(200.0, 0.0),
                 ThermalStressFlag { drift_hz: 100.0 },
@@ -329,7 +343,10 @@ mod tests {
         let entity = app
             .world_mut()
             .spawn((
-                ContainedIn { host, contact: ContactType::Immersed },
+                ContainedIn {
+                    host,
+                    contact: ContactType::Immersed,
+                },
                 Homeostasis::new(5.0, 1.0, 10.0, false),
                 OscillatorySignature::new(200.0, 0.0),
             ))

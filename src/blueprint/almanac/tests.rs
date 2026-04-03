@@ -1,8 +1,8 @@
 use ron::de::from_str;
 
+use crate::blueprint::MatterState;
 use crate::blueprint::constants::FIELD_EAC4_HZ_IDENTITY_WEIGHT_RON_ONLY;
 use crate::blueprint::element_id::ElementId;
-use crate::layers::MatterState;
 
 use super::catalog::AlchemicalAlmanac;
 use super::element_def::{ElementDef, ElementPhenologyDef};
@@ -153,9 +153,7 @@ fn ron_parsing_element_def() {
     let def: ElementDef = from_str(input).expect("RON -> ElementDef");
     assert_eq!(def.name, "Umbra");
     assert_eq!(def.symbol, "Umbra");
-    assert!(
-        (def.hz_identity_weight - FIELD_EAC4_HZ_IDENTITY_WEIGHT_RON_ONLY).abs() < f32::EPSILON
-    );
+    assert!((def.hz_identity_weight - FIELD_EAC4_HZ_IDENTITY_WEIGHT_RON_ONLY).abs() < f32::EPSILON);
     assert!(def.contains(20.0));
 
     // Pure: bordes inclusivos; purity en el centro ~1 y en el borde ~0.
@@ -321,7 +319,9 @@ fn eac2_assets_ceniza_resolves_inside_compound_band() {
 #[test]
 fn eac2_assets_flora_wins_over_lodo_at_overlap() {
     let almanac = test_assets_elements_almanac();
-    let d = almanac.find_stable_band(105.0).expect("105 Hz en solape Flora/Lodo");
+    let d = almanac
+        .find_stable_band(105.0)
+        .expect("105 Hz en solape Flora/Lodo");
     assert_eq!(d.symbol, "Fl");
 }
 
@@ -329,7 +329,9 @@ fn eac2_assets_flora_wins_over_lodo_at_overlap() {
 #[test]
 fn eac2_assets_humus_wins_over_lodo_mid_band() {
     let almanac = test_assets_elements_almanac();
-    let d = almanac.find_stable_band(150.0).expect("150 Hz humus vs lodo");
+    let d = almanac
+        .find_stable_band(150.0)
+        .expect("150 Hz humus vs lodo");
     assert_eq!(d.symbol, "Humus");
 }
 
@@ -352,14 +354,18 @@ fn eac2_assets_aqua_at_300_vapor_compound_excludes_endpoint() {
 #[test]
 fn eac2_assets_umbra_at_shared_boundary_30() {
     let almanac = test_assets_elements_almanac();
-    let d = almanac.find_stable_band(30.0).expect("30 Hz: Umbra cerrado, Ceniza excluye min");
+    let d = almanac
+        .find_stable_band(30.0)
+        .expect("30 Hz: Umbra cerrado, Ceniza excluye min");
     assert_eq!(d.symbol, "Umbra");
 }
 
 #[test]
 fn eac2_assets_terra_at_shared_boundary_50() {
     let almanac = test_assets_elements_almanac();
-    let d = almanac.find_stable_band(50.0).expect("50 Hz: Ceniza excluye max, Terra cierra min");
+    let d = almanac
+        .find_stable_band(50.0)
+        .expect("50 Hz: Ceniza excluye max, Terra cierra min");
     assert_eq!(d.symbol, "Terra");
 }
 
@@ -439,10 +445,7 @@ fn eac4_from_defs_computes_global_hz_bounds() {
         .color_rgb((0.0, 0.1, 0.9))
         .build();
     let almanac = AlchemicalAlmanac::from_defs(vec![lo, hi]);
-    assert_eq!(
-        almanac.game_frequency_hz_bounds(),
-        Some((200.0, 500.0))
-    );
+    assert_eq!(almanac.game_frequency_hz_bounds(), Some((200.0, 500.0)));
 }
 
 #[test]

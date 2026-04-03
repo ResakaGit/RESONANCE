@@ -7,20 +7,30 @@ pub fn symbol_fitness(information_bits: f32, reception_rate: f32, encoding_cost:
 
 /// Vocabulario compartido entre dos entidades: intersección normalizada.
 pub fn shared_vocabulary_ratio(vocab_a: &[u32], vocab_b: &[u32]) -> f32 {
-    if vocab_a.is_empty() || vocab_b.is_empty() { return 0.0; }
+    if vocab_a.is_empty() || vocab_b.is_empty() {
+        return 0.0;
+    }
     let shared = vocab_a.iter().filter(|s| vocab_b.contains(s)).count();
     shared as f32 / vocab_a.len().max(vocab_b.len()) as f32
 }
 
 /// Eficiencia de comunicación: vocabulario compartido × alcance / ruido.
 pub fn communication_efficiency(shared_ratio: f32, signal_range: f32, noise_level: f32) -> f32 {
-    if noise_level <= 0.0 { return shared_ratio * signal_range; }
+    if noise_level <= 0.0 {
+        return shared_ratio * signal_range;
+    }
     shared_ratio * signal_range / (1.0 + noise_level)
 }
 
 /// Tasa de deriva semántica: velocidad de cambio del significado de un símbolo.
-pub fn semantic_drift_rate(symbol_usage_frequency: f32, population_size: f32, isolation_factor: f32) -> f32 {
-    if symbol_usage_frequency <= 0.0 { return isolation_factor; }
+pub fn semantic_drift_rate(
+    symbol_usage_frequency: f32,
+    population_size: f32,
+    isolation_factor: f32,
+) -> f32 {
+    if symbol_usage_frequency <= 0.0 {
+        return isolation_factor;
+    }
     isolation_factor / (symbol_usage_frequency * population_size.sqrt())
 }
 
@@ -46,7 +56,7 @@ mod tests {
     #[test]
     fn shared_vocabulary_ratio_partial_overlap() {
         let r = shared_vocabulary_ratio(&[1, 2, 3], &[2, 3, 4]);
-        assert!((r - 2.0/3.0).abs() < 1e-5);
+        assert!((r - 2.0 / 3.0).abs() < 1e-5);
     }
 
     #[test]

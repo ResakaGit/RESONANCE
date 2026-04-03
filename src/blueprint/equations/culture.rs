@@ -20,8 +20,8 @@ use super::finite_helpers::{finite_non_negative, finite_unit};
 use crate::blueprint::constants::{
     CULTURE_COHERENCE_MIN, CULTURE_CONFLICT_THRESHOLD, CULTURE_FREQ_BANDWIDTH_HZ,
     CULTURE_GROUP_MIN_SIZE, CULTURE_MAX_EXPECTED_AGE_TICKS, CULTURE_PERCOLATION_CONNECTIVITY,
-    CULTURE_PHASE_GAS_MAX, CULTURE_PHASE_SOLID_MIN, CULTURE_RESILIENCE_MIN,
-    CULTURE_SYNTHESIS_MIN, DIVISION_GUARD_EPSILON,
+    CULTURE_PHASE_GAS_MAX, CULTURE_PHASE_SOLID_MIN, CULTURE_RESILIENCE_MIN, CULTURE_SYNTHESIS_MIN,
+    DIVISION_GUARD_EPSILON,
 };
 
 // ── Tipo de salida ────────────────────────────────────────────────────────────
@@ -95,7 +95,11 @@ pub fn internal_synthesis_rate(frequencies: &[f32]) -> f32 {
     let constructive = frequencies
         .iter()
         .enumerate()
-        .flat_map(|(i, &fa)| frequencies[i + 1..].iter().map(move |&fb| freq_interference(fa, fb)))
+        .flat_map(|(i, &fa)| {
+            frequencies[i + 1..]
+                .iter()
+                .map(move |&fb| freq_interference(fa, fb))
+        })
         .filter(|&interference| interference > 0.0)
         .count();
     constructive as f32 / total_pairs as f32
@@ -134,12 +138,7 @@ pub fn group_longevity_norm(mean_tick_age: f32) -> f32 {
 ///
 /// - `0.0` si cualquiera falla (el producto colapsa ante cualquier condición ausente)
 /// - `→ 1.0` cuando todos convergen simultáneamente
-pub fn culture_index(
-    coherence: f32,
-    synthesis: f32,
-    resilience: f32,
-    longevity: f32,
-) -> f32 {
+pub fn culture_index(coherence: f32, synthesis: f32, resilience: f32, longevity: f32) -> f32 {
     let c = finite_unit(coherence);
     let s = finite_unit(synthesis);
     let r = finite_unit(resilience);
@@ -184,10 +183,10 @@ pub fn culture_emergent(
     group_size: usize,
     spatial_connectivity: f32,
 ) -> bool {
-    finite_unit(coherence)           >= CULTURE_COHERENCE_MIN
-        && finite_unit(synthesis)    >= CULTURE_SYNTHESIS_MIN
-        && finite_unit(resilience)   >= CULTURE_RESILIENCE_MIN
-        && group_size                >= CULTURE_GROUP_MIN_SIZE
+    finite_unit(coherence) >= CULTURE_COHERENCE_MIN
+        && finite_unit(synthesis) >= CULTURE_SYNTHESIS_MIN
+        && finite_unit(resilience) >= CULTURE_RESILIENCE_MIN
+        && group_size >= CULTURE_GROUP_MIN_SIZE
         && finite_unit(spatial_connectivity) >= CULTURE_PERCOLATION_CONNECTIVITY
 }
 
@@ -264,7 +263,10 @@ mod tests {
         // Grupo Terra homogéneo → debe superar C_min
         let terra = [72.0_f32, 74.0, 76.0, 75.0, 73.0];
         let c = group_frequency_coherence(&terra);
-        assert!(c >= CULTURE_COHERENCE_MIN, "grupo Terra homogéneo debe tener cultura: c={c}");
+        assert!(
+            c >= CULTURE_COHERENCE_MIN,
+            "grupo Terra homogéneo debe tener cultura: c={c}"
+        );
     }
 
     // ── freq_interference ─────────────────────────────────────────────────────
@@ -285,7 +287,10 @@ mod tests {
     fn freq_interference_half_bandwidth_is_orthogonal() {
         // cos(π × BW/2 / BW) = cos(π/2) = 0 → punto ortogonal exacto
         let i = freq_interference(0.0, CULTURE_FREQ_BANDWIDTH_HZ / 2.0);
-        assert!(i.abs() < 1e-5, "mitad del ancho de banda = ortogonal: i={i}");
+        assert!(
+            i.abs() < 1e-5,
+            "mitad del ancho de banda = ortogonal: i={i}"
+        );
     }
 
     #[test]
@@ -369,7 +374,10 @@ mod tests {
 
     #[test]
     fn longevity_clamped_above_one() {
-        assert_eq!(group_longevity_norm(CULTURE_MAX_EXPECTED_AGE_TICKS * 2.0), 1.0);
+        assert_eq!(
+            group_longevity_norm(CULTURE_MAX_EXPECTED_AGE_TICKS * 2.0),
+            1.0
+        );
     }
 
     #[test]
@@ -409,7 +417,10 @@ mod tests {
     #[test]
     fn cultural_phase_solid_at_high_coherence() {
         assert_eq!(cultural_phase(0.85), CulturalPhase::Solid);
-        assert_eq!(cultural_phase(CULTURE_PHASE_SOLID_MIN), CulturalPhase::Solid);
+        assert_eq!(
+            cultural_phase(CULTURE_PHASE_SOLID_MIN),
+            CulturalPhase::Solid
+        );
         assert_eq!(cultural_phase(1.0), CulturalPhase::Solid);
     }
 
@@ -507,7 +518,7 @@ mod tests {
     #[test]
     fn conflict_opposing_bands_below_conflict_threshold() {
         let umbra = [20.0_f32, 22.0, 18.0];
-        let lux   = [1000.0_f32, 990.0, 1010.0];
+        let lux = [1000.0_f32, 990.0, 1010.0];
         let pot = inter_group_conflict_potential(&umbra, &lux);
         assert!(pot < CULTURE_CONFLICT_THRESHOLD, "pot={pot}");
     }
@@ -535,7 +546,10 @@ mod tests {
         let b = [950.0_f32, 1000.0];
         let ab = inter_group_conflict_potential(&a, &b);
         let ba = inter_group_conflict_potential(&b, &a);
-        assert!((ab - ba).abs() < 1e-5, "conflicto debe ser simétrico: {ab} vs {ba}");
+        assert!(
+            (ab - ba).abs() < 1e-5,
+            "conflicto debe ser simétrico: {ab} vs {ba}"
+        );
     }
 
     // ── integración: ciclo de vida completo ───────────────────────────────────
@@ -544,24 +558,31 @@ mod tests {
     fn full_culture_pipeline_terra_group_emergent() {
         // Grupo Terra homogéneo en suelo templado
         let freqs = [72.0_f32, 74.0, 76.0, 75.0, 73.0];
-        let coherence  = group_frequency_coherence(&freqs);
-        let synthesis  = internal_synthesis_rate(&freqs);
+        let coherence = group_frequency_coherence(&freqs);
+        let synthesis = internal_synthesis_rate(&freqs);
         let resilience = pattern_resilience(coherence, coherence * 0.95); // perturbación leve
-        let longevity  = group_longevity_norm(3000.0);
+        let longevity = group_longevity_norm(3000.0);
 
         let idx = culture_index(coherence, synthesis, resilience, longevity);
         let phase = cultural_phase(coherence);
 
         assert!(idx > 0.0, "índice debe ser positivo: {idx}");
-        assert_eq!(phase, CulturalPhase::Solid, "Terra homogéneo → sólido cultural");
+        assert_eq!(
+            phase,
+            CulturalPhase::Solid,
+            "Terra homogéneo → sólido cultural"
+        );
         assert!(culture_emergent(coherence, synthesis, resilience, 5, 0.65));
     }
 
     #[test]
     fn full_culture_pipeline_cross_band_conflict() {
         let umbra = [20.0_f32, 18.0, 22.0];
-        let lux   = [1000.0_f32, 990.0, 1010.0];
+        let lux = [1000.0_f32, 990.0, 1010.0];
         let pot = inter_group_conflict_potential(&umbra, &lux);
-        assert!(conflict_active(pot), "Umbra vs Lux debe activar conflicto: {pot}");
+        assert!(
+            conflict_active(pot),
+            "Umbra vs Lux debe activar conflicto: {pot}"
+        );
     }
 }

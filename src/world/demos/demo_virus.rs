@@ -18,20 +18,17 @@ pub fn spawn_demo_virus_startup_system(
 ) {
     // Células huésped en el lado Aqua
     let cell_positions = [
-        Vec2::new(-2.0,  0.5),
+        Vec2::new(-2.0, 0.5),
         Vec2::new(-2.0, -0.5),
-        Vec2::new(-1.2,  0.0),
-        Vec2::new(-1.5,  1.0),
+        Vec2::new(-1.2, 0.0),
+        Vec2::new(-1.5, 1.0),
     ];
     for pos in cell_positions {
         spawn_celula(&mut commands, &mut id_gen, pos, &layout);
     }
 
     // Virus en el lado Ignis (campo perturbador)
-    let virus_positions = [
-        Vec2::new(1.2,  0.2),
-        Vec2::new(1.5, -0.3),
-    ];
+    let virus_positions = [Vec2::new(1.2, 0.2), Vec2::new(1.5, -0.3)];
     for pos in virus_positions {
         spawn_virus(&mut commands, &mut id_gen, pos, &layout);
     }

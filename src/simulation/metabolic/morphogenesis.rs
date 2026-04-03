@@ -15,13 +15,15 @@
 
 use bevy::prelude::*;
 
-use crate::blueprint::constants::{METABOLIC_MIN_FLOW, METABOLIC_STARVATION_THRESHOLD, METABOLIC_STEP_EPSILON};
 use crate::blueprint::constants::morphogenesis as mg;
+use crate::blueprint::constants::{
+    METABOLIC_MIN_FLOW, METABOLIC_STARVATION_THRESHOLD, METABOLIC_STEP_EPSILON,
+};
 use crate::blueprint::equations;
 use crate::layers::{
     AmbientPressure, BaseEnergy, EntropyLedger, FlowVector, InferredAlbedo, IrradianceReceiver,
-    MetabolicGraph, MorphogenesisSurface, MorphogenesisShapeParams, SpatialVolume,
-    METABOLIC_GRAPH_MAX_EDGES, METABOLIC_GRAPH_MAX_NODES,
+    METABOLIC_GRAPH_MAX_EDGES, METABOLIC_GRAPH_MAX_NODES, MetabolicGraph, MorphogenesisShapeParams,
+    MorphogenesisSurface, SpatialVolume,
 };
 
 // ── MG-3B: Propagación de flujos por tick ───────────────────────────
@@ -29,9 +31,12 @@ use crate::layers::{
 /// Propaga flujos J por aristas y computa Q_diss, S_gen por nodo.
 /// Conservación por nodo: J_in = Σ J_out + Q_diss (+ E_a absorbida).
 pub fn metabolic_graph_step_system(
-    mut query: Query<
-        (&mut MetabolicGraph, &BaseEnergy, &AmbientPressure, &SpatialVolume),
-    >,
+    mut query: Query<(
+        &mut MetabolicGraph,
+        &BaseEnergy,
+        &AmbientPressure,
+        &SpatialVolume,
+    )>,
 ) {
     for (mut graph, energy, _pressure, volume) in &mut query {
         let qe = energy.qe();
@@ -53,9 +58,12 @@ pub fn metabolic_graph_step_system(
 
 /// Reclampea eficiencias al techo de Carnot por condiciones ambientales actuales.
 pub fn entropy_constraint_system(
-    mut query: Query<
-        (&mut MetabolicGraph, &BaseEnergy, &AmbientPressure, &SpatialVolume),
-    >,
+    mut query: Query<(
+        &mut MetabolicGraph,
+        &BaseEnergy,
+        &AmbientPressure,
+        &SpatialVolume,
+    )>,
 ) {
     for (mut graph, energy, pressure, volume) in &mut query {
         if graph.node_count() == 0 {
@@ -104,9 +112,9 @@ pub fn entropy_constraint_system(
 /// Snapshot de arista para lectura desacoplada del grafo (evita borrow conflict).
 #[derive(Clone, Copy)]
 struct EdgeSnap {
-    from:           u8,
-    to:             u8,
-    max_capacity:   f32,
+    from: u8,
+    to: u8,
+    max_capacity: f32,
     transport_cost: f32,
 }
 
@@ -114,7 +122,7 @@ struct EdgeSnap {
 /// `starts[i]..starts[i+1]` = rango de edge indices en `edge_indices` para el nodo i.
 struct OutgoingEdges {
     edge_indices: [u8; METABOLIC_GRAPH_MAX_EDGES],
-    starts:       [u8; METABOLIC_GRAPH_MAX_NODES + 1],
+    starts: [u8; METABOLIC_GRAPH_MAX_NODES + 1],
 }
 
 impl OutgoingEdges {
@@ -149,7 +157,10 @@ impl OutgoingEdges {
             }
         }
 
-        Self { edge_indices, starts }
+        Self {
+            edge_indices,
+            starts,
+        }
     }
 
     /// Itera los indices de aristas salientes del nodo `node_idx`.
@@ -165,7 +176,10 @@ impl OutgoingEdges {
 
 /// Colapsa todos los flujos y outputs a cero (inanición).
 fn collapse_flows(graph: &mut MetabolicGraph) {
-    let has_nonzero = graph.edges().iter().any(|e| e.flow_rate.abs() > METABOLIC_STEP_EPSILON)
+    let has_nonzero = graph
+        .edges()
+        .iter()
+        .any(|e| e.flow_rate.abs() > METABOLIC_STEP_EPSILON)
         || graph.nodes().iter().any(|n| {
             n.thermal_output.abs() > METABOLIC_STEP_EPSILON
                 || n.entropy_rate.abs() > METABOLIC_STEP_EPSILON
@@ -196,12 +210,17 @@ fn step_dag(graph: &mut MetabolicGraph, qe: f32, t_core: f32) {
     let (order, order_len) = topological_order(&in_degree, graph.edges(), node_count, edge_count);
 
     // Snapshot de edges (evita borrow conflict con nodes_mut).
-    let mut edge_snap = [EdgeSnap { from: 0, to: 0, max_capacity: 0.0, transport_cost: 0.0 }; METABOLIC_GRAPH_MAX_EDGES];
+    let mut edge_snap = [EdgeSnap {
+        from: 0,
+        to: 0,
+        max_capacity: 0.0,
+        transport_cost: 0.0,
+    }; METABOLIC_GRAPH_MAX_EDGES];
     for (i, e) in graph.edges().iter().enumerate() {
         edge_snap[i] = EdgeSnap {
-            from:           e.from,
-            to:             e.to,
-            max_capacity:   e.max_capacity,
+            from: e.from,
+            to: e.to,
+            max_capacity: e.max_capacity,
             transport_cost: e.transport_cost,
         };
     }
@@ -209,17 +228,28 @@ fn step_dag(graph: &mut MetabolicGraph, qe: f32, t_core: f32) {
     // Adjacency pre-computada: O(E) en vez de O(N*E) por nodo.
     let adj = OutgoingEdges::build(&edge_snap, edge_count, node_count);
 
-    let (node_thermal, node_entropy, edge_flows) =
-        propagate_flows(graph, &order, order_len, &mut j_in, &edge_snap, &adj, t_core);
+    let (node_thermal, node_entropy, edge_flows) = propagate_flows(
+        graph, &order, order_len, &mut j_in, &edge_snap, &adj, t_core,
+    );
 
-    write_results(graph, &node_thermal, &node_entropy, &edge_flows, node_count, edge_count);
+    write_results(
+        graph,
+        &node_thermal,
+        &node_entropy,
+        &edge_flows,
+        node_count,
+        edge_count,
+    );
 }
 
 /// Calcula in-degree por nodo e inyecta J_in en nodos raíz (in-degree 0).
 fn compute_in_degree_and_root_injection(
     graph: &MetabolicGraph,
     qe: f32,
-) -> ([u8; METABOLIC_GRAPH_MAX_NODES], [f32; METABOLIC_GRAPH_MAX_NODES]) {
+) -> (
+    [u8; METABOLIC_GRAPH_MAX_NODES],
+    [f32; METABOLIC_GRAPH_MAX_NODES],
+) {
     let node_count = graph.node_count();
     let mut in_degree = [0u8; METABOLIC_GRAPH_MAX_NODES];
     let mut j_in = [0.0f32; METABOLIC_GRAPH_MAX_NODES];
@@ -288,7 +318,12 @@ fn topological_order(
 }
 
 /// Inserta `val` en `order[head..len]` manteniendo orden ascendente.
-fn sorted_insert(order: &mut [u8; METABOLIC_GRAPH_MAX_NODES], head: usize, len: &mut usize, val: u8) {
+fn sorted_insert(
+    order: &mut [u8; METABOLIC_GRAPH_MAX_NODES],
+    head: usize,
+    len: &mut usize,
+    val: u8,
+) {
     let mut pos = *len;
     while pos > head && order[pos - 1] > val {
         order[pos] = order[pos - 1];
@@ -307,7 +342,11 @@ fn propagate_flows(
     edge_snap: &[EdgeSnap; METABOLIC_GRAPH_MAX_EDGES],
     adj: &OutgoingEdges,
     t_core: f32,
-) -> ([f32; METABOLIC_GRAPH_MAX_NODES], [f32; METABOLIC_GRAPH_MAX_NODES], [f32; METABOLIC_GRAPH_MAX_EDGES]) {
+) -> (
+    [f32; METABOLIC_GRAPH_MAX_NODES],
+    [f32; METABOLIC_GRAPH_MAX_NODES],
+    [f32; METABOLIC_GRAPH_MAX_EDGES],
+) {
     let node_count = graph.node_count();
     let mut node_thermal = [0.0f32; METABOLIC_GRAPH_MAX_NODES];
     let mut node_entropy = [0.0f32; METABOLIC_GRAPH_MAX_NODES];
@@ -335,7 +374,11 @@ fn propagate_flows(
         for i in 0..flow_count {
             let (ei_local, flow) = flows[i];
             let ei = ei_local as usize;
-            let flow_clamped = if flow >= METABOLIC_MIN_FLOW { flow } else { 0.0 };
+            let flow_clamped = if flow >= METABOLIC_MIN_FLOW {
+                flow
+            } else {
+                0.0
+            };
             edge_flows[ei] = flow_clamped;
 
             let snap = &edge_snap[ei];
@@ -408,10 +451,10 @@ pub fn entropy_ledger_system(
         let eta = equations::exergy_efficiency(chain.final_exergy, initial_exergy);
 
         let new_ledger = EntropyLedger {
-            total_heat_generated:  chain.total_heat,
+            total_heat_generated: chain.total_heat,
             total_waste_generated: chain.total_waste,
-            entropy_rate:          s_gen,
-            exergy_efficiency:     eta,
+            entropy_rate: s_gen,
+            exergy_efficiency: eta,
         };
 
         if let Ok(mut existing) = ledger_query.get_mut(entity) {
@@ -433,15 +476,18 @@ fn graph_vascular_cost(graph: &MetabolicGraph) -> f32 {
 
 /// Ajusta fineness_ratio minimizando shape_cost por descenso acotado (MG-4).
 pub fn shape_optimization_system(
-    mut query: Query<
-        (&MetabolicGraph, &FlowVector, &AmbientPressure, &SpatialVolume,
-         &mut MorphogenesisShapeParams),
-    >,
+    mut query: Query<(
+        &MetabolicGraph,
+        &FlowVector,
+        &AmbientPressure,
+        &SpatialVolume,
+        &mut MorphogenesisShapeParams,
+    )>,
 ) {
     for (graph, flow, pressure, volume, mut shape) in &mut query {
-        let velocity  = flow.speed();
-        let density   = pressure.terrain_viscosity;
-        let radius    = volume.radius;
+        let velocity = flow.speed();
+        let density = pressure.terrain_viscosity;
+        let radius = volume.radius;
         let proj_area = equations::projected_circle_area(radius);
         let vasc_cost = graph_vascular_cost(graph);
 
@@ -478,10 +524,15 @@ pub fn shape_optimization_system(
 /// MG-6 ledger). Los 2 `Option` son fallback-safe y no amplían el archetype filter.
 pub fn albedo_inference_system(
     mut commands: Commands,
-    query: Query<
-        (Entity, &MetabolicGraph, &BaseEnergy, &SpatialVolume, &AmbientPressure,
-         Option<&IrradianceReceiver>, Option<&EntropyLedger>),
-    >,
+    query: Query<(
+        Entity,
+        &MetabolicGraph,
+        &BaseEnergy,
+        &SpatialVolume,
+        &AmbientPressure,
+        Option<&IrradianceReceiver>,
+        Option<&EntropyLedger>,
+    )>,
     mut albedo_query: Query<&mut InferredAlbedo>,
 ) {
     for (entity, graph, energy, volume, pressure, irradiance, ledger) in &query {
@@ -502,7 +553,9 @@ pub fn albedo_inference_system(
         );
 
         let i_solar = irradiance
-            .map(|ir| equations::irradiance_effective_for_albedo(ir.photon_density, ir.absorbed_fraction))
+            .map(|ir| {
+                equations::irradiance_effective_for_albedo(ir.photon_density, ir.absorbed_fraction)
+            })
             .unwrap_or(0.0);
 
         let r = volume.radius;
@@ -510,9 +563,14 @@ pub fn albedo_inference_system(
         let surf_area = equations::sphere_surface_area(r);
 
         let alpha = equations::inferred_albedo(
-            q_met, i_solar, proj_area,
-            mg::DEFAULT_EMISSIVITY, t_core, t_env,
-            surf_area, mg::DEFAULT_CONVECTION_COEFF,
+            q_met,
+            i_solar,
+            proj_area,
+            mg::DEFAULT_EMISSIVITY,
+            t_core,
+            t_env,
+            surf_area,
+            mg::DEFAULT_CONVECTION_COEFF,
         );
 
         if let Ok(mut existing) = albedo_query.get_mut(entity) {
@@ -531,7 +589,13 @@ pub fn albedo_inference_system(
 /// Phase: MorphologicalLayer, after shape_optimization_system, before albedo_inference_system.
 pub fn surface_rugosity_system(
     mut commands: Commands,
-    query: Query<(Entity, &EntropyLedger, &SpatialVolume, &AmbientPressure, &BaseEnergy)>,
+    query: Query<(
+        Entity,
+        &EntropyLedger,
+        &SpatialVolume,
+        &AmbientPressure,
+        &BaseEnergy,
+    )>,
     mut surface_query: Query<&mut MorphogenesisSurface>,
 ) {
     for (entity, ledger, volume, pressure, energy) in &query {
@@ -573,7 +637,7 @@ mod tests {
         MetabolicGraphBuilder::new()
             .add_node(OrganRole::Root, 0.9, 3.0)
             .add_node(OrganRole::Core, 0.7, 8.0)
-            .add_node(OrganRole::Fin,  0.6, 5.0)
+            .add_node(OrganRole::Fin, 0.6, 5.0)
             .add_edge(0, 1, 50.0)
             .add_edge(1, 2, 40.0)
             .build()
@@ -584,7 +648,7 @@ mod tests {
         MetabolicGraphBuilder::new()
             .add_node(OrganRole::Root, 0.9, 3.0)
             .add_node(OrganRole::Stem, 0.8, 5.0)
-            .add_node(OrganRole::Fin,  0.7, 4.0)
+            .add_node(OrganRole::Fin, 0.7, 4.0)
             .add_edge(0, 1, 60.0)
             .add_edge(0, 2, 40.0)
             .build()
@@ -598,12 +662,14 @@ mod tests {
         radius: f32,
         viscosity: f32,
     ) -> Entity {
-        world.spawn((
-            graph,
-            BaseEnergy::new(qe),
-            SpatialVolume::new(radius),
-            AmbientPressure::new(0.0, viscosity),
-        )).id()
+        world
+            .spawn((
+                graph,
+                BaseEnergy::new(qe),
+                SpatialVolume::new(radius),
+                AmbientPressure::new(0.0, viscosity),
+            ))
+            .id()
     }
 
     fn run_step_system(world: &mut World) {
@@ -631,7 +697,8 @@ mod tests {
             assert!(
                 node.thermal_output >= 0.0,
                 "{:?} thermal_output = {} (expected >= 0)",
-                node.role, node.thermal_output,
+                node.role,
+                node.thermal_output,
             );
         }
         assert!(graph.total_entropy_rate() >= 0.0);
@@ -657,7 +724,8 @@ mod tests {
         assert!(
             balance <= qe + 1.0,
             "balance {} exceeds input {} by more than tolerance",
-            balance, qe,
+            balance,
+            qe,
         );
     }
 
@@ -672,14 +740,19 @@ mod tests {
         assert!(
             (graph.total_entropy_rate() - sum_s).abs() < 1e-3,
             "total {} != sum {}",
-            graph.total_entropy_rate(), sum_s,
+            graph.total_entropy_rate(),
+            sum_s,
         );
     }
 
     #[test]
     fn step_no_graph_entities_no_panic() {
         let mut world = World::new();
-        world.spawn((BaseEnergy::new(100.0), SpatialVolume::new(1.0), AmbientPressure::default()));
+        world.spawn((
+            BaseEnergy::new(100.0),
+            SpatialVolume::new(1.0),
+            AmbientPressure::default(),
+        ));
         run_step_system(&mut world);
     }
 
@@ -691,7 +764,11 @@ mod tests {
 
         let graph = world.entity(e).get::<MetabolicGraph>().unwrap();
         for edge in graph.edges() {
-            assert_eq!(edge.flow_rate, 0.0, "edge {}→{} flow should be 0", edge.from, edge.to);
+            assert_eq!(
+                edge.flow_rate, 0.0,
+                "edge {}→{} flow should be 0",
+                edge.from, edge.to
+            );
         }
         for node in graph.nodes() {
             assert_eq!(node.thermal_output, 0.0);
@@ -730,7 +807,10 @@ mod tests {
             assert!(
                 edge.flow_rate <= edge.max_capacity + 1e-3,
                 "edge {}→{}: flow {} > cap {}",
-                edge.from, edge.to, edge.flow_rate, edge.max_capacity,
+                edge.from,
+                edge.to,
+                edge.flow_rate,
+                edge.max_capacity,
             );
         }
     }
@@ -756,7 +836,9 @@ mod tests {
             assert!(
                 node.efficiency <= eta_c + 1e-4,
                 "{:?}: efficiency {} > carnot {}",
-                node.role, node.efficiency, eta_c,
+                node.role,
+                node.efficiency,
+                eta_c,
             );
         }
     }
@@ -776,7 +858,8 @@ mod tests {
             assert!(
                 (node.efficiency - 0.1).abs() < 1e-4,
                 "{:?}: efficiency changed to {}",
-                node.role, node.efficiency,
+                node.role,
+                node.efficiency,
             );
         }
     }
@@ -809,7 +892,8 @@ mod tests {
         assert!(
             g.nodes()[0].efficiency <= eta_c + 1e-4,
             "node 0 should be clamped: {} > {}",
-            g.nodes()[0].efficiency, eta_c,
+            g.nodes()[0].efficiency,
+            eta_c,
         );
         // Nodo 1: η=0.3 < carnot → sin cambio.
         assert!(
@@ -863,7 +947,9 @@ mod tests {
             assert!(
                 node.efficiency <= eta_c + 1e-4,
                 "{:?}: efficiency {} > carnot {}",
-                node.role, node.efficiency, eta_c,
+                node.role,
+                node.efficiency,
+                eta_c,
             );
         }
     }
@@ -877,14 +963,16 @@ mod tests {
         viscosity: f32,
         radius: f32,
     ) -> Entity {
-        world.spawn((
-            graph,
-            BaseEnergy::new(500.0),
-            SpatialVolume::new(radius),
-            AmbientPressure::new(0.0, viscosity),
-            FlowVector::new(velocity, 0.05),
-            MorphogenesisShapeParams::default(),
-        )).id()
+        world
+            .spawn((
+                graph,
+                BaseEnergy::new(500.0),
+                SpatialVolume::new(radius),
+                AmbientPressure::new(0.0, viscosity),
+                FlowVector::new(velocity, 0.05),
+                MorphogenesisShapeParams::default(),
+            ))
+            .id()
     }
 
     fn run_shape_system(world: &mut World) {
@@ -897,8 +985,11 @@ mod tests {
     fn shape_water_dense_increases_fineness() {
         let mut world = World::new();
         let e = spawn_shape_entity(
-            &mut world, build_chain_graph(),
-            Vec2::new(4.0, 0.0), 1000.0, 2.0,
+            &mut world,
+            build_chain_graph(),
+            Vec2::new(4.0, 0.0),
+            1000.0,
+            2.0,
         );
         for _ in 0..10 {
             run_shape_system(&mut world);
@@ -916,8 +1007,11 @@ mod tests {
         // Low ρ*v²*A → tiny drag gradient → fineness barely moves.
         let mut world = World::new();
         let e = spawn_shape_entity(
-            &mut world, build_chain_graph(),
-            Vec2::new(0.5, 0.0), 1.2, 0.5,
+            &mut world,
+            build_chain_graph(),
+            Vec2::new(0.5, 0.0),
+            1.2,
+            0.5,
         );
         for _ in 0..10 {
             run_shape_system(&mut world);
@@ -934,19 +1028,31 @@ mod tests {
     fn shape_cost_decreases_over_ticks() {
         let mut world = World::new();
         let e = spawn_shape_entity(
-            &mut world, build_chain_graph(),
-            Vec2::new(4.0, 0.0), 1000.0, 2.0,
+            &mut world,
+            build_chain_graph(),
+            Vec2::new(4.0, 0.0),
+            1000.0,
+            2.0,
         );
         run_shape_system(&mut world);
-        let cost_1 = world.entity(e).get::<MorphogenesisShapeParams>().unwrap().current_shape_cost();
+        let cost_1 = world
+            .entity(e)
+            .get::<MorphogenesisShapeParams>()
+            .unwrap()
+            .current_shape_cost();
         for _ in 0..4 {
             run_shape_system(&mut world);
         }
-        let cost_5 = world.entity(e).get::<MorphogenesisShapeParams>().unwrap().current_shape_cost();
+        let cost_5 = world
+            .entity(e)
+            .get::<MorphogenesisShapeParams>()
+            .unwrap()
+            .current_shape_cost();
         assert!(
             cost_5 <= cost_1 + 0.01,
             "optimizer should reduce cost: tick1={}, tick5={}",
-            cost_1, cost_5,
+            cost_1,
+            cost_5,
         );
     }
 
@@ -967,14 +1073,16 @@ mod tests {
     #[test]
     fn shape_ceiling_clamped_at_max() {
         let mut world = World::new();
-        let e = world.spawn((
-            build_chain_graph(),
-            BaseEnergy::new(500.0),
-            SpatialVolume::new(2.0),
-            AmbientPressure::new(0.0, 1000.0),
-            FlowVector::new(Vec2::new(4.0, 0.0), 0.05),
-            MorphogenesisShapeParams::new(mg::FINENESS_MAX),
-        )).id();
+        let e = world
+            .spawn((
+                build_chain_graph(),
+                BaseEnergy::new(500.0),
+                SpatialVolume::new(2.0),
+                AmbientPressure::new(0.0, 1000.0),
+                FlowVector::new(Vec2::new(4.0, 0.0), 0.05),
+                MorphogenesisShapeParams::new(mg::FINENESS_MAX),
+            ))
+            .id();
         for _ in 0..10 {
             run_shape_system(&mut world);
         }
@@ -985,14 +1093,16 @@ mod tests {
     #[test]
     fn shape_floor_pushes_away_from_sphere() {
         let mut world = World::new();
-        let e = world.spawn((
-            build_chain_graph(),
-            BaseEnergy::new(500.0),
-            SpatialVolume::new(2.0),
-            AmbientPressure::new(0.0, 1000.0),
-            FlowVector::new(Vec2::new(4.0, 0.0), 0.05),
-            MorphogenesisShapeParams::new(mg::FINENESS_MIN),
-        )).id();
+        let e = world
+            .spawn((
+                build_chain_graph(),
+                BaseEnergy::new(500.0),
+                SpatialVolume::new(2.0),
+                AmbientPressure::new(0.0, 1000.0),
+                FlowVector::new(Vec2::new(4.0, 0.0), 0.05),
+                MorphogenesisShapeParams::new(mg::FINENESS_MIN),
+            ))
+            .id();
         for _ in 0..10 {
             run_shape_system(&mut world);
         }
@@ -1007,19 +1117,25 @@ mod tests {
     #[test]
     fn shape_zero_velocity_minimal_change() {
         let mut world = World::new();
-        let e = spawn_shape_entity(
-            &mut world, build_chain_graph(),
-            Vec2::ZERO, 1000.0, 2.0,
-        );
-        let initial = world.entity(e).get::<MorphogenesisShapeParams>().unwrap().fineness_ratio();
+        let e = spawn_shape_entity(&mut world, build_chain_graph(), Vec2::ZERO, 1000.0, 2.0);
+        let initial = world
+            .entity(e)
+            .get::<MorphogenesisShapeParams>()
+            .unwrap()
+            .fineness_ratio();
         for _ in 0..10 {
             run_shape_system(&mut world);
         }
-        let final_f = world.entity(e).get::<MorphogenesisShapeParams>().unwrap().fineness_ratio();
+        let final_f = world
+            .entity(e)
+            .get::<MorphogenesisShapeParams>()
+            .unwrap()
+            .fineness_ratio();
         assert!(
             (final_f - initial).abs() < 0.5,
             "v=0 → minimal change: {} → {}",
-            initial, final_f,
+            initial,
+            final_f,
         );
     }
 
@@ -1027,24 +1143,38 @@ mod tests {
     fn shape_deterministic_1000_calls() {
         let mut world = World::new();
         let e = spawn_shape_entity(
-            &mut world, build_chain_graph(),
-            Vec2::new(4.0, 0.0), 1000.0, 2.0,
+            &mut world,
+            build_chain_graph(),
+            Vec2::new(4.0, 0.0),
+            1000.0,
+            2.0,
         );
         for _ in 0..50 {
             run_shape_system(&mut world);
         }
-        let ref_f = world.entity(e).get::<MorphogenesisShapeParams>().unwrap().fineness_ratio();
+        let ref_f = world
+            .entity(e)
+            .get::<MorphogenesisShapeParams>()
+            .unwrap()
+            .fineness_ratio();
 
         // Replay idéntico
         let mut world2 = World::new();
         let e2 = spawn_shape_entity(
-            &mut world2, build_chain_graph(),
-            Vec2::new(4.0, 0.0), 1000.0, 2.0,
+            &mut world2,
+            build_chain_graph(),
+            Vec2::new(4.0, 0.0),
+            1000.0,
+            2.0,
         );
         for _ in 0..50 {
             run_shape_system(&mut world2);
         }
-        let ref_f2 = world2.entity(e2).get::<MorphogenesisShapeParams>().unwrap().fineness_ratio();
+        let ref_f2 = world2
+            .entity(e2)
+            .get::<MorphogenesisShapeParams>()
+            .unwrap()
+            .fineness_ratio();
         assert_eq!(ref_f, ref_f2, "deterministic: same inputs → same output");
     }
 
@@ -1052,21 +1182,40 @@ mod tests {
     fn shape_oscillating_input_damped() {
         let mut world = World::new();
         let e = spawn_shape_entity(
-            &mut world, build_chain_graph(),
-            Vec2::new(4.0, 0.0), 1000.0, 2.0,
+            &mut world,
+            build_chain_graph(),
+            Vec2::new(4.0, 0.0),
+            1000.0,
+            2.0,
         );
-        let mut prev = world.entity(e).get::<MorphogenesisShapeParams>().unwrap().fineness_ratio();
+        let mut prev = world
+            .entity(e)
+            .get::<MorphogenesisShapeParams>()
+            .unwrap()
+            .fineness_ratio();
         // Max per-tick delta = SHAPE_FD_DELTA * max_iter = 0.1 * 3 = 0.3.
         let max_delta_per_tick = mg::SHAPE_FD_DELTA * mg::SHAPE_OPTIMIZER_MAX_ITER as f32 + 0.01;
         for i in 0..20 {
             let visc = if i % 2 == 0 { 1000.0 } else { 1.2 };
-            world.entity_mut(e).get_mut::<AmbientPressure>().unwrap().terrain_viscosity = visc;
+            world
+                .entity_mut(e)
+                .get_mut::<AmbientPressure>()
+                .unwrap()
+                .terrain_viscosity = visc;
             run_shape_system(&mut world);
-            let cur = world.entity(e).get::<MorphogenesisShapeParams>().unwrap().fineness_ratio();
+            let cur = world
+                .entity(e)
+                .get::<MorphogenesisShapeParams>()
+                .unwrap()
+                .fineness_ratio();
             assert!(
                 (cur - prev).abs() <= max_delta_per_tick,
                 "tick {}: damping violated: {} → {} (Δ={:.3}, max={:.3})",
-                i, prev, cur, (cur - prev).abs(), max_delta_per_tick,
+                i,
+                prev,
+                cur,
+                (cur - prev).abs(),
+                max_delta_per_tick,
             );
             prev = cur;
         }
@@ -1076,21 +1225,33 @@ mod tests {
     fn shape_converges_stable_input() {
         let mut world = World::new();
         let e = spawn_shape_entity(
-            &mut world, build_chain_graph(),
-            Vec2::new(4.0, 0.0), 1000.0, 2.0,
+            &mut world,
+            build_chain_graph(),
+            Vec2::new(4.0, 0.0),
+            1000.0,
+            2.0,
         );
         for _ in 0..50 {
             run_shape_system(&mut world);
         }
-        let f50 = world.entity(e).get::<MorphogenesisShapeParams>().unwrap().fineness_ratio();
+        let f50 = world
+            .entity(e)
+            .get::<MorphogenesisShapeParams>()
+            .unwrap()
+            .fineness_ratio();
         for _ in 0..10 {
             run_shape_system(&mut world);
         }
-        let f60 = world.entity(e).get::<MorphogenesisShapeParams>().unwrap().fineness_ratio();
+        let f60 = world
+            .entity(e)
+            .get::<MorphogenesisShapeParams>()
+            .unwrap()
+            .fineness_ratio();
         assert!(
             (f60 - f50).abs() < mg::SHAPE_OPTIMIZER_EPSILON * 2.0,
             "should converge: f50={}, f60={}",
-            f50, f60,
+            f50,
+            f60,
         );
     }
 
@@ -1161,19 +1322,27 @@ mod tests {
         let ledger = world.entity(e).get::<EntropyLedger>().unwrap();
         assert!(
             (ledger.total_heat_generated - chain.total_heat).abs() < 1e-2,
-            "heat: {} vs {}", ledger.total_heat_generated, chain.total_heat,
+            "heat: {} vs {}",
+            ledger.total_heat_generated,
+            chain.total_heat,
         );
         assert!(
             (ledger.total_waste_generated - chain.total_waste).abs() < 1e-2,
-            "waste: {} vs {}", ledger.total_waste_generated, chain.total_waste,
+            "waste: {} vs {}",
+            ledger.total_waste_generated,
+            chain.total_waste,
         );
         assert!(
             (ledger.entropy_rate - expected_s).abs() < 1e-3,
-            "entropy: {} vs {}", ledger.entropy_rate, expected_s,
+            "entropy: {} vs {}",
+            ledger.entropy_rate,
+            expected_s,
         );
         assert!(
             (ledger.exergy_efficiency - expected_eta).abs() < 1e-3,
-            "eta: {} vs {}", ledger.exergy_efficiency, expected_eta,
+            "eta: {} vs {}",
+            ledger.exergy_efficiency,
+            expected_eta,
         );
     }
 
@@ -1193,11 +1362,13 @@ mod tests {
     #[test]
     fn ledger_not_inserted_without_metabolic_graph() {
         let mut world = World::new();
-        let e = world.spawn((
-            BaseEnergy::new(500.0),
-            SpatialVolume::new(2.0),
-            AmbientPressure::new(0.0, 1.0),
-        )).id();
+        let e = world
+            .spawn((
+                BaseEnergy::new(500.0),
+                SpatialVolume::new(2.0),
+                AmbientPressure::new(0.0, 1.0),
+            ))
+            .id();
         run_ledger_system(&mut world);
 
         assert!(
@@ -1230,9 +1401,18 @@ mod tests {
         run_ledger_system(&mut world);
 
         let ledger = world.entity(e).get::<EntropyLedger>().unwrap();
-        assert!(ledger.total_heat_generated > 0.0, "should have heat after full pipeline");
-        assert!(ledger.entropy_rate > 0.0, "should have entropy after full pipeline");
-        assert!(ledger.exergy_efficiency >= 0.0, "efficiency must be non-negative");
+        assert!(
+            ledger.total_heat_generated > 0.0,
+            "should have heat after full pipeline"
+        );
+        assert!(
+            ledger.entropy_rate > 0.0,
+            "should have entropy after full pipeline"
+        );
+        assert!(
+            ledger.exergy_efficiency >= 0.0,
+            "efficiency must be non-negative"
+        );
         assert!(ledger.exergy_efficiency <= 1.0, "efficiency must be <= 1");
     }
 
@@ -1278,7 +1458,11 @@ mod tests {
             exergy_efficiency: 0.5,
         };
         let e = spawn_albedo_entity(
-            &mut world, build_chain_graph(), 500.0, 2.0, 1.0,
+            &mut world,
+            build_chain_graph(),
+            500.0,
+            2.0,
+            1.0,
             Some(IrradianceReceiver::new(100.0, 0.8)),
             Some(ledger),
         );
@@ -1302,23 +1486,27 @@ mod tests {
             exergy_efficiency: 0.8,
         };
         let e = spawn_albedo_entity(
-            &mut world, build_chain_graph(), 1466.0, 1.0, 2.0,
+            &mut world,
+            build_chain_graph(),
+            1466.0,
+            1.0,
+            2.0,
             Some(IrradianceReceiver::new(5.0, 0.5)),
             Some(ledger),
         );
         run_albedo_system(&mut world);
 
         let a = world.entity(e).get::<InferredAlbedo>().unwrap().albedo();
-        assert!(a < 0.3, "high dissipation + low Q_met → low α (absorbs); got {a}");
+        assert!(
+            a < 0.3,
+            "high dissipation + low Q_met → low α (absorbs); got {a}"
+        );
     }
 
     #[test]
     fn albedo_no_irradiance_returns_fallback() {
         let mut world = World::new();
-        let e = spawn_albedo_entity(
-            &mut world, build_chain_graph(), 500.0, 2.0, 1.0,
-            None, None,
-        );
+        let e = spawn_albedo_entity(&mut world, build_chain_graph(), 500.0, 2.0, 1.0, None, None);
         run_albedo_system(&mut world);
 
         let a = world.entity(e).get::<InferredAlbedo>().unwrap().albedo();
@@ -1332,11 +1520,13 @@ mod tests {
     #[test]
     fn albedo_not_inserted_without_metabolic_graph() {
         let mut world = World::new();
-        let e = world.spawn((
-            BaseEnergy::new(500.0),
-            SpatialVolume::new(2.0),
-            AmbientPressure::new(0.0, 1.0),
-        )).id();
+        let e = world
+            .spawn((
+                BaseEnergy::new(500.0),
+                SpatialVolume::new(2.0),
+                AmbientPressure::new(0.0, 1.0),
+            ))
+            .id();
         run_albedo_system(&mut world); // no panic
 
         assert!(
@@ -1349,7 +1539,11 @@ mod tests {
     fn albedo_without_irradiance_no_panic() {
         let mut world = World::new();
         let e = spawn_albedo_entity(
-            &mut world, build_chain_graph(), 500.0, 2.0, 1.0,
+            &mut world,
+            build_chain_graph(),
+            500.0,
+            2.0,
+            1.0,
             None,
             Some(EntropyLedger {
                 total_heat_generated: 100.0,
@@ -1368,10 +1562,10 @@ mod tests {
     fn albedo_always_in_valid_range_extreme_inputs() {
         let mut world = World::new();
         let extremes: [(f32, f32, f32); 4] = [
-            (0.0,     0.0,   0.0),
+            (0.0, 0.0, 0.0),
             (10000.0, 1000.0, 0.9),
-            (0.1,     1000.0, 0.9),
-            (10000.0, 0.0,   0.0),
+            (0.1, 1000.0, 0.9),
+            (10000.0, 0.0, 0.0),
         ];
         for (q, pd, af) in extremes {
             let ledger = EntropyLedger {
@@ -1380,10 +1574,19 @@ mod tests {
                 entropy_rate: 0.0,
                 exergy_efficiency: 0.5,
             };
-            let ir = if pd > 0.0 { Some(IrradianceReceiver::new(pd, af)) } else { None };
+            let ir = if pd > 0.0 {
+                Some(IrradianceReceiver::new(pd, af))
+            } else {
+                None
+            };
             let e = spawn_albedo_entity(
-                &mut world, build_chain_graph(), 500.0, 2.0, 1.0,
-                ir, Some(ledger),
+                &mut world,
+                build_chain_graph(),
+                500.0,
+                2.0,
+                1.0,
+                ir,
+                Some(ledger),
             );
             run_albedo_system(&mut world);
             let a = world.entity(e).get::<InferredAlbedo>().unwrap().albedo();
@@ -1397,10 +1600,7 @@ mod tests {
     #[test]
     fn albedo_guard_change_detection() {
         let mut world = World::new();
-        let e = spawn_albedo_entity(
-            &mut world, build_chain_graph(), 500.0, 2.0, 1.0,
-            None, None,
-        );
+        let e = spawn_albedo_entity(&mut world, build_chain_graph(), 500.0, 2.0, 1.0, None, None);
         run_albedo_system(&mut world);
         let a1 = world.entity(e).get::<InferredAlbedo>().unwrap().albedo();
 
@@ -1421,21 +1621,37 @@ mod tests {
             exergy_efficiency: 0.5,
         };
         let e_with_ledger = spawn_albedo_entity(
-            &mut world, build_chain_graph(), 500.0, 2.0, 1.0,
+            &mut world,
+            build_chain_graph(),
+            500.0,
+            2.0,
+            1.0,
             Some(IrradianceReceiver::new(100.0, 0.8)),
             Some(ledger),
         );
         run_albedo_system(&mut world);
-        let a_ledger = world.entity(e_with_ledger).get::<InferredAlbedo>().unwrap().albedo();
+        let a_ledger = world
+            .entity(e_with_ledger)
+            .get::<InferredAlbedo>()
+            .unwrap()
+            .albedo();
 
         // Sin ledger: proxy = total_entropy_rate * T_core (diferente de 300).
         let e_proxy = spawn_albedo_entity(
-            &mut world, build_chain_graph(), 500.0, 2.0, 1.0,
+            &mut world,
+            build_chain_graph(),
+            500.0,
+            2.0,
+            1.0,
             Some(IrradianceReceiver::new(100.0, 0.8)),
             None,
         );
         run_albedo_system(&mut world);
-        let a_proxy = world.entity(e_proxy).get::<InferredAlbedo>().unwrap().albedo();
+        let a_proxy = world
+            .entity(e_proxy)
+            .get::<InferredAlbedo>()
+            .unwrap()
+            .albedo();
 
         // Ambos deben ser válidos; pueden diferir.
         assert!(a_ledger >= mg::ALBEDO_MIN && a_ledger <= mg::ALBEDO_MAX);
@@ -1451,12 +1667,14 @@ mod tests {
         viscosity: f32,
         ledger: EntropyLedger,
     ) -> Entity {
-        world.spawn((
-            BaseEnergy::new(qe),
-            SpatialVolume::new(radius),
-            AmbientPressure::new(0.0, viscosity),
-            ledger,
-        )).id()
+        world
+            .spawn((
+                BaseEnergy::new(qe),
+                SpatialVolume::new(radius),
+                AmbientPressure::new(0.0, viscosity),
+                ledger,
+            ))
+            .id()
     }
 
     fn run_rugosity_system(world: &mut World) {
@@ -1514,11 +1732,13 @@ mod tests {
     fn rugosity_entity_without_ledger_no_surface() {
         let mut world = World::new();
         // Entity sin EntropyLedger — no debe recibir MorphogenesisSurface.
-        let e = world.spawn((
-            BaseEnergy::new(500.0),
-            SpatialVolume::new(2.0),
-            AmbientPressure::new(0.0, 1.0),
-        )).id();
+        let e = world
+            .spawn((
+                BaseEnergy::new(500.0),
+                SpatialVolume::new(2.0),
+                AmbientPressure::new(0.0, 1.0),
+            ))
+            .id();
         run_rugosity_system(&mut world);
 
         assert!(
@@ -1539,11 +1759,19 @@ mod tests {
         // radius=0.5 → T_core≈954 > T_env=280. Meaningful ΔT.
         let e = spawn_rugosity_entity(&mut world, 500.0, 0.5, 1.0, ledger);
         run_rugosity_system(&mut world);
-        let r1 = world.entity(e).get::<MorphogenesisSurface>().unwrap().rugosity();
+        let r1 = world
+            .entity(e)
+            .get::<MorphogenesisSurface>()
+            .unwrap()
+            .rugosity();
 
         // Run again — same inputs → same rugosity.
         run_rugosity_system(&mut world);
-        let r2 = world.entity(e).get::<MorphogenesisSurface>().unwrap().rugosity();
+        let r2 = world
+            .entity(e)
+            .get::<MorphogenesisSurface>()
+            .unwrap()
+            .rugosity();
         assert_eq!(r1, r2, "idempotent: same inputs → same rugosity");
     }
 
@@ -1560,7 +1788,11 @@ mod tests {
             // radius=0.5 → T_core > T_env with qe=500.
             let e = spawn_rugosity_entity(&mut world, 500.0, 0.5, 1.0, ledger);
             run_rugosity_system(&mut world);
-            let rug = world.entity(e).get::<MorphogenesisSurface>().unwrap().rugosity();
+            let rug = world
+                .entity(e)
+                .get::<MorphogenesisSurface>()
+                .unwrap()
+                .rugosity();
             assert!(
                 rug >= mg::RUGOSITY_MIN && rug <= mg::RUGOSITY_MAX,
                 "Q={q} → rug={rug} out of range",
@@ -1579,7 +1811,11 @@ mod tests {
         };
         let e = spawn_rugosity_entity(&mut world, 500.0, 0.5, 1.0, ledger);
         run_rugosity_system(&mut world);
-        let qv = world.entity(e).get::<MorphogenesisSurface>().unwrap().heat_volume_ratio();
+        let qv = world
+            .entity(e)
+            .get::<MorphogenesisSurface>()
+            .unwrap()
+            .heat_volume_ratio();
         assert!(qv >= 0.0, "Q/V ratio must be non-negative: qv={qv}");
     }
 
@@ -1597,7 +1833,11 @@ mod tests {
         let e = spawn_rugosity_entity(&mut world, 500.0, 0.5, 1.0, ledger);
         run_rugosity_system(&mut world);
 
-        let rug = world.entity(e).get::<MorphogenesisSurface>().unwrap().rugosity();
+        let rug = world
+            .entity(e)
+            .get::<MorphogenesisSurface>()
+            .unwrap()
+            .rugosity();
         assert!(
             rug >= mg::RUGOSITY_MIN && rug <= mg::RUGOSITY_MAX,
             "mid-range Q + positive ΔT → valid rugosity: rug={rug}",
@@ -1626,7 +1866,11 @@ mod tests {
         let multiplier = mg::RUGOSITY_MAX_DETAIL_MULTIPLIER;
         let raw = (base_detail as f32 * multiplier) as u32;
         let clamped = raw.min(mg::MAX_SEGMENTS_PER_ENTITY);
-        assert_eq!(clamped, mg::MAX_SEGMENTS_PER_ENTITY, "clamped: {raw} → {clamped}");
+        assert_eq!(
+            clamped,
+            mg::MAX_SEGMENTS_PER_ENTITY,
+            "clamped: {raw} → {clamped}"
+        );
     }
 
     // ── MG-5: Albedo fallback paths ──
@@ -1635,14 +1879,19 @@ mod tests {
     fn albedo_inference_with_ledger_produces_valid_albedo() {
         let mut world = World::new();
         let ledger = EntropyLedger {
-            total_heat_generated:  150.0,
+            total_heat_generated: 150.0,
             total_waste_generated: 5.0,
-            entropy_rate:          0.3,
-            exergy_efficiency:     0.6,
+            entropy_rate: 0.3,
+            exergy_efficiency: 0.6,
         };
         let e = spawn_albedo_entity(
-            &mut world, build_chain_graph(), 500.0, 2.0, 1.0,
-            None, Some(ledger),
+            &mut world,
+            build_chain_graph(),
+            500.0,
+            2.0,
+            1.0,
+            None,
+            Some(ledger),
         );
         run_albedo_system(&mut world);
 
@@ -1652,17 +1901,15 @@ mod tests {
         assert!(
             a >= mg::ALBEDO_MIN && a <= mg::ALBEDO_MAX,
             "albedo {a} outside [{}, {}]",
-            mg::ALBEDO_MIN, mg::ALBEDO_MAX,
+            mg::ALBEDO_MIN,
+            mg::ALBEDO_MAX,
         );
     }
 
     #[test]
     fn albedo_inference_without_ledger_uses_fallback() {
         let mut world = World::new();
-        let e = spawn_albedo_entity(
-            &mut world, build_chain_graph(), 500.0, 2.0, 1.0,
-            None, None,
-        );
+        let e = spawn_albedo_entity(&mut world, build_chain_graph(), 500.0, 2.0, 1.0, None, None);
         run_albedo_system(&mut world);
 
         let albedo = world.entity(e).get::<InferredAlbedo>();
@@ -1681,15 +1928,20 @@ mod tests {
     fn albedo_inference_without_irradiance_defaults_to_zero_solar() {
         let mut world = World::new();
         let ledger = EntropyLedger {
-            total_heat_generated:  200.0,
+            total_heat_generated: 200.0,
             total_waste_generated: 5.0,
-            entropy_rate:          0.4,
-            exergy_efficiency:     0.6,
+            entropy_rate: 0.4,
+            exergy_efficiency: 0.6,
         };
         // No IrradianceReceiver → i_solar = 0 path.
         let e = spawn_albedo_entity(
-            &mut world, build_chain_graph(), 500.0, 2.0, 1.0,
-            None, Some(ledger),
+            &mut world,
+            build_chain_graph(),
+            500.0,
+            2.0,
+            1.0,
+            None,
+            Some(ledger),
         );
         run_albedo_system(&mut world);
 
@@ -1710,13 +1962,17 @@ mod tests {
         let mut world = World::new();
         let empty_graph = MetabolicGraph::empty();
         let e = spawn_albedo_entity(
-            &mut world, empty_graph, 500.0, 2.0, 1.0,
+            &mut world,
+            empty_graph,
+            500.0,
+            2.0,
+            1.0,
             Some(IrradianceReceiver::new(50.0, 0.5)),
             Some(EntropyLedger {
-                total_heat_generated:  100.0,
+                total_heat_generated: 100.0,
                 total_waste_generated: 5.0,
-                entropy_rate:          0.2,
-                exergy_efficiency:     0.7,
+                entropy_rate: 0.2,
+                exergy_efficiency: 0.7,
             }),
         );
         run_albedo_system(&mut world);

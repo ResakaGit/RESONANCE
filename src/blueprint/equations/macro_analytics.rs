@@ -6,7 +6,9 @@
 /// Energy after `n_ticks` ticks of exponential decay.
 /// E(n) = E0 * (1 - rate)^n
 pub fn exponential_decay(e0: f32, rate: f32, n_ticks: u32) -> f32 {
-    if n_ticks == 0 { return e0; }
+    if n_ticks == 0 {
+        return e0;
+    }
     let r = rate.clamp(0.0, 1.0 - f32::EPSILON);
     e0 * (1.0 - r).powf(n_ticks as f32)
 }
@@ -23,7 +25,9 @@ pub fn allometric_radius(r0: f32, r_max: f32, k: f32, n_ticks: u32) -> f32 {
 /// n = ceil(log(threshold / E0) / log(1 - rate))
 /// Returns `u32::MAX` if already at or below threshold, or rate == 0.
 pub fn ticks_until_threshold(e0: f32, threshold: f32, rate: f32) -> u32 {
-    if e0 <= threshold || rate == 0.0 { return u32::MAX; }
+    if e0 <= threshold || rate == 0.0 {
+        return u32::MAX;
+    }
     let r = rate.clamp(0.0, 1.0 - f32::EPSILON);
     let n = (threshold / e0).ln() / (1.0 - r).ln();
     n.ceil() as u32
@@ -33,7 +37,9 @@ pub fn ticks_until_threshold(e0: f32, threshold: f32, rate: f32) -> u32 {
 /// continuous exact solution E0 * exp(-rate * n).
 /// Discrete Euler: E0 * (1 - rate)^n.  Exact continuous: E0 * exp(-rate * n).
 pub fn euler_vs_exponential_error(e0: f32, rate: f32, n_ticks: u32) -> f32 {
-    if e0 == 0.0 { return 0.0; }
+    if e0 == 0.0 {
+        return 0.0;
+    }
     let r = rate.clamp(0.0, 1.0 - f32::EPSILON);
     let n = n_ticks as f32;
     let euler = e0 * (1.0 - r).powf(n);
@@ -45,7 +51,9 @@ pub fn euler_vs_exponential_error(e0: f32, rate: f32, n_ticks: u32) -> f32 {
 /// Returns 0 if already below or at target. Uses ln() — no NaN guard needed for positive inputs.
 /// `n = ceil(ln(e0 / target_qe) / rate)` — returned as u32.
 pub fn ticks_to_reach(e0: f32, target_qe: f32, rate: f32) -> u32 {
-    if e0 <= target_qe || rate <= 0.0 { return 0; }
+    if e0 <= target_qe || rate <= 0.0 {
+        return 0;
+    }
     ((e0 / target_qe.max(1e-9)).ln() / rate.max(1e-9)).ceil() as u32
 }
 
@@ -61,7 +69,9 @@ pub fn normalize_score(raw_score: f32, midpoint: f32, k: f32) -> f32 {
 /// `raw = midpoint - ln((1/n) - 1) / k`
 /// Returns `midpoint` if n is out of (0,1) to avoid ln domain error.
 pub fn inverse_normalize_score(normalized: f32, midpoint: f32, k: f32) -> f32 {
-    if normalized <= 0.0 || normalized >= 1.0 { return midpoint; }
+    if normalized <= 0.0 || normalized >= 1.0 {
+        return midpoint;
+    }
     let k_safe = k.max(1e-6);
     midpoint - ((1.0 / normalized - 1.0).ln()) / k_safe
 }
@@ -69,7 +79,9 @@ pub fn inverse_normalize_score(normalized: f32, midpoint: f32, k: f32) -> f32 {
 /// M3-D: Decay rate needed to go from `e0` to `target` in exactly `n_ticks`.
 /// `rate = ln(e0 / target) / n_ticks` — returns 0 if n_ticks == 0 or inputs invalid.
 pub fn required_decay_rate(e0: f32, target: f32, n_ticks: u32) -> f32 {
-    if n_ticks == 0 || e0 <= 0.0 || target <= 0.0 || target >= e0 { return 0.0; }
+    if n_ticks == 0 || e0 <= 0.0 || target <= 0.0 || target >= e0 {
+        return 0.0;
+    }
     (e0 / target).ln() / n_ticks as f32
 }
 
@@ -141,7 +153,10 @@ mod tests {
         let raw = 7.3_f32;
         let n = normalize_score(raw, 5.0, 2.0);
         let back = inverse_normalize_score(n, 5.0, 2.0);
-        assert!((back - raw).abs() < 1e-3, "roundtrip failed: {back} vs {raw}");
+        assert!(
+            (back - raw).abs() < 1e-3,
+            "roundtrip failed: {back} vs {raw}"
+        );
     }
 
     #[test]

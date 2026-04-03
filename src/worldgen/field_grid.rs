@@ -2,8 +2,8 @@ use crate::math_types::Vec2;
 use bevy::prelude::{Entity, Reflect, Resource};
 use serde::{Deserialize, Serialize};
 
-use crate::worldgen::contracts::Materialized;
 use crate::worldgen::EnergyCell;
+use crate::worldgen::contracts::Materialized;
 
 pub use crate::worldgen::constants::FIELD_GRID_CHUNK_SIZE;
 
@@ -114,12 +114,16 @@ impl EnergyFieldGrid {
         let mut result = Vec::with_capacity(budget);
         let total_cells = (self.width as usize) * (self.height as usize);
         'outer: for (wi, word) in self.dirty_words.iter_mut().enumerate() {
-            if *word == 0 { continue; }
+            if *word == 0 {
+                continue;
+            }
             let mut w = *word;
             while w != 0 {
                 let bit = w.trailing_zeros() as usize;
                 let idx = wi * 64 + bit;
-                if idx >= total_cells { break; }
+                if idx >= total_cells {
+                    break;
+                }
                 result.push(idx);
                 w &= !(1u64 << bit);
                 if result.len() >= budget {
@@ -225,15 +229,21 @@ impl EnergyFieldGrid {
     /// The frequency determines the initial elemental identity of the field.
     pub fn seed_uniform(&mut self, qe: f32, frequency_hz: f32) {
         let qe = if qe.is_finite() { qe.max(0.0) } else { return };
-        let freq = if frequency_hz.is_finite() { frequency_hz.max(0.0) } else { return };
+        let freq = if frequency_hz.is_finite() {
+            frequency_hz.max(0.0)
+        } else {
+            return;
+        };
         let seed_entity = Entity::from_raw(u32::MAX); // placeholder, not a real entity
         for y in 0..self.height {
             for x in 0..self.width {
                 if let Some(cell) = self.cell_xy_mut(x, y) {
                     cell.accumulated_qe = qe;
-                    cell.push_contribution_bounded(
-                        crate::worldgen::FrequencyContribution::new(seed_entity, freq, qe),
-                    );
+                    cell.push_contribution_bounded(crate::worldgen::FrequencyContribution::new(
+                        seed_entity,
+                        freq,
+                        qe,
+                    ));
                 }
                 self.mark_cell_dirty(x, y);
             }
@@ -273,7 +283,10 @@ impl EnergyFieldGrid {
     /// `accumulated_qe` por índice lineal. 0.0 si fuera de rango.
     #[inline]
     pub fn cell_qe(&self, idx: usize) -> f32 {
-        self.cells.get(idx).map(|c| c.accumulated_qe.max(0.0)).unwrap_or(0.0)
+        self.cells
+            .get(idx)
+            .map(|c| c.accumulated_qe.max(0.0))
+            .unwrap_or(0.0)
     }
 
     /// Aplica `delta` de drenaje sobre la celda `idx` (positivo = drenar, negativo = añadir).
@@ -369,8 +382,8 @@ mod tests {
 
     #[test]
     fn linear_index_for_materialized_row_major() {
-        use crate::worldgen::contracts::Materialized;
         use crate::worldgen::WorldArchetype;
+        use crate::worldgen::contracts::Materialized;
 
         let grid = EnergyFieldGrid::new(4, 4, 2.0, Vec2::ZERO);
         let ok = Materialized {

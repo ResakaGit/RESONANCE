@@ -38,10 +38,8 @@ pub fn nucleus_intake_decay_system(
     mut query: Query<(&mut AlchemicalEngine, &MatterCoherence), With<VictoryNucleus>>,
 ) {
     for (mut engine, coherence) in &mut query {
-        let effective = nucleus_effective_intake(
-            engine.base_intake(),
-            coherence.structural_damage(),
-        );
+        let effective =
+            nucleus_effective_intake(engine.base_intake(), coherence.structural_damage());
         if (engine.intake() - effective).abs() > f32::EPSILON {
             engine.set_intake(effective);
         }

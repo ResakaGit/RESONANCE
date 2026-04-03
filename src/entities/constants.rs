@@ -109,18 +109,18 @@ pub(crate) mod flora_ea2 {
 /// Preset numérico para arquetipos de morfogénesis inferida (MG-8).
 #[derive(Clone, Copy, Debug)]
 pub(crate) struct MorphogenesisSpawnPreset {
-    pub entity_name:      &'static str,
-    pub qe:               f32,
-    pub radius:           f32,
-    pub velocity_x:       f32,
-    pub dissipation:      f32,
-    pub delta_qe:         f32,
-    pub viscosity:        f32,
-    pub photon_density:   f32,
+    pub entity_name: &'static str,
+    pub qe: f32,
+    pub radius: f32,
+    pub velocity_x: f32,
+    pub dissipation: f32,
+    pub delta_qe: f32,
+    pub viscosity: f32,
+    pub photon_density: f32,
     pub absorbed_fraction: f32,
-    pub t_core_build:     f32,
-    pub t_env_build:      f32,
-    pub roles:            &'static [crate::layers::OrganRole],
+    pub t_core_build: f32,
+    pub t_env_build: f32,
+    pub roles: &'static [crate::layers::OrganRole],
 }
 
 pub(crate) mod morphogenesis_mg8 {
@@ -130,69 +130,94 @@ pub(crate) mod morphogenesis_mg8 {
     /// Organismo acuático: fusiforme, oscuro, liso.
     /// density(1500,0.8)≈699, T_env=310 → T_core >> T_env → dark albedo + smooth.
     pub(crate) const AQUATIC_ORGANISM: MorphogenesisSpawnPreset = MorphogenesisSpawnPreset {
-        entity_name:      "aquatic_organism",
-        qe:               1500.0,
-        radius:           0.8,
-        velocity_x:       15.0,
-        dissipation:      0.05,
-        delta_qe:         0.0,
-        viscosity:        2.5,
-        photon_density:   5.0,
+        entity_name: "aquatic_organism",
+        qe: 1500.0,
+        radius: 0.8,
+        velocity_x: 15.0,
+        dissipation: 0.05,
+        delta_qe: 0.0,
+        viscosity: 2.5,
+        photon_density: 5.0,
         absorbed_fraction: 0.3,
-        t_core_build:     699.0,
-        t_env_build:      310.0,
-        roles: &[OrganRole::Core, OrganRole::Stem, OrganRole::Fin, OrganRole::Fin, OrganRole::Sensory],
+        t_core_build: 699.0,
+        t_env_build: 310.0,
+        roles: &[
+            OrganRole::Core,
+            OrganRole::Stem,
+            OrganRole::Fin,
+            OrganRole::Fin,
+            OrganRole::Sensory,
+        ],
     };
 
     /// Planta desértica: compacta, clara, rugosa.
     /// density(200,1.0)≈48, T_env=284 → T_core << T_env → bright albedo + rough.
     pub(crate) const DESERT_PLANT: MorphogenesisSpawnPreset = MorphogenesisSpawnPreset {
-        entity_name:      "desert_plant",
-        qe:               200.0,
-        radius:           1.0,
-        velocity_x:       0.0,
-        dissipation:      0.02,
-        delta_qe:         -2.0,
-        viscosity:        1.2,
-        photon_density:   100.0,
+        entity_name: "desert_plant",
+        qe: 200.0,
+        radius: 1.0,
+        velocity_x: 0.0,
+        dissipation: 0.02,
+        delta_qe: -2.0,
+        viscosity: 1.2,
+        photon_density: 100.0,
         absorbed_fraction: 0.8,
-        t_core_build:     48.0,
-        t_env_build:      284.0,
-        roles: &[OrganRole::Root, OrganRole::Stem, OrganRole::Leaf, OrganRole::Leaf, OrganRole::Thorn],
+        t_core_build: 48.0,
+        t_env_build: 284.0,
+        roles: &[
+            OrganRole::Root,
+            OrganRole::Stem,
+            OrganRole::Leaf,
+            OrganRole::Leaf,
+            OrganRole::Thorn,
+        ],
     };
 
     /// Criatura desértica: ligeramente alargada, clara, crestas.
     /// density(250,1.5)≈18, T_env=284 → T_core << T_env → bright.
     pub(crate) const DESERT_CREATURE: MorphogenesisSpawnPreset = MorphogenesisSpawnPreset {
-        entity_name:      "desert_creature",
-        qe:               250.0,
-        radius:           1.5,
-        velocity_x:       2.0,
-        dissipation:      0.04,
-        delta_qe:         -2.0,
-        viscosity:        1.2,
-        photon_density:   100.0,
+        entity_name: "desert_creature",
+        qe: 250.0,
+        radius: 1.5,
+        velocity_x: 2.0,
+        dissipation: 0.04,
+        delta_qe: -2.0,
+        viscosity: 1.2,
+        photon_density: 100.0,
         absorbed_fraction: 0.8,
-        t_core_build:     18.0,
-        t_env_build:      284.0,
-        roles: &[OrganRole::Root, OrganRole::Core, OrganRole::Stem, OrganRole::Fin, OrganRole::Sensory],
+        t_core_build: 18.0,
+        t_env_build: 284.0,
+        roles: &[
+            OrganRole::Root,
+            OrganRole::Core,
+            OrganRole::Stem,
+            OrganRole::Fin,
+            OrganRole::Sensory,
+        ],
     };
 
     /// Planta de bosque: forma intermedia, color medio.
     /// density(300,0.5)≈573, T_env=284 → T_core >> T_env.
     /// Irradiancia negligible → albedo = ALBEDO_FALLBACK (0.5).
     pub(crate) const FOREST_PLANT: MorphogenesisSpawnPreset = MorphogenesisSpawnPreset {
-        entity_name:      "forest_plant",
-        qe:               300.0,
-        radius:           0.5,
-        velocity_x:       0.0,
-        dissipation:      0.03,
-        delta_qe:         1.0,
-        viscosity:        1.2,
-        photon_density:   0.001,
+        entity_name: "forest_plant",
+        qe: 300.0,
+        radius: 0.5,
+        velocity_x: 0.0,
+        dissipation: 0.03,
+        delta_qe: 1.0,
+        viscosity: 1.2,
+        photon_density: 0.001,
         absorbed_fraction: 0.001,
-        t_core_build:     573.0,
-        t_env_build:      284.0,
-        roles: &[OrganRole::Root, OrganRole::Stem, OrganRole::Leaf, OrganRole::Leaf, OrganRole::Leaf, OrganRole::Fruit],
+        t_core_build: 573.0,
+        t_env_build: 284.0,
+        roles: &[
+            OrganRole::Root,
+            OrganRole::Stem,
+            OrganRole::Leaf,
+            OrganRole::Leaf,
+            OrganRole::Leaf,
+            OrganRole::Fruit,
+        ],
     };
 }

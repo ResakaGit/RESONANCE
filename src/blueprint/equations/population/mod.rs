@@ -26,11 +26,7 @@ pub fn competition_energy_drain(competitors: u32, base_drain: f32, resilience: f
         0.0
     };
     let raw = extra * drain * (1.0 - r * COMPETITION_RESILIENCE_DRAIN_ATTENUATION);
-    if raw.is_finite() {
-        raw.max(0.0)
-    } else {
-        0.0
-    }
+    if raw.is_finite() { raw.max(0.0) } else { 0.0 }
 }
 
 // ═══════════════════════════════════════════════

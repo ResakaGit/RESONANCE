@@ -31,7 +31,10 @@ fn main() {
     };
     let mut harness = resonance::batch::harness::GeneticHarness::new(config);
     let genomes = harness.run();
-    println!("  {} genomes evolved. Launching exhibition...\n", genomes.len());
+    println!(
+        "  {} genomes evolved. Launching exhibition...\n",
+        genomes.len()
+    );
 
     App::new()
         .add_plugins(DefaultPlugins.set(WindowPlugin {
@@ -96,14 +99,21 @@ fn spawn_creatures(
         let qe = 20.0 + genome.growth_bias * 80.0;
 
         let field = radial_field::build_viewer_field(
-            genome.growth_bias, genome.resilience, genome.branching_bias, qe,
+            genome.growth_bias,
+            genome.resilience,
+            genome.branching_bias,
+            qe,
         );
         let freq_field = radial_field::build_viewer_freq_field(freq);
 
         let mesh = creature_builder::build_creature_mesh_with_field(
-            genome.growth_bias, genome.mobility_bias,
-            genome.branching_bias, genome.resilience, freq,
-            &field, &freq_field,
+            genome.growth_bias,
+            genome.mobility_bias,
+            genome.branching_bias,
+            genome.resilience,
+            freq,
+            &field,
+            &freq_field,
         );
 
         let tint = equations::frequency_to_tint_rgb(freq);
@@ -121,7 +131,11 @@ fn spawn_creatures(
             ..default()
         });
 
-        commands.spawn((Mesh3d(meshes.add(mesh)), MeshMaterial3d(mat), Transform::from_xyz(x, 0.05, z)));
+        commands.spawn((
+            Mesh3d(meshes.add(mesh)),
+            MeshMaterial3d(mat),
+            Transform::from_xyz(x, 0.05, z),
+        ));
     }
 }
 

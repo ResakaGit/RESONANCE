@@ -22,7 +22,9 @@ use crate::layers::{
     BaseEnergy, CapabilitySet, GrowthBudget, InferenceProfile, LifecycleStage, LifecycleStageCache,
 };
 use crate::rendering::quantized_color::QuantizedPrecision;
-use crate::runtime_platform::camera_controller_3d::{CameraRigTarget, MobaCameraConfig, MobaCameraState};
+use crate::runtime_platform::camera_controller_3d::{
+    CameraRigTarget, MobaCameraConfig, MobaCameraState,
+};
 use crate::runtime_platform::compat_2d3d::{RenderCompatProfile, SimWorldTransformParams};
 use crate::runtime_platform::core_math_agnostic::DEFAULT_SIM_STANDING_Y;
 use crate::runtime_platform::kinematics_3d_adapter::V6RuntimeEntity;
@@ -30,9 +32,7 @@ use crate::simulation::allometric_growth::AllometricGrowthTimeScale;
 use crate::simulation::env_scenario::EnvScenarioSnapshot;
 use crate::worldgen::systems::performance::{WorldgenLodContext, WorldgenPerfSettings};
 use crate::worldgen::systems::startup::StartupNucleus;
-use crate::worldgen::{
-    EnergyFieldGrid, Materialized, WorldArchetype, materialize_cell_at_time,
-};
+use crate::worldgen::{EnergyFieldGrid, Materialized, WorldArchetype, materialize_cell_at_time};
 
 /// Slug de mapa / [`crate::worldgen::ActiveMapName`] (fuente única: `map_config`).
 pub use crate::worldgen::map_config::ROUND_WORLD_ROSA_MAP_SLUG as ROUND_WORLD_ROSA_SLUG;
@@ -72,9 +72,10 @@ fn attach_round_world_rosa_field_shape(
     let Some(cell) = grid.cell_xy(cx, cy) else {
         return;
     };
-    let field_archetype = materialize_cell_at_time(cell, almanac, interference_t, grid.cell_size, None)
-        .map(|r| r.archetype)
-        .unwrap_or(WorldArchetype::TerraSolid);
+    let field_archetype =
+        materialize_cell_at_time(cell, almanac, interference_t, grid.cell_size, None)
+            .map(|r| r.archetype)
+            .unwrap_or(WorldArchetype::TerraSolid);
 
     commands.entity(rosa).insert((
         Name::new("flora_rosa_focus"),
@@ -218,7 +219,15 @@ pub fn round_world_rosa_pin_lod_focus_for_inference_system(
 /// Filtro continuo de visibilidad para demo rosa: deja solo linaje `flora_*`.
 pub fn enforce_round_world_rosa_focus_system(
     mut commands: Commands,
-    materialized_q: Query<(Entity, Option<&Name>, Option<&Visibility>, Option<&RoundWorldRosaFocus>), With<Materialized>>,
+    materialized_q: Query<
+        (
+            Entity,
+            Option<&Name>,
+            Option<&Visibility>,
+            Option<&RoundWorldRosaFocus>,
+        ),
+        With<Materialized>,
+    >,
     nuclei_q: Query<(Entity, Option<&Visibility>), With<StartupNucleus>>,
 ) {
     for (entity, name_opt, vis_opt, focus_opt) in &materialized_q {

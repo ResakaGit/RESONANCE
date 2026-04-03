@@ -18,14 +18,14 @@ use crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY;
 use crate::blueprint::equations::{
     bond_from_energy, conductivity_from_state, dissipation_from_state, matter_state_from_density,
 };
+use crate::layers::organ::LifecycleStageCache;
+use crate::layers::senescence::SenescenceProfile;
 use crate::layers::{
     AlchemicalEngine, BaseEnergy, BehaviorCooldown, BehaviorIntent, BehavioralAgent, CacheScope,
     CapabilitySet, FlowVector, HasInferredShape, InferenceProfile, MatterCoherence,
     MorphogenesisShapeParams, OscillatorySignature, PerformanceCachePolicy, SpatialVolume,
     TrophicClass, TrophicConsumer, TrophicState, WillActuator,
 };
-use crate::layers::organ::LifecycleStageCache;
-use crate::layers::senescence::SenescenceProfile;
 use crate::math_types::Vec2;
 
 // ─── Physical: existence in space (L0-L4 + Transform) ────────────────────────
@@ -182,7 +182,8 @@ mod tests {
 
     #[test]
     fn behavior_components_includes_agent_marker() {
-        let (agent, _, _, caps, _) = behavior_components(0x03, InferenceProfile::new(0.5, 0.5, 0.5, 0.5));
+        let (agent, _, _, caps, _) =
+            behavior_components(0x03, InferenceProfile::new(0.5, 0.5, 0.5, 0.5));
         let _ = agent; // BehavioralAgent is a unit struct
         assert!(caps.has(0x01)); // GROW
         assert!(caps.has(0x02)); // MOVE

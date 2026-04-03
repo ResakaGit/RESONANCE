@@ -39,7 +39,8 @@ pub fn metabolic_graph_infer(world: &mut SimWorldFlat) {
         world.entities[i].qe -= loss;
 
         // Attempt metabolic graph (only if complex enough)
-        let Ok(graph) = metabolic_genome::metabolic_graph_from_variable_genome(&vg, &mask_expr) else {
+        let Ok(graph) = metabolic_genome::metabolic_graph_from_variable_genome(&vg, &mask_expr)
+        else {
             continue;
         };
 
@@ -47,10 +48,13 @@ pub fn metabolic_graph_infer(world: &mut SimWorldFlat) {
         let nc = graph.node_count();
         let ec = graph.edge_count();
         if nc > 0 && ec > 0 {
-            let mean_efficiency: f32 = graph.nodes()[..nc].iter()
+            let mean_efficiency: f32 = graph.nodes()[..nc]
+                .iter()
                 .map(|n| n.efficiency)
-                .sum::<f32>() / nc as f32;
-            let bonus = (mean_efficiency.clamp(0.0, 1.0) * EFFICIENCY_BONUS_CAP).min(EFFICIENCY_BONUS_CAP);
+                .sum::<f32>()
+                / nc as f32;
+            let bonus =
+                (mean_efficiency.clamp(0.0, 1.0) * EFFICIENCY_BONUS_CAP).min(EFFICIENCY_BONUS_CAP);
             world.entities[i].dissipation *= 1.0 - bonus;
         }
     }
@@ -62,7 +66,13 @@ mod tests {
     use crate::batch::arena::SimWorldFlat;
     use crate::blueprint::equations::variable_genome::VariableGenome;
 
-    fn world_with_entity(growth: f32, mobility: f32, branching: f32, resilience: f32, qe: f32) -> SimWorldFlat {
+    fn world_with_entity(
+        growth: f32,
+        mobility: f32,
+        branching: f32,
+        resilience: f32,
+        qe: f32,
+    ) -> SimWorldFlat {
         let mut world = SimWorldFlat::new(42, 0.05);
         let e = &mut world.entities[0];
         e.qe = qe;
@@ -90,7 +100,10 @@ mod tests {
         let mut world = world_with_entity(0.5, 0.5, 0.5, 0.5, 100.0);
         let qe_before = world.entities[0].qe;
         metabolic_graph_infer(&mut world);
-        assert!(world.entities[0].qe < qe_before, "maintenance cost should drain qe");
+        assert!(
+            world.entities[0].qe < qe_before,
+            "maintenance cost should drain qe"
+        );
     }
 
     #[test]
@@ -117,9 +130,12 @@ mod tests {
         metabolic_graph_infer(&mut world_full);
         metabolic_graph_infer(&mut world_half);
 
-        assert!(world_half.entities[0].qe > world_full.entities[0].qe,
+        assert!(
+            world_half.entities[0].qe > world_full.entities[0].qe,
             "silenced genome should cost less: {} > {}",
-            world_half.entities[0].qe, world_full.entities[0].qe);
+            world_half.entities[0].qe,
+            world_full.entities[0].qe
+        );
     }
 
     #[test]

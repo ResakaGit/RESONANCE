@@ -4,4 +4,3 @@ pub const FACTION_ALLY_BONUS: f32 = 0.2;
 
 /// Sesgo si enemigos (interferencia destructiva leve).
 pub const FACTION_ENEMY_MALUS: f32 = -0.2;
-

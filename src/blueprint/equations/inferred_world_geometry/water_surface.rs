@@ -24,8 +24,8 @@ pub fn water_surface_height(liquid_terrain_heights: &[f32], min_terrain_height: 
     if liquid_terrain_heights.is_empty() {
         return min_terrain_height;
     }
-    let avg = liquid_terrain_heights.iter().copied().sum::<f32>()
-        / liquid_terrain_heights.len() as f32;
+    let avg =
+        liquid_terrain_heights.iter().copied().sum::<f32>() / liquid_terrain_heights.len() as f32;
     (avg.max(min_terrain_height) + WATER_SURFACE_OFFSET).clamp(0.0, 200.0)
 }
 
@@ -83,10 +83,15 @@ pub fn build_water_mesh(
             uvs.push([x_norm, z_norm]);
 
             let terrain_h = sample_terrain_height_nearest(
-                px, pz,
-                bounds_min.x, bounds_min.z,
-                bounds_max.x, bounds_max.z,
-                terrain_heights, rows, cols,
+                px,
+                pz,
+                bounds_min.x,
+                bounds_min.z,
+                bounds_max.x,
+                bounds_max.z,
+                terrain_heights,
+                rows,
+                cols,
             );
             let depth = (water_height - terrain_h).max(0.0);
             let [r, g, b] = water_depth_color(depth);
@@ -268,24 +273,8 @@ mod tests {
         assert_eq!(c_a, c_b);
 
         let terrain = vec![0.0, 1.0, 0.5, 2.0];
-        let mesh_a = build_water_mesh(
-            Vec3::ZERO,
-            Vec3::new(4.0, 0.0, 4.0),
-            2.0,
-            2,
-            &terrain,
-            2,
-            2,
-        );
-        let mesh_b = build_water_mesh(
-            Vec3::ZERO,
-            Vec3::new(4.0, 0.0, 4.0),
-            2.0,
-            2,
-            &terrain,
-            2,
-            2,
-        );
+        let mesh_a = build_water_mesh(Vec3::ZERO, Vec3::new(4.0, 0.0, 4.0), 2.0, 2, &terrain, 2, 2);
+        let mesh_b = build_water_mesh(Vec3::ZERO, Vec3::new(4.0, 0.0, 4.0), 2.0, 2, &terrain, 2, 2);
 
         use bevy::render::mesh::VertexAttributeValues;
         let VertexAttributeValues::Float32x3(pos_a) =

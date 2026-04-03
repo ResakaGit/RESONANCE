@@ -5,10 +5,10 @@ use bevy::prelude::*;
 /// Modelo interno de otro agente (dato inmutable inline — no Component directo).
 #[derive(Debug, Clone, Copy, Default, Reflect)]
 pub struct OtherModel {
-    pub target_id:      u32,  // WorldEntityId del agente modelado
-    pub predicted_freq: f32,  // frecuencia predicha del target
-    pub accuracy:       f32,  // [0,1] precisión histórica
-    pub update_cost:    f32,  // qe gastado en actualizar este tick
+    pub target_id: u32,      // WorldEntityId del agente modelado
+    pub predicted_freq: f32, // frecuencia predicha del target
+    pub accuracy: f32,       // [0,1] precisión histórica
+    pub update_cost: f32,    // qe gastado en actualizar este tick
 }
 
 pub const MAX_MODELS: usize = 4;
@@ -17,8 +17,8 @@ pub const MAX_MODELS: usize = 4;
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
 pub struct OtherModelSet {
-    pub models:          [OtherModel; MAX_MODELS],
-    pub model_count:     u8,
+    pub models: [OtherModel; MAX_MODELS],
+    pub model_count: u8,
     pub update_interval: u8,
     pub base_model_cost: f32,
 }
@@ -35,8 +35,12 @@ impl Default for OtherModelSet {
 }
 
 impl OtherModelSet {
-    pub fn model_count(&self) -> usize { self.model_count as usize }
-    pub fn models_active(&self) -> &[OtherModel] { &self.models[..self.model_count as usize] }
+    pub fn model_count(&self) -> usize {
+        self.model_count as usize
+    }
+    pub fn models_active(&self) -> &[OtherModel] {
+        &self.models[..self.model_count as usize]
+    }
 }
 
 #[cfg(test)]

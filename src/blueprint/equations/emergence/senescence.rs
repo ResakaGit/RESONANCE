@@ -1,11 +1,18 @@
 //! ET-7: Programmed Senescence — ecuaciones puras. Sin deps de Bevy.
 
 #[derive(Debug, Clone, Copy, PartialEq)]
-pub enum ReproductionStrategy { Iteroparous, Semelparous }
+pub enum ReproductionStrategy {
+    Iteroparous,
+    Semelparous,
+}
 
 /// Tasa de disipación dependiente de la edad.
 /// `dissipation_rate(t) = base × (1 + coeff × t)`
-pub fn age_dependent_dissipation(base_dissipation: f32, tick_age: u64, senescence_coeff: f32) -> f32 {
+pub fn age_dependent_dissipation(
+    base_dissipation: f32,
+    tick_age: u64,
+    senescence_coeff: f32,
+) -> f32 {
     base_dissipation * (1.0 + senescence_coeff * tick_age as f32)
 }
 
@@ -17,7 +24,10 @@ pub fn survival_probability(tick_age: u64, base_dissipation: f32, senescence_coe
 }
 
 /// Estrategia óptima de reproducción dada la varianza ambiental.
-pub fn optimal_reproduction_strategy(env_variance: f32, offspring_survival_rate: f32) -> ReproductionStrategy {
+pub fn optimal_reproduction_strategy(
+    env_variance: f32,
+    offspring_survival_rate: f32,
+) -> ReproductionStrategy {
     if env_variance > 0.5 || offspring_survival_rate < 0.3 {
         ReproductionStrategy::Iteroparous
     } else {
@@ -70,11 +80,17 @@ mod tests {
 
     #[test]
     fn optimal_strategy_high_variance_is_iteroparous() {
-        assert_eq!(optimal_reproduction_strategy(0.8, 0.5), ReproductionStrategy::Iteroparous);
+        assert_eq!(
+            optimal_reproduction_strategy(0.8, 0.5),
+            ReproductionStrategy::Iteroparous
+        );
     }
 
     #[test]
     fn optimal_strategy_stable_env_is_semelparous() {
-        assert_eq!(optimal_reproduction_strategy(0.1, 0.8), ReproductionStrategy::Semelparous);
+        assert_eq!(
+            optimal_reproduction_strategy(0.1, 0.8),
+            ReproductionStrategy::Semelparous
+        );
     }
 }

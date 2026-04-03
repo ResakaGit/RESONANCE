@@ -8,12 +8,22 @@
 use bevy::prelude::*;
 
 use crate::eco::eco_boundaries_system;
+use crate::runtime_platform::render_bridge_3d::sync_visual_from_sim_system;
 use crate::simulation::Phase;
+use crate::simulation::lifecycle::{
+    body_plan_layout_inference_system, entity_shape_inference_system,
+};
+use crate::simulation::metabolic::atmosphere_inference::{
+    AtmosphereState, atmosphere_inference_system, atmosphere_sync_system,
+};
 use crate::simulation::states::{GameState, PlayState};
 use crate::topology::config::TerrainConfigRuntime;
 use crate::topology::{TerrainField, TerrainMutationEvent};
 use crate::world::update_spatial_index_system;
-use crate::worldgen::cell_field_snapshot::{cell_field_snapshot_sync_system, CellFieldSnapshotCache};
+use crate::worldgen::EnergyFieldGrid;
+use crate::worldgen::cell_field_snapshot::{
+    CellFieldSnapshotCache, cell_field_snapshot_sync_system,
+};
 use crate::worldgen::sync_nutrient_field_len_system;
 use crate::worldgen::systems::materialization::{
     clear_stale_materialized_cell_refs_system, materialization_delta_system,
@@ -21,6 +31,7 @@ use crate::worldgen::systems::materialization::{
     worldgen_nucleus_death_notify_system, worldgen_nucleus_freq_changed_notify_system,
     worldgen_nucleus_freq_seed_system, worldgen_runtime_nucleus_created_system,
 };
+use crate::worldgen::systems::materialization_delta::materialization_incremental_system;
 use crate::worldgen::systems::performance::{
     reset_visual_derivation_frame_system, sync_materialization_cache_len_system,
     worldgen_lod_refresh_system, worldgen_mat_budget_reset_system,
@@ -30,11 +41,7 @@ use crate::worldgen::systems::performance::{
 use crate::worldgen::systems::propagation::{
     derive_cell_state_system, dissipate_field_system, propagate_nuclei_system,
 };
-use crate::worldgen::{
-    diffuse_propagation_system, insert_nucleus_emission_state_system, PropagationMode,
-};
-use crate::worldgen::systems::terrain::{terrain_mutation_system, TerrainMutationQueue};
-use crate::worldgen::systems::materialization_delta::materialization_incremental_system;
+use crate::worldgen::systems::terrain::{TerrainMutationQueue, terrain_mutation_system};
 use crate::worldgen::systems::terrain_visual_mesh::{
     TerrainMeshResource, terrain_mesh_generation_system, terrain_mesh_sync_system,
 };
@@ -42,13 +49,8 @@ use crate::worldgen::systems::visual::flush_pending_energy_visual_rebuild_system
 use crate::worldgen::systems::water_surface::{
     WaterMeshResource, water_mesh_sync_system, water_surface_system,
 };
-use crate::simulation::metabolic::atmosphere_inference::{
-    atmosphere_inference_system, atmosphere_sync_system, AtmosphereState,
-};
-use crate::worldgen::EnergyFieldGrid;
-use crate::runtime_platform::render_bridge_3d::sync_visual_from_sim_system;
-use crate::simulation::lifecycle::{
-    body_plan_layout_inference_system, entity_shape_inference_system,
+use crate::worldgen::{
+    PropagationMode, diffuse_propagation_system, insert_nucleus_emission_state_system,
 };
 
 /// SystemSet para todos los sistemas V7 worldgen en `FixedUpdate`.
@@ -101,7 +103,9 @@ fn init_worldgen_resources(app: &mut App) {
         .init_resource::<TerrainMeshResource>()
         .init_resource::<WaterMeshResource>()
         .init_resource::<AtmosphereState>()
-        .insert_resource(crate::geometry_flow::deformation_cache::GeometryDeformationCache::new(4096));
+        .insert_resource(
+            crate::geometry_flow::deformation_cache::GeometryDeformationCache::new(4096),
+        );
 
     // Eventos worldgen (idempotente).
     app.add_event::<crate::events::SeasonChangeEvent>()
@@ -269,15 +273,15 @@ mod tests {
 
     use crate::blueprint::AlchemicalAlmanac;
     use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
-    use crate::simulation::states::{GameState, PlayState};
     use crate::simulation::Phase;
+    use crate::simulation::states::{GameState, PlayState};
     use crate::world::Scoreboard;
-    use crate::worldgen::{EnergyFieldGrid, MapConfig, Materialized};
     use crate::worldgen::systems::materialization::{NucleusFreqTrack, SeasonTransition};
     use crate::worldgen::systems::performance::{
         MatBudgetCounters, MatCacheStats, MaterializationCellCache, PropagationWriteBudget,
         WorldgenLodContext, WorldgenPerfSettings,
     };
+    use crate::worldgen::{EnergyFieldGrid, MapConfig, Materialized};
 
     /// Minimal app con resources worldgen (patrón de materialization tests).
     fn minimal_worldgen_app() -> App {

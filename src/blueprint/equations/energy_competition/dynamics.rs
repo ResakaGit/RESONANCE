@@ -6,10 +6,10 @@
 // DEBT: Reflect required because PoolHealthStatus is stored in Component (competition_dynamics.rs).
 use bevy::prelude::Reflect;
 
+use super::{is_pool_equilibrium, ticks_to_collapse};
 use crate::blueprint::constants::{
     COLLAPSE_WARNING_TICKS, EXTRACTION_EPSILON, MAX_COMPETITION_MATRIX,
 };
-use super::{is_pool_equilibrium, ticks_to_collapse};
 
 // ─── Tipos ───────────────────────────────────────────────────────────────────
 
@@ -51,7 +51,7 @@ pub fn competition_matrix(
     available: f32,
 ) -> [[f32; MAX_COMPETITION_MATRIX]; MAX_COMPETITION_MATRIX] {
     let mut m = [[0.0f32; MAX_COMPETITION_MATRIX]; MAX_COMPETITION_MATRIX];
-    let n     = extractions.len().min(MAX_COMPETITION_MATRIX);
+    let n = extractions.len().min(MAX_COMPETITION_MATRIX);
     let avail = available.max(EXTRACTION_EPSILON);
     for i in 0..n {
         let sum_others: f32 = (0..n).filter(|&k| k != i).map(|k| extractions[k]).sum();
@@ -71,9 +71,13 @@ pub fn competition_matrix(
 /// Gini = Σ|x_i − x_j| / (2·N·Σx_i). Guard: todos 0 → 0.0.
 pub fn competition_intensity(extractions: &[f32]) -> f32 {
     let n = extractions.len();
-    if n == 0 { return 0.0; }
+    if n == 0 {
+        return 0.0;
+    }
     let total: f32 = extractions.iter().copied().sum();
-    if total <= EXTRACTION_EPSILON { return 0.0; }
+    if total <= EXTRACTION_EPSILON {
+        return 0.0;
+    }
     let mut sum_abs = 0.0f32;
     for i in 0..n {
         for j in 0..n {
@@ -98,16 +102,18 @@ pub fn detect_equilibrium(
 
 /// ¿Hijo `dominant_index` tiene dominancia estable (ESS)?
 /// Requiere extracción estrictamente mayor que todos los hermanos, y pool viable.
-pub fn detect_dominance(
-    extractions: &[f32],
-    dominant_index: usize,
-    pool_viable: bool,
-) -> bool {
-    if !pool_viable { return false; }
+pub fn detect_dominance(extractions: &[f32], dominant_index: usize, pool_viable: bool) -> bool {
+    if !pool_viable {
+        return false;
+    }
     let n = extractions.len();
-    if n == 0 || dominant_index >= n { return false; }
+    if n == 0 || dominant_index >= n {
+        return false;
+    }
     let dom = extractions[dominant_index];
-    (0..n).filter(|&k| k != dominant_index).all(|k| dom > extractions[k])
+    (0..n)
+        .filter(|&k| k != dominant_index)
+        .all(|k| dom > extractions[k])
 }
 
 /// Diagnostica el estado de salud del pool a partir del net drain.
@@ -121,7 +127,9 @@ pub fn detect_collapse(
     total_extracted: f32,
     loss: f32,
 ) -> PoolHealthStatus {
-    if pool <= 0.0 { return PoolHealthStatus::Collapsed; }
+    if pool <= 0.0 {
+        return PoolHealthStatus::Collapsed;
+    }
     let net_drain = (total_extracted + loss) - intake;
     if net_drain > 0.0 {
         let ttc = ticks_to_collapse(pool, net_drain);
@@ -145,7 +153,7 @@ pub fn predict_pool_trajectory(
     net_drain_per_tick: f32,
     capacity: f32,
 ) -> PoolTrajectory {
-    let p   = pool.max(0.0);
+    let p = pool.max(0.0);
     let cap = capacity.max(p);
     let ttc = if net_drain_per_tick > 0.0 {
         ticks_to_collapse(p, net_drain_per_tick)
@@ -155,13 +163,17 @@ pub fn predict_pool_trajectory(
     let ttf = if net_drain_per_tick < 0.0 {
         let gain = (-net_drain_per_tick).max(EXTRACTION_EPSILON);
         let room = (cap - p).max(0.0);
-        if room <= 0.0 { 0 } else { (room / gain).ceil() as u32 }
+        if room <= 0.0 {
+            0
+        } else {
+            (room / gain).ceil() as u32
+        }
     } else {
         u32::MAX
     };
     PoolTrajectory {
-        ticks_to_collapse:  ttc,
-        ticks_to_full:      ttf,
+        ticks_to_collapse: ttc,
+        ticks_to_full: ttf,
         net_change_per_tick: -net_drain_per_tick,
     }
 }
@@ -200,7 +212,10 @@ mod tests {
         // C[i][j] == C[j][i] for equal extractions → symmetric
         for i in 0..3 {
             for j in 0..3 {
-                assert!((m[i][j] - m[j][i]).abs() < 1e-4, "not symmetric at [{i}][{j}]");
+                assert!(
+                    (m[i][j] - m[j][i]).abs() < 1e-4,
+                    "not symmetric at [{i}][{j}]"
+                );
             }
         }
     }
@@ -254,12 +269,7 @@ mod tests {
 
     #[test]
     fn competition_intensity_range_always_unit() {
-        let cases: &[&[f32]] = &[
-            &[1.0, 2.0, 3.0, 4.0],
-            &[1000.0, 0.0],
-            &[50.0, 50.0],
-            &[1.0],
-        ];
+        let cases: &[&[f32]] = &[&[1.0, 2.0, 3.0, 4.0], &[1000.0, 0.0], &[50.0, 50.0], &[1.0]];
         for v in cases {
             let g = competition_intensity(v);
             assert!(g >= 0.0 && g <= 1.0, "out of [0,1]: {g} for {v:?}");
@@ -310,7 +320,10 @@ mod tests {
 
     #[test]
     fn detect_collapse_zero_pool_is_collapsed() {
-        assert_eq!(detect_collapse(0.0, 100.0, 50.0, 5.0), PoolHealthStatus::Collapsed);
+        assert_eq!(
+            detect_collapse(0.0, 100.0, 50.0, 5.0),
+            PoolHealthStatus::Collapsed
+        );
     }
 
     #[test]
@@ -343,9 +356,9 @@ mod tests {
     #[test]
     fn detect_collapse_boundary_just_below_warning_is_collapsing() {
         // ttc = COLLAPSE_WARNING_TICKS - 1 → Collapsing
-        let warn   = COLLAPSE_WARNING_TICKS as f32;
-        let pool   = warn - 1.0;
-        let drain  = 1.0;
+        let warn = COLLAPSE_WARNING_TICKS as f32;
+        let pool = warn - 1.0;
+        let drain = 1.0;
         // ttc = ceil(pool/drain) = warn-1 < warn → Collapsing
         assert_eq!(
             detect_collapse(pool, 0.0, drain, 0.0),
@@ -356,8 +369,8 @@ mod tests {
     #[test]
     fn detect_collapse_boundary_at_warning_is_stressed() {
         // ttc = COLLAPSE_WARNING_TICKS → Stressed (not < warning)
-        let warn  = COLLAPSE_WARNING_TICKS as f32;
-        let pool  = warn;
+        let warn = COLLAPSE_WARNING_TICKS as f32;
+        let pool = warn;
         let drain = 1.0;
         // ttc = ceil(warn/1) = warn → NOT < warn → Stressed
         assert_eq!(
@@ -399,9 +412,17 @@ mod tests {
     fn predict_trajectory_net_change_sign_convention() {
         // draining → net_change_per_tick should be negative
         let t = predict_pool_trajectory(500.0, 10.0, 1000.0);
-        assert!(t.net_change_per_tick < 0.0, "draining: expected negative, got {}", t.net_change_per_tick);
+        assert!(
+            t.net_change_per_tick < 0.0,
+            "draining: expected negative, got {}",
+            t.net_change_per_tick
+        );
         // filling → net_change_per_tick should be positive
         let t2 = predict_pool_trajectory(500.0, -10.0, 1000.0);
-        assert!(t2.net_change_per_tick > 0.0, "filling: expected positive, got {}", t2.net_change_per_tick);
+        assert!(
+            t2.net_change_per_tick > 0.0,
+            "filling: expected positive, got {}",
+            t2.net_change_per_tick
+        );
     }
 }

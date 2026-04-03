@@ -133,14 +133,16 @@ mod tests {
     #[test]
     fn coherent_same_freq_equals_base() {
         let base = radiation_pressure_transfer(200.0, 100.0, 0.05, 4);
-        let coherent = radiation_pressure_transfer_coherent(200.0, 85.0, 85.0, 100.0, 0.05, 50.0, 4);
+        let coherent =
+            radiation_pressure_transfer_coherent(200.0, 85.0, 85.0, 100.0, 0.05, 50.0, 4);
         assert!((base - coherent).abs() < 1e-5);
     }
 
     #[test]
     fn coherent_different_freq_less_than_base() {
         let base = radiation_pressure_transfer(200.0, 100.0, 0.05, 4);
-        let coherent = radiation_pressure_transfer_coherent(200.0, 440.0, 85.0, 100.0, 0.05, 50.0, 4);
+        let coherent =
+            radiation_pressure_transfer_coherent(200.0, 440.0, 85.0, 100.0, 0.05, 50.0, 4);
         assert!(coherent < base, "coherent={coherent} base={base}");
     }
 

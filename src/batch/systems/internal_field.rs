@@ -23,14 +23,19 @@ pub fn internal_diffusion(world: &mut SimWorldFlat) {
         let field_sum = radial_field::radial_total(&e.qe_field);
         if field_sum < 1e-6 && e.qe > 1e-6 {
             e.qe_field = radial_field::distribute_to_radial(
-                e.qe, e.growth_bias, e.resilience, e.branching_bias,
+                e.qe,
+                e.growth_bias,
+                e.resilience,
+                e.branching_bias,
             );
             // Initialize freq_field with slight axial + radial variation
             for a in 0..radial_field::AXIAL {
                 for r in 0..radial_field::RADIAL {
                     e.freq_field[a][r] = e.frequency_hz
                         + (a as f32 - (radial_field::AXIAL as f32 - 1.0) / 2.0) * FREQ_FIELD_SPREAD
-                        + (r as f32 - (radial_field::RADIAL as f32 - 1.0) / 2.0) * FREQ_FIELD_SPREAD * 0.5;
+                        + (r as f32 - (radial_field::RADIAL as f32 - 1.0) / 2.0)
+                            * FREQ_FIELD_SPREAD
+                            * 0.5;
                 }
             }
         } else if e.qe > 1e-6 {
@@ -52,9 +57,7 @@ pub fn internal_diffusion(world: &mut SimWorldFlat) {
 
         // 2D diffusion (axial + radial neighbors)
         let before = e.qe_field;
-        e.qe_field = radial_field::radial_diffuse(
-            &e.qe_field, INTERNAL_DIFFUSION_CONDUCTIVITY, dt,
-        );
+        e.qe_field = radial_field::radial_diffuse(&e.qe_field, INTERNAL_DIFFUSION_CONDUCTIVITY, dt);
 
         // Convergence check
         if radial_field::radial_converged(&before, &e.qe_field, CONVERGENCE_EPSILON) {
@@ -62,9 +65,7 @@ pub fn internal_diffusion(world: &mut SimWorldFlat) {
         }
 
         // 2D frequency entrainment
-        e.freq_field = radial_field::radial_freq_entrain(
-            &e.freq_field, INTERNAL_FREQ_COUPLING, dt,
-        );
+        e.freq_field = radial_field::radial_freq_entrain(&e.freq_field, INTERNAL_FREQ_COUPLING, dt);
 
         // Conservation: update cached qe from field
         e.qe = radial_field::radial_total(&e.qe_field);
@@ -94,7 +95,10 @@ mod tests {
         spawn(&mut w, 100.0);
         internal_diffusion(&mut w);
         let total = radial_field::radial_total(&w.entities[0].qe_field);
-        assert!((total - 100.0).abs() < 1e-2, "field should sum to qe: {total}");
+        assert!(
+            (total - 100.0).abs() < 1e-2,
+            "field should sum to qe: {total}"
+        );
     }
 
     #[test]
@@ -119,8 +123,10 @@ mod tests {
         for a in 0..radial_field::AXIAL {
             let right = w.entities[idx].qe_field[a][1];
             let left = w.entities[idx].qe_field[a][3];
-            assert!((right - left).abs() < 1e-2,
-                "station {a}: right={right} left={left} — bilateral should be symmetric");
+            assert!(
+                (right - left).abs() < 1e-2,
+                "station {a}: right={right} left={left} — bilateral should be symmetric"
+            );
         }
     }
 
@@ -137,7 +143,10 @@ mod tests {
         let dv: f32 = (0..radial_field::AXIAL)
             .map(|a| w.entities[idx].qe_field[a][0] + w.entities[idx].qe_field[a][2])
             .sum();
-        assert!(lateral > dv, "lateral={lateral} should exceed dorsal/ventral={dv}");
+        assert!(
+            lateral > dv,
+            "lateral={lateral} should exceed dorsal/ventral={dv}"
+        );
     }
 
     #[test]

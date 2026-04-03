@@ -16,8 +16,8 @@ use crate::geometry_flow::primitives::{OrganPrimitiveParams, build_organ_primiti
 use crate::geometry_flow::{GeometryInfluence, SpineNode, build_flow_mesh};
 use crate::layers::body_plan_layout::BodyPlanLayout;
 use crate::layers::{GeometryPrimitive, OrganManifest, OrganRole};
-use crate::worldgen::field_visual_sample::gf1_field_linear_rgb_qe_at_position;
 use crate::worldgen::EnergyFieldGrid;
+use crate::worldgen::field_visual_sample::gf1_field_linear_rgb_qe_at_position;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 enum OrientationMode {
@@ -59,18 +59,18 @@ pub const ORGAN_ATTACHMENT_ZONE: [AttachmentZone; OrganRole::COUNT] = [
 ];
 
 const ORGAN_ORIENTATION_MODE: [OrientationMode; OrganRole::COUNT] = [
-    OrientationMode::AlongTangent,   // Stem
-    OrientationMode::GravityDown,    // Root
-    OrientationMode::AlongTangent,   // Core
-    OrientationMode::Outward,        // Leaf
-    OrientationMode::Outward,        // Petal
+    OrientationMode::AlongTangent,    // Stem
+    OrientationMode::GravityDown,     // Root
+    OrientationMode::AlongTangent,    // Core
+    OrientationMode::Outward,         // Leaf
+    OrientationMode::Outward,         // Petal
     OrientationMode::EnergyOrOutward, // Sensory
-    OrientationMode::Outward,        // Thorn
-    OrientationMode::AlongTangent,   // Shell
-    OrientationMode::GravityDown,    // Fruit
-    OrientationMode::GravityDown,    // Bud
-    OrientationMode::Outward,        // Limb
-    OrientationMode::Outward,        // Fin
+    OrientationMode::Outward,         // Thorn
+    OrientationMode::AlongTangent,    // Shell
+    OrientationMode::GravityDown,     // Fruit
+    OrientationMode::GravityDown,     // Bud
+    OrientationMode::Outward,         // Limb
+    OrientationMode::Outward,         // Fin
 ];
 
 #[inline]
@@ -129,9 +129,13 @@ pub fn organ_attachment_points(
             (i + 1) as f32 / (n + 1) as f32
         };
         let zone_t = match attachment_zone {
-            AttachmentZone::Apical => ORGAN_ZONE_APICAL_OFFSET + base_t * ORGAN_ZONE_APICAL_BASAL_SPAN,
+            AttachmentZone::Apical => {
+                ORGAN_ZONE_APICAL_OFFSET + base_t * ORGAN_ZONE_APICAL_BASAL_SPAN
+            }
             AttachmentZone::Distributed => base_t,
-            AttachmentZone::Basal => ORGAN_ZONE_BASAL_OFFSET + base_t * ORGAN_ZONE_APICAL_BASAL_SPAN,
+            AttachmentZone::Basal => {
+                ORGAN_ZONE_BASAL_OFFSET + base_t * ORGAN_ZONE_APICAL_BASAL_SPAN
+            }
             AttachmentZone::Full => ORGAN_ZONE_FULL_OFFSET + base_t * ORGAN_ZONE_FULL_SPAN,
         }
         .clamp(0.0, 1.0);
@@ -195,7 +199,17 @@ pub fn build_organ_mesh(
     fallback_rgb: [f32; 3],
     fallback_qe_norm: f32,
 ) -> Mesh {
-    build_organ_mesh_inner(manifest, spine, influence, growth, grid, almanac, fallback_rgb, fallback_qe_norm, None)
+    build_organ_mesh_inner(
+        manifest,
+        spine,
+        influence,
+        growth,
+        grid,
+        almanac,
+        fallback_rgb,
+        fallback_qe_norm,
+        None,
+    )
 }
 
 /// Build organ mesh with an optional cached `BodyPlanLayout`.
@@ -211,7 +225,17 @@ pub fn build_organ_mesh_with_layout(
     fallback_qe_norm: f32,
     layout: Option<&BodyPlanLayout>,
 ) -> Mesh {
-    build_organ_mesh_inner(manifest, spine, influence, growth, grid, almanac, fallback_rgb, fallback_qe_norm, layout)
+    build_organ_mesh_inner(
+        manifest,
+        spine,
+        influence,
+        growth,
+        grid,
+        almanac,
+        fallback_rgb,
+        fallback_qe_norm,
+        layout,
+    )
 }
 
 fn build_organ_mesh_inner(
@@ -287,7 +311,13 @@ fn build_organ_mesh_inner(
                     biomass,
                 };
 
-                if !matches!(spec.primitive(), GeometryPrimitive::Tube | GeometryPrimitive::FlatSurface | GeometryPrimitive::PetalFan | GeometryPrimitive::Bulb) {
+                if !matches!(
+                    spec.primitive(),
+                    GeometryPrimitive::Tube
+                        | GeometryPrimitive::FlatSurface
+                        | GeometryPrimitive::PetalFan
+                        | GeometryPrimitive::Bulb
+                ) {
                     continue;
                 }
                 let mut organ_mesh = build_organ_primitive(spec, &params);
@@ -300,7 +330,8 @@ fn build_organ_mesh_inner(
             for attachment in attachments {
                 let (raw_rgb, qe_norm) = sample_field(attachment.position);
                 let tint_rgb = organ_role_modulated_rgb(raw_rgb, role);
-                let (normal_out, tangent_out) = organ_orientation(role, &attachment, influence.energy_direction);
+                let (normal_out, tangent_out) =
+                    organ_orientation(role, &attachment, influence.energy_direction);
                 let biomass = growth.map(|g| g.biomass_available).unwrap_or(0.0);
                 let params = OrganPrimitiveParams {
                     origin: attachment.position,
@@ -313,7 +344,13 @@ fn build_organ_mesh_inner(
                     biomass,
                 };
 
-                if !matches!(spec.primitive(), GeometryPrimitive::Tube | GeometryPrimitive::FlatSurface | GeometryPrimitive::PetalFan | GeometryPrimitive::Bulb) {
+                if !matches!(
+                    spec.primitive(),
+                    GeometryPrimitive::Tube
+                        | GeometryPrimitive::FlatSurface
+                        | GeometryPrimitive::PetalFan
+                        | GeometryPrimitive::Bulb
+                ) {
                     continue;
                 }
                 let mut organ_mesh = build_organ_primitive(spec, &params);
@@ -329,7 +366,9 @@ fn build_organ_mesh_inner(
 #[inline]
 fn apply_role_opacity(mesh: &mut Mesh, role: OrganRole) {
     let alpha = organ_role_opacity(role);
-    if let Some(VertexAttributeValues::Float32x4(colors)) = mesh.attribute_mut(Mesh::ATTRIBUTE_COLOR) {
+    if let Some(VertexAttributeValues::Float32x4(colors)) =
+        mesh.attribute_mut(Mesh::ATTRIBUTE_COLOR)
+    {
         for c in colors.iter_mut() {
             c[3] = (c[3] * alpha).clamp(0.0, 1.0);
         }
@@ -344,8 +383,14 @@ fn merge_meshes(meshes: &[Mesh]) -> Mesh {
 fn organ_role_to_branch_role(role: OrganRole) -> BranchRole {
     match role {
         OrganRole::Leaf | OrganRole::Petal | OrganRole::Fin => BranchRole::Leaf,
-        OrganRole::Thorn | OrganRole::Fruit | OrganRole::Bud | OrganRole::Sensory => BranchRole::Thorn,
-        OrganRole::Stem | OrganRole::Root | OrganRole::Core | OrganRole::Shell | OrganRole::Limb => BranchRole::Stem,
+        OrganRole::Thorn | OrganRole::Fruit | OrganRole::Bud | OrganRole::Sensory => {
+            BranchRole::Thorn
+        }
+        OrganRole::Stem
+        | OrganRole::Root
+        | OrganRole::Core
+        | OrganRole::Shell
+        | OrganRole::Limb => BranchRole::Stem,
     }
 }
 
@@ -407,10 +452,10 @@ pub fn assemble_body_plan(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bevy::render::mesh::Indices;
     use crate::blueprint::equations::organ_role_opacity;
     use crate::geometry_flow::{GeometryInfluence, build_flow_spine, flow_mesh_triangle_count};
     use crate::layers::{LifecycleStage, OrganManifest, OrganSpec};
+    use bevy::render::mesh::Indices;
 
     fn sample_grid() -> EnergyFieldGrid {
         let mut g = EnergyFieldGrid::new(8, 8, 1.0, bevy::math::Vec2::ZERO);
@@ -557,10 +602,12 @@ mod tests {
             [0.4, 0.4, 0.4],
             0.4,
         );
-        let Some(VertexAttributeValues::Float32x3(pos_a)) = a.attribute(Mesh::ATTRIBUTE_POSITION) else {
+        let Some(VertexAttributeValues::Float32x3(pos_a)) = a.attribute(Mesh::ATTRIBUTE_POSITION)
+        else {
             panic!("missing position a");
         };
-        let Some(VertexAttributeValues::Float32x3(pos_b)) = b.attribute(Mesh::ATTRIBUTE_POSITION) else {
+        let Some(VertexAttributeValues::Float32x3(pos_b)) = b.attribute(Mesh::ATTRIBUTE_POSITION)
+        else {
             panic!("missing position b");
         };
         let Some(Indices::U32(id_a)) = a.indices() else {
@@ -605,10 +652,12 @@ mod tests {
             [0.4, 0.4, 0.4],
             0.4,
         );
-        let Some(VertexAttributeValues::Float32x4(col_a)) = mesh_a.attribute(Mesh::ATTRIBUTE_COLOR) else {
+        let Some(VertexAttributeValues::Float32x4(col_a)) = mesh_a.attribute(Mesh::ATTRIBUTE_COLOR)
+        else {
             panic!("missing colors a");
         };
-        let Some(VertexAttributeValues::Float32x4(col_b)) = mesh_b.attribute(Mesh::ATTRIBUTE_COLOR) else {
+        let Some(VertexAttributeValues::Float32x4(col_b)) = mesh_b.attribute(Mesh::ATTRIBUTE_COLOR)
+        else {
             panic!("missing colors b");
         };
         let avg = |c: &[[f32; 4]]| -> [f32; 3] {
@@ -628,7 +677,9 @@ mod tests {
     }
 
     fn extract_alpha_values(mesh: &Mesh) -> Vec<f32> {
-        if let Some(VertexAttributeValues::Float32x4(colors)) = mesh.attribute(Mesh::ATTRIBUTE_COLOR) {
+        if let Some(VertexAttributeValues::Float32x4(colors)) =
+            mesh.attribute(Mesh::ATTRIBUTE_COLOR)
+        {
             return colors.iter().map(|c| c[3]).collect();
         }
         Vec::new()
@@ -709,17 +760,34 @@ mod tests {
         let mut manifest = OrganManifest::new(LifecycleStage::Growing);
         assert!(manifest.push(OrganSpec::new(OrganRole::Leaf, 3, 0.7)));
         let without = build_organ_mesh(
-            &manifest, &spine, &inf, None,
-            &sample_grid(), &AlchemicalAlmanac::default(), [0.4, 0.4, 0.4], 0.4,
+            &manifest,
+            &spine,
+            &inf,
+            None,
+            &sample_grid(),
+            &AlchemicalAlmanac::default(),
+            [0.4, 0.4, 0.4],
+            0.4,
         );
         let with_none = build_organ_mesh_with_layout(
-            &manifest, &spine, &inf, None,
-            &sample_grid(), &AlchemicalAlmanac::default(), [0.4, 0.4, 0.4], 0.4, None,
+            &manifest,
+            &spine,
+            &inf,
+            None,
+            &sample_grid(),
+            &AlchemicalAlmanac::default(),
+            [0.4, 0.4, 0.4],
+            0.4,
+            None,
         );
-        let Some(VertexAttributeValues::Float32x3(pos_a)) = without.attribute(Mesh::ATTRIBUTE_POSITION) else {
+        let Some(VertexAttributeValues::Float32x3(pos_a)) =
+            without.attribute(Mesh::ATTRIBUTE_POSITION)
+        else {
             panic!("missing positions a");
         };
-        let Some(VertexAttributeValues::Float32x3(pos_b)) = with_none.attribute(Mesh::ATTRIBUTE_POSITION) else {
+        let Some(VertexAttributeValues::Float32x3(pos_b)) =
+            with_none.attribute(Mesh::ATTRIBUTE_POSITION)
+        else {
             panic!("missing positions b");
         };
         assert_eq!(pos_a, pos_b, "None layout should match no-layout variant");
@@ -739,14 +807,26 @@ mod tests {
 
         // Build a layout with shifted positions to verify it's used.
         let layout = assemble_body_plan(&manifest, &spine, &inf);
-        assert!(layout.is_some(), "layout should be Some for non-trunk manifest");
+        assert!(
+            layout.is_some(),
+            "layout should be Some for non-trunk manifest"
+        );
         let layout = layout.unwrap();
-        assert!(layout.active_count() >= 2, "expect at least 2 active organs (2 leaves)");
+        assert!(
+            layout.active_count() >= 2,
+            "expect at least 2 active organs (2 leaves)"
+        );
 
         // Mesh built with layout should produce triangles.
         let mesh = build_organ_mesh_with_layout(
-            &manifest, &spine, &inf, None,
-            &sample_grid(), &AlchemicalAlmanac::default(), [0.4, 0.4, 0.4], 0.4,
+            &manifest,
+            &spine,
+            &inf,
+            None,
+            &sample_grid(),
+            &AlchemicalAlmanac::default(),
+            [0.4, 0.4, 0.4],
+            0.4,
             Some(&layout),
         );
         assert!(flow_mesh_triangle_count(&mesh) > 0);
@@ -763,12 +843,24 @@ mod tests {
 
         let layout = assemble_body_plan(&manifest, &spine, &inf).unwrap();
         let without_layout = build_organ_mesh(
-            &manifest, &spine, &inf, None,
-            &sample_grid(), &AlchemicalAlmanac::default(), [0.4, 0.4, 0.4], 0.4,
+            &manifest,
+            &spine,
+            &inf,
+            None,
+            &sample_grid(),
+            &AlchemicalAlmanac::default(),
+            [0.4, 0.4, 0.4],
+            0.4,
         );
         let with_layout = build_organ_mesh_with_layout(
-            &manifest, &spine, &inf, None,
-            &sample_grid(), &AlchemicalAlmanac::default(), [0.4, 0.4, 0.4], 0.4,
+            &manifest,
+            &spine,
+            &inf,
+            None,
+            &sample_grid(),
+            &AlchemicalAlmanac::default(),
+            [0.4, 0.4, 0.4],
+            0.4,
             Some(&layout),
         );
         assert_eq!(
@@ -844,8 +936,14 @@ mod tests {
     fn tangent_from_direction_perpendicular_to_input() {
         let dir = Vec3::new(1.0, 2.0, 3.0).normalize();
         let tangent = tangent_from_direction(dir);
-        assert!(tangent.dot(dir).abs() < 1e-4, "tangent should be perpendicular to direction");
-        assert!((tangent.length() - 1.0).abs() < 1e-4, "tangent should be unit length");
+        assert!(
+            tangent.dot(dir).abs() < 1e-4,
+            "tangent should be perpendicular to direction"
+        );
+        assert!(
+            (tangent.length() - 1.0).abs() < 1e-4,
+            "tangent should be unit length"
+        );
     }
 
     #[test]

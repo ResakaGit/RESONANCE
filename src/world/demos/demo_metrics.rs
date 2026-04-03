@@ -7,13 +7,13 @@ use bevy::text::{TextColor, TextFont};
 use bevy::ui::{BackgroundColor, Node, PositionType, Val};
 
 use crate::layers::{
-    BaseEnergy, BehaviorIntent, BehaviorMode, MorphogenesisShapeParams,
-    OscillatorySignature, TrophicState,
+    BaseEnergy, BehaviorIntent, BehaviorMode, MorphogenesisShapeParams, OscillatorySignature,
+    TrophicState,
 };
-use crate::worldgen::ShapeInferred;
 use crate::simulation::observability::{
     SimulationEcologySnapshot, SimulationHealthDashboard, SimulationMetricsSnapshot,
 };
+use crate::worldgen::ShapeInferred;
 
 const HUD_FONT_SIZE: f32 = 11.0;
 const HUD_MAX_ENTITIES: usize = 12;
@@ -35,7 +35,7 @@ pub fn ensure_demo_metrics_hud_system(
         DemoMetricsHud,
         Node {
             position_type: PositionType::Absolute,
-            left:   Val::Px(10.0),
+            left: Val::Px(10.0),
             bottom: Val::Px(10.0),
             padding: UiRect::all(Val::Px(8.0)),
             max_width: Val::Px(380.0),
@@ -54,9 +54,9 @@ pub fn ensure_demo_metrics_hud_system(
 
 /// Actualiza el HUD de métricas cada frame (guarded by change detection).
 pub fn sync_demo_metrics_hud_system(
-    snap:    Res<SimulationMetricsSnapshot>,
-    eco:     Res<SimulationEcologySnapshot>,
-    health:  Res<SimulationHealthDashboard>,
+    snap: Res<SimulationMetricsSnapshot>,
+    eco: Res<SimulationEcologySnapshot>,
+    health: Res<SimulationHealthDashboard>,
     entity_query: Query<(
         &Name,
         &BaseEnergy,
@@ -98,15 +98,30 @@ pub fn sync_demo_metrics_hud_system(
             text.push_str("  ...\n");
             break;
         }
-        let qe   = energy.qe();
-        let hz   = osc.frequency_hz();
-        let sati = trophic.map(|t| format!(" sati:{:.2}", t.satiation)).unwrap_or_default();
-        let mode = behavior.map(|b| format!(" {}", format_mode(&b.mode))).unwrap_or_default();
-        let shape = shape_params.map(|s| {
-            let sym = if shape_inferred.is_some() { "✓" } else { "…" };
-            format!(" f:{:.1}{sym}", s.fineness_ratio())
-        }).unwrap_or_default();
-        text.push_str(&format!("  {:<14} qe:{:>7.1} hz:{:>6.1}{sati}{mode}{shape}\n", name.as_str(), qe, hz));
+        let qe = energy.qe();
+        let hz = osc.frequency_hz();
+        let sati = trophic
+            .map(|t| format!(" sati:{:.2}", t.satiation))
+            .unwrap_or_default();
+        let mode = behavior
+            .map(|b| format!(" {}", format_mode(&b.mode)))
+            .unwrap_or_default();
+        let shape = shape_params
+            .map(|s| {
+                let sym = if shape_inferred.is_some() {
+                    "✓"
+                } else {
+                    "…"
+                };
+                format!(" f:{:.1}{sym}", s.fineness_ratio())
+            })
+            .unwrap_or_default();
+        text.push_str(&format!(
+            "  {:<14} qe:{:>7.1} hz:{:>6.1}{sati}{mode}{shape}\n",
+            name.as_str(),
+            qe,
+            hz
+        ));
         count += 1;
     }
 
@@ -119,13 +134,13 @@ pub fn sync_demo_metrics_hud_system(
 
 fn format_mode(mode: &BehaviorMode) -> &'static str {
     match mode {
-        BehaviorMode::Idle             => "Idle",
-        BehaviorMode::Forage { .. }    => "Forage",
-        BehaviorMode::Hunt { .. }      => "Hunt",
-        BehaviorMode::Flee { .. }      => "Flee",
-        BehaviorMode::Reproduce        => "Reproduce",
-        BehaviorMode::Migrate { .. }   => "Migrate",
+        BehaviorMode::Idle => "Idle",
+        BehaviorMode::Forage { .. } => "Forage",
+        BehaviorMode::Hunt { .. } => "Hunt",
+        BehaviorMode::Flee { .. } => "Flee",
+        BehaviorMode::Reproduce => "Reproduce",
+        BehaviorMode::Migrate { .. } => "Migrate",
         BehaviorMode::FocusFire { .. } => "FocusFire",
-        BehaviorMode::Regroup { .. }   => "Regroup",
+        BehaviorMode::Regroup { .. } => "Regroup",
     }
 }

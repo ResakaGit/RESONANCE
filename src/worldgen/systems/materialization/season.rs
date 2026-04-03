@@ -8,8 +8,8 @@ use bevy::prelude::*;
 use crate::events::{DeathEvent, SeasonChangeEvent, WorldgenMutationEvent};
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::runtime_platform::core_math_agnostic::sim_plane_pos;
+use crate::worldgen::EnergyNucleus;
 use crate::worldgen::map_config::{MapConfig, NucleusDelta, SeasonPreset};
-use crate::worldgen::{EnergyNucleus};
 
 pub use crate::worldgen::constants::SEASON_TRANSITION_TICKS;
 

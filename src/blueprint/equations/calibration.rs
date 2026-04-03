@@ -33,7 +33,7 @@ pub fn golden_energy_after_ticks(initial_energy: f32, intake_available: f32, n_t
     let mut energy = initial_energy;
     for _ in 0..n_ticks {
         let intake = INTAKE_RATE_NOMINAL * intake_available;
-        let cost   = MAINTENANCE_RATE_NOMINAL * energy;
+        let cost = MAINTENANCE_RATE_NOMINAL * energy;
         energy = (energy + intake - cost).max(0.0);
     }
     energy
@@ -42,7 +42,9 @@ pub fn golden_energy_after_ticks(initial_energy: f32, intake_available: f32, n_t
 /// Relative error between a calibrated value and its reference.
 /// Returns 0.0 when `reference` is zero to avoid division by zero.
 pub fn calibration_error(calibrated: f32, reference: f32) -> f32 {
-    if reference == 0.0 { return 0.0; }
+    if reference == 0.0 {
+        return 0.0;
+    }
     ((calibrated - reference) / reference).abs()
 }
 

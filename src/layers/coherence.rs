@@ -7,19 +7,8 @@ use crate::blueprint::constants::{
     VELOCITY_LIMIT_LIQUID,
 };
 
-/// Estados de la materia con implicaciones de gameplay:
-///   Solido:  sin velocidad (fijado), alto daño colisión, baja disipación
-///   Liquido: velocidad limitada, conductividad moderada, fluye alrededor de obstáculos
-///   Gas:     sin límite de velocidad, alta disipación, atraviesa sólidos
-///   Plasma:  máximo daño, máxima disipación, emite radiación (Capa 8)
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Reflect, Default, Deserialize, Serialize)]
-pub enum MatterState {
-    #[default]
-    Solid,
-    Liquid,
-    Gas,
-    Plasma,
-}
+// MatterState — canonical definition in blueprint/domain_enums.rs
+pub use crate::blueprint::domain_enums::MatterState;
 
 /// Capa 4: Materia — La Coherencia Estructural
 /// Layer 4: Matter — Structural Coherence
@@ -64,7 +53,9 @@ impl MatterCoherence {
     }
 
     pub fn set_state(&mut self, s: MatterState) {
-        if self.state != s { self.state = s; }
+        if self.state != s {
+            self.state = s;
+        }
     }
 
     #[inline]
@@ -74,7 +65,9 @@ impl MatterCoherence {
 
     pub fn set_bond_energy_eb(&mut self, eb: f32) {
         let v = eb.max(0.0);
-        if self.bond_energy_eb != v { self.bond_energy_eb = v; }
+        if self.bond_energy_eb != v {
+            self.bond_energy_eb = v;
+        }
     }
 
     #[inline]
@@ -84,15 +77,17 @@ impl MatterCoherence {
 
     pub fn set_thermal_conductivity(&mut self, k: f32) {
         let v = k.clamp(0.0, 1.0);
-        if self.thermal_conductivity != v { self.thermal_conductivity = v; }
+        if self.thermal_conductivity != v {
+            self.thermal_conductivity = v;
+        }
     }
 
     /// Daño estructural normalizado [0,1]: proxy de degradación física.
     pub fn structural_damage(&self) -> f32 {
         match self.state {
-            MatterState::Solid  => 0.0,
+            MatterState::Solid => 0.0,
             MatterState::Liquid => 0.33,
-            MatterState::Gas    => 0.66,
+            MatterState::Gas => 0.66,
             MatterState::Plasma => 1.0,
         }
     }

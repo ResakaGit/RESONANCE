@@ -1,6 +1,6 @@
 use crate::blueprint::constants::{
-    BERGMANN_GROWTH_SCALE, ALLEN_LIMB_REDUCTION_SCALE, WOLFF_ADAPTATION_RATE,
-    WOLFF_HOMEOSTATIC_LOAD, MORPHO_TEMP_EPSILON, WOLFF_BOND_ENERGY_MIN,
+    ALLEN_LIMB_REDUCTION_SCALE, BERGMANN_GROWTH_SCALE, MORPHO_TEMP_EPSILON, WOLFF_ADAPTATION_RATE,
+    WOLFF_BOND_ENERGY_MIN, WOLFF_HOMEOSTATIC_LOAD,
 };
 
 /// E1: Bergmann radius pressure — cold environments push growth_bias up.
@@ -37,7 +37,7 @@ pub fn use_driven_bone_density(load_history: f32, current_bond_energy: f32) -> f
 mod tests {
     use super::*;
     use crate::blueprint::constants::{
-        MORPHO_TARGET_TEMPERATURE, BERGMANN_GROWTH_SCALE, ALLEN_LIMB_REDUCTION_SCALE,
+        ALLEN_LIMB_REDUCTION_SCALE, BERGMANN_GROWTH_SCALE, MORPHO_TARGET_TEMPERATURE,
     };
 
     // --- E1: Bergmann ---
@@ -45,19 +45,26 @@ mod tests {
     #[test]
     fn bergmann_cold_increases_growth_bias() {
         let pressure = bergmann_radius_pressure(100.0, MORPHO_TARGET_TEMPERATURE);
-        assert!(pressure > 0.0, "cold env should produce positive growth pressure");
+        assert!(
+            pressure > 0.0,
+            "cold env should produce positive growth pressure"
+        );
         assert!(pressure.is_finite());
     }
 
     #[test]
     fn bergmann_hot_no_pressure() {
         let pressure = bergmann_radius_pressure(400.0, MORPHO_TARGET_TEMPERATURE);
-        assert_eq!(pressure, 0.0, "hot env should produce zero pressure (clamped)");
+        assert_eq!(
+            pressure, 0.0,
+            "hot env should produce zero pressure (clamped)"
+        );
     }
 
     #[test]
     fn bergmann_equal_temp_zero_pressure() {
-        let pressure = bergmann_radius_pressure(MORPHO_TARGET_TEMPERATURE, MORPHO_TARGET_TEMPERATURE);
+        let pressure =
+            bergmann_radius_pressure(MORPHO_TARGET_TEMPERATURE, MORPHO_TARGET_TEMPERATURE);
         assert_eq!(pressure, 0.0);
     }
 
@@ -83,7 +90,10 @@ mod tests {
     fn bergmann_negative_env_produces_positive_pressure() {
         let pressure = bergmann_radius_pressure(-50.0, MORPHO_TARGET_TEMPERATURE);
         assert!(pressure > 0.0);
-        assert!(pressure > BERGMANN_GROWTH_SCALE, "sub-zero env exceeds base scale");
+        assert!(
+            pressure > BERGMANN_GROWTH_SCALE,
+            "sub-zero env exceeds base scale"
+        );
         assert!(pressure.is_finite());
     }
 
@@ -92,7 +102,10 @@ mod tests {
     #[test]
     fn allen_cold_reduces_branching() {
         let pressure = allen_appendage_pressure(100.0, MORPHO_TARGET_TEMPERATURE);
-        assert!(pressure < 0.0, "cold env should reduce branching (negative pressure)");
+        assert!(
+            pressure < 0.0,
+            "cold env should reduce branching (negative pressure)"
+        );
         assert!(pressure.is_finite());
     }
 

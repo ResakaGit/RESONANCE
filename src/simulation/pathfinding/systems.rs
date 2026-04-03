@@ -116,8 +116,8 @@ mod tests {
     use super::*;
     use crate::events::PathRequestEvent;
     use crate::runtime_platform::click_to_move::MoveTargetState;
-    use crate::simulation::pathfinding::components::NavPath;
     use crate::simulation::PlayerControlled;
+    use crate::simulation::pathfinding::components::NavPath;
 
     fn test_app() -> App {
         let mut app = App::new();
@@ -139,7 +139,11 @@ mod tests {
             .resource_mut::<Events<PathRequestEvent>>()
             .drain()
             .collect();
-        assert_eq!(events.len(), 1, "should emit PathRequestEvent on goal change");
+        assert_eq!(
+            events.len(),
+            1,
+            "should emit PathRequestEvent on goal change"
+        );
         assert_eq!(events[0].goal_xz, Vec2::new(10.0, 20.0));
     }
 
@@ -183,19 +187,25 @@ mod tests {
         let mut app = test_app();
         app.add_systems(Update, clear_nav_paths_when_no_move_target_system);
 
-        let e = app.world_mut().spawn((
-            PlayerControlled,
-            NavPath {
-                waypoints: vec![Vec3::new(1.0, 0.0, 1.0), Vec3::new(2.0, 0.0, 2.0)],
-                current_index: 0,
-            },
-        )).id();
+        let e = app
+            .world_mut()
+            .spawn((
+                PlayerControlled,
+                NavPath {
+                    waypoints: vec![Vec3::new(1.0, 0.0, 1.0), Vec3::new(2.0, 0.0, 2.0)],
+                    current_index: 0,
+                },
+            ))
+            .id();
 
         // target_xz = None (default)
         app.update();
 
         let nav = app.world().get::<NavPath>(e).unwrap();
-        assert!(nav.waypoints.is_empty(), "paths should be cleared when no target");
+        assert!(
+            nav.waypoints.is_empty(),
+            "paths should be cleared when no target"
+        );
     }
 
     #[test]
@@ -204,17 +214,23 @@ mod tests {
         app.add_systems(Update, clear_nav_paths_when_no_move_target_system);
         app.world_mut().resource_mut::<MoveTargetState>().target_xz = Some(Vec2::new(5.0, 5.0));
 
-        let e = app.world_mut().spawn((
-            PlayerControlled,
-            NavPath {
-                waypoints: vec![Vec3::new(1.0, 0.0, 1.0)],
-                current_index: 0,
-            },
-        )).id();
+        let e = app
+            .world_mut()
+            .spawn((
+                PlayerControlled,
+                NavPath {
+                    waypoints: vec![Vec3::new(1.0, 0.0, 1.0)],
+                    current_index: 0,
+                },
+            ))
+            .id();
 
         app.update();
 
         let nav = app.world().get::<NavPath>(e).unwrap();
-        assert!(!nav.waypoints.is_empty(), "paths should be preserved when target set");
+        assert!(
+            !nav.waypoints.is_empty(),
+            "paths should be preserved when target set"
+        );
     }
 }

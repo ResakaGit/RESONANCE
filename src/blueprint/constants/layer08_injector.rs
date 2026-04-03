@@ -7,4 +7,3 @@ pub const INJECTOR_DEFAULT_INFLUENCE_RADIUS: f32 = 0.5;
 
 /// Radio mínimo del campo de inyección (evita singularidad espacial).
 pub const INJECTOR_MIN_INFLUENCE_RADIUS: f32 = 0.01;
-

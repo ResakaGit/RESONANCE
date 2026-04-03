@@ -1,6 +1,6 @@
 use super::*;
-use crate::blueprint::constants::morphogenesis as mg;
 use crate::blueprint::constants::DIVISION_GUARD_EPSILON;
+use crate::blueprint::constants::morphogenesis as mg;
 
 // Compile-time: flujo casi nulo usa eps más estricto que el piso genérico.
 const _: () = assert!(mg::ALBEDO_IRRADIANCE_FLUX_EPS < DIVISION_GUARD_EPSILON);
@@ -118,14 +118,14 @@ fn shape_cost_nan_inputs_return_finite() {
 #[test]
 fn vascular_transport_cost_grows_with_length_cubed() {
     let short = vascular_transport_cost(1.0, 1.0, 1.0);
-    let long  = vascular_transport_cost(1.0, 2.0, 1.0);
+    let long = vascular_transport_cost(1.0, 2.0, 1.0);
     assert!((long / short - 8.0).abs() < 1e-4);
 }
 
 #[test]
 fn vascular_transport_cost_decreases_with_radius_fourth_power() {
     let narrow = vascular_transport_cost(1.0, 1.0, 0.5);
-    let wide   = vascular_transport_cost(1.0, 1.0, 1.0);
+    let wide = vascular_transport_cost(1.0, 1.0, 1.0);
     assert!(narrow > wide);
     let ratio = narrow / wide;
     assert!((ratio - 16.0).abs() < 1e-3, "r⁴ scaling: ratio={ratio}");
@@ -148,13 +148,13 @@ fn vascular_transport_cost_nan_returns_finite() {
 #[test]
 fn drag_coefficient_fusiform_less_than_chunky() {
     let fusiforme = inferred_drag_coefficient(10.0, 2.0);
-    let chunky    = inferred_drag_coefficient(2.0, 2.0);
+    let chunky = inferred_drag_coefficient(2.0, 2.0);
     assert!(fusiforme < chunky);
 }
 
 #[test]
 fn drag_coefficient_always_in_valid_range() {
-    let lens  = [0.05_f32, 0.2, 0.8, 1.0, 3.0, 12.0, 80.0];
+    let lens = [0.05_f32, 0.2, 0.8, 1.0, 3.0, 12.0, 80.0];
     let diams = [0.05_f32, 0.2, 0.5, 1.0, 2.0, 6.0];
     for &len in &lens {
         for &diam in &diams {
@@ -178,9 +178,9 @@ fn drag_coefficient_nan_returns_finite_in_range() {
 #[test]
 fn albedo_hot_creature_reflects_more_than_cool() {
     let em = mg::DEFAULT_EMISSIVITY;
-    let h  = mg::DEFAULT_CONVECTION_COEFF;
-    let hot  = inferred_albedo(85_000.0, 1400.0, 8.0, em, 400.0, 280.0, 12.0, h);
-    let cool = inferred_albedo(2_000.0,  1400.0, 8.0, em, 400.0, 280.0, 12.0, h);
+    let h = mg::DEFAULT_CONVECTION_COEFF;
+    let hot = inferred_albedo(85_000.0, 1400.0, 8.0, em, 400.0, 280.0, 12.0, h);
+    let cool = inferred_albedo(2_000.0, 1400.0, 8.0, em, 400.0, 280.0, 12.0, h);
     assert!(hot > cool, "hot={hot} cool={cool}");
     assert!((hot - mg::ALBEDO_MAX).abs() < 0.08, "hot={hot}");
 }
@@ -188,7 +188,7 @@ fn albedo_hot_creature_reflects_more_than_cool() {
 #[test]
 fn albedo_cave_creature_near_minimum() {
     let em = mg::DEFAULT_EMISSIVITY;
-    let h  = mg::DEFAULT_CONVECTION_COEFF;
+    let h = mg::DEFAULT_CONVECTION_COEFF;
     let cave = inferred_albedo(0.0, 12.0, 2.0, em, 500.0, 200.0, 28.0, h);
     assert!((cave - mg::ALBEDO_MIN).abs() < 0.02, "cave={cave}");
 }
@@ -196,19 +196,25 @@ fn albedo_cave_creature_near_minimum() {
 #[test]
 fn albedo_no_solar_returns_fallback() {
     let em = mg::DEFAULT_EMISSIVITY;
-    let h  = mg::DEFAULT_CONVECTION_COEFF;
-    assert_eq!(inferred_albedo(100.0, 0.0, 8.0, em, 400.0, 280.0, 12.0, h), mg::ALBEDO_FALLBACK);
-    assert_eq!(inferred_albedo(50.0, 800.0, 0.0, em, 400.0, 280.0, 12.0, h), mg::ALBEDO_FALLBACK);
+    let h = mg::DEFAULT_CONVECTION_COEFF;
+    assert_eq!(
+        inferred_albedo(100.0, 0.0, 8.0, em, 400.0, 280.0, 12.0, h),
+        mg::ALBEDO_FALLBACK
+    );
+    assert_eq!(
+        inferred_albedo(50.0, 800.0, 0.0, em, 400.0, 280.0, 12.0, h),
+        mg::ALBEDO_FALLBACK
+    );
 }
 
 #[test]
 fn albedo_radiative_balance_self_consistency() {
     let em = mg::DEFAULT_EMISSIVITY;
-    let h  = mg::DEFAULT_CONVECTION_COEFF;
+    let h = mg::DEFAULT_CONVECTION_COEFF;
     let (tc, te, a_s, a_p, i_b) = (310.0_f32, 305.0, 8.0, 4.0, 50.0);
-    let q_d  = surface_dissipation_power(em, tc, te, a_s, h);
+    let q_d = surface_dissipation_power(em, tc, te, a_s, h);
     let flux = i_b * a_p;
-    let q_m  = q_d - 0.5 * flux;
+    let q_m = q_d - 0.5 * flux;
     let alpha = inferred_albedo(q_m, i_b, a_p, em, tc, te, a_s, h);
     let lhs = q_m + (1.0 - alpha) * flux;
     assert!(
@@ -220,13 +226,15 @@ fn albedo_radiative_balance_self_consistency() {
 #[test]
 fn albedo_always_in_valid_range() {
     let em = mg::DEFAULT_EMISSIVITY;
-    let h  = mg::DEFAULT_CONVECTION_COEFF;
+    let h = mg::DEFAULT_CONVECTION_COEFF;
     for i in 0..25 {
         let a = inferred_albedo(
             300.0 + i as f32 * 400.0,
             20.0 + i as f32 * 30.0,
             1.5 + 0.1 * i as f32,
-            em, 330.0, 295.0,
+            em,
+            330.0,
+            295.0,
             6.0 + i as f32,
             h,
         );
@@ -247,7 +255,10 @@ fn surface_dissipation_extreme_temp_stays_finite_and_positive() {
 #[test]
 fn surface_dissipation_nan_t_core_returns_finite() {
     let p = surface_dissipation_power(0.9, f32::NAN, 280.0, 10.0, 10.0);
-    assert!(p.is_finite(), "NaN t_core sanitized to 0 → finite result: {p}");
+    assert!(
+        p.is_finite(),
+        "NaN t_core sanitized to 0 → finite result: {p}"
+    );
 }
 
 #[test]
@@ -280,14 +291,20 @@ fn rugosity_zero_delta_t_hits_maximum() {
 fn rugosity_always_in_valid_range() {
     for q in [0.0_f32, 30.0, 5000.0, 50_000.0] {
         let r = inferred_surface_rugosity(q, 4.0, 320.0, 300.0, 12.0);
-        assert!(r >= mg::RUGOSITY_MIN && r <= mg::RUGOSITY_MAX, "r={r} q={q}");
+        assert!(
+            r >= mg::RUGOSITY_MIN && r <= mg::RUGOSITY_MAX,
+            "r={r} q={q}"
+        );
     }
 }
 
 #[test]
 fn rugosity_nan_q_returns_minimum() {
     let r = inferred_surface_rugosity(f32::NAN, 4.0, 320.0, 300.0, 10.0);
-    assert!((r - mg::RUGOSITY_MIN).abs() < 0.1, "NaN Q → low rugosity: {r}");
+    assert!(
+        (r - mg::RUGOSITY_MIN).abs() < 0.1,
+        "NaN Q → low rugosity: {r}"
+    );
 }
 
 // ── MG-4B: bounded_fineness_descent ─────────────────────────────────
@@ -310,10 +327,7 @@ fn descent_air_light_minimal_change() {
 #[test]
 fn descent_ceiling_stays_clamped() {
     let f = bounded_fineness_descent(8.0, 1000.0, 4.0, 3.14, 12.0, 0.3, 3);
-    assert!(
-        (f - mg::FINENESS_MAX).abs() < 1e-3,
-        "already at max: f={f}",
-    );
+    assert!((f - mg::FINENESS_MAX).abs() < 1e-3, "already at max: f={f}",);
 }
 
 #[test]
@@ -332,10 +346,7 @@ fn descent_deterministic() {
 #[test]
 fn descent_zero_velocity_no_significant_change() {
     let f = bounded_fineness_descent(1.5, 1000.0, 0.0, 3.14, 12.0, 0.3, 3);
-    assert!(
-        (f - 1.5).abs() < 0.3,
-        "v=0 → no drag gradient: f={f}",
-    );
+    assert!((f - 1.5).abs() < 0.3, "v=0 → no drag gradient: f={f}",);
 }
 
 #[test]
@@ -444,7 +455,14 @@ fn detail_multiplier_monotonic_increasing() {
     for w in samples.windows(2) {
         let lo = rugosity_to_detail_multiplier(w[0]);
         let hi = rugosity_to_detail_multiplier(w[1]);
-        assert!(hi >= lo, "monotonicity: r={} → {}, r={} → {}", w[0], lo, w[1], hi);
+        assert!(
+            hi >= lo,
+            "monotonicity: r={} → {}, r={} → {}",
+            w[0],
+            lo,
+            w[1],
+            hi
+        );
     }
 }
 
@@ -456,6 +474,9 @@ fn detail_multiplier_clamps_below_min() {
 #[test]
 fn detail_multiplier_clamps_above_max() {
     let at_max = rugosity_to_detail_multiplier(mg::RUGOSITY_MAX);
-    let above  = rugosity_to_detail_multiplier(6.0);
-    assert!((at_max - above).abs() < 1e-6, "clamped above: at_max={at_max}, above={above}");
+    let above = rugosity_to_detail_multiplier(6.0);
+    assert!(
+        (at_max - above).abs() < 1e-6,
+        "clamped above: at_max={at_max}, above={above}"
+    );
 }

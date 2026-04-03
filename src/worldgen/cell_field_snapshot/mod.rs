@@ -12,7 +12,7 @@ use crate::layers::MatterState;
 use crate::worldgen::constants::MAX_FREQUENCY_CONTRIBUTIONS;
 use crate::worldgen::{EnergyCell, EnergyFieldGrid, FrequencyContribution};
 
-use constants::{fnv1a_u32_mix, FNV1A_U32_OFFSET_BASIS};
+use constants::{FNV1A_U32_OFFSET_BASIS, fnv1a_u32_mix};
 
 /// Tupla ordenable para huella de contribuciones (índice entidad, generación Bevy, bits f32).
 type ContribFingerprintKey = (u32, u32, u32, u32);
@@ -55,11 +55,7 @@ pub fn frequency_contributions_fingerprint(contributions: &[FrequencyContributio
 
 #[inline]
 fn sanitize_f32_bits(x: f32) -> u32 {
-    if x.is_finite() {
-        x.to_bits()
-    } else {
-        0
-    }
+    if x.is_finite() { x.to_bits() } else { 0 }
 }
 
 fn fold_fingerprint(sorted: &[ContribFingerprintKey]) -> u32 {
@@ -83,18 +79,16 @@ pub fn cell_field_snapshot_from_energy_cell(cell: &EnergyCell) -> CellFieldSnaps
         temperature: snapshot_scalar_nonneg(cell.temperature),
         matter_state: cell.matter_state,
         materialized_entity: cell.materialized_entity,
-        contributions_fingerprint: frequency_contributions_fingerprint(cell.frequency_contributions()),
+        contributions_fingerprint: frequency_contributions_fingerprint(
+            cell.frequency_contributions(),
+        ),
     }
 }
 
 /// Escalares de snapshot: mismos contratos que lectores del grid (no finito → 0).
 #[inline]
 fn snapshot_scalar_nonneg(x: f32) -> f32 {
-    if x.is_finite() {
-        x.max(0.0)
-    } else {
-        0.0
-    }
+    if x.is_finite() { x.max(0.0) } else { 0.0 }
 }
 
 #[inline]
@@ -156,9 +150,9 @@ pub fn cell_field_snapshot_read(
 mod tests {
     use super::constants::{CACHE_OPTION_ENTRY_MAX_BYTES, SNAPSHOT_STRUCT_MAX_BYTES};
     use super::*;
-    use bevy::math::Vec2;
     use crate::blueprint::{AlchemicalAlmanac, ElementDef};
     use crate::worldgen::systems::propagation::derive_cell_state_system;
+    use bevy::math::Vec2;
 
     fn terra_almanac() -> AlchemicalAlmanac {
         AlchemicalAlmanac::from_defs(vec![ElementDef {
@@ -212,11 +206,7 @@ mod tests {
         let mut grid = EnergyFieldGrid::new(2, 2, 1.0, Vec2::ZERO);
         let cell = grid.cell_xy_mut(0, 0).expect("cell");
         cell.accumulated_qe = 12.0;
-        cell.push_contribution_bounded(FrequencyContribution::new(
-            Entity::from_raw(7),
-            75.0,
-            8.0,
-        ));
+        cell.push_contribution_bounded(FrequencyContribution::new(Entity::from_raw(7), 75.0, 8.0));
         let mut app = snapshot_test_app(grid);
         app.add_systems(
             Update,
@@ -237,11 +227,7 @@ mod tests {
         let mut grid = EnergyFieldGrid::new(1, 1, 1.0, Vec2::ZERO);
         let cell = grid.cell_xy_mut(0, 0).expect("cell");
         cell.accumulated_qe = 12.0;
-        cell.push_contribution_bounded(FrequencyContribution::new(
-            Entity::from_raw(3),
-            75.0,
-            8.0,
-        ));
+        cell.push_contribution_bounded(FrequencyContribution::new(Entity::from_raw(3), 75.0, 8.0));
         let mut app = snapshot_test_app(grid);
         app.add_systems(
             Update,
@@ -278,11 +264,7 @@ mod tests {
         let mut grid = EnergyFieldGrid::new(1, 1, 1.0, Vec2::ZERO);
         let cell = grid.cell_xy_mut(0, 0).expect("cell");
         cell.accumulated_qe = 5.0;
-        cell.push_contribution_bounded(FrequencyContribution::new(
-            Entity::from_raw(9),
-            75.0,
-            4.0,
-        ));
+        cell.push_contribution_bounded(FrequencyContribution::new(Entity::from_raw(9), 75.0, 4.0));
         let mut app = snapshot_test_app(grid);
         app.add_systems(
             Update,
@@ -346,11 +328,7 @@ mod tests {
         {
             let c = grid.cell_xy_mut(0, 0).expect("c");
             c.accumulated_qe = 4.0;
-            c.push_contribution_bounded(FrequencyContribution::new(
-                Entity::from_raw(1),
-                75.0,
-                3.0,
-            ));
+            c.push_contribution_bounded(FrequencyContribution::new(Entity::from_raw(1), 75.0, 3.0));
         }
         let mut app = snapshot_test_app(grid);
         app.add_systems(
@@ -390,16 +368,18 @@ mod tests {
         let e0 = world.spawn_empty().id();
         world.despawn(e0);
         let e1 = world.spawn_empty().id();
-        assert_eq!(e0.index(), e1.index(), "setup: reuso de índice tras despawn");
+        assert_eq!(
+            e0.index(),
+            e1.index(),
+            "setup: reuso de índice tras despawn"
+        );
         assert_ne!(
             e0.generation(),
             e1.generation(),
             "setup: generación distinta en mismo slot"
         );
-        let fa =
-            frequency_contributions_fingerprint(&[FrequencyContribution::new(e0, 50.0, 2.0)]);
-        let fb =
-            frequency_contributions_fingerprint(&[FrequencyContribution::new(e1, 50.0, 2.0)]);
+        let fa = frequency_contributions_fingerprint(&[FrequencyContribution::new(e0, 50.0, 2.0)]);
+        let fb = frequency_contributions_fingerprint(&[FrequencyContribution::new(e1, 50.0, 2.0)]);
         assert_ne!(fa, fb);
     }
 
@@ -425,11 +405,7 @@ mod tests {
         {
             let c = grid.cell_xy_mut(0, 0).expect("c");
             c.accumulated_qe = 52.0;
-            c.push_contribution_bounded(FrequencyContribution::new(
-                Entity::from_raw(1),
-                75.0,
-                5.0,
-            ));
+            c.push_contribution_bounded(FrequencyContribution::new(Entity::from_raw(1), 75.0, 5.0));
         }
         let mut app = snapshot_test_app(grid);
         app.add_systems(
@@ -445,11 +421,7 @@ mod tests {
         let rho = 0.41_f32;
         let n_max = 88_u32;
         let idx = quantized_palette_index(enorm, rho, n_max);
-        let idx_direct = quantized_palette_index(
-            (52.0_f32 / qe_ref).clamp(0.0, 1.0),
-            rho,
-            n_max,
-        );
+        let idx_direct = quantized_palette_index((52.0_f32 / qe_ref).clamp(0.0, 1.0), rho, n_max);
         assert_eq!(idx, idx_direct);
     }
 }

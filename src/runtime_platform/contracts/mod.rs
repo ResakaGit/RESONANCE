@@ -1,6 +1,61 @@
-use bevy::prelude::{Color, Entity, Vec2, Vec3};
+use bevy::prelude::{Color, Entity, Resource, Vec2, Vec3};
 
 use crate::runtime_platform::core_math_agnostic::{clamp_unit, normalize_or_zero};
+
+// ---------------------------------------------------------------------------
+// AttentionGrid — contract resource (DC-4B)
+// ---------------------------------------------------------------------------
+
+/// Grid espacial consolidado de la Atención perceptiva (A ∈ [0, 1]).
+/// Mapea 1:1 con las celdas del mundo.
+/// Escrita por simulation (sensory), leída por rendering (precision).
+///
+/// Spatial attention grid. Written by simulation, read by rendering.
+#[derive(Resource, Debug, Default)]
+pub struct AttentionGrid {
+    pub a: Vec<f32>,
+    pub width: usize,
+    pub height: usize,
+    pub cell_size: f32,
+    pub origin: Vec2,
+}
+
+impl AttentionGrid {
+    pub fn resize(&mut self, width: usize, height: usize, cell_size: f32, origin: Vec2) {
+        if self.width != width || self.height != height {
+            self.width = width;
+            self.height = height;
+            self.a = vec![0.0; width * height];
+        }
+        self.cell_size = cell_size;
+        self.origin = origin;
+    }
+
+    pub fn idx(&self, x: usize, y: usize) -> usize {
+        y * self.width + x
+    }
+
+    pub fn cell_coords(&self, world_pos: Vec2) -> Option<(usize, usize)> {
+        let rel = world_pos - self.origin;
+        if rel.x < 0.0 || rel.y < 0.0 {
+            return None;
+        }
+        let x = (rel.x / self.cell_size).floor() as usize;
+        let y = (rel.y / self.cell_size).floor() as usize;
+        if x >= self.width || y >= self.height {
+            return None;
+        }
+        Some((x, y))
+    }
+
+    pub fn get_attention(&self, world_pos: Vec2) -> f32 {
+        if let Some((x, y)) = self.cell_coords(world_pos) {
+            self.a[self.idx(x, y)]
+        } else {
+            0.0
+        }
+    }
+}
 
 /// Revisión congelada del contrato compartido V6.
 pub const V6_CONTRACTS_REV: u32 = 1;

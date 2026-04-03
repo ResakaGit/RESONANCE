@@ -3,14 +3,14 @@
 //!
 //! All math delegated to `blueprint::equations`. No inline formulas.
 
-use crate::blueprint::{constants, equations};
-use crate::blueprint::equations::emergence::entrainment as entrainment_eq;
 use crate::batch::arena::SimWorldFlat;
 use crate::batch::constants::{
-    COLLISION_EXCHANGE_FRACTION, GRAVITY_ACCELERATION,
-    TENSION_FORCE_SCALE, TENSION_RADIUS_MULTIPLIER,
+    COLLISION_EXCHANGE_FRACTION, GRAVITY_ACCELERATION, TENSION_FORCE_SCALE,
+    TENSION_RADIUS_MULTIPLIER,
 };
 use crate::batch::scratch::ScratchPad;
+use crate::blueprint::equations::emergence::entrainment as entrainment_eq;
+use crate::blueprint::{constants, equations};
 
 /// L3→L0: entropy drain per tick.
 ///
@@ -24,7 +24,9 @@ pub fn dissipation(world: &mut SimWorldFlat) {
         let e = &mut world.entities[i];
         let loss = equations::dissipation_loss(e.qe, e.dissipation);
         let new_qe = (e.qe - loss).max(0.0);
-        if e.qe != new_qe { e.qe = new_qe; }
+        if e.qe != new_qe {
+            e.qe = new_qe;
+        }
     }
 }
 
@@ -110,7 +112,9 @@ pub fn collision(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
         let amount = transfer.abs() * donor_qe * COLLISION_EXCHANGE_FRACTION;
         let safe_amount = amount.min(donor_qe);
 
-        if safe_amount <= 0.0 { continue; }
+        if safe_amount <= 0.0 {
+            continue;
+        }
 
         if transfer > 0.0 {
             world.entities[a].qe -= safe_amount;
@@ -151,13 +155,19 @@ pub fn will_to_velocity(world: &mut SimWorldFlat) {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
         let e = &mut world.entities[i];
-        let intent_sq = e.will_intent[0] * e.will_intent[0]
-                      + e.will_intent[1] * e.will_intent[1];
-        if intent_sq < 1e-10 { continue; }
+        let intent_sq = e.will_intent[0] * e.will_intent[0] + e.will_intent[1] * e.will_intent[1];
+        if intent_sq < 1e-10 {
+            continue;
+        }
         let intent = glam::Vec2::new(e.will_intent[0], e.will_intent[1]);
         let force = equations::will_force(intent, e.engine_buffer, e.engine_max);
         let vel = glam::Vec2::new(e.velocity[0], e.velocity[1]);
-        let new_vel = equations::integrate_velocity(vel, force, e.qe.max(crate::batch::constants::GUARD_EPSILON), dt);
+        let new_vel = equations::integrate_velocity(
+            vel,
+            force,
+            e.qe.max(crate::batch::constants::GUARD_EPSILON),
+            dt,
+        );
         if new_vel.is_finite() {
             e.velocity[0] = new_vel.x;
             e.velocity[1] = new_vel.y;
@@ -176,10 +186,14 @@ pub fn locomotion_drain(world: &mut SimWorldFlat) {
         mask &= mask - 1;
         let e = &mut world.entities[i];
         let speed = (e.velocity[0] * e.velocity[0] + e.velocity[1] * e.velocity[1]).sqrt();
-        if speed < 1e-4 { continue; }
+        if speed < 1e-4 {
+            continue;
+        }
         let cost = equations::locomotion_energy_cost(e.qe, speed, 1.0);
         let drain = cost.min(e.qe);
-        if drain > 0.0 { e.qe -= drain; }
+        if drain > 0.0 {
+            e.qe -= drain;
+        }
     }
 }
 
@@ -204,13 +218,19 @@ pub fn entrainment(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
             let dx = world.entities[i].position[0] - world.entities[j].position[0];
             let dy = world.entities[i].position[1] - world.entities[j].position[1];
             let dist_sq = dx * dx + dy * dy;
-            if dist_sq >= range_sq { continue; }
+            if dist_sq >= range_sq {
+                continue;
+            }
 
             let dist = dist_sq.sqrt();
             let coupling = equations::entrainment_coupling_at_distance(
-                constants::KURAMOTO_BASE_COUPLING, dist, constants::ENTRAINMENT_COHERENCE_LAMBDA,
+                constants::KURAMOTO_BASE_COUPLING,
+                dist,
+                constants::ENTRAINMENT_COHERENCE_LAMBDA,
             );
-            if coupling < 1e-6 { continue; }
+            if coupling < 1e-6 {
+                continue;
+            }
 
             let delta_i = entrainment_eq::kuramoto_pair_delta(
                 world.entities[i].frequency_hz,
@@ -248,11 +268,13 @@ pub fn tension_field_apply(world: &mut SimWorldFlat, _scratch: &mut ScratchPad) 
             let dx = world.entities[j].position[0] - world.entities[i].position[0];
             let dy = world.entities[j].position[1] - world.entities[i].position[1];
             let dist_sq = dx * dx + dy * dy;
-            if dist_sq >= t_radius_sq || dist_sq < crate::batch::constants::GUARD_EPSILON { continue; }
+            if dist_sq >= t_radius_sq || dist_sq < crate::batch::constants::GUARD_EPSILON {
+                continue;
+            }
 
             let dist = dist_sq.sqrt();
-            let force_mag = (world.entities[i].qe * world.entities[j].qe)
-                / (dist_sq * TENSION_FORCE_SCALE);
+            let force_mag =
+                (world.entities[i].qe * world.entities[j].qe) / (dist_sq * TENSION_FORCE_SCALE);
             let force_mag = force_mag.min(1.0); // cap force
 
             let nx = dx / dist;
@@ -286,7 +308,9 @@ pub fn containment_check(world: &mut SimWorldFlat, _scratch: &mut ScratchPad) {
             let dist = (dx * dx + dy * dy).sqrt();
             let r_sum = world.entities[i].radius + world.entities[j].radius;
 
-            if dist >= r_sum { continue; }
+            if dist >= r_sum {
+                continue;
+            }
 
             // Overlap → drag the smaller entity
             let overlap = r_sum - dist;
@@ -371,9 +395,15 @@ mod tests {
         let idx = spawn_entity(&mut w, 100.0, 0.0, 5.0, 1.0); // start above ground
         w.entities[idx].velocity = [10.0, 20.0];
         movement_integrate(&mut w);
-        assert!((w.entities[idx].position[0] - 0.5).abs() < 1e-3, "x = vx * dt");
+        assert!(
+            (w.entities[idx].position[0] - 0.5).abs() < 1e-3,
+            "x = vx * dt"
+        );
         // y affected by gravity: vel reduced then integrated
-        assert!(w.entities[idx].position[1] > 5.0, "upward velocity should move up");
+        assert!(
+            w.entities[idx].position[1] > 5.0,
+            "upward velocity should move up"
+        );
     }
 
     #[test]
@@ -392,7 +422,10 @@ mod tests {
         let mut w = SimWorldFlat::new(0, 0.05);
         spawn_entity(&mut w, 100.0, 3.0, 7.0, 1.0);
         movement_integrate(&mut w);
-        assert!((w.entities[0].position[0] - 3.0).abs() < 1e-5, "x unchanged");
+        assert!(
+            (w.entities[0].position[0] - 3.0).abs() < 1e-5,
+            "x unchanged"
+        );
         assert!(w.entities[0].position[1] < 7.0, "gravity should pull down");
     }
 
@@ -475,7 +508,8 @@ mod tests {
         let idx = spawn_entity(&mut w, 100.0, 0.0, 0.0, 1.0);
         w.entities[idx].velocity = [1000.0, 0.0];
         velocity_cap(&mut w);
-        let speed = (w.entities[idx].velocity[0].powi(2) + w.entities[idx].velocity[1].powi(2)).sqrt();
+        let speed =
+            (w.entities[idx].velocity[0].powi(2) + w.entities[idx].velocity[1].powi(2)).sqrt();
         assert!(
             (speed - constants::MAX_GLOBAL_VELOCITY).abs() < 1e-3,
             "speed={speed}, max={}",
@@ -502,7 +536,10 @@ mod tests {
         let vx = w.entities[idx].velocity[0];
         let vy = w.entities[idx].velocity[1];
         let ratio = vx / vy;
-        assert!((ratio - 0.75).abs() < 1e-3, "direction preserved: ratio={ratio}");
+        assert!(
+            (ratio - 0.75).abs() < 1e-3,
+            "direction preserved: ratio={ratio}"
+        );
     }
 
     // ── will_to_velocity ────────────────────────────────────────────────────
@@ -570,7 +607,10 @@ mod tests {
         let mut scratch = ScratchPad::new();
         entrainment(&mut w, &mut scratch);
         let gap_after = (w.entities[a].frequency_hz - w.entities[b].frequency_hz).abs();
-        assert!(gap_after < gap_before, "frequencies should converge: {gap_before} → {gap_after}");
+        assert!(
+            gap_after < gap_before,
+            "frequencies should converge: {gap_before} → {gap_after}"
+        );
     }
 
     #[test]
@@ -596,6 +636,9 @@ mod tests {
         w.entities[big].velocity = [0.0, 0.0];
         let mut scratch = ScratchPad::new();
         containment_check(&mut w, &mut scratch);
-        assert!(w.entities[small].velocity[0] < 10.0, "small entity should be dragged");
+        assert!(
+            w.entities[small].velocity[0] < 10.0,
+            "small entity should be dragged"
+        );
     }
 }

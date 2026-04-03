@@ -937,7 +937,10 @@ mod tests {
             .add_event::<WorldgenMutationEvent>()
             .add_event::<SeasonChangeEvent>()
             .add_event::<DeathEvent>()
-            .configure_sets(FixedUpdate, (Phase::ThermodynamicLayer, Phase::MetabolicLayer).chain());
+            .configure_sets(
+                FixedUpdate,
+                (Phase::ThermodynamicLayer, Phase::MetabolicLayer).chain(),
+            );
         prephysics::register_worldgen_core_prephysics_chain(app, FixedUpdate);
         prephysics::register_postphysics_nucleus_death_before_faction(app, FixedUpdate);
         // `step_sim` solo ejecuta `FixedUpdate`; forzamos estado como haría `Main` tras startup.

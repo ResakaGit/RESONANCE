@@ -4,9 +4,7 @@
 
 use bevy::prelude::*;
 
-use crate::blueprint::constants::inferred_world_geometry::{
-    WATER_MIN_CELLS, WATER_SUBDIVISIONS,
-};
+use crate::blueprint::constants::inferred_world_geometry::{WATER_MIN_CELLS, WATER_SUBDIVISIONS};
 use crate::blueprint::equations::inferred_world_geometry::{
     build_water_mesh, water_surface_height,
 };
@@ -17,7 +15,7 @@ use crate::worldgen::EnergyFieldGrid;
 /// Water mesh generated in FixedUpdate, pending sync to Mesh3d.
 #[derive(Resource, Default)]
 pub struct WaterMeshResource {
-    pub mesh:  Option<Mesh>,
+    pub mesh: Option<Mesh>,
     pub dirty: bool,
 }
 
@@ -75,10 +73,18 @@ pub fn water_surface_system(
             let world_x_end = world_x + terrain.cell_size;
             let world_z_end = world_z + terrain.cell_size;
 
-            if world_x < min_x { min_x = world_x; }
-            if world_x_end > max_x { max_x = world_x_end; }
-            if world_z < min_z { min_z = world_z; }
-            if world_z_end > max_z { max_z = world_z_end; }
+            if world_x < min_x {
+                min_x = world_x;
+            }
+            if world_x_end > max_x {
+                max_x = world_x_end;
+            }
+            if world_z < min_z {
+                min_z = world_z;
+            }
+            if world_z_end > max_z {
+                max_z = world_z_end;
+            }
         }
     }
 

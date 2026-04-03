@@ -44,7 +44,10 @@ fn frame_buffer_high_energy_cell_is_bright() {
     let dark = frame.pixels[0];
     let bright_lum = bright[0] as u32 + bright[1] as u32 + bright[2] as u32;
     let dark_lum = dark[0] as u32 + dark[1] as u32 + dark[2] as u32;
-    assert!(bright_lum > dark_lum * 3, "high qe cell must be brighter: bright={bright_lum} dark={dark_lum}");
+    assert!(
+        bright_lum > dark_lum * 3,
+        "high qe cell must be brighter: bright={bright_lum} dark={dark_lum}"
+    );
 }
 
 #[test]
@@ -109,7 +112,10 @@ fn seasonal_poles_differ_at_solstice() {
     let tick = (year * 0.25) as u64; // summer
     let north = seasonal_irradiance_modifier(90.0, 100.0, tick, year, tilt);
     let south = seasonal_irradiance_modifier(10.0, 100.0, tick, year, tilt);
-    assert!(north > south, "north summer > south: north={north} south={south}");
+    assert!(
+        north > south,
+        "north summer > south: north={north} south={south}"
+    );
 }
 
 #[test]
@@ -119,7 +125,10 @@ fn seasonal_equinox_poles_equal() {
     let tilt = 0.26;
     let north = seasonal_irradiance_modifier(80.0, 100.0, 0, year, tilt);
     let south = seasonal_irradiance_modifier(20.0, 100.0, 0, year, tilt);
-    assert!((north - south).abs() < 0.15, "equinox should be ~symmetric: n={north} s={south}");
+    assert!(
+        (north - south).abs() < 0.15,
+        "equinox should be ~symmetric: n={north} s={south}"
+    );
 }
 
 #[test]
@@ -127,7 +136,10 @@ fn seasonal_modifier_always_positive() {
     for tick in (0..10000).step_by(500) {
         for y in (0..100).step_by(10) {
             let m = seasonal_irradiance_modifier(y as f32, 100.0, tick, 10000.0, 0.5);
-            assert!(m > 0.0, "modifier must be positive: tick={tick} y={y} m={m}");
+            assert!(
+                m > 0.0,
+                "modifier must be positive: tick={tick} y={y} m={m}"
+            );
         }
     }
 }
@@ -164,7 +176,10 @@ fn toroidal_neighbors_always_four() {
     for y in 0..4 {
         for x in 0..4 {
             let count = grid.neighbors4(x, y).iter().flatten().count();
-            assert_eq!(count, 4, "all cells must have 4 neighbors: ({x},{y})={count}");
+            assert_eq!(
+                count, 4,
+                "all cells must have 4 neighbors: ({x},{y})={count}"
+            );
         }
     }
 }
@@ -173,7 +188,8 @@ fn toroidal_neighbors_always_four() {
 
 #[test]
 fn recycling_threshold_matches_conversion_losses() {
-    let expected = (1.0 - dt::nutrient_retention_mineral()) + (1.0 - dt::nutrient_retention_water());
+    let expected =
+        (1.0 - dt::nutrient_retention_mineral()) + (1.0 - dt::nutrient_retention_water());
     assert!((dt::recycling_nutrient_threshold() - expected).abs() < 1e-6);
 }
 
@@ -181,7 +197,10 @@ fn recycling_threshold_matches_conversion_losses() {
 fn night_cooling_preserves_energy_over_full_night() {
     let frac = night_cooling_fraction();
     let remaining = (1.0 - frac).powi(300);
-    assert!(remaining > 0.15, "cell must survive one night: {remaining:.3}");
+    assert!(
+        remaining > 0.15,
+        "cell must survive one night: {remaining:.3}"
+    );
 }
 
 #[test]
@@ -206,8 +225,11 @@ fn circular_corners_are_space() {
     let frame = frame_buffer::render_frame_circular(&grid, &[], &[], 0.0);
     // Top-left corner (0,0) is outside the disk → deep space.
     let corner = frame.pixels[0];
-    assert!(corner[0] < 10 && corner[1] < 10 && corner[2] < 20,
-        "corner should be space: {:?}", corner);
+    assert!(
+        corner[0] < 10 && corner[1] < 10 && corner[2] < 20,
+        "corner should be space: {:?}",
+        corner
+    );
 }
 
 #[test]
@@ -222,7 +244,10 @@ fn circular_center_is_brighter_than_edge() {
     let edge_px = frame.pixels[mid * frame.width + (frame.width - 2)];
     let center_lum = center_px[0] as u32 + center_px[1] as u32 + center_px[2] as u32;
     let edge_lum = edge_px[0] as u32 + edge_px[1] as u32 + edge_px[2] as u32;
-    assert!(center_lum > edge_lum, "limb darkening: center={center_lum} > edge={edge_lum}");
+    assert!(
+        center_lum > edge_lum,
+        "limb darkening: center={center_lum} > edge={edge_lum}"
+    );
 }
 
 #[test]
@@ -234,7 +259,10 @@ fn circular_rotation_shifts_content() {
     let frame_a = frame_buffer::render_frame_circular(&grid, &[], &[], 0.0);
     let frame_b = frame_buffer::render_frame_circular(&grid, &[], &[], 8.0);
     // Different rotation → different pixel arrangement.
-    assert_ne!(frame_a.pixels, frame_b.pixels, "rotation should shift content");
+    assert_ne!(
+        frame_a.pixels, frame_b.pixels,
+        "rotation should shift content"
+    );
 }
 
 // ── Energy distribution: day/night verifiable cycles ────────────────────────
@@ -246,7 +274,10 @@ fn solar_meridian_completes_full_cycle() {
     let width = 48.0;
     let m0 = solar_meridian_x(0, period, width);
     let m_full = solar_meridian_x(600, period, width);
-    assert!((m0 - m_full).abs() < 0.1, "full cycle: start={m0} end={m_full}");
+    assert!(
+        (m0 - m_full).abs() < 0.1,
+        "full cycle: start={m0} end={m_full}"
+    );
 }
 
 #[test]
@@ -268,7 +299,10 @@ fn irradiance_varies_smoothly_across_terminator() {
     let mut prev = solar_irradiance_factor(meridian, meridian, width);
     for x in 1..24 {
         let current = solar_irradiance_factor(meridian + x as f32, meridian, width);
-        assert!(current <= prev + 0.01, "irradiance should decrease away from meridian");
+        assert!(
+            current <= prev + 0.01,
+            "irradiance should decrease away from meridian"
+        );
         prev = current;
     }
 }
@@ -278,5 +312,8 @@ fn seasonal_cycle_completes_in_one_year() {
     let year = 10000.0;
     let m0 = seasonal_irradiance_modifier(50.0, 100.0, 0, year, 0.26);
     let m_full = seasonal_irradiance_modifier(50.0, 100.0, 10000, year, 0.26);
-    assert!((m0 - m_full).abs() < 0.01, "year cycle: start={m0} end={m_full}");
+    assert!(
+        (m0 - m_full).abs() < 0.01,
+        "year cycle: start={m0} end={m_full}"
+    );
 }

@@ -8,25 +8,20 @@ use bevy::prelude::*;
 use crate::blueprint::equations::emergence::other_model::{
     is_model_worth_maintaining, model_accuracy, model_maintenance_cost, update_prediction,
 };
-use crate::layers::{BaseEnergy, BehavioralAgent, OscillatorySignature};
 use crate::layers::other_model::{MAX_MODELS, OtherModel, OtherModelSet};
+use crate::layers::{BaseEnergy, BehavioralAgent, OscillatorySignature};
 use crate::world::SpatialIndex;
 
-/// Radio de escaneo para detectar vecinos observables (unidades mundo).
-/// Scan radius for detecting observable neighbors (world units).
-const MODEL_SCAN_RADIUS: f32 = 10.0;
-
-/// Tasa de aprendizaje del modelo predictivo (exponential moving average blend).
-/// Learning rate for predictive model updates (exponential moving average blend).
-const MODEL_LEARNING_RATE: f32 = 0.1;
-
-/// Desviación máxima de frecuencia para calcular precisión del modelo (Hz).
-/// Maximum frequency deviation for model accuracy calculation (Hz).
-const MODEL_MAX_FREQ_DEVIATION: f32 = 500.0;
+use crate::blueprint::constants::emergence::{
+    MODEL_LEARNING_RATE, MODEL_MAX_FREQ_DEVIATION, MODEL_SCAN_RADIUS,
+};
 
 /// Updates mental models of nearby entities. Learns from observation, evicts unprofitable models.
 pub fn theory_of_mind_update_system(
-    mut query: Query<(Entity, &mut OtherModelSet, &Transform, &mut BaseEnergy), With<BehavioralAgent>>,
+    mut query: Query<
+        (Entity, &mut OtherModelSet, &Transform, &mut BaseEnergy),
+        With<BehavioralAgent>,
+    >,
     targets: Query<(&Transform, &OscillatorySignature)>,
     spatial: Res<SpatialIndex>,
 ) {
@@ -35,8 +30,12 @@ pub fn theory_of_mind_update_system(
         let neighbors = spatial.query_radius(pos, MODEL_SCAN_RADIUS);
 
         for neighbor in &neighbors {
-            if neighbor.entity == entity { continue; }
-            let Ok((_, wave)) = targets.get(neighbor.entity) else { continue };
+            if neighbor.entity == entity {
+                continue;
+            }
+            let Ok((_, wave)) = targets.get(neighbor.entity) else {
+                continue;
+            };
             let actual_freq = wave.frequency_hz();
             let target_id = neighbor.entity.index();
 
@@ -46,8 +45,11 @@ pub fn theory_of_mind_update_system(
                 if models.models[i].target_id == target_id {
                     let old_pred = models.models[i].predicted_freq;
                     let new_pred = update_prediction(old_pred, actual_freq, MODEL_LEARNING_RATE);
-                    if old_pred != new_pred { models.models[i].predicted_freq = new_pred; }
-                    models.models[i].accuracy = model_accuracy(new_pred, actual_freq, MODEL_MAX_FREQ_DEVIATION);
+                    if old_pred != new_pred {
+                        models.models[i].predicted_freq = new_pred;
+                    }
+                    models.models[i].accuracy =
+                        model_accuracy(new_pred, actual_freq, MODEL_MAX_FREQ_DEVIATION);
                     found = true;
                     break;
                 }
@@ -87,7 +89,9 @@ pub fn theory_of_mind_update_system(
 
         if total_cost > 0.0 && energy.qe() > total_cost {
             let new_qe = energy.qe() - total_cost;
-            if energy.qe() != new_qe { energy.set_qe(new_qe); }
+            if energy.qe() != new_qe {
+                energy.set_qe(new_qe);
+            }
         }
     }
 }

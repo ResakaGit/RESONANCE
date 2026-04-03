@@ -10,15 +10,17 @@
 use bevy::prelude::*;
 
 use crate::bridge::metrics::bridge_metrics_collect_system;
-use crate::simulation::{self, Phase};
 use crate::simulation::post::faction_identity_system;
 use crate::simulation::states::{GameState, PlayState};
+use crate::simulation::{self, Phase};
 use crate::worldgen::ActiveMapName;
 use crate::worldgen::map_config::ROUND_WORLD_ROSA_MAP_SLUG;
 
 #[inline]
 fn not_round_world_rosa(active: Option<Res<ActiveMapName>>) -> bool {
-    active.map(|a| a.0 != ROUND_WORLD_ROSA_MAP_SLUG).unwrap_or(true)
+    active
+        .map(|a| a.0 != ROUND_WORLD_ROSA_MAP_SLUG)
+        .unwrap_or(true)
 }
 
 /// Registers all Phase::MorphologicalLayer systems.

@@ -5,8 +5,8 @@
 
 use bevy::prelude::*;
 
-use crate::blueprint::equations;
 use crate::blueprint::AlchemicalAlmanac;
+use crate::blueprint::equations;
 use crate::layers::{BaseEnergy, GrowthBudget};
 use crate::worldgen::constants::VISUAL_NEUTRAL_GRAY_CHANNEL;
 use crate::worldgen::visual_derivation::derive_color_phenology;
@@ -87,24 +87,12 @@ pub fn phenology_visual_apply_system(
         };
 
         let qe = energy.qe();
-        let qe_t = equations::normalize_range(
-            qe,
-            0.0,
-            params.qe_reference.max(f32::EPSILON),
-        );
+        let qe_t = equations::normalize_range(qe, 0.0, params.qe_reference.max(f32::EPSILON));
 
-        let purity_t = cell_growth_purity
-            .map(|(_, pt)| pt)
-            .unwrap_or(1.0);
+        let purity_t = cell_growth_purity.map(|(_, pt)| pt).unwrap_or(1.0);
 
-        let phase = equations::phenology_phase(
-            growth_t,
-            qe_t,
-            purity_t,
-            ph.w_growth,
-            ph.w_qe,
-            ph.w_purity,
-        );
+        let phase =
+            equations::phenology_phase(growth_t, qe_t, purity_t, ph.w_growth, ph.w_qe, ph.w_purity);
 
         // Siempre reconciliar con el tinte fenológico tras `derive_visual_*`: la derivación base
         // puede haber reescrito `color` en el mismo `Update` aunque la fase no cruce ε.
@@ -126,9 +114,9 @@ pub fn phenology_visual_apply_system(
                     cache.prev_phase = phase;
                 }
             } else {
-                commands.entity(entity).insert(PhenologyPhaseCache {
-                    prev_phase: phase,
-                });
+                commands
+                    .entity(entity)
+                    .insert(PhenologyPhaseCache { prev_phase: phase });
             }
         }
     }
@@ -137,8 +125,8 @@ pub fn phenology_visual_apply_system(
 #[cfg(test)]
 mod tests {
     use super::phenology_visual_apply_system;
-    use crate::blueprint::almanac::{AlchemicalAlmanac, ElementDef, ElementPhenologyDef};
     use crate::blueprint::ElementId;
+    use crate::blueprint::almanac::{AlchemicalAlmanac, ElementDef, ElementPhenologyDef};
     use crate::layers::{BaseEnergy, GrowthBudget};
     use crate::worldgen::{
         EnergyCell, EnergyFieldGrid, EnergyVisual, Materialized, PhenologyVisualParams,
@@ -289,7 +277,12 @@ mod tests {
             .id();
 
         app.update();
-        let after = app.world().entity(entity).get::<EnergyVisual>().unwrap().color;
+        let after = app
+            .world()
+            .entity(entity)
+            .get::<EnergyVisual>()
+            .unwrap()
+            .color;
         assert_eq!(after, color_before);
     }
 }

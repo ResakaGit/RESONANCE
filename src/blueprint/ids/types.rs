@@ -25,8 +25,12 @@ pub struct EffectId(pub u32);
 pub struct PoolId(pub u32);
 
 impl PoolId {
-    pub fn new(id: u32) -> Self { Self(id) }
-    pub fn raw(self) -> u32 { self.0 }
+    pub fn new(id: u32) -> Self {
+        Self(id)
+    }
+    pub fn raw(self) -> u32 {
+        self.0
+    }
 }
 
 /// Strong ID for organ entities — morphogenesis track. Not reusable, survives serialization.
@@ -35,8 +39,12 @@ impl PoolId {
 pub struct OrganId(pub u32);
 
 impl OrganId {
-    pub fn new(id: u32) -> Self { Self(id) }
-    pub fn raw(self) -> u32 { self.0 }
+    pub fn new(id: u32) -> Self {
+        Self(id)
+    }
+    pub fn raw(self) -> u32 {
+        self.0
+    }
 }
 
 /// Strong ID for MOBA agent entities (MobaIdentity). Not reusable, survives serialization.
@@ -45,8 +53,12 @@ impl OrganId {
 pub struct AgentId(pub u32);
 
 impl AgentId {
-    pub fn new(id: u32) -> Self { Self(id) }
-    pub fn raw(self) -> u32 { self.0 }
+    pub fn new(id: u32) -> Self {
+        Self(id)
+    }
+    pub fn raw(self) -> u32 {
+        self.0
+    }
 }
 
 // ─── Generador determinista (única fuente de contadores) ────────────────────
@@ -56,11 +68,11 @@ impl AgentId {
 #[reflect(Resource)]
 pub struct IdGenerator {
     next_champion: u32,
-    next_world:    u32,
-    next_effect:   u32,
-    next_pool:     u32,
-    next_organ:    u32,
-    next_agent:    u32,
+    next_world: u32,
+    next_effect: u32,
+    next_pool: u32,
+    next_organ: u32,
+    next_agent: u32,
 }
 
 impl IdGenerator {
@@ -101,15 +113,27 @@ impl IdGenerator {
     }
 
     /// Number of champion IDs issued so far.
-    pub fn champion_count(&self) -> u32 { self.next_champion }
+    pub fn champion_count(&self) -> u32 {
+        self.next_champion
+    }
     /// Number of world-entity IDs issued so far.
-    pub fn world_count(&self) -> u32 { self.next_world }
+    pub fn world_count(&self) -> u32 {
+        self.next_world
+    }
     /// Number of effect IDs issued so far.
-    pub fn effect_count(&self) -> u32 { self.next_effect }
+    pub fn effect_count(&self) -> u32 {
+        self.next_effect
+    }
     /// Number of pool IDs issued so far.
-    pub fn pool_count(&self) -> u32 { self.next_pool }
+    pub fn pool_count(&self) -> u32 {
+        self.next_pool
+    }
     /// Number of organ IDs issued so far.
-    pub fn organ_count(&self) -> u32 { self.next_organ }
+    pub fn organ_count(&self) -> u32 {
+        self.next_organ
+    }
     /// Number of agent IDs issued so far.
-    pub fn agent_count(&self) -> u32 { self.next_agent }
+    pub fn agent_count(&self) -> u32 {
+        self.next_agent
+    }
 }

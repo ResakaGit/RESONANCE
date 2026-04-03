@@ -14,13 +14,13 @@ pub const MORPHOGENESIS_DEMO_SLUG: &str = "morphogenesis_demo";
 /// Spawnea el escenario de morfogénesis: tres biomas + organismos contrastantes.
 pub fn spawn_morphogenesis_demo_startup_system(mut commands: Commands) {
     // ── Océano profundo: 3 organismos acuáticos ──────────────────────────────
-    spawn_aquatic_organism(&mut commands, Vec2::new(-20.0,  2.0));
-    spawn_aquatic_organism(&mut commands, Vec2::new(-22.0,  0.0));
+    spawn_aquatic_organism(&mut commands, Vec2::new(-20.0, 2.0));
+    spawn_aquatic_organism(&mut commands, Vec2::new(-22.0, 0.0));
     spawn_aquatic_organism(&mut commands, Vec2::new(-20.0, -2.0));
 
     // ── Desierto abrasador: 3 plantas + 2 criaturas ──────────────────────────
-    spawn_desert_plant(&mut commands, Vec2::new(20.0,  2.0));
-    spawn_desert_plant(&mut commands, Vec2::new(22.0,  0.0));
+    spawn_desert_plant(&mut commands, Vec2::new(20.0, 2.0));
+    spawn_desert_plant(&mut commands, Vec2::new(22.0, 0.0));
     spawn_desert_plant(&mut commands, Vec2::new(20.0, -2.0));
 
     spawn_desert_creature(&mut commands, Vec2::new(30.0, -10.0));

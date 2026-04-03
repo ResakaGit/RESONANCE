@@ -4,7 +4,7 @@
 use resonance::blueprint::equations::observability::{
     drift_rate, is_conservation_violation, is_critical_drift, saturation_index, system_cost_ratio,
 };
-use resonance::simulation::observability::{export_dashboard_csv_row, SimulationHealthDashboard};
+use resonance::simulation::observability::{SimulationHealthDashboard, export_dashboard_csv_row};
 
 // ─── drift_rate ───────────────────────────────────────────────────────────────
 
@@ -102,7 +102,10 @@ fn export_csv_row_format_contains_tick() {
         saturation_index: 0.75,
     };
     let row = export_dashboard_csv_row(&dashboard);
-    assert!(row.starts_with("42,"), "expected row to start with tick '42,', got: {row}");
+    assert!(
+        row.starts_with("42,"),
+        "expected row to start with tick '42,', got: {row}"
+    );
 }
 
 #[test]
@@ -115,12 +118,20 @@ fn export_csv_row_has_four_fields() {
     };
     let row = export_dashboard_csv_row(&dashboard);
     let fields: Vec<&str> = row.split(',').collect();
-    assert_eq!(fields.len(), 4, "expected 4 CSV fields, got {}: '{row}'", fields.len());
+    assert_eq!(
+        fields.len(),
+        4,
+        "expected 4 CSV fields, got {}: '{row}'",
+        fields.len()
+    );
 }
 
 #[test]
 fn export_csv_row_default_dashboard_starts_with_zero() {
     let dashboard = SimulationHealthDashboard::default();
     let row = export_dashboard_csv_row(&dashboard);
-    assert!(row.starts_with("0,"), "default tick should be 0, got: {row}");
+    assert!(
+        row.starts_with("0,"),
+        "default tick should be 0, got: {row}"
+    );
 }

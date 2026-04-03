@@ -35,8 +35,8 @@ impl InferredAlbedo {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bevy::ecs::component::StorageType;
     use crate::blueprint::constants::morphogenesis as mg;
+    use bevy::ecs::component::StorageType;
 
     #[test]
     fn new_standard_value_preserved() {
@@ -82,9 +82,14 @@ mod tests {
         use crate::plugins::layers_plugin::LayersPlugin;
         let mut app = bevy::prelude::App::new();
         app.add_plugins(LayersPlugin);
-        let registry = app.world().resource::<bevy::prelude::AppTypeRegistry>().read();
+        let registry = app
+            .world()
+            .resource::<bevy::prelude::AppTypeRegistry>()
+            .read();
         assert!(
-            registry.get(std::any::TypeId::of::<InferredAlbedo>()).is_some(),
+            registry
+                .get(std::any::TypeId::of::<InferredAlbedo>())
+                .is_some(),
             "InferredAlbedo must be registered for Reflect",
         );
     }

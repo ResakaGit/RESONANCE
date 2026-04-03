@@ -35,7 +35,10 @@ pub fn mean_absolute_error(pairs: &[(f32, f32)]) -> f32 {
     if pairs.is_empty() {
         return 0.0;
     }
-    let sum: f32 = pairs.iter().map(|&(s, e)| surrogate_absolute_error(s, e)).sum();
+    let sum: f32 = pairs
+        .iter()
+        .map(|&(s, e)| surrogate_absolute_error(s, e))
+        .sum();
     sum / pairs.len() as f32
 }
 

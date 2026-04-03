@@ -78,7 +78,10 @@ fn entity_lookup_remove_champion_returns_none() {
     app.world_mut().flush();
     app.world_mut().entity_mut(entity).remove::<ChampionId>();
     app.world_mut().flush();
-    assert_eq!(app.world().resource::<EntityLookup>().champion_entity(id), None);
+    assert_eq!(
+        app.world().resource::<EntityLookup>().champion_entity(id),
+        None
+    );
 }
 
 #[test]
@@ -122,13 +125,17 @@ fn entity_lookup_rebound_id_keeps_latest_entity() {
     let e_new = app.world_mut().spawn(ChampionId(9)).id();
     app.world_mut().flush();
     assert_eq!(
-        app.world().resource::<EntityLookup>().champion_entity(ChampionId(9)),
+        app.world()
+            .resource::<EntityLookup>()
+            .champion_entity(ChampionId(9)),
         Some(e_new)
     );
     app.world_mut().entity_mut(e_old).despawn();
     app.world_mut().flush();
     assert_eq!(
-        app.world().resource::<EntityLookup>().champion_entity(ChampionId(9)),
+        app.world()
+            .resource::<EntityLookup>()
+            .champion_entity(ChampionId(9)),
         Some(e_new)
     );
 }

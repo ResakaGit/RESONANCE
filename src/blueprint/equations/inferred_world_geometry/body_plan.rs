@@ -10,9 +10,10 @@ use crate::blueprint::constants::inferred_world_geometry::{
     ALLOMETRIC_EXPONENT, LIMB_PAIR_Z_SPACING, LIMB_SPREAD_RATIO, ORGAN_SCALE_MAX, ORGAN_SCALE_MIN,
     ROLE_BASE_SCALE,
 };
+use crate::blueprint::{MAX_ORGANS_PER_ENTITY, OrganRole};
 use crate::geometry_flow::SpineNode;
+use crate::layers::OrganManifest;
 use crate::layers::body_plan_layout::BodyPlanLayout;
-use crate::layers::organ::{OrganManifest, OrganRole, MAX_ORGANS_PER_ENTITY};
 use crate::worldgen::organ_inference::{
     ORGAN_ATTACHMENT_ZONE, organ_attachment_points, organ_orientation,
 };
@@ -22,18 +23,18 @@ use crate::worldgen::organ_inference::{
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default, Reflect)]
 pub enum SymmetryMode {
     #[default]
-    Bilateral  = 0,
-    Radial     = 1,
+    Bilateral = 0,
+    Radial = 1,
     Asymmetric = 2,
 }
 
 /// Infer symmetry mode from the number of limbs.
 pub fn infer_symmetry_mode(limb_count: u8) -> SymmetryMode {
     match limb_count {
-        0          => SymmetryMode::Bilateral,
-        1          => SymmetryMode::Asymmetric,
-        2 | 4      => SymmetryMode::Bilateral,
-        _          => SymmetryMode::Radial,
+        0 => SymmetryMode::Bilateral,
+        1 => SymmetryMode::Asymmetric,
+        2 | 4 => SymmetryMode::Bilateral,
+        _ => SymmetryMode::Radial,
     }
 }
 
@@ -93,7 +94,7 @@ pub fn compute_body_plan_layout(
     spread_radius: f32,
     energy_direction: Vec3,
 ) -> BodyPlanLayout {
-    let mut positions  = [Vec3::ZERO; MAX_ORGANS_PER_ENTITY];
+    let mut positions = [Vec3::ZERO; MAX_ORGANS_PER_ENTITY];
     let mut directions = [Vec3::Y; MAX_ORGANS_PER_ENTITY];
     let mut slot = 0usize;
 
@@ -102,7 +103,7 @@ pub fn compute_body_plan_layout(
     }
 
     let limb_count = count_limbs_in_manifest(manifest);
-    let symmetry   = infer_symmetry_mode(limb_count);
+    let symmetry = infer_symmetry_mode(limb_count);
 
     // For lateral offset on limbs we need a running index per limb-role spec.
     let mut limb_global_index: u8 = 0;
@@ -138,7 +139,7 @@ pub fn compute_body_plan_layout(
 
             let (normal_out, _tangent_out) = organ_orientation(role, attachment, energy_direction);
 
-            positions[slot]  = base_pos + offset;
+            positions[slot] = base_pos + offset;
             directions[slot] = normal_out;
             slot += 1;
         }
@@ -154,7 +155,8 @@ pub fn compute_body_plan_layout(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::layers::organ::{OrganManifest, OrganRole, OrganSpec};
+    use crate::blueprint::OrganRole;
+    use crate::layers::{OrganManifest, OrganSpec};
 
     // --- infer_symmetry_mode ---
 
@@ -215,7 +217,11 @@ mod tests {
             .collect();
         // All offsets should have the same magnitude (spread_radius)
         for off in &offsets {
-            assert!((off.length() - 1.0).abs() < 1e-4, "length was {}", off.length());
+            assert!(
+                (off.length() - 1.0).abs() < 1e-4,
+                "length was {}",
+                off.length()
+            );
         }
         // Angle between consecutive should be equal (TAU/5)
         let expected_angle = TAU / 5.0;
@@ -316,9 +322,9 @@ mod tests {
                 let t = i as f32 / 9.0;
                 SpineNode {
                     position: Vec3::new(0.0, t * 3.0, 0.0),
-                    tangent:  Vec3::Y,
+                    tangent: Vec3::Y,
                     tint_rgb: [0.5, 0.5, 0.5],
-                    qe_norm:  0.5,
+                    qe_norm: 0.5,
                 }
             })
             .collect()

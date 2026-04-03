@@ -5,15 +5,17 @@
 //!
 //! Reuses existing solvers from `macro_analytics`.
 
-use super::{exponential_decay, allometric_radius, locomotion_energy_cost};
-use crate::blueprint::constants::{DISSIPATION_RATE_MIN, DISSIPATION_RATE_MAX};
+use super::{allometric_radius, exponential_decay, locomotion_energy_cost};
+use crate::blueprint::constants::{DISSIPATION_RATE_MAX, DISSIPATION_RATE_MIN};
 
 /// Dissipation over N ticks: `qe × (1 - rate)^N`.
 ///
 /// Exact discrete Euler. Axiom 4: monotonic non-negative.
 #[inline]
 pub fn dissipation_n_ticks(qe: f32, rate: f32, n: u32) -> f32 {
-    if n == 0 || qe <= 0.0 { return qe; }
+    if n == 0 || qe <= 0.0 {
+        return qe;
+    }
     let clamped = rate.clamp(DISSIPATION_RATE_MIN, DISSIPATION_RATE_MAX);
     exponential_decay(qe, clamped, n)
 }
@@ -23,9 +25,13 @@ pub fn dissipation_n_ticks(qe: f32, rate: f32, n: u32) -> f32 {
 /// Already O(1) in macro_analytics. Wired for batch use.
 #[inline]
 pub fn growth_n_ticks(radius: f32, growth_bias: f32, max_radius: f32, k: f32, n: u32) -> f32 {
-    if growth_bias <= 0.0 || n == 0 { return radius; }
+    if growth_bias <= 0.0 || n == 0 {
+        return radius;
+    }
     let r_max = growth_bias * max_radius;
-    if radius >= r_max { return radius; }
+    if radius >= r_max {
+        return radius;
+    }
     allometric_radius(radius, r_max, k, n)
 }
 
@@ -35,7 +41,9 @@ pub fn growth_n_ticks(radius: f32, growth_bias: f32, max_radius: f32, k: f32, n:
 /// <1% error vs tick-by-tick for typical coeff values.
 #[inline]
 pub fn senescence_n_ticks(qe: f32, base_rate: f32, age: u64, coeff: f32, n: u32) -> f32 {
-    if n == 0 || qe <= 0.0 { return qe; }
+    if n == 0 || qe <= 0.0 {
+        return qe;
+    }
     let avg_age = age as f32 + n as f32 * 0.5;
     let avg_rate = base_rate * (1.0 + coeff * avg_age);
     (qe - qe * avg_rate * n as f32).max(0.0)
@@ -46,7 +54,9 @@ pub fn senescence_n_ticks(qe: f32, base_rate: f32, age: u64, coeff: f32, n: u32)
 /// Conservative: cost computed at initial qe, subtracted as total.
 #[inline]
 pub fn locomotion_n_ticks(qe: f32, speed: f32, terrain_factor: f32, n: u32) -> f32 {
-    if n == 0 || speed < 1e-4 { return qe; }
+    if n == 0 || speed < 1e-4 {
+        return qe;
+    }
     let cost = locomotion_energy_cost(qe, speed, terrain_factor);
     (qe - cost * n as f32).max(0.0)
 }
@@ -67,7 +77,9 @@ pub fn is_isolated(
         mask &= mask - 1;
         let dx = positions[j][0] - pos[0];
         let dy = positions[j][1] - pos[1];
-        if dx * dx + dy * dy < range_sq { return false; }
+        if dx * dx + dy * dy < range_sq {
+            return false;
+        }
     }
     true
 }
@@ -77,11 +89,19 @@ pub fn is_isolated(
 /// Returns ticks until death, or u32::MAX if stable.
 #[inline]
 pub fn predict_death_ticks(qe: f32, rate: f32, threshold: f32) -> u32 {
-    if qe <= threshold { return 0; }
+    if qe <= threshold {
+        return 0;
+    }
     let clamped = rate.clamp(DISSIPATION_RATE_MIN, DISSIPATION_RATE_MAX);
-    if clamped >= 1.0 { return 1; }
+    if clamped >= 1.0 {
+        return 1;
+    }
     let n = (threshold / qe).ln() / (1.0 - clamped).ln();
-    if n.is_finite() && n > 0.0 { n.ceil() as u32 } else { u32::MAX }
+    if n.is_finite() && n > 0.0 {
+        n.ceil() as u32
+    } else {
+        u32::MAX
+    }
 }
 
 #[cfg(test)]
@@ -97,8 +117,10 @@ mod tests {
         let rate = 0.01;
         let analytical = dissipation_n_ticks(qe, rate, 1);
         let iterative = qe - dissipation_loss(qe, rate);
-        assert!((analytical - iterative).abs() < 1e-4,
-            "analytical={analytical} iterative={iterative}");
+        assert!(
+            (analytical - iterative).abs() < 1e-4,
+            "analytical={analytical} iterative={iterative}"
+        );
     }
 
     #[test]
@@ -110,7 +132,10 @@ mod tests {
         }
         let qe_anal = dissipation_n_ticks(100.0, rate, 500);
         let error_pct = ((qe_anal - qe_iter) / qe_iter).abs() * 100.0;
-        assert!(error_pct < 0.5, "error={error_pct}% analytical={qe_anal} iterative={qe_iter}");
+        assert!(
+            error_pct < 0.5,
+            "error={error_pct}% analytical={qe_anal} iterative={qe_iter}"
+        );
     }
 
     #[test]

@@ -3,10 +3,11 @@ use std::collections::VecDeque;
 use bevy::prelude::*;
 
 use crate::blueprint::constants::{
-    EVOLUTION_BASELINE_COMPETITION, EVOLUTION_HOSTILE_COMPETITION, EVOLUTION_HOSTILE_PREDATION_DELTA,
-    EVOLUTION_HOSTILE_TEMPERATURE_DELTA, EVOLUTION_MAINTENANCE_WEIGHT, EVOLUTION_ROLE_REPRODUCE_BIT,
-    EVOLUTION_SCARCE_COMPETITION, EVOLUTION_SCARCE_FOOD_FACTOR,
-    EVOLUTION_SURROGATE_MAX_ITERATIONS, MAX_EVOLUTION_EVALS_PER_FRAME,
+    EVOLUTION_BASELINE_COMPETITION, EVOLUTION_HOSTILE_COMPETITION,
+    EVOLUTION_HOSTILE_PREDATION_DELTA, EVOLUTION_HOSTILE_TEMPERATURE_DELTA,
+    EVOLUTION_MAINTENANCE_WEIGHT, EVOLUTION_ROLE_REPRODUCE_BIT, EVOLUTION_SCARCE_COMPETITION,
+    EVOLUTION_SCARCE_FOOD_FACTOR, EVOLUTION_SURROGATE_MAX_ITERATIONS,
+    MAX_EVOLUTION_EVALS_PER_FRAME,
 };
 use crate::blueprint::equations::{
     evolution_aggregate_fitness, evolution_reproduction_score, evolution_survival_score,
@@ -108,7 +109,11 @@ fn quantize_to_u8(value: f32) -> u8 {
 }
 
 #[inline]
-pub fn evolution_cache_key_from_input(ctx: &EnvContext, viability: f32, role_mask: u16) -> EvolutionCacheKey {
+pub fn evolution_cache_key_from_input(
+    ctx: &EnvContext,
+    viability: f32,
+    role_mask: u16,
+) -> EvolutionCacheKey {
     EvolutionCacheKey {
         food_bin: quantize_to_u8(ctx.food_density_t),
         predation_bin: quantize_to_u8(ctx.predation_pressure_t),
@@ -172,7 +177,8 @@ fn can_reproduce_from_mask(role_mask: u16) -> bool {
 #[inline]
 fn evaluate_sample(variant: EvolutionVariant, ctx: EnvContext) -> EvolutionFitnessSample {
     let intake = trophic_intake_factor(variant.spec.trophic, ctx.food_density_t);
-    let assimilation = trophic_assimilation(intake, variant.spec.metabolic_efficiency, ctx.temperature_t);
+    let assimilation =
+        trophic_assimilation(intake, variant.spec.metabolic_efficiency, ctx.temperature_t);
     let maintenance = trophic_maintenance_cost(
         variant.viability.max(0.0),
         variant.spec.mobility_bias,
@@ -236,7 +242,10 @@ fn evaluate_variant_average_cached(
         / scenarios.len() as f32
 }
 
-fn top_k_variants(mut ranked: Vec<EvolutionRankedVariant>, k: usize) -> Vec<EvolutionRankedVariant> {
+fn top_k_variants(
+    mut ranked: Vec<EvolutionRankedVariant>,
+    k: usize,
+) -> Vec<EvolutionRankedVariant> {
     ranked.sort_by(|a, b| {
         b.fitness
             .total_cmp(&a.fitness)
@@ -252,12 +261,42 @@ fn top_k_variants(mut ranked: Vec<EvolutionRankedVariant>, k: usize) -> Vec<Evol
 fn compare_variant_total(a: EvolutionVariant, b: EvolutionVariant) -> std::cmp::Ordering {
     (a.spec.trophic as u8)
         .cmp(&(b.spec.trophic as u8))
-        .then_with(|| a.spec.metabolic_efficiency.to_bits().cmp(&b.spec.metabolic_efficiency.to_bits()))
-        .then_with(|| a.spec.mobility_bias.to_bits().cmp(&b.spec.mobility_bias.to_bits()))
-        .then_with(|| a.spec.armor_bias.to_bits().cmp(&b.spec.armor_bias.to_bits()))
-        .then_with(|| a.spec.sensor_bias.to_bits().cmp(&b.spec.sensor_bias.to_bits()))
-        .then_with(|| a.spec.reproduction_bias.to_bits().cmp(&b.spec.reproduction_bias.to_bits()))
-        .then_with(|| a.spec.resilience.to_bits().cmp(&b.spec.resilience.to_bits()))
+        .then_with(|| {
+            a.spec
+                .metabolic_efficiency
+                .to_bits()
+                .cmp(&b.spec.metabolic_efficiency.to_bits())
+        })
+        .then_with(|| {
+            a.spec
+                .mobility_bias
+                .to_bits()
+                .cmp(&b.spec.mobility_bias.to_bits())
+        })
+        .then_with(|| {
+            a.spec
+                .armor_bias
+                .to_bits()
+                .cmp(&b.spec.armor_bias.to_bits())
+        })
+        .then_with(|| {
+            a.spec
+                .sensor_bias
+                .to_bits()
+                .cmp(&b.spec.sensor_bias.to_bits())
+        })
+        .then_with(|| {
+            a.spec
+                .reproduction_bias
+                .to_bits()
+                .cmp(&b.spec.reproduction_bias.to_bits())
+        })
+        .then_with(|| {
+            a.spec
+                .resilience
+                .to_bits()
+                .cmp(&b.spec.resilience.to_bits())
+        })
         .then_with(|| a.viability.to_bits().cmp(&b.viability.to_bits()))
 }
 
@@ -323,16 +362,14 @@ fn scenarios_from_snapshot(snapshot: EnvScenarioSnapshot) -> [EnvContext; 3] {
 pub fn evolution_surrogate_enqueue_system(
     snapshot: Res<EnvScenarioSnapshot>,
     mut queue: ResMut<EvolutionSurrogateQueue>,
-    query: Query<
-        (
-            Entity,
-            &BaseEnergy,
-            &GrowthBudget,
-            Option<&InferenceProfile>,
-            Option<&CapabilitySet>,
-            Option<&EffectiveOrganViability>,
-        ),
-    >,
+    query: Query<(
+        Entity,
+        &BaseEnergy,
+        &GrowthBudget,
+        Option<&InferenceProfile>,
+        Option<&CapabilitySet>,
+        Option<&EffectiveOrganViability>,
+    )>,
 ) {
     if !queue.pending.is_empty() {
         return;
@@ -341,14 +378,14 @@ pub fn evolution_surrogate_enqueue_system(
     let mut entities = query
         .iter()
         .map(|(entity, energy, growth, profile, caps, eff)| {
-            (
-                entity,
-                build_variant(energy, growth, profile, caps, eff),
-            )
+            (entity, build_variant(energy, growth, profile, caps, eff))
         })
         .collect::<Vec<_>>();
     entities.sort_by_key(|(entity, _)| entity.to_bits());
-    for (_, variant) in entities.into_iter().take(MAX_EVOLUTION_EVALS_PER_FRAME as usize) {
+    for (_, variant) in entities
+        .into_iter()
+        .take(MAX_EVOLUTION_EVALS_PER_FRAME as usize)
+    {
         queue.pending.push_back(EvolutionEvaluationTask {
             variant,
             scenarios,
@@ -564,7 +601,8 @@ mod tests {
         ];
         let scenarios = [rich_env(), poor_env()];
         let mut cache = BridgeCache::<EvolutionSurrogateBridge>::new(128, CachePolicy::Lru);
-        let (_top, iterations) = run_surrogate_iterations(&variants, &scenarios, 2, 8, &mut cache, 1);
+        let (_top, iterations) =
+            run_surrogate_iterations(&variants, &scenarios, 2, 8, &mut cache, 1);
         assert!(iterations <= 3);
     }
 
@@ -593,12 +631,21 @@ mod tests {
                 .collect(),
         });
         app.insert_resource(EvolutionSurrogateState::default());
-        app.insert_resource(BridgeCache::<EvolutionSurrogateBridge>::new(256, CachePolicy::Lru));
+        app.insert_resource(BridgeCache::<EvolutionSurrogateBridge>::new(
+            256,
+            CachePolicy::Lru,
+        ));
         app.add_systems(Update, evolution_surrogate_tick_system);
         app.update();
         let state = app.world().resource::<EvolutionSurrogateState>();
         assert_eq!(state.last_processed_scenario_evals, 3);
-        assert_eq!(app.world().resource::<EvolutionSurrogateQueue>().pending.len(), 4);
+        assert_eq!(
+            app.world()
+                .resource::<EvolutionSurrogateQueue>()
+                .pending
+                .len(),
+            4
+        );
     }
 
     #[test]
@@ -630,12 +677,21 @@ mod tests {
             last_processed_scenario_evals: 0,
             stable_iterations: 1,
         });
-        app.insert_resource(BridgeCache::<EvolutionSurrogateBridge>::new(256, CachePolicy::Lru));
+        app.insert_resource(BridgeCache::<EvolutionSurrogateBridge>::new(
+            256,
+            CachePolicy::Lru,
+        ));
         app.add_systems(Update, evolution_surrogate_tick_system);
 
         app.update();
 
-        assert_eq!(app.world().resource::<EvolutionSurrogateQueue>().pending.len(), 0);
+        assert_eq!(
+            app.world()
+                .resource::<EvolutionSurrogateQueue>()
+                .pending
+                .len(),
+            0
+        );
         assert_eq!(
             app.world()
                 .resource::<EvolutionSurrogateState>()

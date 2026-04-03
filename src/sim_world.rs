@@ -84,8 +84,15 @@ pub enum AbilityTargetCmd {
 /// Produced by the platform layer; consumed by [`SimWorld::tick`].
 #[derive(Debug, Clone, Copy)]
 pub enum InputCommand {
-    MoveToward { entity_id: u64, goal: [f32; 2] },
-    CastAbility { entity_id: u64, slot: u8, target: AbilityTargetCmd },
+    MoveToward {
+        entity_id: u64,
+        goal: [f32; 2],
+    },
+    CastAbility {
+        entity_id: u64,
+        slot: u8,
+        target: AbilityTargetCmd,
+    },
 }
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -103,7 +110,11 @@ pub struct SimConfig {
 
 impl Default for SimConfig {
     fn default() -> Self {
-        Self { map_name: "demo_minimal", seed: 0, tick_rate_hz: 20.0 }
+        Self {
+            map_name: "demo_minimal",
+            seed: 0,
+            tick_rate_hz: 20.0,
+        }
     }
 }
 
@@ -131,7 +142,12 @@ impl SimWorld {
         let tick_duration = Duration::from_secs_f32(1.0 / config.tick_rate_hz.max(1.0));
         let seed = config.seed;
         let app = Self::build_headless_app(&config);
-        Self { app, tick_id: TickId(0), seed, tick_duration }
+        Self {
+            app,
+            tick_id: TickId(0),
+            seed,
+            tick_duration,
+        }
     }
 
     /// Advance one unit of time — atomic, indivisible, deterministic.
@@ -205,7 +221,12 @@ impl SimWorld {
         entities.sort_unstable_by_key(|e| e.id);
         let total_qe = entities.iter().map(|e| e.qe).sum();
 
-        WorldSnapshot { tick_id, seed, entities, total_qe }
+        WorldSnapshot {
+            tick_id,
+            seed,
+            entities,
+            total_qe,
+        }
     }
 
     /// Hash of the current energy state — fast determinism check without full clone.
@@ -215,10 +236,7 @@ impl SimWorld {
     pub fn energy_hash(&mut self) -> u64 {
         let world = self.app.world_mut();
         let mut q = world.query::<(&WorldEntityId, &BaseEnergy)>();
-        let mut energies: Vec<(u32, f32)> = q
-            .iter(world)
-            .map(|(id, e)| (id.0, e.qe()))
-            .collect();
+        let mut energies: Vec<(u32, f32)> = q.iter(world).map(|(id, e)| (id.0, e.qe())).collect();
         energies.sort_unstable_by_key(|(id, _)| *id);
         let values: Vec<f32> = energies.into_iter().map(|(_, qe)| qe).collect();
         determinism::hash_f32_slice(&values)
@@ -226,14 +244,18 @@ impl SimWorld {
 
     /// Current tick identifier.
     #[inline]
-    pub fn tick_id(&self) -> TickId { self.tick_id }
+    pub fn tick_id(&self) -> TickId {
+        self.tick_id
+    }
 
     /// Mutable access to the underlying App for plugin wiring.
     ///
     /// Used by `resonance-app` during startup to add simulation plugins.
     /// Not exposed to the renderer — the renderer only uses `snapshot()`.
     #[inline]
-    pub fn app_mut(&mut self) -> &mut App { &mut self.app }
+    pub fn app_mut(&mut self) -> &mut App {
+        &mut self.app
+    }
 
     // ─── Private ──────────────────────────────────────────────────────────────
 
@@ -252,10 +274,13 @@ impl SimWorld {
                 InputCommand::MoveToward { entity_id, goal } => {
                     // First pass: find position of target entity (read-only).
                     let mut q_read = world.query::<(&WorldEntityId, &Transform)>();
-                    let pos = q_read.iter(world)
+                    let pos = q_read
+                        .iter(world)
                         .find(|(wid, _)| wid.0 as u64 == entity_id)
                         .map(|(_, t)| [t.translation.x, t.translation.z]);
-                    let Some(pos) = pos else { continue; };
+                    let Some(pos) = pos else {
+                        continue;
+                    };
                     // Second pass: write intent (mutable).
                     let mut q_write = world.query::<(&WorldEntityId, &mut WillActuator)>();
                     for (wid, mut will) in q_write.iter_mut(world) {
@@ -341,7 +366,10 @@ mod tests {
 
     #[test]
     fn config_seed_propagates_to_snapshot() {
-        let mut world = SimWorld::new(SimConfig { seed: 42, ..Default::default() });
+        let mut world = SimWorld::new(SimConfig {
+            seed: 42,
+            ..Default::default()
+        });
         let snap = world.snapshot();
         assert_eq!(snap.seed, 42);
     }
@@ -356,7 +384,11 @@ mod tests {
             w1.tick(&[]);
             w2.tick(&[]);
         }
-        assert_eq!(w1.energy_hash(), w2.energy_hash(), "INV-4 violated: hashes diverged");
+        assert_eq!(
+            w1.energy_hash(),
+            w2.energy_hash(),
+            "INV-4 violated: hashes diverged"
+        );
         assert_eq!(w1.tick_id(), w2.tick_id());
     }
 
@@ -373,11 +405,20 @@ mod tests {
         let s1 = w1.snapshot();
         let s2 = w2.snapshot();
         assert_eq!(s1.tick_id, s2.tick_id);
-        assert_eq!(s1.total_qe.to_bits(), s2.total_qe.to_bits(), "total_qe must be bit-identical");
+        assert_eq!(
+            s1.total_qe.to_bits(),
+            s2.total_qe.to_bits(),
+            "total_qe must be bit-identical"
+        );
         assert_eq!(s1.entities.len(), s2.entities.len());
         for (e1, e2) in s1.entities.iter().zip(s2.entities.iter()) {
             assert_eq!(e1.id, e2.id);
-            assert_eq!(e1.qe.to_bits(), e2.qe.to_bits(), "qe diverged at entity {}", e1.id);
+            assert_eq!(
+                e1.qe.to_bits(),
+                e2.qe.to_bits(),
+                "qe diverged at entity {}",
+                e1.id
+            );
         }
     }
 
@@ -396,12 +437,22 @@ mod tests {
     /// Verifies clock is from config, not wall time.
     #[test]
     fn clock_is_config_not_wall_time() {
-        let slow = SimConfig { tick_rate_hz: 5.0, ..Default::default() };
-        let fast = SimConfig { tick_rate_hz: 60.0, ..Default::default() };
+        let slow = SimConfig {
+            tick_rate_hz: 5.0,
+            ..Default::default()
+        };
+        let fast = SimConfig {
+            tick_rate_hz: 60.0,
+            ..Default::default()
+        };
         let mut w_slow = SimWorld::new(slow);
         let mut w_fast = SimWorld::new(fast);
-        for _ in 0..10 { w_slow.tick(&[]); }
-        for _ in 0..10 { w_fast.tick(&[]); }
+        for _ in 0..10 {
+            w_slow.tick(&[]);
+        }
+        for _ in 0..10 {
+            w_fast.tick(&[]);
+        }
         // Both have advanced 10 ticks; entities are identical (empty world).
         assert_eq!(w_slow.energy_hash(), w_fast.energy_hash());
     }

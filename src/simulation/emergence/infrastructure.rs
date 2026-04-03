@@ -2,9 +2,9 @@
 
 use bevy::prelude::*;
 
+use crate::blueprint::equations::emergence::infrastructure as infra_eq;
 use crate::layers::AlchemicalEngine;
 use crate::worldgen::EnergyFieldGrid;
-use crate::blueprint::equations::emergence::infrastructure as infra_eq;
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -16,8 +16,8 @@ pub const INFRASTRUCTURE_MIN_ACTIVE_DELTA: f32 = 0.1;
 /// Resource: mapa de modificaciones de infraestructura por celda.
 #[derive(Resource, Debug)]
 pub struct InfrastructureGrid {
-    pub modifications:       Vec<f32>,
-    pub decay_rate:          f32,
+    pub modifications: Vec<f32>,
+    pub decay_rate: f32,
     pub amplification_factor: f32,
 }
 
@@ -33,7 +33,10 @@ impl Default for InfrastructureGrid {
 
 impl InfrastructureGrid {
     pub fn cell_delta(&self, cell_idx: u32) -> f32 {
-        self.modifications.get(cell_idx as usize).copied().unwrap_or(0.0)
+        self.modifications
+            .get(cell_idx as usize)
+            .copied()
+            .unwrap_or(0.0)
     }
     pub fn add_modification(&mut self, cell_idx: u32, delta: f32) {
         if let Some(cell) = self.modifications.get_mut(cell_idx as usize) {
@@ -46,10 +49,10 @@ impl InfrastructureGrid {
 
 #[derive(Event, Debug, Clone)]
 pub struct InfrastructureInvestEvent {
-    pub investor:    Entity,
-    pub cell_idx:    u32,
+    pub investor: Entity,
+    pub cell_idx: u32,
     pub qe_invested: f32,
-    pub tick_id:     u64,
+    pub tick_id: u64,
 }
 
 // ─── Config ─────────────────────────────────────────────────────────────────
@@ -60,7 +63,11 @@ pub struct InfrastructureConfig {
 }
 
 impl Default for InfrastructureConfig {
-    fn default() -> Self { Self { modification_rate: 0.05 } }
+    fn default() -> Self {
+        Self {
+            modification_rate: 0.05,
+        }
+    }
 }
 
 // ─── Systems ────────────────────────────────────────────────────────────────
@@ -91,11 +98,17 @@ pub fn infrastructure_intake_bonus_system(
 ) {
     for (transform, mut engine) in &mut agents {
         let cell_idx = field.world_to_cell_idx(transform.translation.x, transform.translation.z);
-        if cell_idx == u32::MAX { continue; }
+        if cell_idx == u32::MAX {
+            continue;
+        }
         let delta = infra.cell_delta(cell_idx);
-        if delta < INFRASTRUCTURE_MIN_ACTIVE_DELTA { continue; }
+        if delta < INFRASTRUCTURE_MIN_ACTIVE_DELTA {
+            continue;
+        }
         let amp = infra_eq::infrastructure_intake_amplifier(delta, infra.amplification_factor);
         let boosted = engine.base_intake() * amp;
-        if (engine.intake() - boosted).abs() > f32::EPSILON { engine.set_intake(boosted); }
+        if (engine.intake() - boosted).abs() > f32::EPSILON {
+            engine.set_intake(boosted);
+        }
     }
 }

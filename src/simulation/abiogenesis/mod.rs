@@ -11,17 +11,17 @@ pub(crate) mod constants;
 use bevy::prelude::*;
 
 use crate::blueprint::constants::*;
-use crate::blueprint::{equations, ElementId};
+use crate::blueprint::{ElementId, equations};
 use crate::entities::builder::EntityBuilder;
+use crate::layers::has_inferred_shape::HasInferredShape;
+use crate::layers::organ::LifecycleStageCache;
+use crate::layers::senescence::SenescenceProfile;
+use crate::layers::shape_params::MorphogenesisShapeParams;
 use crate::layers::{
     BehaviorCooldown, BehaviorIntent, BehavioralAgent, CacheScope, CapabilitySet, Homeostasis,
     InferenceProfile, MatterState, PerformanceCachePolicy, TrophicClass, TrophicConsumer,
     TrophicState,
 };
-use crate::layers::has_inferred_shape::HasInferredShape;
-use crate::layers::organ::LifecycleStageCache;
-use crate::layers::senescence::SenescenceProfile;
-use crate::layers::shape_params::MorphogenesisShapeParams;
 use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::worldgen::constants::ABIOGENESIS_FIELD_OCCUPANT_NAME;
 use crate::worldgen::{EnergyFieldGrid, NutrientFieldGrid};
@@ -55,7 +55,11 @@ pub enum OccupantKind {
 
 impl AbiogenesisOccupancyGrid {
     pub fn new(width: u32, height: u32) -> Self {
-        Self { width, height, cells: vec![OccupantKind::Empty; (width * height) as usize] }
+        Self {
+            width,
+            height,
+            cells: vec![OccupantKind::Empty; (width * height) as usize],
+        }
     }
 
     fn idx(&self, cx: u32, cy: u32) -> Option<usize> {
@@ -67,11 +71,15 @@ impl AbiogenesisOccupancyGrid {
     }
 
     pub fn set(&mut self, cx: u32, cy: u32, kind: OccupantKind) {
-        if let Some(i) = self.idx(cx, cy) { self.cells[i] = kind; }
+        if let Some(i) = self.idx(cx, cy) {
+            self.cells[i] = kind;
+        }
     }
 
     pub fn get(&self, cx: u32, cy: u32) -> OccupantKind {
-        self.idx(cx, cy).map(|i| self.cells[i]).unwrap_or(OccupantKind::Empty)
+        self.idx(cx, cy)
+            .map(|i| self.cells[i])
+            .unwrap_or(OccupantKind::Empty)
     }
 
     /// Count neighbours of a given kind within `radius` cells (excludes center).
@@ -83,8 +91,12 @@ impl AbiogenesisOccupancyGrid {
         let y_max = (cy + radius).min(self.height - 1);
         for ny in y_min..=y_max {
             for nx in x_min..=x_max {
-                if nx == cx && ny == cy { continue; }
-                if self.get(nx, ny) == kind { count += 1; }
+                if nx == cx && ny == cy {
+                    continue;
+                }
+                if self.get(nx, ny) == kind {
+                    count += 1;
+                }
             }
         }
         count
@@ -97,11 +109,17 @@ fn gather_neighbor_data(energy: &EnergyFieldGrid, cx: u32, cy: u32) -> Vec<(f32,
     let cell_size = energy.cell_size;
     for dy in -1i32..=1 {
         for dx in -1i32..=1 {
-            if dx == 0 && dy == 0 { continue; }
+            if dx == 0 && dy == 0 {
+                continue;
+            }
             let nx = cx as i32 + dx;
             let ny = cy as i32 + dy;
-            if nx < 0 || ny < 0 { continue; }
-            let Some(ncell) = energy.cell_xy(nx as u32, ny as u32) else { continue };
+            if nx < 0 || ny < 0 {
+                continue;
+            }
+            let Some(ncell) = energy.cell_xy(nx as u32, ny as u32) else {
+                continue;
+            };
             let dist = ((dx * dx + dy * dy) as f32).sqrt() * cell_size;
             neighbors.push((ncell.accumulated_qe, ncell.dominant_frequency_hz, dist));
         }
@@ -123,8 +141,12 @@ fn try_spawn_emergent_at_cell(
     tick_birth: u64,
 ) -> Option<OccupantKind> {
     let (cell_qe, cell_hz) = {
-        let Some(cell_ref) = energy.cell_xy(cx, cy) else { return None };
-        if cell_ref.materialized_entity.is_some() { return None; }
+        let Some(cell_ref) = energy.cell_xy(cx, cy) else {
+            return None;
+        };
+        if cell_ref.materialized_entity.is_some() {
+            return None;
+        }
         (cell_ref.accumulated_qe, cell_ref.dominant_frequency_hz)
     };
 
@@ -140,17 +162,22 @@ fn try_spawn_emergent_at_cell(
     let dissipation_rate = equations::dissipation_from_state(state);
 
     // Axioms 1 + 4: potential = coherence gain vs dissipation loss
-    let potential = equations::axiomatic_abiogenesis_potential(cell_qe, coherence, dissipation_rate);
-    if !equations::axiomatic_spawn_viable(potential) { return None; }
+    let potential =
+        equations::axiomatic_abiogenesis_potential(cell_qe, coherence, dissipation_rate);
+    if !equations::axiomatic_spawn_viable(potential) {
+        return None;
+    }
 
-    let Some(world_pos) = energy.world_pos(cx, cy) else { return None };
+    let Some(world_pos) = energy.world_pos(cx, cy) else {
+        return None;
+    };
 
     // ── All entity properties derived from energy state ─────────────────────
-    let qe_spawn    = cell_qe * ABIOGENESIS_SPAWN_CELL_QE_FRACTION;
-    let radius      = equations::initial_radius_from_qe(qe_spawn);
-    let bond        = equations::bond_from_energy(qe_spawn);
+    let qe_spawn = cell_qe * ABIOGENESIS_SPAWN_CELL_QE_FRACTION;
+    let radius = equations::initial_radius_from_qe(qe_spawn);
+    let bond = equations::bond_from_energy(qe_spawn);
     let conductivity = equations::conductivity_from_state(state);
-    let dissipation  = equations::dissipation_from_state(state);
+    let dissipation = equations::dissipation_from_state(state);
 
     // Capabilities from energy profile (Axioms 1, 8)
     let coherence_norm = (coherence / cell_qe.max(1.0)).clamp(0.0, 1.0);
@@ -162,7 +189,10 @@ fn try_spawn_emergent_at_cell(
         equations::inference_profile_from_energy(density, coherence_norm, flow_speed);
 
     // Nutrient content from grid (if available)
-    let water = nutrients.cell_xy(cx, cy).map(|n| n.water_norm).unwrap_or(0.0);
+    let water = nutrients
+        .cell_xy(cx, cy)
+        .map(|n| n.water_norm)
+        .unwrap_or(0.0);
 
     // Element resolved from dominant frequency (Axiom 8: frequency = identity)
     let entity = EntityBuilder::new()
@@ -203,7 +233,11 @@ fn try_spawn_emergent_at_cell(
 
     // Derive occupant kind from capabilities (not hardcoded Flora)
     let is_mobile = caps & CapabilitySet::MOVE != 0;
-    Some(if is_mobile { OccupantKind::Herbivore } else { OccupantKind::Flora })
+    Some(if is_mobile {
+        OccupantKind::Herbivore
+    } else {
+        OccupantKind::Flora
+    })
 }
 
 /// Fauna spawn: builds a herbivore or carnivore with the full behavioral stack.
@@ -217,8 +251,12 @@ fn try_spawn_fauna_at_cell(
     tick_birth: u64,
 ) -> bool {
     let (cell_qe, cell_hz) = {
-        let Some(cell_ref) = energy.cell_xy(cx, cy) else { return false };
-        if cell_ref.materialized_entity.is_some() { return false; }
+        let Some(cell_ref) = energy.cell_xy(cx, cy) else {
+            return false;
+        };
+        if cell_ref.materialized_entity.is_some() {
+            return false;
+        }
         (cell_ref.accumulated_qe, cell_ref.dominant_frequency_hz)
     };
 
@@ -227,14 +265,21 @@ fn try_spawn_fauna_at_cell(
         .map(|n| (n.carbon_norm + n.nitrogen_norm + n.phosphorus_norm + n.water_norm) * 0.25)
         .unwrap_or(0.0);
 
-    let water = nutrients.cell_xy(cx, cy).map(|n| n.water_norm).unwrap_or(0.0);
+    let water = nutrients
+        .cell_xy(cx, cy)
+        .map(|n| n.water_norm)
+        .unwrap_or(0.0);
     let flora_count = occupancy.count_neighbours(cx, cy, 1, OccupantKind::Flora);
     let herbivore_count = occupancy.count_neighbours(cx, cy, 2, OccupantKind::Herbivore);
 
     let potential = equations::fauna_abiogenesis_potential(
-        cell_qe, nutrient_density, flora_count,
-        ABIOGENESIS_FAUNA_MIN_FLORA_NEIGHBOURS, water,
-        ABIOGENESIS_FAUNA_FIELD_MIN_QE, ABIOGENESIS_FAUNA_WATER_FLOOR,
+        cell_qe,
+        nutrient_density,
+        flora_count,
+        ABIOGENESIS_FAUNA_MIN_FLORA_NEIGHBOURS,
+        water,
+        ABIOGENESIS_FAUNA_FIELD_MIN_QE,
+        ABIOGENESIS_FAUNA_WATER_FLOOR,
     );
 
     if potential < ABIOGENESIS_FAUNA_POTENTIAL_THRESHOLD {
@@ -242,10 +287,13 @@ fn try_spawn_fauna_at_cell(
     }
 
     let is_carnivore = equations::fauna_infer_is_carnivore(
-        herbivore_count, ABIOGENESIS_FAUNA_MIN_HERBIVORE_NEIGHBOURS,
+        herbivore_count,
+        ABIOGENESIS_FAUNA_MIN_HERBIVORE_NEIGHBOURS,
     );
 
-    let Some(world_pos) = energy.world_pos(cx, cy) else { return false };
+    let Some(world_pos) = energy.world_pos(cx, cy) else {
+        return false;
+    };
 
     let qe_spawn = equations::fauna_spawn_entity_qe(cell_qe);
     let bond = equations::fauna_spawn_matter_bond(cell_qe);
@@ -255,21 +303,30 @@ fn try_spawn_fauna_at_cell(
 
     let (trophic_class, intake_rate, profile, caps_bits) = if is_carnivore {
         (
-            TrophicClass::Carnivore, ABIOGENESIS_CARNIVORE_INTAKE_RATE,
+            TrophicClass::Carnivore,
+            ABIOGENESIS_CARNIVORE_INTAKE_RATE,
             InferenceProfile::new(
-                ABIOGENESIS_CARNIVORE_GROWTH, ABIOGENESIS_CARNIVORE_MOBILITY,
-                ABIOGENESIS_CARNIVORE_BRANCHING, ABIOGENESIS_CARNIVORE_RESILIENCE,
+                ABIOGENESIS_CARNIVORE_GROWTH,
+                ABIOGENESIS_CARNIVORE_MOBILITY,
+                ABIOGENESIS_CARNIVORE_BRANCHING,
+                ABIOGENESIS_CARNIVORE_RESILIENCE,
             ),
             CapabilitySet::MOVE | CapabilitySet::SENSE | CapabilitySet::REPRODUCE,
         )
     } else {
         (
-            TrophicClass::Herbivore, ABIOGENESIS_HERBIVORE_INTAKE_RATE,
+            TrophicClass::Herbivore,
+            ABIOGENESIS_HERBIVORE_INTAKE_RATE,
             InferenceProfile::new(
-                ABIOGENESIS_HERBIVORE_GROWTH, ABIOGENESIS_HERBIVORE_MOBILITY,
-                ABIOGENESIS_HERBIVORE_BRANCHING, ABIOGENESIS_HERBIVORE_RESILIENCE,
+                ABIOGENESIS_HERBIVORE_GROWTH,
+                ABIOGENESIS_HERBIVORE_MOBILITY,
+                ABIOGENESIS_HERBIVORE_BRANCHING,
+                ABIOGENESIS_HERBIVORE_RESILIENCE,
             ),
-            CapabilitySet::MOVE | CapabilitySet::SENSE | CapabilitySet::REPRODUCE | CapabilitySet::GROW,
+            CapabilitySet::MOVE
+                | CapabilitySet::SENSE
+                | CapabilitySet::REPRODUCE
+                | CapabilitySet::GROW,
         )
     };
 
@@ -279,15 +336,23 @@ fn try_spawn_fauna_at_cell(
         .volume(constants::FAUNA_EMERGENT_INITIAL_RADIUS)
         .wave(ElementId::from_name(element_sym))
         .flow(Vec2::ZERO, constants::FAUNA_EMERGENT_FLOW_DISSIPATION)
-        .matter(MatterState::Solid, bond, constants::FAUNA_EMERGENT_MATTER_THERMAL_CONDUCTIVITY)
+        .matter(
+            MatterState::Solid,
+            bond,
+            constants::FAUNA_EMERGENT_MATTER_THERMAL_CONDUCTIVITY,
+        )
         .motor(
-            constants::FAUNA_EMERGENT_BUF_MAX, constants::FAUNA_EMERGENT_IN_VALVE,
-            constants::FAUNA_EMERGENT_OUT_VALVE, constants::FAUNA_EMERGENT_BUF_INIT,
+            constants::FAUNA_EMERGENT_BUF_MAX,
+            constants::FAUNA_EMERGENT_IN_VALVE,
+            constants::FAUNA_EMERGENT_OUT_VALVE,
+            constants::FAUNA_EMERGENT_BUF_INIT,
         )
         .will_default()
         .homeostasis(Homeostasis::new(
-            constants::FAUNA_EMERGENT_ADAPT_RATE, constants::FAUNA_EMERGENT_QE_COST_HZ,
-            constants::FAUNA_EMERGENT_STAB_BAND, true,
+            constants::FAUNA_EMERGENT_ADAPT_RATE,
+            constants::FAUNA_EMERGENT_QE_COST_HZ,
+            constants::FAUNA_EMERGENT_STAB_BAND,
+            true,
         ))
         .at(world_pos)
         .spawn(commands);
@@ -303,7 +368,12 @@ fn try_spawn_fauna_at_cell(
         HasInferredShape,
         LifecycleStageCache::default(),
         MorphogenesisShapeParams::default(),
-        PerformanceCachePolicy { enabled: true, scope: CacheScope::StableWindow, version_tag: 1, dependency_signature: 0 },
+        PerformanceCachePolicy {
+            enabled: true,
+            scope: CacheScope::StableWindow,
+            version_tag: 1,
+            dependency_signature: 0,
+        },
         SenescenceProfile {
             tick_birth,
             senescence_coeff: crate::blueprint::constants::senescence_coeff_fauna(),
@@ -315,7 +385,11 @@ fn try_spawn_fauna_at_cell(
     if let Some(cell_mut) = energy.cell_xy_mut(cx, cy) {
         cell_mut.materialized_entity = Some(entity);
     }
-    let occ_kind = if is_carnivore { OccupantKind::Carnivore } else { OccupantKind::Herbivore };
+    let occ_kind = if is_carnivore {
+        OccupantKind::Carnivore
+    } else {
+        OccupantKind::Herbivore
+    };
     occupancy.set(cx, cy, occ_kind);
     true
 }
@@ -370,7 +444,14 @@ pub fn abiogenesis_system(
 
         // Sessile emergents take priority (trophic succession: sessile → herbivore → carnivore).
         if flora_spawned < MAX_ABIOGENESIS_PER_FRAME {
-            if let Some(kind) = try_spawn_emergent_at_cell(&mut commands, &mut energy, nutrients, cx, cy, clock.tick_id) {
+            if let Some(kind) = try_spawn_emergent_at_cell(
+                &mut commands,
+                &mut energy,
+                nutrients,
+                cx,
+                cy,
+                clock.tick_id,
+            ) {
                 occupancy.set(cx, cy, kind);
                 flora_spawned += 1;
                 continue;
@@ -379,7 +460,15 @@ pub fn abiogenesis_system(
 
         // Fauna only where flora didn't spawn this tick.
         if fauna_spawned < ABIOGENESIS_FAUNA_MAX_PER_FRAME
-            && try_spawn_fauna_at_cell(&mut commands, &mut energy, nutrients, &mut occupancy, cx, cy, clock.tick_id)
+            && try_spawn_fauna_at_cell(
+                &mut commands,
+                &mut energy,
+                nutrients,
+                &mut occupancy,
+                cx,
+                cy,
+                clock.tick_id,
+            )
         {
             fauna_spawned += 1;
         }
@@ -390,8 +479,7 @@ pub fn abiogenesis_system(
 mod tests {
     use super::*;
     use crate::blueprint::constants::{
-        ABIOGENESIS_FIELD_MIN_QE,
-        ABIOGENESIS_FLORA_PEAK_HZ,
+        ABIOGENESIS_FIELD_MIN_QE, ABIOGENESIS_FLORA_PEAK_HZ,
         ABIOGENESIS_TEST_CELL_QE_FACTOR_OVER_MIN, ABIOGENESIS_TEST_FIXTURE_WATER_NORM,
     };
     use crate::simulation::test_support::count_base_energy;
@@ -421,7 +509,14 @@ mod tests {
 
     /// Creates a coherent energy cluster (3×3) centered at (cx, cy) — axiomatic abiogenesis
     /// requires neighbor coherence, not just a single high-energy cell.
-    fn fill_coherent_cluster(grid: &mut EnergyFieldGrid, ngrid: &mut NutrientFieldGrid, cx: u32, cy: u32, qe: f32, hz: f32) {
+    fn fill_coherent_cluster(
+        grid: &mut EnergyFieldGrid,
+        ngrid: &mut NutrientFieldGrid,
+        cx: u32,
+        cy: u32,
+        qe: f32,
+        hz: f32,
+    ) {
         for dy in 0..3u32 {
             for dx in 0..3u32 {
                 let x = cx.saturating_sub(1) + dx;
@@ -443,10 +538,20 @@ mod tests {
         let mut ngrid = NutrientFieldGrid::align_with_energy_grid(&grid);
         // Axiomatic: coherent cluster needed (neighbors at same frequency → constructive interference)
         let test_qe = ABIOGENESIS_FIELD_MIN_QE * ABIOGENESIS_TEST_CELL_QE_FACTOR_OVER_MIN;
-        fill_coherent_cluster(&mut grid, &mut ngrid, 1, 1, test_qe, ABIOGENESIS_FLORA_PEAK_HZ);
+        fill_coherent_cluster(
+            &mut grid,
+            &mut ngrid,
+            1,
+            1,
+            test_qe,
+            ABIOGENESIS_FLORA_PEAK_HZ,
+        );
         let mut app = test_app_with_grids(grid, ngrid);
         app.update();
-        assert!(count_base_energy(app.world_mut()) > 0, "coherent cluster should trigger abiogenesis");
+        assert!(
+            count_base_energy(app.world_mut()) > 0,
+            "coherent cluster should trigger abiogenesis"
+        );
     }
 
     #[test]
@@ -483,10 +588,19 @@ mod tests {
         let mut grid = EnergyFieldGrid::new(4, 4, 2.0, Vec2::ZERO);
         let mut ngrid = NutrientFieldGrid::align_with_energy_grid(&grid);
         let test_qe = ABIOGENESIS_FIELD_MIN_QE * ABIOGENESIS_TEST_CELL_QE_FACTOR_OVER_MIN;
-        fill_coherent_cluster(&mut grid, &mut ngrid, 2, 2, test_qe, ABIOGENESIS_FLORA_PEAK_HZ);
+        fill_coherent_cluster(
+            &mut grid,
+            &mut ngrid,
+            2,
+            2,
+            test_qe,
+            ABIOGENESIS_FLORA_PEAK_HZ,
+        );
         let mut app = test_app_with_grids(grid, ngrid);
         // Run several ticks to ensure cursor reaches cells in the cluster.
-        for _ in 0..4 { app.update(); }
+        for _ in 0..4 {
+            app.update();
+        }
         let grid = app.world_mut().resource::<EnergyFieldGrid>();
         // At least ONE cell in the 3×3 cluster should have materialized_entity.
         let mut any_materialized = false;
@@ -495,11 +609,16 @@ mod tests {
                 let x = 1 + dx;
                 let y = 1 + dy;
                 if let Some(cell) = grid.cell_xy(x, y) {
-                    if cell.materialized_entity.is_some() { any_materialized = true; }
+                    if cell.materialized_entity.is_some() {
+                        any_materialized = true;
+                    }
                 }
             }
         }
-        assert!(any_materialized, "at least one cell in the cluster should be materialized");
+        assert!(
+            any_materialized,
+            "at least one cell in the cluster should be materialized"
+        );
     }
 
     #[test]
@@ -508,7 +627,9 @@ mod tests {
         let ngrid = NutrientFieldGrid::align_with_energy_grid(&grid);
         let total_cells = 16usize;
         let mut app = test_app_with_grids(grid, ngrid);
-        app.world_mut().resource_mut::<AbiogenesisCursor>().next_cell = total_cells - 2;
+        app.world_mut()
+            .resource_mut::<AbiogenesisCursor>()
+            .next_cell = total_cells - 2;
         app.update();
         let cursor_val = app.world_mut().resource::<AbiogenesisCursor>().next_cell;
         assert!(
@@ -532,12 +653,22 @@ mod tests {
         let mut ngrid = NutrientFieldGrid::align_with_energy_grid(&grid);
         let test_qe = ABIOGENESIS_FIELD_MIN_QE * ABIOGENESIS_TEST_CELL_QE_FACTOR_OVER_MIN;
         // Fill cluster around (1,1) — only center cell should spawn (neighbors provide coherence).
-        fill_coherent_cluster(&mut grid, &mut ngrid, 1, 1, test_qe, ABIOGENESIS_FLORA_PEAK_HZ);
+        fill_coherent_cluster(
+            &mut grid,
+            &mut ngrid,
+            1,
+            1,
+            test_qe,
+            ABIOGENESIS_FLORA_PEAK_HZ,
+        );
         let mut app = test_app_with_grids(grid, ngrid);
         // First update: spawns entities from the cluster.
         app.update();
         let count_after_first = count_base_energy(app.world_mut());
-        assert!(count_after_first >= 1, "First update should spawn at least one entity");
+        assert!(
+            count_after_first >= 1,
+            "First update should spawn at least one entity"
+        );
         // Second update: occupied cells skipped → no more spawns in those cells.
         let count_before_second = count_base_energy(app.world_mut());
         app.update();

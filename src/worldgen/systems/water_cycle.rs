@@ -29,10 +29,17 @@ pub fn water_cycle_system(
     time: Res<Time>,
 ) {
     let Some(grid) = energy_grid else { return };
-    let Some(ref mut nutrients) = nutrient_grid else { return };
-    if grid.width != nutrients.width || grid.height != nutrients.height { return; }
+    let Some(ref mut nutrients) = nutrient_grid else {
+        return;
+    };
+    if grid.width != nutrients.width || grid.height != nutrients.height {
+        return;
+    }
 
-    let dt = fixed.as_ref().map(|f| f.delta_secs()).unwrap_or_else(|| time.delta_secs());
+    let dt = fixed
+        .as_ref()
+        .map(|f| f.delta_secs())
+        .unwrap_or_else(|| time.delta_secs());
     let dt_ratio = dt * REFERENCE_HZ;
 
     let w = grid.width as usize;
@@ -46,16 +53,24 @@ pub fn water_cycle_system(
     for y in 0..h {
         for x in 0..w {
             let idx = y * w + x;
-            let cell_qe = grid.cell_xy(x as u32, y as u32)
-                .map(|c| c.accumulated_qe).unwrap_or(0.0);
-            let cell_water = nutrients.cell_xy(x as u32, y as u32)
-                .map(|c| c.water_norm).unwrap_or(0.0);
+            let cell_qe = grid
+                .cell_xy(x as u32, y as u32)
+                .map(|c| c.accumulated_qe)
+                .unwrap_or(0.0);
+            let cell_water = nutrients
+                .cell_xy(x as u32, y as u32)
+                .map(|c| c.water_norm)
+                .unwrap_or(0.0);
 
-            if cell_water < WATER_MIN_THRESHOLD || cell_qe < 1.0 { continue; }
+            if cell_water < WATER_MIN_THRESHOLD || cell_qe < 1.0 {
+                continue;
+            }
 
             // Evaporation amount: proportional to energy and current water.
             let evap = cell_water * evap_rate * (cell_qe / dt::DENSITY_SCALE).min(1.0) * dt_ratio;
-            if evap < DELTA_EPSILON { continue; }
+            if evap < DELTA_EPSILON {
+                continue;
+            }
 
             // Find coolest neighbor (precipitation target).
             let neighbors = grid.neighbors4(x as u32, y as u32);
@@ -63,8 +78,10 @@ pub fn water_cycle_system(
             let mut coolest_qe = cell_qe;
             for n in neighbors.iter().flatten() {
                 let nidx = n.1 as usize * w + n.0 as usize;
-                let nqe = grid.cell_xy(n.0, n.1)
-                    .map(|c| c.accumulated_qe).unwrap_or(f32::MAX);
+                let nqe = grid
+                    .cell_xy(n.0, n.1)
+                    .map(|c| c.accumulated_qe)
+                    .unwrap_or(f32::MAX);
                 if nqe < coolest_qe {
                     coolest_qe = nqe;
                     coolest_idx = nidx;
@@ -72,7 +89,9 @@ pub fn water_cycle_system(
             }
 
             // Only transfer if there's a temperature gradient.
-            if coolest_idx == idx { continue; }
+            if coolest_idx == idx {
+                continue;
+            }
 
             deltas[idx] -= evap;
             deltas[coolest_idx] += evap;
@@ -83,7 +102,9 @@ pub fn water_cycle_system(
     for y in 0..h {
         for x in 0..w {
             let idx = y * w + x;
-            if deltas[idx].abs() < DELTA_EPSILON { continue; }
+            if deltas[idx].abs() < DELTA_EPSILON {
+                continue;
+            }
             if let Some(cell) = nutrients.cell_xy_mut(x as u32, y as u32) {
                 cell.water_norm = (cell.water_norm + deltas[idx]).clamp(0.0, 1.0);
             }

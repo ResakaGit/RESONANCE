@@ -67,8 +67,10 @@ fn main() {
     let mut last_printed_tick = 0_u64;
     let mut _prev_clk = 0_u64;
 
-    eprintln!("\n{:>6} {:>6} {:>10} {:>8} {:>8} {:>8} {:>6}",
-        "tick", "alive", "total_qe", "avg_qe", "avg_rad", "avg_age", "sen");
+    eprintln!(
+        "\n{:>6} {:>6} {:>10} {:>8} {:>8} {:>8} {:>6}",
+        "tick", "alive", "total_qe", "avg_qe", "avg_rad", "avg_age", "sen"
+    );
     eprintln!("{}", "-".repeat(68));
 
     loop {
@@ -76,7 +78,8 @@ fn main() {
         std::thread::sleep(std::time::Duration::from_millis(17));
         app.update();
 
-        let clk = app.world()
+        let clk = app
+            .world()
             .get_resource::<SimulationClock>()
             .map(|c| c.tick_id)
             .unwrap_or(0);
@@ -99,7 +102,9 @@ fn main() {
                 Option<&resonance::layers::SenescenceProfile>,
             )>();
             for (energy, vol, sen) in eq.iter(world) {
-                if energy.is_dead() { continue; }
+                if energy.is_dead() {
+                    continue;
+                }
                 count += 1;
                 sum_qe += energy.qe();
                 sum_rad += vol.radius;
@@ -109,21 +114,44 @@ fn main() {
                 }
             }
             let n = count.max(1) as f32;
-            let mat_count = world.query::<&resonance::worldgen::Materialized>().iter(world).count();
-            let behav_count = world.query::<&resonance::layers::BehavioralAgent>().iter(world).count();
-            let avg_age = if sen_count > 0 { sum_age / sen_count as f64 } else { 0.0 };
-            eprintln!("{:>6} {:>6} {:>10.1} {:>8.2} {:>8.3} {:>8.0} {:>6}  mat={} beh={}",
-                clk, count, sum_qe, sum_qe / n, sum_rad / n, avg_age, sen_count, mat_count, behav_count);
+            let mat_count = world
+                .query::<&resonance::worldgen::Materialized>()
+                .iter(world)
+                .count();
+            let behav_count = world
+                .query::<&resonance::layers::BehavioralAgent>()
+                .iter(world)
+                .count();
+            let avg_age = if sen_count > 0 {
+                sum_age / sen_count as f64
+            } else {
+                0.0
+            };
+            eprintln!(
+                "{:>6} {:>6} {:>10.1} {:>8.2} {:>8.3} {:>8.0} {:>6}  mat={} beh={}",
+                clk,
+                count,
+                sum_qe,
+                sum_qe / n,
+                sum_rad / n,
+                avg_age,
+                sen_count,
+                mat_count,
+                behav_count
+            );
         }
     }
     let total_time = start.elapsed().as_secs_f32();
-    let final_clk = app.world()
+    let final_clk = app
+        .world()
         .get_resource::<SimulationClock>()
         .map(|c| c.tick_id)
         .unwrap_or(0);
     eprintln!("{}", "-".repeat(68));
-    eprintln!("sim ticks: {final_clk}  |  wall: {total_time:.1}s  |  {:.0} sim-ticks/s\n",
-        final_clk as f32 / total_time);
+    eprintln!(
+        "sim ticks: {final_clk}  |  wall: {total_time:.1}s  |  {:.0} sim-ticks/s\n",
+        final_clk as f32 / total_time
+    );
 
     // ── Collect grid data ───────────────────────────────────────────────────
     let world = app.world_mut();
@@ -139,16 +167,28 @@ fn main() {
 
     let mut max_qe: f32 = 1.0;
     let mut max_freq: f32 = 1.0;
-    struct CellData { qe: f32, freq: f32, purity: f32 }
+    struct CellData {
+        qe: f32,
+        freq: f32,
+        purity: f32,
+    }
     let mut cell_data: Vec<CellData> = Vec::with_capacity((gw * gh) as usize);
     for y in 0..gh {
         for x in 0..gw {
             if let Some(cell) = grid.cell_xy(x, y) {
                 max_qe = max_qe.max(cell.accumulated_qe);
                 max_freq = max_freq.max(cell.dominant_frequency_hz);
-                cell_data.push(CellData { qe: cell.accumulated_qe, freq: cell.dominant_frequency_hz, purity: cell.purity });
+                cell_data.push(CellData {
+                    qe: cell.accumulated_qe,
+                    freq: cell.dominant_frequency_hz,
+                    purity: cell.purity,
+                });
             } else {
-                cell_data.push(CellData { qe: 0.0, freq: 0.0, purity: 0.0 });
+                cell_data.push(CellData {
+                    qe: 0.0,
+                    freq: 0.0,
+                    purity: 0.0,
+                });
             }
         }
     }
@@ -161,9 +201,15 @@ fn main() {
         for x in 0..gw {
             let ci = y as usize * w + x as usize;
             let cd = &cell_data[ci];
-            if cd.qe > 0.1 { cells_with_energy += 1; }
+            if cd.qe > 0.1 {
+                cells_with_energy += 1;
+            }
             let intensity = (cd.qe / max_qe).sqrt();
-            let hue = if max_freq > 0.0 { cd.freq / max_freq } else { 0.0 };
+            let hue = if max_freq > 0.0 {
+                cd.freq / max_freq
+            } else {
+                0.0
+            };
             let boosted = (intensity * 1.5).min(1.0);
             let sat = cd.purity.max(0.3);
             let idx = (gh - 1 - y) as usize * w + x as usize;
@@ -172,13 +218,22 @@ fn main() {
     }
 
     // ── Entities overlay ────────────────────────────────────────────────────
-    struct EntityDot { grid_x: u32, grid_y: u32, freq: f32 }
+    struct EntityDot {
+        grid_x: u32,
+        grid_y: u32,
+        freq: f32,
+    }
     let mut entities: Vec<EntityDot> = Vec::new();
     let xz_ground = world
         .get_resource::<SimWorldTransformParams>()
         .map(|p| p.use_xz_ground)
         .unwrap_or(true);
-    let mut eq = world.query::<(&Transform, &BaseEnergy, &SpatialVolume, &OscillatorySignature)>();
+    let mut eq = world.query::<(
+        &Transform,
+        &BaseEnergy,
+        &SpatialVolume,
+        &OscillatorySignature,
+    )>();
     for (tr, _energy, _vol, osc) in eq.iter(world) {
         let pos = if xz_ground {
             bevy::math::Vec2::new(tr.translation.x, tr.translation.z)
@@ -190,26 +245,40 @@ fn main() {
             let cx = (rel.x / grid_cell_size).floor() as u32;
             let cy = (rel.y / grid_cell_size).floor() as u32;
             if cx < gw && cy < gh {
-                entities.push(EntityDot { grid_x: cx, grid_y: cy, freq: osc.frequency_hz() });
+                entities.push(EntityDot {
+                    grid_x: cx,
+                    grid_y: cy,
+                    freq: osc.frequency_hz(),
+                });
             }
         }
     }
 
     eprintln!("grid: {w}x{h}  |  total_qe: {total_qe:.1}  |  max_cell_qe: {max_qe:.1}");
-    eprintln!("cells with energy: {cells_with_energy}/{}  |  entities: {}", w * h, entities.len());
+    eprintln!(
+        "cells with energy: {cells_with_energy}/{}  |  entities: {}",
+        w * h,
+        entities.len()
+    );
 
     for ent in &entities {
         let idx = (gh - 1 - ent.grid_y) as usize * w + ent.grid_x as usize;
         if idx < field_buf.len() {
             field_buf[idx] = (255, 255, 255);
-            let hue = if max_freq > 0.0 { ent.freq / max_freq } else { 0.0 };
+            let hue = if max_freq > 0.0 {
+                ent.freq / max_freq
+            } else {
+                0.0
+            };
             let ring_color = hsv_to_rgb(hue, 1.0, 1.0);
             for (dx, dy) in [(-1i32, 0), (1, 0), (0, -1), (0, 1)] {
                 let nx = ent.grid_x as i32 + dx;
                 let ny = ent.grid_y as i32 + dy;
                 if nx >= 0 && ny >= 0 && nx < gw as i32 && ny < gh as i32 {
                     let ri = (gh as i32 - 1 - ny) as usize * w + nx as usize;
-                    if ri < field_buf.len() { field_buf[ri] = ring_color; }
+                    if ri < field_buf.len() {
+                        field_buf[ri] = ring_color;
+                    }
                 }
             }
         }
@@ -232,7 +301,10 @@ fn main() {
     let mut file_data = header.into_bytes();
     file_data.extend_from_slice(&pixels);
     std::fs::write(&out_path, &file_data).expect("failed to write PPM");
-    eprintln!("wrote {out_path} ({out_w}x{out_h}, {:.1} KB)", file_data.len() as f32 / 1024.0);
+    eprintln!(
+        "wrote {out_path} ({out_w}x{out_h}, {:.1} KB)",
+        file_data.len() as f32 / 1024.0
+    );
     eprintln!("=== done ===");
 }
 
@@ -251,15 +323,24 @@ fn hsv_to_rgb(h: f32, s: f32, v: f32) -> (u8, u8, u8) {
         4 => (x, 0.0, c),
         _ => (c, 0.0, x),
     };
-    (((r + m) * 255.0) as u8, ((g + m) * 255.0) as u8, ((b + m) * 255.0) as u8)
+    (
+        ((r + m) * 255.0) as u8,
+        ((g + m) * 255.0) as u8,
+        ((b + m) * 255.0) as u8,
+    )
 }
 
 fn parse_arg(flag: &str) -> Option<u32> {
     let args: Vec<String> = std::env::args().collect();
-    args.iter().position(|a| a == flag).and_then(|i| args.get(i + 1)).and_then(|v| v.parse().ok())
+    args.iter()
+        .position(|a| a == flag)
+        .and_then(|i| args.get(i + 1))
+        .and_then(|v| v.parse().ok())
 }
 
 fn parse_arg_str(flag: &str) -> Option<String> {
     let args: Vec<String> = std::env::args().collect();
-    args.iter().position(|a| a == flag).and_then(|i| args.get(i + 1).cloned())
+    args.iter()
+        .position(|a| a == flag)
+        .and_then(|i| args.get(i + 1).cloned())
 }

@@ -12,12 +12,12 @@ pub mod worldgen_plugin;
 
 pub use crate::runtime_platform::camera_controller_3d::Camera3dPlugin;
 pub use crate::runtime_platform::click_to_move::ClickToMovePlugin;
+pub use crate::runtime_platform::dashboard_bridge::DashboardBridgePlugin;
+pub use crate::runtime_platform::dashboard_panels::DashboardPanelsPlugin;
 pub use crate::runtime_platform::debug_observability::ObservabilityPlugin;
 pub use crate::runtime_platform::input_capture::InputCapturePlugin;
 pub use crate::runtime_platform::render_bridge_3d::RenderBridge3dPlugin;
 pub use crate::runtime_platform::scenario_isolation::ScenarioIsolationPlugin;
-pub use crate::runtime_platform::dashboard_bridge::DashboardBridgePlugin;
-pub use crate::runtime_platform::dashboard_panels::DashboardPanelsPlugin;
 pub use crate::runtime_platform::simulation_tick::SimulationTickPlugin;
 pub use atomic_plugin::AtomicPlugin;
 pub use chemical_plugin::ChemicalPlugin;

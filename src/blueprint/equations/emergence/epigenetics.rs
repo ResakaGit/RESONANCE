@@ -18,13 +18,43 @@ pub fn silencing_cost(gene_complexity: f32, silencing_rate: f32) -> f32 {
 }
 
 /// Velocidad de respuesta epigenética: EMA hacia el target (lag de adaptación).
-pub fn epigenetic_lag(expression_current: f32, expression_target: f32, adaptation_speed: f32) -> f32 {
+pub fn epigenetic_lag(
+    expression_current: f32,
+    expression_target: f32,
+    adaptation_speed: f32,
+) -> f32 {
     expression_current + (expression_target - expression_current) * adaptation_speed
+}
+
+/// Base threshold para expresión epigenética (sensibilidad dimensional).
+/// Genes de dimensiones altas requieren más presión para expresarse.
+///
+/// Base threshold for epigenetic expression (dimensional sensitivity).
+const EPIGENETIC_BASE_THRESHOLD: f32 = 0.5;
+const EPIGENETIC_DIM_SENSITIVITY: f32 = 0.1;
+
+/// Umbral de expresión génica dado un índice dimensional.
+/// Gene expression threshold for a given dimensional index.
+#[inline]
+pub fn gene_expression_threshold(dimension_index: f32) -> f32 {
+    EPIGENETIC_BASE_THRESHOLD + dimension_index * EPIGENETIC_DIM_SENSITIVITY
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn gene_expression_threshold_dim_zero() {
+        assert!((gene_expression_threshold(0.0) - 0.5).abs() < 1e-6);
+    }
+
+    #[test]
+    fn gene_expression_threshold_monotonic() {
+        let t0 = gene_expression_threshold(0.0);
+        let t5 = gene_expression_threshold(5.0);
+        assert!(t5 > t0, "Higher dimensions should require more pressure");
+    }
 
     #[test]
     fn should_express_rich_environment() {

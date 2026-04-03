@@ -11,20 +11,20 @@ use super::constants::MAX_ENTITIES;
 /// `clear()` resets all lengths to zero — the array contents are stale but ignored.
 pub struct ScratchPad {
     /// Collision / interaction pairs: max C(64,2) = 2016.
-    pub pairs:        [(u8, u8); 2048],
-    pub pairs_len:    usize,
+    pub pairs: [(u8, u8); 2048],
+    pub pairs_len: usize,
 
     /// Spatial neighbor indices for a single query.
-    pub neighbors:    [u8; MAX_ENTITIES],
+    pub neighbors: [u8; MAX_ENTITIES],
     pub neighbors_len: usize,
 }
 
 impl ScratchPad {
     pub fn new() -> Self {
         Self {
-            pairs:        [(0, 0); 2048],
-            pairs_len:    0,
-            neighbors:    [0; MAX_ENTITIES],
+            pairs: [(0, 0); 2048],
+            pairs_len: 0,
+            neighbors: [0; MAX_ENTITIES],
             neighbors_len: 0,
         }
     }
@@ -32,13 +32,15 @@ impl ScratchPad {
     /// Reset all logical lengths. O(1) — no array zeroing.
     #[inline]
     pub fn clear(&mut self) {
-        self.pairs_len     = 0;
+        self.pairs_len = 0;
         self.neighbors_len = 0;
     }
 }
 
 impl Default for ScratchPad {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

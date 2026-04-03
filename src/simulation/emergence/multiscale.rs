@@ -6,14 +6,14 @@
 
 use bevy::prelude::*;
 
-use crate::worldgen::EnergyFieldGrid;
-use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::blueprint::equations::emergence::multiscale as multiscale_eq;
+use crate::runtime_platform::simulation_tick::SimulationClock;
+use crate::worldgen::EnergyFieldGrid;
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-pub const MULTISCALE_LOCAL_SIZE: usize    = 32 * 32;  // 1024 cells
-pub const MULTISCALE_REGIONAL_SIZE: usize = 8 * 8;    // 64 regions (4×4 cells each)
+pub const MULTISCALE_LOCAL_SIZE: usize = 32 * 32; // 1024 cells
+pub const MULTISCALE_REGIONAL_SIZE: usize = 8 * 8; // 64 regions (4×4 cells each)
 pub const MULTISCALE_UPDATE_INTERVAL: u64 = 8;
 
 // ─── Resource ───────────────────────────────────────────────────────────────
@@ -21,18 +21,18 @@ pub const MULTISCALE_UPDATE_INTERVAL: u64 = 8;
 /// Resource: señales pre-agregadas en 3 escalas espaciales.
 #[derive(Resource, Debug)]
 pub struct MultiscaleSignalGrid {
-    pub local:        Vec<f32>,
-    pub regional:     Vec<f32>,
-    pub global:       f32,
+    pub local: Vec<f32>,
+    pub regional: Vec<f32>,
+    pub global: f32,
     pub last_updated: u64,
 }
 
 impl Default for MultiscaleSignalGrid {
     fn default() -> Self {
         Self {
-            local:        vec![0.0; MULTISCALE_LOCAL_SIZE],
-            regional:     vec![0.0; MULTISCALE_REGIONAL_SIZE],
-            global:       0.0,
+            local: vec![0.0; MULTISCALE_LOCAL_SIZE],
+            regional: vec![0.0; MULTISCALE_REGIONAL_SIZE],
+            global: 0.0,
             last_updated: 0,
         }
     }
@@ -63,7 +63,11 @@ pub struct MultiscaleConfig {
 }
 
 impl Default for MultiscaleConfig {
-    fn default() -> Self { Self { update_interval: MULTISCALE_UPDATE_INTERVAL } }
+    fn default() -> Self {
+        Self {
+            update_interval: MULTISCALE_UPDATE_INTERVAL,
+        }
+    }
 }
 
 // ─── System ─────────────────────────────────────────────────────────────────
@@ -76,7 +80,9 @@ pub fn multiscale_aggregation_system(
     clock: Res<SimulationClock>,
     config: Res<MultiscaleConfig>,
 ) {
-    if clock.tick_id % config.update_interval != 0 { return; }
+    if clock.tick_id % config.update_interval != 0 {
+        return;
+    }
 
     // Local: copiar qe por celda
     for (i, v) in ms.local.iter_mut().enumerate() {
@@ -107,7 +113,11 @@ pub fn multiscale_aggregation_system(
 
     // Global: media de todas las regiones
     let n = ms.regional.len();
-    ms.global = if n > 0 { ms.regional.iter().sum::<f32>() / n as f32 } else { 0.0 };
+    ms.global = if n > 0 {
+        ms.regional.iter().sum::<f32>() / n as f32
+    } else {
+        0.0
+    };
     ms.last_updated = clock.tick_id;
 
     let _ = multiscale_eq::aggregate_signal; // ensure eq module is used

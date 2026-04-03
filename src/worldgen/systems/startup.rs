@@ -13,8 +13,8 @@ use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::topology::TerrainField;
 use crate::worldgen::materialization_rules::materialize_cell_at_time;
 use crate::worldgen::{
-    ActiveMapName, EnergyFieldGrid, EnergyNucleus, MapConfig, Materialized, NucleusReservoir, NutrientFieldGrid,
-    WARMUP_TICKS, active_map_slug_from_env, load_default_map_asset,
+    ActiveMapName, EnergyFieldGrid, EnergyNucleus, MapConfig, Materialized, NucleusReservoir,
+    NutrientFieldGrid, WARMUP_TICKS, active_map_slug_from_env, load_default_map_asset,
     load_map_config_from_env_result, resolve_nuclei_for_spawn, validate_map_config,
 };
 use std::time::Duration;
@@ -122,7 +122,9 @@ pub fn seed_initial_field_system(
     }
 
     if let Some(water) = config.initial_nutrient_water {
-        let Some(ref mut nutrients) = nutrients else { return };
+        let Some(ref mut nutrients) = nutrients else {
+            return;
+        };
         nutrients.seed_uniform(water * 0.3, water * 0.2, water * 0.15, water);
     }
 }
@@ -141,10 +143,13 @@ pub fn init_day_night_config_system(
             crate::blueprint::equations::derived_thresholds::SelfSustainingQeMin(qe),
         );
     }
-    let Some(period) = config.day_period_ticks else { return };
+    let Some(period) = config.day_period_ticks else {
+        return;
+    };
     let Some(grid) = grid else { return };
     let grid_width_world = grid.width as f32 * grid.cell_size;
-    let mut day_night = crate::worldgen::systems::day_night::DayNightConfig::new(period, grid_width_world);
+    let mut day_night =
+        crate::worldgen::systems::day_night::DayNightConfig::new(period, grid_width_world);
     if let (Some(year), Some(tilt)) = (config.year_period_ticks, config.axial_tilt) {
         day_night = day_night.with_seasons(year, tilt);
     }
@@ -203,11 +208,6 @@ pub fn spawn_nuclei_from_map_config_system(
     }
 }
 
-/// Entra en `GameState::Playing`; `PlayState` queda en `Warmup` (default del sub-estado).
-pub fn enter_game_state_playing_system(mut next: ResMut<NextState<crate::simulation::GameState>>) {
-    next.set(crate::simulation::GameState::Playing);
-}
-
 pub fn worldgen_warmup_system(world: &mut World) {
     let ticks = world.resource::<WorldgenWarmupConfig>().ticks;
     let step = Duration::from_secs_f32(1.0 / 60.0);
@@ -234,6 +234,12 @@ pub fn worldgen_warmup_system(world: &mut World) {
     }
 
     materialization_full_world(world);
+
+    // DC-3: Signal completion — simulation decides when to transition to Active.
+    let completed_at = ticks as u64;
+    world.insert_resource(crate::worldgen::WorldgenReady {
+        completed_at_tick: completed_at,
+    });
 }
 
 fn materialization_full_world(world: &mut World) {
@@ -291,7 +297,8 @@ fn materialization_full_world(world: &mut World) {
                     BaseEnergy::new(cell.accumulated_qe.max(0.0)),
                     OscillatorySignature::new(cell.dominant_frequency_hz, 0.0),
                     SpatialVolume::new(
-                        (grid_snapshot.cell_size * crate::worldgen::constants::MATERIALIZED_COLLIDER_RADIUS_FACTOR)
+                        (grid_snapshot.cell_size
+                            * crate::worldgen::constants::MATERIALIZED_COLLIDER_RADIUS_FACTOR)
                             .max(crate::worldgen::constants::MATERIALIZED_MIN_COLLIDER_RADIUS),
                     ),
                     MatterCoherence::new(
@@ -320,32 +327,28 @@ fn materialization_full_world(world: &mut World) {
     }
 }
 
-/// Tras warmup síncrono: gameplay en `PlayState::Active`.
-pub fn mark_play_state_active_system(mut next: ResMut<NextState<crate::simulation::PlayState>>) {
-    next.set(crate::simulation::PlayState::Active);
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{
-        SimWorldTransformParams, WorldgenWarmupConfig, enter_game_state_playing_system,
-        mark_play_state_active_system, worldgen_warmup_system,
-    };
+    use super::{SimWorldTransformParams, WorldgenWarmupConfig, worldgen_warmup_system};
     use crate::blueprint::{AlchemicalAlmanac, ElementDef};
     use crate::layers::{MatterState, OscillatorySignature};
+    use crate::simulation::lifecycle::{
+        enter_game_state_playing_system, transition_to_active_system,
+    };
     use crate::simulation::{GameState, PlayState};
     use crate::worldgen::{EnergyFieldGrid, EnergyNucleus, Materialized, PropagationDecay};
     use bevy::prelude::*;
     use std::time::Instant;
 
     fn make_almanac_terra_ignis() -> AlchemicalAlmanac {
+        use crate::blueprint::constants::element_bands::*;
         AlchemicalAlmanac::from_defs(vec![
             ElementDef {
                 name: "Terra".to_string(),
                 symbol: "Terra".to_string(),
                 atomic_number: 14,
-                frequency_hz: 75.0,
-                freq_band: (50.0, 84.0),
+                frequency_hz: FREQ_TERRA,
+                freq_band: BAND_TERRA,
                 bond_energy: 3000.0,
                 conductivity: 0.4,
                 visibility: 0.8,
@@ -361,8 +364,8 @@ mod tests {
                 name: "Ignis".to_string(),
                 symbol: "Ignis".to_string(),
                 atomic_number: 8,
-                frequency_hz: 450.0,
-                freq_band: (400.0, 500.0),
+                frequency_hz: FREQ_IGNIS,
+                freq_band: BAND_IGNIS,
                 bond_energy: 1000.0,
                 conductivity: 0.5,
                 visibility: 0.8,
@@ -392,7 +395,7 @@ mod tests {
             (
                 enter_game_state_playing_system,
                 worldgen_warmup_system,
-                mark_play_state_active_system,
+                transition_to_active_system,
             )
                 .chain(),
         );

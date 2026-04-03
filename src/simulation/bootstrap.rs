@@ -3,6 +3,7 @@
 
 use bevy::prelude::*;
 
+use crate::blueprint::constants::{DEFAULT_GRID_DIMS, DEFAULT_GRID_ORIGIN};
 use crate::blueprint::{
     AlchemicalAlmanac, AlmanacElementsState, ElementDef, ElementDefRonLoader, EntityLookup,
     IdGenerator, setup_entity_id_observers,
@@ -13,12 +14,10 @@ use crate::eco::climate::{ClimateAssetState, ClimateConfig, ClimateConfigLoader}
 use crate::eco::context_lookup::EcoPlayfieldMargin;
 use crate::events::{
     AbilityCastEvent, AbilitySelectionEvent, AllianceDefectEvent, AllianceProposedEvent,
-    CatalysisEvent, CatalysisRequest, CollisionEvent,
-    CultureConflictEvent, CultureEmergenceEvent,
+    CatalysisEvent, CatalysisRequest, CollisionEvent, CultureConflictEvent, CultureEmergenceEvent,
     DeathEvent, DeltaEnergyCommit, GrimoireProjectileCastPending, GrimoireSelfBuffCastPending,
-    HomeostasisAdaptEvent, HungerEvent, PhaseTransitionEvent, PreyConsumedEvent,
-    ThreatDetectedEvent,
-    SeasonChangeEvent, StructuralLinkBreakEvent, WorldgenMutationEvent,
+    HomeostasisAdaptEvent, HungerEvent, PhaseTransitionEvent, PreyConsumedEvent, SeasonChangeEvent,
+    StructuralLinkBreakEvent, ThreatDetectedEvent, WorldgenMutationEvent,
 };
 use crate::runtime_platform::intent_projection_3d::CameraBasisForSim;
 use crate::runtime_platform::simulation_tick::V6RuntimeConfig;
@@ -33,7 +32,6 @@ use crate::world::fog_of_war::FogOfWarGrid;
 use crate::world::{PerceptionCache, Scoreboard, SpatialIndex};
 use crate::worldgen::WorldgenWarmupConfig;
 use crate::worldgen::systems::terrain::TerrainMutationQueue;
-use crate::blueprint::constants::{DEFAULT_GRID_DIMS, DEFAULT_GRID_ORIGIN};
 use crate::worldgen::{EnergyFieldGrid, FIELD_CELL_SIZE, NutrientFieldGrid};
 
 /// Inicializa estado de worldgen, grid de energía, almanaque, eventos y `BridgeConfigPlugin`.
@@ -71,8 +69,12 @@ pub fn init_simulation_bootstrap(app: &mut App) {
     setup_lifecycle_observers(app);
     setup_entity_id_observers(app);
 
-    let default_energy_grid =
-        EnergyFieldGrid::new(DEFAULT_GRID_DIMS, DEFAULT_GRID_DIMS, FIELD_CELL_SIZE, DEFAULT_GRID_ORIGIN);
+    let default_energy_grid = EnergyFieldGrid::new(
+        DEFAULT_GRID_DIMS,
+        DEFAULT_GRID_DIMS,
+        FIELD_CELL_SIZE,
+        DEFAULT_GRID_ORIGIN,
+    );
     let default_fog_grid = FogOfWarGrid::aligned_with_energy_field(&default_energy_grid);
     let default_nutrient_grid = NutrientFieldGrid::align_with_energy_grid(&default_energy_grid);
 

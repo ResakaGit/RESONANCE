@@ -138,10 +138,7 @@ pub fn catalysis_math_strategy_system(
     mut ev_request: EventReader<CatalysisRequest>,
     sim_elapsed: Option<Res<SimulationElapsed>>,
     spells: Query<(&AlchemicalInjector, &OscillatorySignature)>,
-    targets: Query<
-        (Entity, &OscillatorySignature, Option<&MobaIdentity>),
-        Without<SpellMarker>,
-    >,
+    targets: Query<(Entity, &OscillatorySignature, Option<&MobaIdentity>), Without<SpellMarker>>,
     identities: Query<&MobaIdentity>,
     mut ev_commit: EventWriter<DeltaEnergyCommit>,
 ) {
@@ -174,7 +171,9 @@ pub fn catalysis_math_strategy_system(
             faction_mod,
         );
 
-        let multiplier = identity_opt.map(|id| id.critical_multiplier()).unwrap_or(1.0);
+        let multiplier = identity_opt
+            .map(|id| id.critical_multiplier())
+            .unwrap_or(1.0);
         let result = equations::catalysis_result(injector.projected_qe, interf, multiplier);
 
         if result.abs() < CATALYSIS_MIN_EFFECT_QE {
@@ -215,7 +214,11 @@ pub fn catalysis_energy_reducer_system(
     mut ev_commit: EventReader<DeltaEnergyCommit>,
     mut energy_ops: EnergyOps,
     mut targets: Query<
-        (Entity, &mut OscillatorySignature, Option<&mut MatterCoherence>),
+        (
+            Entity,
+            &mut OscillatorySignature,
+            Option<&mut MatterCoherence>,
+        ),
         Without<SpellMarker>,
     >,
 ) {
@@ -317,9 +320,7 @@ mod tests {
     use std::f32::consts::PI;
 
     use crate::events::{CatalysisRequest, DeathEvent, DeltaEnergyCommit};
-    use crate::layers::{
-        AlchemicalInjector, Faction, MobaIdentity, OscillatorySignature,
-    };
+    use crate::layers::{AlchemicalInjector, Faction, MobaIdentity, OscillatorySignature};
     use crate::runtime_platform::simulation_tick::SimulationElapsed;
 
     /// Minimal Bevy app with only the events and resources needed by
@@ -368,20 +369,26 @@ mod tests {
             .spawn((OscillatorySignature::new(450.0, 0.0),))
             .id();
 
-        send_catalysis_request(&mut app, CatalysisRequest {
-            spell,
-            target,
-            caster: None,
-            on_contact_effect: None,
-            despawn_on_contact: false,
-        });
+        send_catalysis_request(
+            &mut app,
+            CatalysisRequest {
+                spell,
+                target,
+                caster: None,
+                on_contact_effect: None,
+                despawn_on_contact: false,
+            },
+        );
 
         app.update();
 
         let commits = drain_commits(&mut app);
         assert_eq!(commits.len(), 1, "exactly one commit expected");
         let c = &commits[0];
-        assert!(c.result_qe > 0.0, "constructive catalysis must yield positive result_qe");
+        assert!(
+            c.result_qe > 0.0,
+            "constructive catalysis must yield positive result_qe"
+        );
         assert!(
             c.positive_freq_delta.is_some(),
             "positive result must carry a freq_delta"
@@ -414,20 +421,26 @@ mod tests {
             .spawn((OscillatorySignature::new(450.0, PI),))
             .id();
 
-        send_catalysis_request(&mut app, CatalysisRequest {
-            spell,
-            target,
-            caster: None,
-            on_contact_effect: None,
-            despawn_on_contact: false,
-        });
+        send_catalysis_request(
+            &mut app,
+            CatalysisRequest {
+                spell,
+                target,
+                caster: None,
+                on_contact_effect: None,
+                despawn_on_contact: false,
+            },
+        );
 
         app.update();
 
         let commits = drain_commits(&mut app);
         assert_eq!(commits.len(), 1, "exactly one commit expected");
         let c = &commits[0];
-        assert!(c.result_qe < 0.0, "destructive catalysis must yield negative result_qe");
+        assert!(
+            c.result_qe < 0.0,
+            "destructive catalysis must yield negative result_qe"
+        );
         assert!(
             c.bond_weakening_factor.is_some(),
             "negative result must carry bond_weakening_factor"
@@ -457,13 +470,16 @@ mod tests {
             .spawn((OscillatorySignature::new(450.0, 0.0),))
             .id();
 
-        send_catalysis_request(&mut app, CatalysisRequest {
-            spell,
-            target,
-            caster: None,
-            on_contact_effect: None,
-            despawn_on_contact: false,
-        });
+        send_catalysis_request(
+            &mut app,
+            CatalysisRequest {
+                spell,
+                target,
+                caster: None,
+                on_contact_effect: None,
+                despawn_on_contact: false,
+            },
+        );
 
         app.update();
 
@@ -496,7 +512,9 @@ mod tests {
             .spawn((
                 AlchemicalInjector::new(80.0, 450.0, 5.0),
                 OscillatorySignature::new(450.0, 0.0),
-                SpellMarker { caster: Some(caster) },
+                SpellMarker {
+                    caster: Some(caster),
+                },
             ))
             .id();
 
@@ -512,13 +530,16 @@ mod tests {
             ))
             .id();
 
-        send_catalysis_request(&mut app, CatalysisRequest {
-            spell,
-            target,
-            caster: Some(caster),
-            on_contact_effect: None,
-            despawn_on_contact: false,
-        });
+        send_catalysis_request(
+            &mut app,
+            CatalysisRequest {
+                spell,
+                target,
+                caster: Some(caster),
+                on_contact_effect: None,
+                despawn_on_contact: false,
+            },
+        );
 
         app.update();
 

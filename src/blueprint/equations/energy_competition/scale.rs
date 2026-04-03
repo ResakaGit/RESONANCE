@@ -2,12 +2,11 @@
 //! EC-7A: `infer_pool_fitness`, `infer_intake_rate`.
 //! EC-7B: `propagate_fitness_to_link`, `classify_competitive_regime`, `CompetitiveRegime`.
 
-
+use super::dynamics::PoolHealthStatus;
 use crate::blueprint::constants::{
     COMPLEXITY_CAP, COMPLEXITY_FITNESS_WEIGHT, EXTRACTION_EPSILON, FITNESS_MAX,
     REGIME_ABUNDANCE_INTENSITY_THRESHOLD, REGIME_DOMINANCE_INTENSITY_THRESHOLD,
 };
-use super::dynamics::PoolHealthStatus;
 
 // ─── EC-7B: Régimen Competitivo ───────────────────────────────────────────────
 
@@ -36,7 +35,7 @@ pub fn infer_pool_fitness(
     total_extracted: f32,
     structural_complexity: f32,
 ) -> f32 {
-    let efficiency       = total_retained / total_extracted.max(EXTRACTION_EPSILON);
+    let efficiency = total_retained / total_extracted.max(EXTRACTION_EPSILON);
     let complexity_bonus = (structural_complexity * COMPLEXITY_FITNESS_WEIGHT).min(COMPLEXITY_CAP);
     (efficiency * (1.0 + complexity_bonus)).clamp(0.0, FITNESS_MAX)
 }
@@ -69,9 +68,15 @@ pub fn classify_competitive_regime(
 ) -> CompetitiveRegime {
     match health_status {
         PoolHealthStatus::Collapsed | PoolHealthStatus::Collapsing => CompetitiveRegime::Scarcity,
-        PoolHealthStatus::Healthy if competition_intensity < REGIME_ABUNDANCE_INTENSITY_THRESHOLD  => CompetitiveRegime::Abundance,
-        _ if competition_intensity >= REGIME_DOMINANCE_INTENSITY_THRESHOLD                        => CompetitiveRegime::Dominance,
-        _                                                                                          => CompetitiveRegime::Contested,
+        PoolHealthStatus::Healthy
+            if competition_intensity < REGIME_ABUNDANCE_INTENSITY_THRESHOLD =>
+        {
+            CompetitiveRegime::Abundance
+        }
+        _ if competition_intensity >= REGIME_DOMINANCE_INTENSITY_THRESHOLD => {
+            CompetitiveRegime::Dominance
+        }
+        _ => CompetitiveRegime::Contested,
     }
 }
 
@@ -79,8 +84,8 @@ pub fn classify_competitive_regime(
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use super::super::dynamics::PoolHealthStatus;
+    use super::*;
     use crate::blueprint::constants::FITNESS_MAX;
 
     // ── EC-7A: infer_pool_fitness ────────────────────────────────────────────
@@ -110,8 +115,8 @@ mod tests {
     fn infer_pool_fitness_always_in_range() {
         let cases = [
             (1200.0_f32, 0.0, 1000.0, 100.0), // retained > extracted → clamped to FITNESS_MAX
-            (0.0,        0.0,    0.0,   0.0),  // zero inputs
-            (500.0,    500.0, 1000.0,  20.0),  // 50% efficiency, high complexity
+            (0.0, 0.0, 0.0, 0.0),             // zero inputs
+            (500.0, 500.0, 1000.0, 20.0),     // 50% efficiency, high complexity
         ];
         for (retained, dissipated, extracted, complexity) in cases {
             let f = infer_pool_fitness(retained, dissipated, extracted, complexity);

@@ -6,10 +6,12 @@ use bevy::render::mesh::{Indices, PrimitiveTopology};
 use bevy::render::render_asset::RenderAssetUsages;
 
 use crate::blueprint::constants::{
-    BULB_RADIUS_SCALE, FLAT_SURFACE_LENGTH_RATIO, FLAT_SURFACE_WIDTH_RATIO,
-    PETAL_FAN_LENGTH_RATIO, PETAL_FAN_WIDTH_RATIO, TUBE_LENGTH_RATIO, TUBE_RADIUS_SCALE,
+    BULB_RADIUS_SCALE, FLAT_SURFACE_LENGTH_RATIO, FLAT_SURFACE_WIDTH_RATIO, PETAL_FAN_LENGTH_RATIO,
+    PETAL_FAN_WIDTH_RATIO, TUBE_LENGTH_RATIO, TUBE_RADIUS_SCALE,
 };
-use crate::blueprint::equations::{BranchRole, organ_inferred_scale, petal_shaded_flow_color, vertex_flow_color};
+use crate::blueprint::equations::{
+    BranchRole, organ_inferred_scale, petal_shaded_flow_color, vertex_flow_color,
+};
 use crate::geometry_flow::{GeometryInfluence, SpineNode, build_flow_mesh};
 use crate::layers::organ::{GeometryPrimitive, OrganSpec};
 
@@ -241,20 +243,22 @@ pub fn build_petal_fan(
                 let signed = v * 2.0 - 1.0;
                 let lateral = width_axis * (signed * petal_w * 0.5);
 
-                let cross_lift = (1.0 - signed * signed) * PETAL_CURVATURE * petal_len * 0.4
-                    * (u * PI).sin();
+                let cross_lift =
+                    (1.0 - signed * signed) * PETAL_CURVATURE * petal_len * 0.4 * (u * PI).sin();
                 let curl = u * u * u * petal_len * (0.08 + 0.12 * ring_t);
                 let edge_droop = signed.abs() * u * PETAL_CURVATURE * petal_len * 0.12;
                 let lift = up_axis * (base_lift + cross_lift - edge_droop - curl);
                 let pos = center + along + lateral + lift;
 
                 buffers.positions.push(pos.to_array());
-                buffers.normals.push(
-                    normalize_or(tangent.cross(width_axis), up_axis).to_array(),
-                );
+                buffers
+                    .normals
+                    .push(normalize_or(tangent.cross(width_axis), up_axis).to_array());
                 buffers.uvs.push([u, v]);
 
-                buffers.colors.push(petal_shaded_flow_color(tint_rgb, ring_t, u, qe_norm, v));
+                buffers
+                    .colors
+                    .push(petal_shaded_flow_color(tint_rgb, ring_t, u, qe_norm, v));
             }
         }
 
@@ -311,7 +315,9 @@ pub fn build_bulb(
             let p = center + local * radius;
             buffers.positions.push(p.to_array());
             let n_local = x_axis * sx + y_axis * (sy / elong.max(1e-4)) + z_axis * sz;
-            buffers.normals.push(normalize_or(n_local, y_axis).to_array());
+            buffers
+                .normals
+                .push(normalize_or(n_local, y_axis).to_array());
             buffers.uvs.push([u, v]);
             let lat = (sy * 0.5 + 0.5).clamp(0.0, 1.0);
             buffers
@@ -418,14 +424,16 @@ mod tests {
     use super::*;
 
     fn pos(mesh: &Mesh) -> &[[f32; 3]] {
-        let Some(VertexAttributeValues::Float32x3(v)) = mesh.attribute(Mesh::ATTRIBUTE_POSITION) else {
+        let Some(VertexAttributeValues::Float32x3(v)) = mesh.attribute(Mesh::ATTRIBUTE_POSITION)
+        else {
             panic!("missing positions");
         };
         v.as_slice()
     }
 
     fn nrm(mesh: &Mesh) -> &[[f32; 3]] {
-        let Some(VertexAttributeValues::Float32x3(v)) = mesh.attribute(Mesh::ATTRIBUTE_NORMAL) else {
+        let Some(VertexAttributeValues::Float32x3(v)) = mesh.attribute(Mesh::ATTRIBUTE_NORMAL)
+        else {
             panic!("missing normals");
         };
         v.as_slice()
@@ -439,7 +447,8 @@ mod tests {
     }
 
     fn col(mesh: &Mesh) -> &[[f32; 4]] {
-        let Some(VertexAttributeValues::Float32x4(v)) = mesh.attribute(Mesh::ATTRIBUTE_COLOR) else {
+        let Some(VertexAttributeValues::Float32x4(v)) = mesh.attribute(Mesh::ATTRIBUTE_COLOR)
+        else {
             panic!("missing color");
         };
         v.as_slice()
@@ -672,7 +681,10 @@ mod tests {
         assert!(tri_count(&flat) > 0);
         assert!(tri_count(&fan) > 0);
         assert!(tri_count(&bulb) > 0);
-        assert!(tri_count(&fan) > tri_count(&flat), "petal fan should be richer");
+        assert!(
+            tri_count(&fan) > tri_count(&flat),
+            "petal fan should be richer"
+        );
     }
 
     #[test]

@@ -37,7 +37,9 @@ pub struct GeometryDeformationCache {
 
 impl Default for GeometryDeformationCache {
     fn default() -> Self {
-        Self { entries: Vec::new() }
+        Self {
+            entries: Vec::new(),
+        }
     }
 }
 

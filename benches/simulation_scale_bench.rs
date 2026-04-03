@@ -8,7 +8,7 @@
 //! | Macro   | 100+1000  | Distribution   | < 1 ms    |
 
 use bevy::prelude::*;
-use criterion::{black_box, criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, black_box, criterion_group, criterion_main};
 use resonance::blueprint::equations::macro_analytics::{
     euler_vs_exponential_error, exponential_decay,
 };
@@ -33,10 +33,10 @@ const ET_CYCLE: [ExtractionType; 5] = [
 fn param_for(etype: ExtractionType) -> f32 {
     match etype {
         ExtractionType::Proportional => 0.0,
-        ExtractionType::Greedy       => 80.0,
-        ExtractionType::Competitive  => 0.5,
-        ExtractionType::Aggressive   => 0.3,
-        ExtractionType::Regulated    => 30.0,
+        ExtractionType::Greedy => 80.0,
+        ExtractionType::Competitive => 0.5,
+        ExtractionType::Aggressive => 0.3,
+        ExtractionType::Regulated => 30.0,
     }
 }
 
@@ -46,14 +46,17 @@ fn param_for(etype: ExtractionType) -> f32 {
 fn make_ec_pipeline_app() -> App {
     let mut app = App::new();
     app.add_plugins(MinimalPlugins);
-    app.add_systems(Update, (
-        pool_intake_system,
-        pool_distribution_system.after(pool_intake_system),
-        pool_dissipation_system.after(pool_distribution_system),
-        pool_conservation_system.after(pool_dissipation_system),
-        competition_dynamics_system.after(pool_dissipation_system),
-        scale_composition_system.after(pool_conservation_system),
-    ));
+    app.add_systems(
+        Update,
+        (
+            pool_intake_system,
+            pool_distribution_system.after(pool_intake_system),
+            pool_dissipation_system.after(pool_distribution_system),
+            pool_conservation_system.after(pool_dissipation_system),
+            competition_dynamics_system.after(pool_dissipation_system),
+            scale_composition_system.after(pool_conservation_system),
+        ),
+    );
     app
 }
 
@@ -61,10 +64,13 @@ fn make_ec_pipeline_app() -> App {
 fn make_distribution_only_app() -> App {
     let mut app = App::new();
     app.add_plugins(MinimalPlugins);
-    app.add_systems(Update, (
-        pool_intake_system,
-        pool_distribution_system.after(pool_intake_system),
-    ));
+    app.add_systems(
+        Update,
+        (
+            pool_intake_system,
+            pool_distribution_system.after(pool_intake_system),
+        ),
+    );
     app
 }
 
@@ -78,12 +84,14 @@ fn spawn_pools_with_children(app: &mut App, n_pools: u32, children_per_pool: u32
         let _ = (x, y); // posición no relevante para EC puro
 
         let mut commands = app.world_mut().commands();
-        let parent = commands.spawn(EnergyPool::new(1000.0, 5000.0, 50.0, 0.001)).id();
+        let parent = commands
+            .spawn(EnergyPool::new(1000.0, 5000.0, 50.0, 0.001))
+            .id();
         drop(commands);
 
         for j in 0..children_per_pool {
             let etype = ET_CYCLE[(j % 5) as usize];
-            let param  = param_for(etype);
+            let param = param_for(etype);
             let mut commands = app.world_mut().commands();
             commands.spawn((
                 BaseEnergy::new(0.0),
@@ -176,9 +184,7 @@ fn bench_euler_simulation(c: &mut Criterion) {
 /// M5-C: Relative error between 100-tick Euler and continuous exact solution.
 fn bench_euler_error(c: &mut Criterion) {
     c.bench_function("euler_vs_exponential_error_100ticks", |b| {
-        b.iter(|| {
-            euler_vs_exponential_error(black_box(1000.0), black_box(0.01), black_box(100))
-        })
+        b.iter(|| euler_vs_exponential_error(black_box(1000.0), black_box(0.01), black_box(100)))
     });
 }
 

@@ -13,4 +13,3 @@ pub const LIQUID_TRANSITION: f32 = 1.0;
 
 /// Umbral: T < GAS_TRANSITION * eb → Gas, else → Plasma
 pub const GAS_TRANSITION: f32 = 3.0;
-

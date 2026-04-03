@@ -1,19 +1,17 @@
 //! Modulación de color por rol (BranchRole GF1, OrganRole LI6).
 
+use crate::blueprint::OrganRole;
 use crate::blueprint::constants::*;
-use crate::layers::OrganRole;
 
-use super::{
-    field_visual_mix_unit, linear_rgb_lerp_preclamped,
-};
+use super::{field_visual_mix_unit, linear_rgb_lerp_preclamped};
 
 /// Rol de rama GF1 (dato de inferencia; la modulación es tabla + puras, no `match` por especie).
 #[repr(u8)]
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default)]
 pub enum BranchRole {
     #[default]
-    Stem  = 0,
-    Leaf  = 1,
+    Stem = 0,
+    Leaf = 1,
     Thorn = 2,
 }
 
@@ -92,7 +90,11 @@ pub fn organ_role_modulated_rgb(field_rgb: [f32; 3], role: OrganRole) -> [f32; 3
 #[inline]
 pub fn organ_role_scale(role: OrganRole, base_radius: f32) -> f32 {
     let scaled = base_radius * organ_role_visual_profile(role).scale;
-    if scaled.is_finite() { scaled.max(0.001) } else { 0.001 }
+    if scaled.is_finite() {
+        scaled.max(0.001)
+    } else {
+        0.001
+    }
 }
 
 /// Opacidad base de órgano en [0,1] para la capa visual.

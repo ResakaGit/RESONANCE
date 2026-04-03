@@ -73,10 +73,14 @@ pub fn plasma_density_threshold() -> f32 {
 
 /// MOVE: liquid-to-gas regime. `min = liquid × 0.5, max = gas × 1.5`
 #[inline]
-pub fn move_density_min() -> f32 { liquid_density_threshold() * 0.5 }
+pub fn move_density_min() -> f32 {
+    liquid_density_threshold() * 0.5
+}
 
 #[inline]
-pub fn move_density_max() -> f32 { gas_density_threshold() * 1.5 }
+pub fn move_density_max() -> f32 {
+    gas_density_threshold() * 1.5
+}
 
 /// SENSE: coherence above dissipation noise floor.
 /// `min = DISSIPATION_SOLID / (DISSIPATION_SOLID + DISSIPATION_LIQUID)`
@@ -88,7 +92,9 @@ pub fn sense_coherence_min() -> f32 {
 
 /// BRANCH: 2× sustaining minimum (enough for both halves to survive).
 #[inline]
-pub fn branch_qe_min() -> f32 { self_sustaining_qe_min() * 2.0 }
+pub fn branch_qe_min() -> f32 {
+    self_sustaining_qe_min() * 2.0
+}
 
 // ─── Cosmological anchor (single calibration constant) ──────────────────────
 
@@ -106,7 +112,9 @@ use bevy::prelude::Resource;
 pub struct SelfSustainingQeMin(pub f32);
 
 impl Default for SelfSustainingQeMin {
-    fn default() -> Self { Self(20.0) }
+    fn default() -> Self {
+        Self(20.0)
+    }
 }
 
 // ─── Derived: awakening / abiogenesis ────────────────────────────────────────
@@ -118,7 +126,9 @@ impl Default for SelfSustainingQeMin {
 /// that fills one grid cell at unit density. Below this, no stable structure.
 /// Runtime-tunable via `SelfSustainingQeMin` Resource (default = DENSITY_SCALE).
 #[inline]
-pub fn self_sustaining_qe_min() -> f32 { SelfSustainingQeMin::default().0 }
+pub fn self_sustaining_qe_min() -> f32 {
+    SelfSustainingQeMin::default().0
+}
 
 /// Umbral de spawn derivado del Axiom 2 (Pool Invariant).
 /// Spawn threshold derived from Axiom 2 (Pool Invariant).
@@ -127,7 +137,9 @@ pub fn self_sustaining_qe_min() -> f32 { SelfSustainingQeMin::default().0 }
 /// Net surplus = `min`. `potential = min / (min + 2×min) = 1/3`.
 /// A cell needs 3× the sustaining minimum (2 to keep, 1 surplus) to spawn.
 #[inline]
-pub fn spawn_potential_threshold() -> f32 { 1.0 / 3.0 }
+pub fn spawn_potential_threshold() -> f32 {
+    1.0 / 3.0
+}
 
 // ─── Derived: senescence ─────────────────────────────────────────────────────
 
@@ -140,7 +152,9 @@ pub fn senescence_coeff_from_dissipation(dissipation_rate: f32) -> f32 {
 /// `max_age = 1/coeff` — Gompertz inverse (survival drops to 1/e at this age).
 #[inline]
 pub fn max_viable_age_from_coeff(coeff: f32) -> u64 {
-    if coeff <= 0.0 { return u64::MAX; }
+    if coeff <= 0.0 {
+        return u64::MAX;
+    }
     (1.0 / coeff) as u64
 }
 
@@ -178,17 +192,23 @@ pub fn max_age_fauna() -> u64 {
 
 /// Pressure activates at gas transition density.
 #[inline]
-pub fn radiation_pressure_threshold() -> f32 { gas_density_threshold() }
+pub fn radiation_pressure_threshold() -> f32 {
+    gas_density_threshold()
+}
 
 /// Transfer rate = gas dissipation rate (redistribution is dissipative).
 #[inline]
-pub fn radiation_pressure_transfer_rate() -> f32 { DISSIPATION_GAS }
+pub fn radiation_pressure_transfer_rate() -> f32 {
+    DISSIPATION_GAS
+}
 
 // ─── Derived: survival ───────────────────────────────────────────────────────
 
 /// Gompertz survival threshold: exp(-2) ≈ 0.135.
 #[inline]
-pub fn survival_probability_threshold() -> f32 { (-2.0_f32).exp() }
+pub fn survival_probability_threshold() -> f32 {
+    (-2.0_f32).exp()
+}
 
 // ─── Derived: nutrient recycling ─────────────────────────────────────────────
 
@@ -281,23 +301,33 @@ pub fn nutrient_regen_per_tick() -> f32 {
 /// Minimum qe in a cell to materialize an entity = self_sustaining_qe_min / 2.
 /// Half the sustaining minimum — enough to be visible but not necessarily alive.
 #[inline]
-pub fn min_materialization_qe() -> f32 { self_sustaining_qe_min() * 0.5 }
+pub fn min_materialization_qe() -> f32 {
+    self_sustaining_qe_min() * 0.5
+}
 
 /// Field decay rate (qe/s per cell). = basal_drain_rate (same scale as entity metabolism).
 #[inline]
-pub fn field_decay_rate() -> f32 { basal_drain_rate() }
+pub fn field_decay_rate() -> f32 {
+    basal_drain_rate()
+}
 
 /// Reference density for visual derivation = liquid threshold.
 #[inline]
-pub fn reference_density() -> f32 { liquid_density_threshold() }
+pub fn reference_density() -> f32 {
+    liquid_density_threshold()
+}
 
 /// Low density class boundary = DENSITY_SCALE (the fundamental grid unit).
 #[inline]
-pub fn density_low_threshold() -> f32 { DENSITY_SCALE }
+pub fn density_low_threshold() -> f32 {
+    DENSITY_SCALE
+}
 
 /// High density class boundary = liquid_density_threshold.
 #[inline]
-pub fn density_high_threshold() -> f32 { liquid_density_threshold() }
+pub fn density_high_threshold() -> f32 {
+    liquid_density_threshold()
+}
 
 /// Purity threshold for pure vs compound materialization.
 /// Derived: at sense_coherence_min × 2, signal is clearly dominant.
@@ -309,22 +339,30 @@ pub fn purity_threshold() -> f32 {
 /// Field conductivity spread between neighbors.
 /// = DISSIPATION_LIQUID (lateral diffusion scales with liquid-state mobility).
 #[inline]
-pub fn field_conductivity_spread() -> f32 { DISSIPATION_LIQUID }
+pub fn field_conductivity_spread() -> f32 {
+    DISSIPATION_LIQUID
+}
 
 /// Bond energy for materialized spawns = 1/DISSIPATION_SOLID (inverse of base decay).
 #[inline]
-pub fn materialized_bond_energy() -> f32 { 1.0 / DISSIPATION_SOLID }
+pub fn materialized_bond_energy() -> f32 {
+    1.0 / DISSIPATION_SOLID
+}
 
 /// Thermal conductivity for materialized spawns = DISSIPATION_SOLID × DENSITY_SCALE.
 #[inline]
-pub fn materialized_thermal_conductivity() -> f32 { DISSIPATION_SOLID * DENSITY_SCALE }
+pub fn materialized_thermal_conductivity() -> f32 {
+    DISSIPATION_SOLID * DENSITY_SCALE
+}
 
 /// Collider radius factor = 0.5 (half of cell — geometric).
 pub const MATERIALIZED_COLLIDER_RADIUS_FACTOR: f32 = 0.5;
 
 /// Minimum collider radius = DISSIPATION_SOLID (smallest stable structure scale).
 #[inline]
-pub fn materialized_min_collider_radius() -> f32 { DISSIPATION_SOLID }
+pub fn materialized_min_collider_radius() -> f32 {
+    DISSIPATION_SOLID
+}
 
 // ─── Tests ───────────────────────────────────────────────────────────────────
 

@@ -4,13 +4,13 @@
 //! [`crate::blueprint::constants::morphogenesis`]. Los sistemas y el resto del blueprint pueden usar
 //! `crate::blueprint::equations::…` vía re-export o importar desde aquí.
 
-mod thermodynamics;
 mod constructal;
 mod surface;
+mod thermodynamics;
 
-pub use thermodynamics::*;
 pub use constructal::*;
 pub use surface::*;
+pub use thermodynamics::*;
 
 use super::constants::morphogenesis as mg;
 
@@ -33,7 +33,11 @@ pub(super) fn san_finite_or_zero(x: f32) -> f32 {
 
 #[inline]
 pub(super) fn san_efficiency_01(x: f32) -> f32 {
-    if x.is_finite() { x.clamp(0.0, 1.0) } else { 0.0 }
+    if x.is_finite() {
+        x.clamp(0.0, 1.0)
+    } else {
+        0.0
+    }
 }
 
 #[inline]

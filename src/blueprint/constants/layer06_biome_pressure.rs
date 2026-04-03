@@ -22,4 +22,3 @@ pub const BIOME_TUNDRA_VISCOSITY: f32 = 1.5;
 pub const BIOME_DESERT_DELTA_QE: f32 = -3.0;
 
 pub const BIOME_DESERT_VISCOSITY: f32 = 1.2;
-

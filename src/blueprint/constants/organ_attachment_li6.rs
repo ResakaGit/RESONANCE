@@ -11,4 +11,3 @@ pub const ORGAN_ZONE_FULL_OFFSET: f32 = 0.01;
 pub const ORGAN_ZONE_FULL_SPAN: f32 = 0.98;
 /// Corte para considerar normal y tangente casi paralelas.
 pub const ORGAN_ORIENTATION_PARALLEL_DOT_CUTOFF: f32 = 0.95;
-

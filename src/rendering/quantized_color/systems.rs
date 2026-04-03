@@ -6,17 +6,15 @@ use bevy::prelude::*;
 use crate::blueprint::AlchemicalAlmanac;
 use crate::blueprint::equations::precision_rho_from_lod_distance;
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
+use crate::runtime_platform::contracts::AttentionGrid;
 use crate::runtime_platform::core_math_agnostic::sim_plane_pos;
-use crate::simulation::sensory::AttentionGrid;
 use crate::worldgen::constants::{LOD_MID_MAX, LOD_NEAR_MAX};
 use crate::worldgen::contracts::Materialized;
 
-use super::camera_plane::active_camera_sim_plane;
-use super::constants::{
-    DEFAULT_PALETTE_N_MAX, QUANTIZED_COLOR_RHO_MIN, QUANTIZED_RHO_WRITE_EPS,
-};
-use super::registry::PaletteRegistry;
 use super::QuantizedPrecision;
+use super::camera_plane::active_camera_sim_plane;
+use super::constants::{DEFAULT_PALETTE_N_MAX, QUANTIZED_COLOR_RHO_MIN, QUANTIZED_RHO_WRITE_EPS};
+use super::registry::PaletteRegistry;
 
 /// Asegura `QuantizedPrecision` en entidades materializadas (sin tocar materialización).
 pub fn quantized_precision_ensure_system(

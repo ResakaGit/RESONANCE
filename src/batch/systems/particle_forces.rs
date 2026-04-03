@@ -19,11 +19,15 @@ use crate::blueprint::equations::coulomb::{self, ChargedParticle};
 ///
 /// Strategy::Disabled → no-op (zero cost for non-particle simulations).
 pub fn particle_forces(world: &mut SimWorldFlat, strategy: ForceStrategy, dt: f32) {
-    if strategy == ForceStrategy::Disabled { return; }
+    if strategy == ForceStrategy::Disabled {
+        return;
+    }
 
     // 1. Extract particles from EntitySlot (read-only snapshot)
     let (particles, count) = extract_particles(world);
-    if count < 2 { return; }
+    if count < 2 {
+        return;
+    }
 
     // 2. Accumulate forces (pure HOF, Newton 3 guaranteed)
     let forces = coulomb::accumulate_forces(&particles, count);
@@ -35,7 +39,9 @@ pub fn particle_forces(world: &mut SimWorldFlat, strategy: ForceStrategy, dt: f3
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
 
-        if idx >= count { break; }
+        if idx >= count {
+            break;
+        }
         let mass = world.entities[i].particle_mass.max(0.01);
 
         // Only apply LJ component if Full strategy
@@ -69,12 +75,17 @@ pub fn count_molecules(world: &SimWorldFlat) -> (u8, u8) {
     // Simple: each bond pair = one "molecule" (for now, no graph traversal)
     // TODO: connected components for multi-atom molecules
     let mut sigs = [coulomb::MoleculeSignature {
-        total_charge: 0.0, mean_frequency: 0.0, particle_count: 0, bond_count: 0,
+        total_charge: 0.0,
+        mean_frequency: 0.0,
+        particle_count: 0,
+        bond_count: 0,
     }; 256];
     let mut sig_count = 0usize;
 
     for k in 0..bond_count {
-        if sig_count >= 256 { break; }
+        if sig_count >= 256 {
+            break;
+        }
         let (a, b, _) = bonds[k];
         let members = [a, b];
         sigs[sig_count] = coulomb::classify_molecule(&particles, &members, 2, 1);
@@ -90,8 +101,11 @@ pub fn count_molecules(world: &SimWorldFlat) -> (u8, u8) {
 /// Extract ChargedParticle array from EntitySlot array. Pure snapshot.
 fn extract_particles(world: &SimWorldFlat) -> ([ChargedParticle; 128], usize) {
     let mut particles = [ChargedParticle {
-        charge: 0.0, mass: 1.0, frequency: 0.0,
-        position: [0.0; 2], velocity: [0.0; 2],
+        charge: 0.0,
+        mass: 1.0,
+        frequency: 0.0,
+        position: [0.0; 2],
+        velocity: [0.0; 2],
     }; 128];
     let mut count = 0usize;
 
@@ -99,7 +113,9 @@ fn extract_particles(world: &SimWorldFlat) -> ([ChargedParticle; 128], usize) {
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
-        if count >= 128 { break; }
+        if count >= 128 {
+            break;
+        }
 
         particles[count] = ChargedParticle {
             charge: world.entities[i].charge,
@@ -150,8 +166,14 @@ mod tests {
     fn opposite_charges_accelerate_together() {
         let mut w = world_with_charges(&[(1.0, 400.0, 0.0), (-1.0, 400.0, 2.0)]);
         particle_forces(&mut w, ForceStrategy::Full, 0.05);
-        assert!(w.entities[0].velocity[0] > 0.0, "positive charge moves toward negative");
-        assert!(w.entities[1].velocity[0] < 0.0, "negative charge moves toward positive");
+        assert!(
+            w.entities[0].velocity[0] > 0.0,
+            "positive charge moves toward negative"
+        );
+        assert!(
+            w.entities[1].velocity[0] < 0.0,
+            "negative charge moves toward positive"
+        );
     }
 
     // ── GIVEN same charges THEN they accelerate apart ───────────────────
@@ -168,12 +190,14 @@ mod tests {
 
     #[test]
     fn momentum_conservation() {
-        let mut w = world_with_charges(&[
-            (1.0, 400.0, 0.0), (-1.0, 300.0, 1.0), (0.5, 500.0, 0.5),
-        ]);
+        let mut w = world_with_charges(&[(1.0, 400.0, 0.0), (-1.0, 300.0, 1.0), (0.5, 500.0, 0.5)]);
         particle_forces(&mut w, ForceStrategy::Full, 0.05);
-        let px: f32 = (0..3).map(|i| w.entities[i].velocity[0] * w.entities[i].particle_mass).sum();
-        let py: f32 = (0..3).map(|i| w.entities[i].velocity[1] * w.entities[i].particle_mass).sum();
+        let px: f32 = (0..3)
+            .map(|i| w.entities[i].velocity[0] * w.entities[i].particle_mass)
+            .sum();
+        let py: f32 = (0..3)
+            .map(|i| w.entities[i].velocity[1] * w.entities[i].particle_mass)
+            .sum();
         assert!(px.abs() < 1e-4, "Axiom 5: Σpx = 0: {px}");
         assert!(py.abs() < 1e-4, "Axiom 5: Σpy = 0: {py}");
     }
@@ -207,9 +231,12 @@ mod tests {
     #[test]
     fn count_molecule_types() {
         let w = world_with_charges(&[
-            (1.0, 400.0, 0.0), (-1.0, 400.0, 0.3),   // pair 1
-            (1.0, 400.0, 5.0), (-1.0, 400.0, 5.3),   // pair 2 (same type)
-            (2.0, 600.0, 10.0), (-2.0, 600.0, 10.3),  // pair 3 (different type)
+            (1.0, 400.0, 0.0),
+            (-1.0, 400.0, 0.3), // pair 1
+            (1.0, 400.0, 5.0),
+            (-1.0, 400.0, 5.3), // pair 2 (same type)
+            (2.0, 600.0, 10.0),
+            (-2.0, 600.0, 10.3), // pair 3 (different type)
         ]);
         let (bonds, types) = count_molecules(&w);
         assert!(bonds >= 2, "should have bonds: {bonds}");
@@ -225,6 +252,9 @@ mod tests {
         let mut b = world_with_charges(&[(1.0, 400.0, 0.0), (-1.0, 300.0, 1.0)]);
         particle_forces(&mut a, ForceStrategy::Full, 0.05);
         particle_forces(&mut b, ForceStrategy::Full, 0.05);
-        assert_eq!(a.entities[0].velocity[0].to_bits(), b.entities[0].velocity[0].to_bits());
+        assert_eq!(
+            a.entities[0].velocity[0].to_bits(),
+            b.entities[0].velocity[0].to_bits()
+        );
     }
 }

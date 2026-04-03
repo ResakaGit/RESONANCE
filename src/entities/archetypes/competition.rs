@@ -85,7 +85,10 @@ mod pool_archetype_tests {
     #[test]
     fn spawn_competitor_has_base_energy_and_pool_parent_link() {
         let mut app = test_app();
-        let parent = app.world_mut().spawn(EnergyPool::new(1000.0, 2000.0, 50.0, 0.01)).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(1000.0, 2000.0, 50.0, 0.01))
+            .id();
         let mut commands = app.world_mut().commands();
         let entity = spawn_competitor(
             &mut commands,
@@ -106,7 +109,10 @@ mod pool_archetype_tests {
     #[test]
     fn spawn_sub_pool_has_energy_pool_and_pool_parent_link() {
         let mut app = test_app();
-        let root = app.world_mut().spawn(EnergyPool::new(5000.0, 10000.0, 200.0, 0.001)).id();
+        let root = app
+            .world_mut()
+            .spawn(EnergyPool::new(5000.0, 10000.0, 200.0, 0.001))
+            .id();
         let mut commands = app.world_mut().commands();
         let entity = spawn_sub_pool(
             &mut commands,
@@ -128,7 +134,13 @@ mod pool_archetype_tests {
     fn spawn_environment_pool_values_correct() {
         let mut app = test_app();
         let mut commands = app.world_mut().commands();
-        let entity = spawn_environment_pool(&mut commands, 5000.0, 10000.0, 100.0, Vec3::new(1.0, 2.0, 0.0));
+        let entity = spawn_environment_pool(
+            &mut commands,
+            5000.0,
+            10000.0,
+            100.0,
+            Vec3::new(1.0, 2.0, 0.0),
+        );
         drop(commands);
         app.update();
         let pool = app.world().entity(entity).get::<EnergyPool>().unwrap();

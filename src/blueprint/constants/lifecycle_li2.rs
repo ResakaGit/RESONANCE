@@ -13,4 +13,3 @@ pub const LIFECYCLE_REPRODUCTIVE_BIOMASS: f32 = 1.5;
 pub const LIFECYCLE_REPRODUCTIVE_VIABILITY_MIN: f32 = 1.2;
 /// Ticks mínimos antes de aceptar transición de fase (histeresis).
 pub const LIFECYCLE_HYSTERESIS_TICKS: u16 = 10;
-

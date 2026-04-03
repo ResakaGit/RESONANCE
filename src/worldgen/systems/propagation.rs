@@ -2,6 +2,7 @@ use bevy::prelude::*;
 
 use super::performance::PropagationWriteBudget;
 use crate::blueprint::AlchemicalAlmanac;
+use crate::blueprint::constants::{NUCLEUS_DEPLETION_FACTOR, NUCLEUS_EMISSION_CUTOFF_QE};
 use crate::layers::MatterState;
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::runtime_platform::core_math_agnostic::sim_plane_pos;
@@ -15,7 +16,6 @@ use crate::worldgen::propagation::{
     cell_density, cell_matter_state, cell_temperature, diffusion_transfer, field_dissipation,
     nucleus_intensity_at, resolve_dominant_frequency,
 };
-use crate::blueprint::constants::{NUCLEUS_DEPLETION_FACTOR, NUCLEUS_EMISSION_CUTOFF_QE};
 use crate::worldgen::{EnergyFieldGrid, EnergyNucleus, FrequencyContribution, NucleusReservoir};
 
 fn bbox_for_radius(
@@ -83,7 +83,12 @@ pub fn propagate_nuclei_system(
     fixed: Option<Res<Time<Fixed>>>,
     time: Res<Time>,
     layout: Res<SimWorldTransformParams>,
-    mut nuclei: Query<(Entity, &EnergyNucleus, &Transform, Option<&mut NucleusReservoir>)>,
+    mut nuclei: Query<(
+        Entity,
+        &EnergyNucleus,
+        &Transform,
+        Option<&mut NucleusReservoir>,
+    )>,
     mut grid: ResMut<EnergyFieldGrid>,
     mut prop_budget: ResMut<PropagationWriteBudget>,
     terrain: Option<Res<TerrainField>>,

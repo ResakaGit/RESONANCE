@@ -2,8 +2,8 @@
 //!
 //! Pure data transform: GenomeBlob → radial field → GF1 mesh → OBJ string.
 
-use crate::batch::genome::GenomeBlob;
 use crate::batch::bridge;
+use crate::batch::genome::GenomeBlob;
 use crate::blueprint::equations::radial_field;
 use crate::geometry_flow::creature_builder;
 
@@ -17,14 +17,21 @@ pub fn genome_to_obj(genome: &GenomeBlob) -> String {
     let qe = 20.0 + genome.growth_bias * 80.0;
 
     let field = radial_field::build_viewer_field(
-        genome.growth_bias, genome.resilience, genome.branching_bias, qe,
+        genome.growth_bias,
+        genome.resilience,
+        genome.branching_bias,
+        qe,
     );
     let freq_field = radial_field::build_viewer_freq_field(freq);
 
     let mesh = creature_builder::build_creature_mesh_with_field(
-        genome.growth_bias, genome.mobility_bias,
-        genome.branching_bias, genome.resilience, freq,
-        &field, &freq_field,
+        genome.growth_bias,
+        genome.mobility_bias,
+        genome.branching_bias,
+        genome.resilience,
+        freq,
+        &field,
+        &freq_field,
     );
 
     bevy_mesh_to_obj(&mesh)
@@ -49,7 +56,11 @@ fn bevy_mesh_to_obj(mesh: &bevy::render::mesh::Mesh) -> String {
 
     let mut obj = String::with_capacity(positions.len() * 40 + indices.len() * 15);
     obj.push_str("# Resonance GF1 — evolved creature mesh\n");
-    obj.push_str(&format!("# vertices: {} faces: {}\n", positions.len(), indices.len() / 3));
+    obj.push_str(&format!(
+        "# vertices: {} faces: {}\n",
+        positions.len(),
+        indices.len() / 3
+    ));
 
     for [x, y, z] in positions {
         obj.push_str(&format!("v {x:.6} {y:.6} {z:.6}\n"));

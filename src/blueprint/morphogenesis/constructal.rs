@@ -16,10 +16,10 @@ pub fn shape_cost(
     vascular_cost: f32,
 ) -> f32 {
     let rho = san_nonneg(medium_density);
-    let v   = san_velocity_mag(velocity);
-    let cd  = san_nonneg(drag_coeff);
-    let a   = san_nonneg(projected_area);
-    let cv  = san_nonneg(vascular_cost);
+    let v = san_velocity_mag(velocity);
+    let cd = san_nonneg(drag_coeff);
+    let a = san_nonneg(projected_area);
+    let cv = san_nonneg(vascular_cost);
     let drag = if v <= DRAG_SPEED_EPSILON {
         0.0
     } else {
@@ -32,8 +32,8 @@ pub fn shape_cost(
 #[inline]
 pub fn vascular_transport_cost(viscosity: f32, length: f32, radius: f32) -> f32 {
     let mu = san_nonneg(viscosity);
-    let l  = san_nonneg(length);
-    let r  = san_nonneg(radius);
+    let l = san_nonneg(length);
+    let r = san_nonneg(radius);
     let r4 = r.powi(4).max(DIVISION_GUARD_EPSILON);
     let out = mu * l.powi(3) / r4;
     if out.is_finite() { out } else { 0.0 }
@@ -65,9 +65,9 @@ pub fn bounded_fineness_descent(
 ) -> f32 {
     let mut f = san_nonneg(current_fineness).clamp(mg::FINENESS_MIN, mg::FINENESS_MAX);
     let rho = san_nonneg(medium_density);
-    let v   = san_velocity_mag(velocity);
-    let a   = san_nonneg(projected_area);
-    let cv  = san_nonneg(vascular_cost);
+    let v = san_velocity_mag(velocity);
+    let a = san_nonneg(projected_area);
+    let cv = san_nonneg(vascular_cost);
     let damp = san_nonneg(damping).clamp(DIVISION_GUARD_EPSILON, 1.0);
 
     for _ in 0..max_iter {

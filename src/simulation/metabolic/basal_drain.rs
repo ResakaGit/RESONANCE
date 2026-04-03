@@ -26,12 +26,8 @@ pub fn basal_drain_system(
         if qe <= 0.0 {
             continue;
         }
-        let age_ticks = senescence
-            .map(|s| s.age(clock.tick_id))
-            .unwrap_or(0);
-        let senescence_coeff = senescence
-            .map(|s| s.senescence_coeff)
-            .unwrap_or(0.0);
+        let age_ticks = senescence.map(|s| s.age(clock.tick_id)).unwrap_or(0);
+        let senescence_coeff = senescence.map(|s| s.senescence_coeff).unwrap_or(0.0);
         let age_factor = age_dependent_dissipation(1.0, age_ticks, senescence_coeff);
         let vol_factor = volume.radius.max(0.01).powf(dt::KLEIBER_EXPONENT);
         let drain = dt::basal_drain_rate() * vol_factor * age_factor;

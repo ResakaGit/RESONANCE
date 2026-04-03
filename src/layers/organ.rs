@@ -2,51 +2,10 @@ use bevy::prelude::*;
 
 use crate::blueprint::equations::BranchRole;
 
-/// Cantidad máxima de órganos inferidos por entidad en un tick.
-pub const MAX_ORGANS_PER_ENTITY: usize = 16;
-
-/// Rol funcional de un órgano inferido; no es un componente ECS.
-#[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default, Reflect)]
-pub enum OrganRole {
-    #[default]
-    Stem = 0,
-    Root = 1,
-    Core = 2,
-    Leaf = 3,
-    Petal = 4,
-    Sensory = 5,
-    Thorn = 6,
-    Shell = 7,
-    Fruit = 8,
-    Bud = 9,
-    Limb = 10,
-    Fin = 11,
-}
-
-/// Fase funcional del ciclo de vida inferido.
-#[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default, Reflect)]
-pub enum LifecycleStage {
-    #[default]
-    Dormant = 0,
-    Emerging = 1,
-    Growing = 2,
-    Mature = 3,
-    Reproductive = 4,
-    Declining = 5,
-}
-
-/// Clase geométrica base para sintetizar órganos.
-#[repr(u8)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, Default, Reflect)]
-pub enum GeometryPrimitive {
-    #[default]
-    Tube = 0,
-    FlatSurface = 1,
-    PetalFan = 2,
-    Bulb = 3,
-}
+// Domain enums — canonical definitions in blueprint/domain_enums.rs
+pub use crate::blueprint::domain_enums::{
+    GeometryPrimitive, LifecycleStage, MAX_ORGANS_PER_ENTITY, ORGAN_ROLE_PRIMITIVE, OrganRole,
+};
 
 /// Cache de fase de ciclo de vida para evitar flickeo entre ticks.
 #[derive(Component, Clone, Copy, Debug, Default, Reflect, PartialEq, Eq)]
@@ -180,33 +139,6 @@ impl OrganManifest {
     }
 }
 
-/// Tabla de mapeo `OrganRole -> GeometryPrimitive` sin branching en hot path.
-pub const ORGAN_ROLE_PRIMITIVE: [GeometryPrimitive; OrganRole::COUNT] = [
-    GeometryPrimitive::Tube,
-    GeometryPrimitive::Tube,
-    GeometryPrimitive::Tube,
-    GeometryPrimitive::FlatSurface,
-    GeometryPrimitive::PetalFan,
-    GeometryPrimitive::Bulb,
-    GeometryPrimitive::Tube,
-    GeometryPrimitive::FlatSurface,
-    GeometryPrimitive::Bulb,
-    GeometryPrimitive::Bulb,
-    GeometryPrimitive::Tube,
-    GeometryPrimitive::FlatSurface,
-];
-
-impl OrganRole {
-    pub const COUNT: usize = OrganRole::Fin as usize + 1;
-
-    #[inline]
-    pub const fn primitive(self) -> GeometryPrimitive {
-        ORGAN_ROLE_PRIMITIVE[self as usize]
-    }
-}
-
-const _: () = assert!(ORGAN_ROLE_PRIMITIVE.len() == OrganRole::COUNT);
-
 impl From<BranchRole> for OrganRole {
     fn from(value: BranchRole) -> Self {
         match value {
@@ -233,8 +165,8 @@ impl TryFrom<OrganRole> for BranchRole {
 #[cfg(test)]
 mod tests {
     use super::{
-        GeometryPrimitive, LifecycleStage, OrganManifest, OrganRole, OrganSpec, MAX_ORGANS_PER_ENTITY,
-        ORGAN_ROLE_PRIMITIVE,
+        GeometryPrimitive, LifecycleStage, MAX_ORGANS_PER_ENTITY, ORGAN_ROLE_PRIMITIVE,
+        OrganManifest, OrganRole, OrganSpec,
     };
     use crate::blueprint::equations::BranchRole;
 

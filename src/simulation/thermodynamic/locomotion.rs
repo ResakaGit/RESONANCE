@@ -6,8 +6,7 @@ use crate::blueprint::constants::{
 use crate::blueprint::equations;
 use crate::layers::behavior::{BehaviorCooldown, BehaviorIntent, BehaviorMode, BehavioralAgent};
 use crate::layers::{
-    AlchemicalEngine, EnergyOps, FlowVector, MatterCoherence, MatterState,
-    WillActuator,
+    AlchemicalEngine, EnergyOps, FlowVector, MatterCoherence, MatterState, WillActuator,
 };
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::runtime_platform::core_math_agnostic::sim_plane_pos;
@@ -51,12 +50,7 @@ pub fn locomotion_energy_drain_system(
             continue;
         }
 
-        let terrain_factor = compute_terrain_factor(
-            transform,
-            xz,
-            terrain.as_deref(),
-            matter_opt,
-        );
+        let terrain_factor = compute_terrain_factor(transform, xz, terrain.as_deref(), matter_opt);
 
         let cost = equations::locomotion_energy_cost(mass, speed, terrain_factor) * dt;
         if cost <= 0.0 {
@@ -128,9 +122,7 @@ fn compute_terrain_factor(
         return 1.0;
     };
 
-    let state = matter_opt
-        .map(|m| m.state())
-        .unwrap_or(MatterState::Solid);
+    let state = matter_opt.map(|m| m.state()).unwrap_or(MatterState::Solid);
     let slope_normalized = (sample.slope / 90.0).clamp(0.0, 1.0);
 
     equations::terrain_locomotion_factor(slope_normalized, 1.0, state)
@@ -143,7 +135,9 @@ mod tests {
         EXHAUSTION_BUFFER_FRACTION, EXHAUSTION_REST_TICKS, LOCOMOTION_MIN_SPEED_THRESHOLD,
     };
     use crate::events::DeathEvent;
-    use crate::layers::behavior::{BehaviorCooldown, BehaviorIntent, BehaviorMode, BehavioralAgent};
+    use crate::layers::behavior::{
+        BehaviorCooldown, BehaviorIntent, BehaviorMode, BehavioralAgent,
+    };
     use crate::layers::{AlchemicalEngine, BaseEnergy, FlowVector, WillActuator};
     use bevy::math::Vec2;
     use std::time::Duration;
@@ -183,7 +177,10 @@ mod tests {
         app.update();
 
         let engine = app.world().get::<AlchemicalEngine>(id).unwrap();
-        assert!((engine.buffer_level() - 80.0).abs() < 1e-5, "buffer unchanged for stationary");
+        assert!(
+            (engine.buffer_level() - 80.0).abs() < 1e-5,
+            "buffer unchanged for stationary"
+        );
     }
 
     #[test]
@@ -271,10 +268,7 @@ mod tests {
             .world_mut()
             .spawn((
                 BaseEnergy::new(500.0),
-                FlowVector::new(
-                    Vec2::new(LOCOMOTION_MIN_SPEED_THRESHOLD * 0.5, 0.0),
-                    0.01,
-                ),
+                FlowVector::new(Vec2::new(LOCOMOTION_MIN_SPEED_THRESHOLD * 0.5, 0.0), 0.01),
                 AlchemicalEngine::new(100.0, 10.0, 10.0, 80.0),
                 Transform::default(),
                 WillActuator::default(),
@@ -318,7 +312,11 @@ mod tests {
         app.update();
 
         let intent = app.world().get::<BehaviorIntent>(id).unwrap();
-        assert_eq!(intent.mode, BehaviorMode::Idle, "should force idle when exhausted");
+        assert_eq!(
+            intent.mode,
+            BehaviorMode::Idle,
+            "should force idle when exhausted"
+        );
         assert!(intent.target_entity.is_none());
 
         let cooldown = app.world().get::<BehaviorCooldown>(id).unwrap();
@@ -372,7 +370,7 @@ mod tests {
                 },
                 BehaviorCooldown::default(),
                 AlchemicalEngine::new(100.0, 10.0, 10.0, 1.0), // near empty
-                FlowVector::new(Vec2::ZERO, 0.01),              // but stationary
+                FlowVector::new(Vec2::ZERO, 0.01),             // but stationary
             ))
             .id();
 
@@ -434,12 +432,7 @@ mod tests {
                     target_entity: None,
                 },
                 BehaviorCooldown::default(),
-                AlchemicalEngine::new(
-                    100.0,
-                    10.0,
-                    10.0,
-                    EXHAUSTION_BUFFER_FRACTION * 100.0,
-                ),
+                AlchemicalEngine::new(100.0, 10.0, 10.0, EXHAUSTION_BUFFER_FRACTION * 100.0),
                 FlowVector::new(Vec2::new(3.0, 0.0), 0.01),
             ))
             .id();

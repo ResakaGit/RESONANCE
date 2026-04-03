@@ -39,11 +39,15 @@ fn cloud_target_count(pressure: f32, reactivity_mod: f32, temperature_base: f32)
     let pressure_term = ((pressure - 1.0) * 2.0).round() as i32;
     let react_term = ((reactivity_mod - 1.0) * 3.0).round() as i32;
     let thermal_term = (temperature_base / 1200.0).round() as i32;
-    (4 + pressure_term + react_term + thermal_term).clamp(CLOUD_MIN_COUNT as i32, CLOUD_MAX_COUNT as i32)
-        as usize
+    (4 + pressure_term + react_term + thermal_term)
+        .clamp(CLOUD_MIN_COUNT as i32, CLOUD_MAX_COUNT as i32) as usize
 }
 
-fn cloud_spawn_transform(center: Vec2, orbit: DemoCloudOrbit, layout: &SimWorldTransformParams) -> Transform {
+fn cloud_spawn_transform(
+    center: Vec2,
+    orbit: DemoCloudOrbit,
+    layout: &SimWorldTransformParams,
+) -> Transform {
     let x = center.x + orbit.radius * orbit.angle.cos();
     let z = center.y + orbit.radius * orbit.angle.sin();
     if layout.use_xz_ground {
@@ -91,7 +95,9 @@ fn spawn_demo_cloud(
         .sim_world_layout(&layout)
         .spawn(commands);
 
-    commands.entity(cloud).insert((DemoCloudTag, orbit, transform));
+    commands
+        .entity(cloud)
+        .insert((DemoCloudTag, orbit, transform));
 }
 
 /// Startup de nubes de demo. Se refina luego por contexto.

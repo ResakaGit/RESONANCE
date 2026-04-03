@@ -143,32 +143,6 @@ pub fn spawn_hero(
     )
 }
 
-/// Dummy pasivo: catálisis / coherencia sin motor ni voluntad (L0–L4).
-pub fn spawn_dummy(
-    commands: &mut Commands,
-    id_gen: &mut IdGenerator,
-    pos: Vec2,
-    qe: f32,
-    radius: f32,
-    element_id: ElementId,
-    layout: &SimWorldTransformParams,
-    label: &str,
-) -> Entity {
-    let wid = id_gen.next_world();
-    let e = EntityBuilder::new()
-        .named(format!("dummy_{label}"))
-        .at(pos)
-        .energy(qe)
-        .volume(radius)
-        .wave(element_id)
-        .flow(Vec2::ZERO, 1.0)
-        .matter(MatterState::Solid, 12_000.0, 0.35)
-        .sim_world_layout(layout)
-        .spawn(commands);
-    commands.entity(e).insert(wid);
-    e
-}
-
 fn hero_element_id(class: HeroClass) -> ElementId {
     match class {
         HeroClass::FireMage => ElementId::from_name("Ignis"),

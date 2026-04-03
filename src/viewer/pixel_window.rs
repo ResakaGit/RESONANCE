@@ -35,12 +35,8 @@ where
     let scaled_w = w * config.scale;
     let scaled_h = h * config.scale;
 
-    let mut window = Window::new(
-        &config.title,
-        scaled_w,
-        scaled_h,
-        WindowOptions::default(),
-    ).expect("failed to create window");
+    let mut window = Window::new(&config.title, scaled_w, scaled_h, WindowOptions::default())
+        .expect("failed to create window");
 
     // ~60 fps
     window.set_target_fps(60);
@@ -64,6 +60,8 @@ where
                 frame.entity_count, frame.behavioral_count, frame.total_qe,
             ));
         }
-        window.update_with_buffer(&buffer, scaled_w, scaled_h).expect("update buffer");
+        window
+            .update_with_buffer(&buffer, scaled_w, scaled_h)
+            .expect("update buffer");
     }
 }

@@ -19,10 +19,10 @@ impl Faction {
     /// En un 1v1, retorna la facción oponente canónica. Red ↔ Blue.
     pub fn opponent(self) -> Self {
         match self {
-            Faction::Red     => Faction::Blue,
-            Faction::Blue    => Faction::Red,
+            Faction::Red => Faction::Blue,
+            Faction::Blue => Faction::Red,
             Faction::Neutral => Faction::Neutral,
-            Faction::Wild    => Faction::Wild,
+            Faction::Wild => Faction::Wild,
         }
     }
 }

@@ -13,4 +13,3 @@ pub const ACTUATOR_MATTER_LOW_VELOCITY_CAP: f32 = 1.0;
 
 /// Promedio aritmético de conductividades en transferencia por colisión.
 pub const COLLISION_CONDUCTIVITY_BLEND: f32 = 0.5;
-

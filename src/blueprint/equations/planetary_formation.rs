@@ -6,7 +6,6 @@
 /// - Angular momentum: Axiom 8 (oscillatory conservation during radial collapse).
 ///
 /// No hardcoded constants. All rates from derived_thresholds.rs.
-
 use super::derived_thresholds as dt;
 
 /// Gravitational constant: `DISSIPATION_SOLID²` — gravity is the weakest interaction.
@@ -20,12 +19,10 @@ pub fn gravitational_constant() -> f32 {
 /// `transfer = neighbor_qe × (source_qe × G) / n_neighbors`
 /// Capped at 10% of neighbor's energy per tick to prevent instant collapse.
 #[inline]
-pub fn gravitational_transfer(
-    source_qe: f32,
-    neighbor_qe: f32,
-    n_neighbors: u32,
-) -> f32 {
-    if source_qe <= neighbor_qe || neighbor_qe <= 0.0 { return 0.0; }
+pub fn gravitational_transfer(source_qe: f32, neighbor_qe: f32, n_neighbors: u32) -> f32 {
+    if source_qe <= neighbor_qe || neighbor_qe <= 0.0 {
+        return 0.0;
+    }
     let g = gravitational_constant();
     let pull = source_qe * g / n_neighbors.max(1) as f32;
     (neighbor_qe * pull).min(neighbor_qe * 0.1)
@@ -37,7 +34,9 @@ pub fn gravitational_transfer(
 #[inline]
 pub fn fusion_release(cell_qe: f32) -> f32 {
     let threshold = dt::plasma_density_threshold();
-    if cell_qe < threshold { return 0.0; }
+    if cell_qe < threshold {
+        return 0.0;
+    }
     let excess = cell_qe - threshold;
     excess * dt::DISSIPATION_PLASMA
 }

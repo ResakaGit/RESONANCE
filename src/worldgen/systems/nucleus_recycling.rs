@@ -12,7 +12,7 @@
 use bevy::prelude::*;
 
 use crate::blueprint::constants::{
-    nucleus_recycling_nutrient_threshold, NUCLEUS_RECYCLING_SCAN_BUDGET,
+    NUCLEUS_RECYCLING_SCAN_BUDGET, nucleus_recycling_nutrient_threshold,
 };
 use crate::blueprint::equations::derived_thresholds as dt;
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
@@ -36,8 +36,12 @@ pub fn nucleus_recycling_system(
     existing_nuclei: Query<&Transform, With<EnergyNucleus>>,
     mut cursor: ResMut<NucleusRecyclingCursor>,
 ) {
-    let Some(mut nutrients) = nutrient_grid else { return };
-    let Some(ref mut grid) = energy_grid else { return };
+    let Some(mut nutrients) = nutrient_grid else {
+        return;
+    };
+    let Some(ref mut grid) = energy_grid else {
+        return;
+    };
 
     let total_cells = (nutrients.width * nutrients.height) as usize;
     if total_cells == 0 {
@@ -56,18 +60,25 @@ pub fn nucleus_recycling_system(
         let cx = (idx % w as usize) as u32;
         let cy = (idx / w as usize) as u32;
 
-        let Some(cell) = nutrients.cell_xy(cx, cy) else { continue };
-        let avg_nutrient = (cell.carbon_norm + cell.nitrogen_norm
-            + cell.phosphorus_norm + cell.water_norm) * 0.25;
+        let Some(cell) = nutrients.cell_xy(cx, cy) else {
+            continue;
+        };
+        let avg_nutrient =
+            (cell.carbon_norm + cell.nitrogen_norm + cell.phosphorus_norm + cell.water_norm) * 0.25;
 
         if avg_nutrient < nutrient_threshold {
             continue;
         }
 
-        let Some(world_pos) = grid.world_pos(cx, cy) else { continue };
+        let Some(world_pos) = grid.world_pos(cx, cy) else {
+            continue;
+        };
 
         // Estimate propagation radius for proximity check (before draining).
-        let center_qe = grid.cell_xy(cx, cy).map(|c| c.accumulated_qe).unwrap_or(0.0);
+        let center_qe = grid
+            .cell_xy(cx, cy)
+            .map(|c| c.accumulated_qe)
+            .unwrap_or(0.0);
         let est_radius = dt::recycled_propagation_radius(center_qe * 4.0);
 
         let too_close = existing_nuclei.iter().any(|tr| {
@@ -83,7 +94,8 @@ pub fn nucleus_recycling_system(
         }
 
         // Determine frequency from dominant field frequency at this cell.
-        let freq = grid.cell_xy(cx, cy)
+        let freq = grid
+            .cell_xy(cx, cy)
             .map(|c| c.dominant_frequency_hz)
             .filter(|f| *f > 0.0)
             .unwrap_or(crate::blueprint::constants::ABIOGENESIS_FLORA_PEAK_HZ);
@@ -109,7 +121,9 @@ pub fn nucleus_recycling_system(
             for dx in -harvest_r..=harvest_r {
                 let nx = cx as i32 + dx;
                 let ny = cy as i32 + dy;
-                if nx < 0 || ny < 0 || nx >= gw || ny >= gh { continue; }
+                if nx < 0 || ny < 0 || nx >= gw || ny >= gh {
+                    continue;
+                }
                 if let Some(cell) = grid.cell_xy_mut(nx as u32, ny as u32) {
                     let drained = cell.accumulated_qe * drain_frac;
                     if drained > 0.01 {

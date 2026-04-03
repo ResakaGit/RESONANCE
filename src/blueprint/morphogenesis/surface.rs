@@ -2,8 +2,8 @@
 
 use std::f32::consts::PI;
 
-use crate::blueprint::constants::morphogenesis as mg;
 use crate::blueprint::constants::DIVISION_GUARD_EPSILON;
+use crate::blueprint::constants::morphogenesis as mg;
 
 use super::{san_convection_or_default, san_emissivity, san_finite_or_zero, san_nonneg};
 
@@ -20,16 +20,16 @@ pub fn surface_dissipation_power(
 ) -> f32 {
     // T^4 overflow en f32 a ~136 000; techo generoso para el modelo.
     const RAD_T_CEILING: f32 = 100_000.0;
-    let eps    = san_emissivity(emissivity);
-    let tc     = san_finite_or_zero(t_core);
-    let te     = san_finite_or_zero(t_env);
-    let a      = san_nonneg(surf_area);
-    let h      = san_convection_or_default(convection_coeff);
+    let eps = san_emissivity(emissivity);
+    let tc = san_finite_or_zero(t_core);
+    let te = san_finite_or_zero(t_env);
+    let a = san_nonneg(surf_area);
+    let h = san_convection_or_default(convection_coeff);
     let tc_rad = tc.clamp(0.0, RAD_T_CEILING);
     let te_rad = te.clamp(0.0, RAD_T_CEILING);
-    let rad  = eps * mg::STEFAN_BOLTZMANN * (tc_rad.powi(4) - te_rad.powi(4)) * a;
+    let rad = eps * mg::STEFAN_BOLTZMANN * (tc_rad.powi(4) - te_rad.powi(4)) * a;
     let conv = h * (tc - te) * a;
-    let out  = rad + conv;
+    let out = rad + conv;
     if out.is_finite() { out } else { 0.0 }
 }
 
@@ -49,9 +49,9 @@ pub fn inferred_albedo(
     convection_coeff: f32,
 ) -> f32 {
     let q_met = san_nonneg(q_metabolic);
-    let i     = san_nonneg(solar_irradiance);
-    let ap    = san_nonneg(proj_area);
-    let flux  = i * ap;
+    let i = san_nonneg(solar_irradiance);
+    let ap = san_nonneg(proj_area);
+    let flux = i * ap;
     if flux < mg::ALBEDO_IRRADIANCE_FLUX_EPS {
         return mg::ALBEDO_FALLBACK;
     }
@@ -95,13 +95,13 @@ pub fn inferred_surface_rugosity(
     };
     let tc = san_finite_or_zero(t_core);
     let te = san_finite_or_zero(t_env);
-    let h  = san_convection_or_default(convection_coeff);
+    let h = san_convection_or_default(convection_coeff);
     // Ley MG-1D: divisor h * (T_core - T_env); si ΔT ≤ 0 → piso ε (superficie extra máxima).
-    let h_dt     = (h * (tc - te)).max(DIVISION_GUARD_EPSILON);
+    let h_dt = (h * (tc - te)).max(DIVISION_GUARD_EPSILON);
     let a_needed = q / h_dt;
-    let r        = (3.0 * v / (4.0 * PI)).cbrt().max(DIVISION_GUARD_EPSILON);
+    let r = (3.0 * v / (4.0 * PI)).cbrt().max(DIVISION_GUARD_EPSILON);
     let a_sphere = 4.0 * PI * r * r;
-    let rug      = a_needed / a_sphere.max(DIVISION_GUARD_EPSILON);
+    let rug = a_needed / a_sphere.max(DIVISION_GUARD_EPSILON);
     rug.clamp(mg::RUGOSITY_MIN, mg::RUGOSITY_MAX)
 }
 

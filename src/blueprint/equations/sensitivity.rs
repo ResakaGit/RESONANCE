@@ -34,7 +34,11 @@ pub fn parameter_sweep_16(
     let mut out = [(0.0f32, 0.0f32); 16];
     let range = param_max - param_min;
     for i in 0..n {
-        let t = if n == 1 { 0.0 } else { i as f32 / (n - 1) as f32 };
+        let t = if n == 1 {
+            0.0
+        } else {
+            i as f32 / (n - 1) as f32
+        };
         let x = param_min + t * range;
         out[i] = (x, f(x));
     }
@@ -103,7 +107,7 @@ mod tests {
     fn partial_sensitivity_linear_fn_returns_slope() {
         // f(x) = 2x → f(5.1) - f(4.9) = 10.2 - 9.8 = 0.4 → 0.4 / 0.2 = 2.0
         let delta = 0.1f32;
-        let base = 2.0 * 4.9;      // f(x - delta)
+        let base = 2.0 * 4.9; // f(x - delta)
         let perturbed = 2.0 * 5.1; // f(x + delta)
         let s = partial_sensitivity(base, perturbed, delta);
         assert!((s - 2.0).abs() < 1e-5, "expected ≈2.0, got {s}");
@@ -150,8 +154,14 @@ mod tests {
     #[test]
     fn parameter_sweep_single_step_uses_param_min() {
         let pairs = parameter_sweep_16(5.0, 10.0, 1, |x| x + 1.0);
-        assert!((pairs[0].0 - 5.0).abs() < 1e-6, "first param should be min=5.0");
-        assert!((pairs[0].1 - 6.0).abs() < 1e-6, "first output should be 6.0");
+        assert!(
+            (pairs[0].0 - 5.0).abs() < 1e-6,
+            "first param should be min=5.0"
+        );
+        assert!(
+            (pairs[0].1 - 6.0).abs() < 1e-6,
+            "first output should be 6.0"
+        );
         assert_eq!(pairs[1], (0.0, 0.0));
     }
 

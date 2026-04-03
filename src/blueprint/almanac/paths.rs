@@ -40,7 +40,9 @@ pub(crate) fn read_element_def_from_path(path: &Path) -> Result<ElementDef, Stri
 }
 
 /// Parsea cada RON en orden; reutilizable por tests, `build_almanac_*` y validación EAC1.
-pub(crate) fn load_element_defs_with_paths(paths: &[PathBuf]) -> Result<Vec<(PathBuf, ElementDef)>, String> {
+pub(crate) fn load_element_defs_with_paths(
+    paths: &[PathBuf],
+) -> Result<Vec<(PathBuf, ElementDef)>, String> {
     let mut out = Vec::with_capacity(paths.len());
     for path in paths {
         let def = read_element_def_from_path(path)?;

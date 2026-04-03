@@ -11,7 +11,7 @@ use bevy::prelude::*;
 
 use crate::blueprint::constants::*;
 use crate::blueprint::equations::emergence::entrainment::{
-    entrainment_lock_achieved, kuramoto_entrainment_step, ENTRAINMENT_MAX_NEIGHBOURS,
+    ENTRAINMENT_MAX_NEIGHBOURS, entrainment_lock_achieved, kuramoto_entrainment_step,
 };
 use crate::layers::OscillatorySignature;
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
@@ -58,7 +58,9 @@ pub fn entrainment_system(
         let count_before = neighbours_scratch.len();
         for entry in nearby.iter().filter(|e| e.entity != entity_i) {
             // O(log n) binary search on sorted snapshot
-            let Ok(idx_j) = sorted_snapshot.binary_search_by_key(&entry.entity.index(), |(e, _, _)| e.index()) else {
+            let Ok(idx_j) =
+                sorted_snapshot.binary_search_by_key(&entry.entity.index(), |(e, _, _)| e.index())
+            else {
                 continue;
             };
             let (_, freq_j, pos_j) = sorted_snapshot[idx_j];
@@ -76,7 +78,10 @@ pub fn entrainment_system(
         let slice = &neighbours_scratch[offsets[idx]..offsets[idx + 1]];
 
         // Already locked? Skip (saves writes and reduces unnecessary change events).
-        if slice.iter().all(|&(fj, _)| entrainment_lock_achieved(*freq_i, fj, KURAMOTO_LOCK_THRESHOLD_HZ)) {
+        if slice
+            .iter()
+            .all(|&(fj, _)| entrainment_lock_achieved(*freq_i, fj, KURAMOTO_LOCK_THRESHOLD_HZ))
+        {
             continue;
         }
 
@@ -114,7 +119,11 @@ mod tests {
     fn build_index(entities: &[(Entity, Vec2, f32)]) -> SpatialIndex {
         let mut idx = SpatialIndex::new(ENTRAINMENT_SCAN_RADIUS);
         for &(e, pos, radius) in entities {
-            idx.insert(SpatialEntry { entity: e, position: pos, radius });
+            idx.insert(SpatialEntry {
+                entity: e,
+                position: pos,
+                radius,
+            });
         }
         idx
     }
@@ -122,10 +131,13 @@ mod tests {
     #[test]
     fn isolated_oscillator_keeps_frequency() {
         let mut app = test_app();
-        let e = app.world_mut().spawn((
-            OscillatorySignature::new(75.0, 0.0),
-            Transform::from_xyz(0.0, 0.0, 0.0),
-        )).id();
+        let e = app
+            .world_mut()
+            .spawn((
+                OscillatorySignature::new(75.0, 0.0),
+                Transform::from_xyz(0.0, 0.0, 0.0),
+            ))
+            .id();
 
         let idx = build_index(&[(e, Vec2::ZERO, 1.0)]);
         app.insert_resource(idx);
@@ -133,20 +145,30 @@ mod tests {
         app.update();
 
         let osc = app.world().get::<OscillatorySignature>(e).unwrap();
-        assert!((osc.frequency_hz() - 75.0).abs() < 1e-5, "isolated: {}", osc.frequency_hz());
+        assert!(
+            (osc.frequency_hz() - 75.0).abs() < 1e-5,
+            "isolated: {}",
+            osc.frequency_hz()
+        );
     }
 
     #[test]
     fn two_close_oscillators_converge() {
         let mut app = test_app();
-        let e1 = app.world_mut().spawn((
-            OscillatorySignature::new(70.0, 0.0),
-            Transform::from_xyz(0.0, 0.0, 0.0),
-        )).id();
-        let e2 = app.world_mut().spawn((
-            OscillatorySignature::new(80.0, 0.0),
-            Transform::from_xyz(1.0, 0.0, 0.0),
-        )).id();
+        let e1 = app
+            .world_mut()
+            .spawn((
+                OscillatorySignature::new(70.0, 0.0),
+                Transform::from_xyz(0.0, 0.0, 0.0),
+            ))
+            .id();
+        let e2 = app
+            .world_mut()
+            .spawn((
+                OscillatorySignature::new(80.0, 0.0),
+                Transform::from_xyz(1.0, 0.0, 0.0),
+            ))
+            .id();
 
         let idx = build_index(&[
             (e1, Vec2::new(0.0, 0.0), 1.0),
@@ -156,10 +178,21 @@ mod tests {
         app.add_systems(Update, entrainment_system);
         app.update();
 
-        let f1 = app.world().get::<OscillatorySignature>(e1).unwrap().frequency_hz();
-        let f2 = app.world().get::<OscillatorySignature>(e2).unwrap().frequency_hz();
+        let f1 = app
+            .world()
+            .get::<OscillatorySignature>(e1)
+            .unwrap()
+            .frequency_hz();
+        let f2 = app
+            .world()
+            .get::<OscillatorySignature>(e2)
+            .unwrap()
+            .frequency_hz();
         let gap_after = (f1 - f2).abs();
-        assert!(gap_after < 10.0, "frequencies should converge: f1={f1} f2={f2} gap={gap_after}");
+        assert!(
+            gap_after < 10.0,
+            "frequencies should converge: f1={f1} f2={f2} gap={gap_after}"
+        );
         assert!(f1 > 70.0, "lower oscillator should be pulled up: {f1}");
         assert!(f2 < 80.0, "higher oscillator should be pulled down: {f2}");
     }
@@ -167,14 +200,20 @@ mod tests {
     #[test]
     fn far_neighbour_has_less_pull() {
         let mut app_near = test_app();
-        let e_target = app_near.world_mut().spawn((
-            OscillatorySignature::new(70.0, 0.0),
-            Transform::from_xyz(0.0, 0.0, 0.0),
-        )).id();
-        let e_near = app_near.world_mut().spawn((
-            OscillatorySignature::new(80.0, 0.0),
-            Transform::from_xyz(1.0, 0.0, 0.0),
-        )).id();
+        let e_target = app_near
+            .world_mut()
+            .spawn((
+                OscillatorySignature::new(70.0, 0.0),
+                Transform::from_xyz(0.0, 0.0, 0.0),
+            ))
+            .id();
+        let e_near = app_near
+            .world_mut()
+            .spawn((
+                OscillatorySignature::new(80.0, 0.0),
+                Transform::from_xyz(1.0, 0.0, 0.0),
+            ))
+            .id();
         let idx_near = build_index(&[
             (e_target, Vec2::ZERO, 1.0),
             (e_near, Vec2::new(1.0, 0.0), 1.0),
@@ -182,17 +221,27 @@ mod tests {
         app_near.insert_resource(idx_near);
         app_near.add_systems(Update, entrainment_system);
         app_near.update();
-        let freq_after_near = app_near.world().get::<OscillatorySignature>(e_target).unwrap().frequency_hz();
+        let freq_after_near = app_near
+            .world()
+            .get::<OscillatorySignature>(e_target)
+            .unwrap()
+            .frequency_hz();
 
         let mut app_far = test_app();
-        let e_target2 = app_far.world_mut().spawn((
-            OscillatorySignature::new(70.0, 0.0),
-            Transform::from_xyz(0.0, 0.0, 0.0),
-        )).id();
-        let e_far = app_far.world_mut().spawn((
-            OscillatorySignature::new(80.0, 0.0),
-            Transform::from_xyz(10.0, 0.0, 0.0),
-        )).id();
+        let e_target2 = app_far
+            .world_mut()
+            .spawn((
+                OscillatorySignature::new(70.0, 0.0),
+                Transform::from_xyz(0.0, 0.0, 0.0),
+            ))
+            .id();
+        let e_far = app_far
+            .world_mut()
+            .spawn((
+                OscillatorySignature::new(80.0, 0.0),
+                Transform::from_xyz(10.0, 0.0, 0.0),
+            ))
+            .id();
         let idx_far = build_index(&[
             (e_target2, Vec2::ZERO, 1.0),
             (e_far, Vec2::new(10.0, 0.0), 1.0),
@@ -200,22 +249,35 @@ mod tests {
         app_far.insert_resource(idx_far);
         app_far.add_systems(Update, entrainment_system);
         app_far.update();
-        let freq_after_far = app_far.world().get::<OscillatorySignature>(e_target2).unwrap().frequency_hz();
+        let freq_after_far = app_far
+            .world()
+            .get::<OscillatorySignature>(e_target2)
+            .unwrap()
+            .frequency_hz();
 
-        assert!(freq_after_near > freq_after_far, "near={freq_after_near} should move more than far={freq_after_far}");
+        assert!(
+            freq_after_near > freq_after_far,
+            "near={freq_after_near} should move more than far={freq_after_far}"
+        );
     }
 
     #[test]
     fn out_of_range_neighbour_has_no_effect() {
         let mut app = test_app();
-        let e1 = app.world_mut().spawn((
-            OscillatorySignature::new(70.0, 0.0),
-            Transform::from_xyz(0.0, 0.0, 0.0),
-        )).id();
-        let _e2 = app.world_mut().spawn((
-            OscillatorySignature::new(80.0, 0.0),
-            Transform::from_xyz(100.0, 0.0, 0.0), // way outside ENTRAINMENT_SCAN_RADIUS
-        )).id();
+        let e1 = app
+            .world_mut()
+            .spawn((
+                OscillatorySignature::new(70.0, 0.0),
+                Transform::from_xyz(0.0, 0.0, 0.0),
+            ))
+            .id();
+        let _e2 = app
+            .world_mut()
+            .spawn((
+                OscillatorySignature::new(80.0, 0.0),
+                Transform::from_xyz(100.0, 0.0, 0.0), // way outside ENTRAINMENT_SCAN_RADIUS
+            ))
+            .id();
 
         // Only e1 in the spatial index query result for e1 (e2 is too far)
         let idx = build_index(&[(e1, Vec2::ZERO, 1.0)]); // e2 not inserted near e1
@@ -223,7 +285,14 @@ mod tests {
         app.add_systems(Update, entrainment_system);
         app.update();
 
-        let f1 = app.world().get::<OscillatorySignature>(e1).unwrap().frequency_hz();
-        assert!((f1 - 70.0).abs() < 1e-5, "out-of-range: should not move: {f1}");
+        let f1 = app
+            .world()
+            .get::<OscillatorySignature>(e1)
+            .unwrap()
+            .frequency_hz();
+        assert!(
+            (f1 - 70.0).abs() < 1e-5,
+            "out-of-range: should not move: {f1}"
+        );
     }
 }

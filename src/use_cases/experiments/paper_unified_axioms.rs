@@ -18,11 +18,11 @@
 use crate::batch::arena::{EntitySlot, SimWorldFlat};
 use crate::batch::scratch::ScratchPad;
 use crate::batch::systems;
-use crate::blueprint::equations::determinism;
 use crate::blueprint::equations::derived_thresholds::{
-    KLEIBER_EXPONENT, DISSIPATION_SOLID, DISSIPATION_LIQUID, DISSIPATION_GAS,
-    COHERENCE_BANDWIDTH, DENSITY_SCALE,
+    COHERENCE_BANDWIDTH, DENSITY_SCALE, DISSIPATION_GAS, DISSIPATION_LIQUID, DISSIPATION_SOLID,
+    KLEIBER_EXPONENT,
 };
+use crate::blueprint::equations::determinism;
 use std::time::Instant;
 
 // ─── Derived experiment constants (ALL from 4 fundamentals) ─────────────────
@@ -103,21 +103,21 @@ const IRRADIANCE_RATIO: f32 = DISSIPATION_SOLID / DISSIPATION_LIQUID; // = 0.25
 /// Result of one sub-test (1 paper).
 #[derive(Debug, Clone)]
 pub struct SubTestResult {
-    pub name:       &'static str,
-    pub paper:      &'static str,
+    pub name: &'static str,
+    pub paper: &'static str,
     pub prediction: &'static str,
-    pub passed:     bool,
-    pub detail:     String,
+    pub passed: bool,
+    pub detail: String,
 }
 
 /// Reporte completo de PV-6.
 /// Complete PV-6 report.
 #[derive(Debug)]
 pub struct UnifiedReport {
-    pub results:      Vec<SubTestResult>,
-    pub all_passed:   bool,
+    pub results: Vec<SubTestResult>,
+    pub all_passed: bool,
     pub passed_count: u32,
-    pub total_count:  u32,
+    pub total_count: u32,
     pub wall_time_ms: u64,
 }
 
@@ -126,7 +126,9 @@ pub struct UnifiedReport {
 /// Hill dose-response canónico. Axioma 4+8.
 /// Canonical Hill dose-response. Axiom 4+8.
 fn hill_response(alignment: f32, potency: f32) -> f32 {
-    if alignment <= 0.0 || potency <= 0.0 { return 0.0; }
+    if alignment <= 0.0 || potency <= 0.0 {
+        return 0.0;
+    }
     let c_n = alignment.powf(HILL_N);
     let ec50_n = 0.5f32.powf(HILL_N);
     potency * c_n / (ec50_n + c_n)
@@ -135,9 +137,8 @@ fn hill_response(alignment: f32, potency: f32) -> f32 {
 /// Drenaje citotóxico derivado: drain = qe × alignment × DRUG_DRAIN_FRACTION.
 /// Derived cytotoxic drain: drain = qe × alignment × DRUG_DRAIN_FRACTION.
 fn cytotoxic_drain(entity_freq: f32, entity_qe: f32, drug_freq: f32) -> f32 {
-    let alignment = determinism::gaussian_frequency_alignment(
-        entity_freq, drug_freq, COHERENCE_BANDWIDTH,
-    );
+    let alignment =
+        determinism::gaussian_frequency_alignment(entity_freq, drug_freq, COHERENCE_BANDWIDTH);
     let hill = hill_response(alignment, 1.0);
     entity_qe * hill * DRUG_DRAIN_FRACTION
 }
@@ -165,17 +166,28 @@ fn spawn_entity(world: &mut SimWorldFlat, freq: f32, qe: f32, growth: f32, seed:
 }
 
 fn make_worlds(n: usize, seed: u64, setup: impl Fn(&mut SimWorldFlat, u64)) -> Vec<SimWorldFlat> {
-    (0..n).map(|wi| {
-        let ws = determinism::next_u64(seed ^ (wi as u64));
-        let mut w = SimWorldFlat::new(ws, 0.05);
-        for cell in w.nutrient_grid.iter_mut() { *cell = NUTRIENT_LEVEL; }
-        for cell in w.irradiance_grid.iter_mut() { *cell = NUTRIENT_LEVEL * IRRADIANCE_RATIO; }
-        setup(&mut w, ws);
-        w
-    }).collect()
+    (0..n)
+        .map(|wi| {
+            let ws = determinism::next_u64(seed ^ (wi as u64));
+            let mut w = SimWorldFlat::new(ws, 0.05);
+            for cell in w.nutrient_grid.iter_mut() {
+                *cell = NUTRIENT_LEVEL;
+            }
+            for cell in w.irradiance_grid.iter_mut() {
+                *cell = NUTRIENT_LEVEL * IRRADIANCE_RATIO;
+            }
+            setup(&mut w, ws);
+            w
+        })
+        .collect()
 }
 
-fn tick_with_drug(world: &mut SimWorldFlat, scratch: &mut ScratchPad, drug_freq: f32, drug_on: bool) {
+fn tick_with_drug(
+    world: &mut SimWorldFlat,
+    scratch: &mut ScratchPad,
+    drug_freq: f32,
+    drug_on: bool,
+) {
     scratch.clear();
     world.events.clear();
     world.tick_id += 1;
@@ -200,7 +212,11 @@ fn tick_with_drug(world: &mut SimWorldFlat, scratch: &mut ScratchPad, drug_freq:
         while mask != 0 {
             let i = mask.trailing_zeros() as usize;
             mask &= mask - 1;
-            let drain = cytotoxic_drain(world.entities[i].frequency_hz, world.entities[i].qe, drug_freq);
+            let drain = cytotoxic_drain(
+                world.entities[i].frequency_hz,
+                world.entities[i].qe,
+                drug_freq,
+            );
             world.entities[i].qe = (world.entities[i].qe - drain).max(0.0);
         }
     }
@@ -217,7 +233,10 @@ fn count_alive(worlds: &[SimWorldFlat]) -> f32 {
     let mut total = 0u32;
     for w in worlds {
         let mut mask = w.alive_mask;
-        while mask != 0 { mask &= mask - 1; total += 1; }
+        while mask != 0 {
+            mask &= mask - 1;
+            total += 1;
+        }
     }
     total as f32 / nw
 }
@@ -230,7 +249,11 @@ fn count_by_freq(worlds: &[SimWorldFlat], threshold: f32) -> (f32, f32) {
         while mask != 0 {
             let i = mask.trailing_zeros() as usize;
             mask &= mask - 1;
-            if w.entities[i].frequency_hz < threshold { below += 1; } else { above += 1; }
+            if w.entities[i].frequency_hz < threshold {
+                below += 1;
+            } else {
+                above += 1;
+            }
         }
     }
     (below as f32 / nw, above as f32 / nw)
@@ -272,7 +295,9 @@ fn test_combo_vs_mono(seed: u64) -> SubTestResult {
     let mut mono_scratches: Vec<ScratchPad> = (0..N_WORLDS).map(|_| ScratchPad::new()).collect();
     for _ in 0..gens {
         for (wi, w) in mono_worlds.iter_mut().enumerate() {
-            for _ in 0..TICKS_PER_GEN { tick_with_drug(w, &mut mono_scratches[wi], drug_a, true); }
+            for _ in 0..TICKS_PER_GEN {
+                tick_with_drug(w, &mut mono_scratches[wi], drug_a, true);
+            }
         }
     }
     let mono_qe = mean_qe(&mono_worlds);
@@ -289,7 +314,8 @@ fn test_combo_vs_mono(seed: u64) -> SubTestResult {
                 while mask != 0 {
                     let i = mask.trailing_zeros() as usize;
                     mask &= mask - 1;
-                    let drain = cytotoxic_drain(w.entities[i].frequency_hz, w.entities[i].qe, drug_b);
+                    let drain =
+                        cytotoxic_drain(w.entities[i].frequency_hz, w.entities[i].qe, drug_b);
                     w.entities[i].qe = (w.entities[i].qe - drain).max(0.0);
                 }
             }
@@ -311,14 +337,19 @@ fn test_combo_vs_mono(seed: u64) -> SubTestResult {
 /// T2: Adaptive > Continuous (Zhang 2022). Lotka-Volterra with fitness cost.
 fn test_adaptive_vs_continuous(_seed: u64) -> SubTestResult {
     let k = 1.0f32;
-    let gs = GROWTH_BASE;                            // 0.75 — sensitive
-    let gr = GROWTH_BASE * RESISTANCE_FITNESS_COST;  // 0.1875 — resistant (fitness cost)
-    let alpha_sr = 1.0 - DISSIPATION_SOLID;          // 0.995 — sensitive strongly inhibit resistant
+    let gs = GROWTH_BASE; // 0.75 — sensitive
+    let gr = GROWTH_BASE * RESISTANCE_FITNESS_COST; // 0.1875 — resistant (fitness cost)
+    let alpha_sr = 1.0 - DISSIPATION_SOLID; // 0.995 — sensitive strongly inhibit resistant
     let alpha_rs = DISSIPATION_LIQUID / DISSIPATION_SOLID * 0.1; // 0.4 — weak reverse
-    let drug_kill = DRUG_POTENCY;                    // 4.0
+    let drug_kill = DRUG_POTENCY; // 4.0
 
-    let alignment_s = determinism::gaussian_frequency_alignment(TUMOR_FREQ, TUMOR_FREQ, COHERENCE_BANDWIDTH);
-    let alignment_r = determinism::gaussian_frequency_alignment(TUMOR_FREQ + RESISTANT_OFFSET, TUMOR_FREQ, COHERENCE_BANDWIDTH);
+    let alignment_s =
+        determinism::gaussian_frequency_alignment(TUMOR_FREQ, TUMOR_FREQ, COHERENCE_BANDWIDTH);
+    let alignment_r = determinism::gaussian_frequency_alignment(
+        TUMOR_FREQ + RESISTANT_OFFSET,
+        TUMOR_FREQ,
+        COHERENCE_BANDWIDTH,
+    );
 
     let gens = N_GENS; // 100
 
@@ -337,14 +368,29 @@ fn test_adaptive_vs_continuous(_seed: u64) -> SubTestResult {
                 drug_on = g >= 5;
             } else {
                 let current = s + r;
-                if g < 5 { drug_on = false; peak = current; }
-                else if g == 5 { drug_on = true; }
-                else if drug_on && current < peak * 0.6 { drug_on = false; }
-                else if !drug_on && current > peak * 0.85 { drug_on = true; peak = current; }
+                if g < 5 {
+                    drug_on = false;
+                    peak = current;
+                } else if g == 5 {
+                    drug_on = true;
+                } else if drug_on && current < peak * 0.6 {
+                    drug_on = false;
+                } else if !drug_on && current > peak * 0.85 {
+                    drug_on = true;
+                    peak = current;
+                }
             }
 
-            let ds = if drug_on { drug_kill * alignment_s } else { 0.0 };
-            let dr_kill = if drug_on { drug_kill * alignment_r } else { 0.0 };
+            let ds = if drug_on {
+                drug_kill * alignment_s
+            } else {
+                0.0
+            };
+            let dr_kill = if drug_on {
+                drug_kill * alignment_r
+            } else {
+                0.0
+            };
 
             let new_s = (s + 0.01 * s * (gs * (1.0 - (s + alpha_rs * r) / k) - ds)).max(0.0);
             let new_r = (r + 0.01 * r * (gr * (1.0 - (r + alpha_sr * s) / k) - dr_kill)).max(0.0);
@@ -390,7 +436,8 @@ fn test_persisters(seed: u64) -> SubTestResult {
             let mut e = EntitySlot::default();
             e.qe = BASE_QE * 0.8;
             e.radius = 0.4;
-            e.frequency_hz = TUMOR_FREQ + RESISTANT_OFFSET + determinism::gaussian_f32(s, FREQ_SIGMA);
+            e.frequency_hz =
+                TUMOR_FREQ + RESISTANT_OFFSET + determinism::gaussian_f32(s, FREQ_SIGMA);
             e.growth_bias = DISSIPATION_SOLID; // 0.005 — quiescent
             e.mobility_bias = 0.1;
             e.branching_bias = 0.1;
@@ -414,7 +461,9 @@ fn test_persisters(seed: u64) -> SubTestResult {
     // Treatment phase: 30 gens with drug.
     for _ in 0..30 {
         for (wi, w) in worlds.iter_mut().enumerate() {
-            for _ in 0..TICKS_PER_GEN { tick_with_drug(w, &mut scratches[wi], drug_freq, true); }
+            for _ in 0..TICKS_PER_GEN {
+                tick_with_drug(w, &mut scratches[wi], drug_freq, true);
+            }
         }
     }
     let post_drug_pop = count_alive(&worlds);
@@ -423,7 +472,9 @@ fn test_persisters(seed: u64) -> SubTestResult {
     // Recovery phase: 30 gens without drug.
     for _ in 0..30 {
         for (wi, w) in worlds.iter_mut().enumerate() {
-            for _ in 0..TICKS_PER_GEN { tick_with_drug(w, &mut scratches[wi], drug_freq, false); }
+            for _ in 0..TICKS_PER_GEN {
+                tick_with_drug(w, &mut scratches[wi], drug_freq, false);
+            }
         }
     }
     let recovery_pop = count_alive(&worlds);
@@ -436,7 +487,9 @@ fn test_persisters(seed: u64) -> SubTestResult {
         paper: "Sharma 2010 (Cell)",
         prediction: "small fraction survives drug, recovers after removal",
         passed,
-        detail: format!("initial={initial_pop:.0} post_drug={post_drug_pop:.0} frac={persister_frac:.3} recovery={recovery}"),
+        detail: format!(
+            "initial={initial_pop:.0} post_drug={post_drug_pop:.0} frac={persister_frac:.3} recovery={recovery}"
+        ),
     }
 }
 
@@ -481,9 +534,13 @@ fn test_pulsed_vs_continuous(seed: u64) -> SubTestResult {
         for g in 0..gens {
             let drug_on = if pulsed {
                 (g % (pulse_on + pulse_off)) < pulse_on
-            } else { true };
+            } else {
+                true
+            };
             for (wi, w) in worlds.iter_mut().enumerate() {
-                for _ in 0..TICKS_PER_GEN { tick_with_drug(w, &mut scratches[wi], drug_freq, drug_on); }
+                for _ in 0..TICKS_PER_GEN {
+                    tick_with_drug(w, &mut scratches[wi], drug_freq, drug_on);
+                }
             }
         }
         // Count worlds where resistant > 50%.
@@ -491,7 +548,9 @@ fn test_pulsed_vs_continuous(seed: u64) -> SubTestResult {
         for w in &worlds {
             let (_, above) = count_by_freq(&[w.clone()], freq_threshold);
             let total = count_alive(&[w.clone()]);
-            if total > 0.0 && above / total > 0.5 { resistant_worlds += 1; }
+            if total > 0.0 && above / total > 0.5 {
+                resistant_worlds += 1;
+            }
         }
         resistant_worlds as f32 / N_WORLDS as f32
     };
@@ -536,7 +595,9 @@ fn test_biphasic_stem(seed: u64) -> SubTestResult {
     // Pre-drug (5 gens).
     for _ in 0..5 {
         for (wi, w) in worlds.iter_mut().enumerate() {
-            for _ in 0..TICKS_PER_GEN { tick_with_drug(w, &mut scratches[wi], drug_freq, false); }
+            for _ in 0..TICKS_PER_GEN {
+                tick_with_drug(w, &mut scratches[wi], drug_freq, false);
+            }
         }
         timeline.push(count_alive(&worlds));
     }
@@ -544,7 +605,9 @@ fn test_biphasic_stem(seed: u64) -> SubTestResult {
     // Drug phase (40 gens).
     for _ in 0..40 {
         for (wi, w) in worlds.iter_mut().enumerate() {
-            for _ in 0..TICKS_PER_GEN { tick_with_drug(w, &mut scratches[wi], drug_freq, true); }
+            for _ in 0..TICKS_PER_GEN {
+                tick_with_drug(w, &mut scratches[wi], drug_freq, true);
+            }
         }
         timeline.push(count_alive(&worlds));
     }
@@ -561,14 +624,17 @@ fn test_biphasic_stem(seed: u64) -> SubTestResult {
         let late = &timeline[drug_start + 10..drug_start + 20];
         let slope_early = (early.last().unwrap_or(&0.0) - early.first().unwrap_or(&0.0)) / 10.0;
         let slope_late = (late.last().unwrap_or(&0.0) - late.first().unwrap_or(&0.0)) / 10.0;
-        let biphasic = slope_early < 0.0 && (slope_early.abs() > slope_late.abs() * 1.5 || slope_late.abs() < 0.1);
+        let biphasic = slope_early < 0.0
+            && (slope_early.abs() > slope_late.abs() * 1.5 || slope_late.abs() < 0.1);
 
         SubTestResult {
             name: "T6_biphasic_stem_survive",
             paper: "Michor 2005 (Nature)",
             prediction: "biphasic decline + stem cells survive",
             passed: stem_survive && biphasic,
-            detail: format!("stem_alive={stem_alive:.1} biphasic={biphasic} slope_early={slope_early:.3} slope_late={slope_late:.3}"),
+            detail: format!(
+                "stem_alive={stem_alive:.1} biphasic={biphasic} slope_early={slope_early:.3} slope_late={slope_late:.3}"
+            ),
         }
     } else {
         SubTestResult {
@@ -625,7 +691,10 @@ mod tests {
         assert_eq!(FREQ_SIGMA, COHERENCE_BANDWIDTH / 3.0);
         assert_eq!(DRUG_DRAIN_FRACTION, DISSIPATION_SOLID * DRUG_POTENCY);
         assert_eq!(GROWTH_BASE, KLEIBER_EXPONENT);
-        assert_eq!(RESISTANCE_FITNESS_COST, DISSIPATION_LIQUID / DISSIPATION_GAS);
+        assert_eq!(
+            RESISTANCE_FITNESS_COST,
+            DISSIPATION_LIQUID / DISSIPATION_GAS
+        );
         assert_eq!(QUIESCENT_FRACTION, DISSIPATION_SOLID);
         assert_eq!(NUTRIENT_LEVEL, DISSIPATION_LIQUID * DENSITY_SCALE);
         assert_eq!(IRRADIANCE_RATIO, DISSIPATION_SOLID / DISSIPATION_LIQUID);
@@ -654,7 +723,11 @@ mod tests {
         let a = run(42);
         let b = run(42);
         for (ra, rb) in a.results.iter().zip(b.results.iter()) {
-            assert_eq!(ra.passed, rb.passed, "{}: a={} b={}", ra.name, ra.passed, rb.passed);
+            assert_eq!(
+                ra.passed, rb.passed,
+                "{}: a={} b={}",
+                ra.name, ra.passed, rb.passed
+            );
         }
     }
 

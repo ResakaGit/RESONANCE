@@ -18,7 +18,9 @@ impl InternalEnergyField {
     /// Uniform distribution from total qe.
     pub fn uniform(total_qe: f32) -> Self {
         let per_node = (total_qe / 8.0).max(0.0);
-        Self { nodes: [per_node; 8] }
+        Self {
+            nodes: [per_node; 8],
+        }
     }
 
     /// Total energy across all nodes.

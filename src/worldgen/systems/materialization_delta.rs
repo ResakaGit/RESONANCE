@@ -3,8 +3,8 @@
 use bevy::prelude::*;
 
 use crate::layers::{BaseEnergy, MatterCoherence, OscillatorySignature, SpatialVolume};
-use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
+use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::worldgen::constants::{
     MATERIALIZED_COLLIDER_RADIUS_FACTOR, MATERIALIZED_MIN_COLLIDER_RADIUS,
     MATERIALIZED_SPAWN_BOND_ENERGY, MATERIALIZED_SPAWN_THERMAL_CONDUCTIVITY,
@@ -35,9 +35,7 @@ pub fn materialization_incremental_system(
 
     // Collect dirty indices within budget. We cannot borrow grid mutably for the iterator
     // and immutably for cell reads at the same time, so we gather indices first.
-    let dirty: Vec<usize> = grid
-        .drain_dirty_budgeted(DELTA_SPAWN_BUDGET)
-        .collect();
+    let dirty: Vec<usize> = grid.drain_dirty_budgeted(DELTA_SPAWN_BUDGET).collect();
 
     for idx in dirty {
         let x = (idx % width as usize) as u32;
@@ -49,7 +47,9 @@ pub fn materialization_incremental_system(
         };
 
         let should_materialize = {
-            let Some(cell) = grid.cell_xy(x, y) else { continue };
+            let Some(cell) = grid.cell_xy(x, y) else {
+                continue;
+            };
             cell.accumulated_qe > 0.0
         };
 
@@ -57,7 +57,9 @@ pub fn materialization_incremental_system(
 
         match (should_materialize, existing) {
             (true, None) => {
-                let Some(cell) = grid.cell_xy(x, y) else { continue };
+                let Some(cell) = grid.cell_xy(x, y) else {
+                    continue;
+                };
                 let id = commands
                     .spawn((
                         Materialized {
@@ -82,14 +84,18 @@ pub fn materialization_incremental_system(
                         crate::entities::component_groups::terrain_senescence(clock.tick_id),
                     ))
                     .id();
-                let Some(cell_mut) = grid.cell_xy_mut(x, y) else { continue };
+                let Some(cell_mut) = grid.cell_xy_mut(x, y) else {
+                    continue;
+                };
                 cell_mut.materialized_entity = Some(id);
             }
             (false, Some(e)) => {
                 if materialized_query.get(e).is_ok() {
                     commands.entity(e).despawn();
                 }
-                let Some(cell_mut) = grid.cell_xy_mut(x, y) else { continue };
+                let Some(cell_mut) = grid.cell_xy_mut(x, y) else {
+                    continue;
+                };
                 cell_mut.materialized_entity = None;
             }
             _ => {}

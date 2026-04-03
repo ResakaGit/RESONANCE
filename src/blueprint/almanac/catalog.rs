@@ -5,13 +5,13 @@ use std::collections::HashMap;
 
 use bevy::prelude::*;
 
-use crate::blueprint::element_id::ElementId;
+use crate::blueprint::MatterState;
 use crate::blueprint::constants::{FNV_OFFSET_BASIS, FNV_PRIME};
-use crate::layers::MatterState;
+use crate::blueprint::element_id::ElementId;
 
 use super::eac::{
-    cmp_stable_band_candidates_eac2, compute_game_frequency_hz_bounds,
-    ALMANAC_DEFAULT_PEAK_FROM_BAND_MIDPOINT,
+    ALMANAC_DEFAULT_PEAK_FROM_BAND_MIDPOINT, cmp_stable_band_candidates_eac2,
+    compute_game_frequency_hz_bounds,
 };
 use super::element_def::ElementDef;
 

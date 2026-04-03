@@ -5,11 +5,11 @@ use crate::batch::arena::{EntitySlot, SimWorldFlat};
 use crate::batch::constants::*;
 use crate::batch::genome::GenomeBlob;
 use crate::batch::systems::thermodynamic::grid_cell;
-use crate::blueprint::{constants, equations};
+use crate::blueprint::equations::codon_genome;
 use crate::blueprint::equations::determinism;
 use crate::blueprint::equations::emergence::senescence as senescence_eq;
-use crate::blueprint::equations::codon_genome;
 use crate::blueprint::equations::variable_genome;
+use crate::blueprint::{constants, equations};
 
 /// Age-dependent dissipation: older entities lose energy faster.
 ///
@@ -23,11 +23,11 @@ pub fn senescence(world: &mut SimWorldFlat) {
         mask &= mask - 1;
         let e = &mut world.entities[i];
         let age = tick.saturating_sub(e.entity_id as u64);
-        let rate = senescence_eq::age_dependent_dissipation(
-            e.dissipation, age, SENESCENCE_COEFF,
-        );
+        let rate = senescence_eq::age_dependent_dissipation(e.dissipation, age, SENESCENCE_COEFF);
         let loss = (e.qe * rate).min(e.qe);
-        if loss > 0.0 { e.qe -= loss; }
+        if loss > 0.0 {
+            e.qe -= loss;
+        }
     }
 }
 
@@ -41,11 +41,17 @@ pub fn growth_inference(world: &mut SimWorldFlat) {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
         let e = &mut world.entities[i];
-        if e.growth_bias <= 0.0 || e.qe <= 0.0 { continue; }
+        if e.growth_bias <= 0.0 || e.qe <= 0.0 {
+            continue;
+        }
         let r_max = e.growth_bias * MAX_ALLOMETRIC_RADIUS;
-        if e.radius >= r_max { continue; }
+        if e.radius >= r_max {
+            continue;
+        }
         let new_r = equations::allometric_radius(e.radius, r_max, GROWTH_RATE_K, 1);
-        if e.radius != new_r { e.radius = new_r; }
+        if e.radius != new_r {
+            e.radius = new_r;
+        }
     }
 }
 
@@ -54,7 +60,9 @@ pub fn growth_inference(world: &mut SimWorldFlat) {
 /// Axiom 4: extreme dissipation event. Axiom 7: localized by distance.
 /// Opens ecological niches for new species (Axiom 6: emergence from extinction).
 pub fn asteroid_impact(world: &mut SimWorldFlat) {
-    if ASTEROID_INTERVAL == 0 || world.tick_id % ASTEROID_INTERVAL != 0 { return; }
+    if ASTEROID_INTERVAL == 0 || world.tick_id % ASTEROID_INTERVAL != 0 {
+        return;
+    }
     let rng = determinism::next_u64(world.seed ^ world.tick_id ^ 0xA57E);
     let impact = [
         determinism::range_f32(rng, 0.0, GRID_SIDE as f32),
@@ -90,7 +98,9 @@ pub fn death_reap(world: &mut SimWorldFlat) {
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
-        if world.entities[i].qe >= QE_MIN_EXISTENCE { continue; }
+        if world.entities[i].qe >= QE_MIN_EXISTENCE {
+            continue;
+        }
         // Return fraction of remaining qe to nutrient grid
         let cell = grid_cell(world.entities[i].position);
         if cell < GRID_CELLS {
@@ -125,9 +135,13 @@ pub fn reproduction(world: &mut SimWorldFlat) {
     for r in 0..repro_count {
         let (pi, rng) = repro_list[r];
         let parent_idx = pi as usize;
-        if world.alive_mask & (1 << parent_idx) == 0 { continue; }
+        if world.alive_mask & (1 << parent_idx) == 0 {
+            continue;
+        }
 
-        let Some(child_idx) = world.first_free_slot() else { continue; };
+        let Some(child_idx) = world.first_free_slot() else {
+            continue;
+        };
 
         // Mutate via VariableGenome (supports gene duplication/deletion)
         let parent_vg = &world.genomes[parent_idx];
@@ -161,7 +175,8 @@ pub fn reproduction(world: &mut SimWorldFlat) {
         child.frequency_hz = world.entities[parent_idx].frequency_hz;
         child.position = [
             parent_pos[0] + determinism::unit_f32(rng) * parent_radius * 2.0 - parent_radius,
-            parent_pos[1] + determinism::unit_f32(determinism::next_u64(rng)) * parent_radius * 2.0 - parent_radius,
+            parent_pos[1] + determinism::unit_f32(determinism::next_u64(rng)) * parent_radius * 2.0
+                - parent_radius,
         ];
 
         world.entities[child_idx] = child;
@@ -170,7 +185,8 @@ pub fn reproduction(world: &mut SimWorldFlat) {
         let parent_cg = world.codon_genomes[parent_idx];
         let parent_ct = world.codon_tables[parent_idx];
         world.codon_genomes[child_idx] = codon_genome::mutate_codon(&parent_cg, rng);
-        world.codon_tables[child_idx] = codon_genome::mutate_table(&parent_ct, determinism::next_u64(rng));
+        world.codon_tables[child_idx] =
+            codon_genome::mutate_table(&parent_ct, determinism::next_u64(rng));
         world.alive_mask |= 1 << child_idx;
         world.entity_count += 1;
         world.events.record_reproduction(pi, child_idx as u8);
@@ -179,11 +195,17 @@ pub fn reproduction(world: &mut SimWorldFlat) {
 
 /// Abiogenesis: spontaneous cell generation when population is low and energy is high.
 pub fn abiogenesis(world: &mut SimWorldFlat) {
-    if world.entity_count >= ABIOGENESIS_POP_CAP { return; }
+    if world.entity_count >= ABIOGENESIS_POP_CAP {
+        return;
+    }
     let grid_energy: f32 = world.irradiance_grid.iter().sum();
-    if grid_energy < ABIOGENESIS_ENERGY_THRESHOLD { return; }
+    if grid_energy < ABIOGENESIS_ENERGY_THRESHOLD {
+        return;
+    }
 
-    let Some(idx) = world.first_free_slot() else { return; };
+    let Some(idx) = world.first_free_slot() else {
+        return;
+    };
     let rng = determinism::next_u64(world.seed ^ world.tick_id ^ 0xAB10);
 
     let mut cell = EntitySlot::default();
@@ -207,11 +229,13 @@ pub fn abiogenesis(world: &mut SimWorldFlat) {
 
     world.entities[idx] = cell;
     world.genomes[idx] = variable_genome::VariableGenome::from_biases(
-        cell.growth_bias, cell.mobility_bias, cell.branching_bias, cell.resilience,
+        cell.growth_bias,
+        cell.mobility_bias,
+        cell.branching_bias,
+        cell.resilience,
     );
-    world.codon_genomes[idx] = codon_genome::CodonGenome::from_seed(
-        determinism::next_u64(rng ^ 0xCD),
-    );
+    world.codon_genomes[idx] =
+        codon_genome::CodonGenome::from_seed(determinism::next_u64(rng ^ 0xCD));
     world.codon_tables[idx] = codon_genome::CodonTable::default();
     world.alive_mask |= 1 << idx;
     world.entity_count += 1;
@@ -226,22 +250,28 @@ pub fn morpho_adaptation(world: &mut SimWorldFlat) {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
         let e = &mut world.entities[i];
-        if e.radius <= 0.0 { continue; }
+        if e.radius <= 0.0 {
+            continue;
+        }
 
         // Bergmann: compute equivalent temperature, apply growth pressure
         let density = equations::density(e.qe, e.radius);
         let temp = equations::equivalent_temperature(density);
-        let bergmann = equations::bergmann_radius_pressure(
-            temp, constants::MORPHO_TARGET_TEMPERATURE,
-        );
-        let new_growth = (e.growth_bias + bergmann * constants::MORPHO_ADAPTATION_RATE).clamp(0.0, 1.0);
-        if e.growth_bias != new_growth { e.growth_bias = new_growth; }
+        let bergmann =
+            equations::bergmann_radius_pressure(temp, constants::MORPHO_TARGET_TEMPERATURE);
+        let new_growth =
+            (e.growth_bias + bergmann * constants::MORPHO_ADAPTATION_RATE).clamp(0.0, 1.0);
+        if e.growth_bias != new_growth {
+            e.growth_bias = new_growth;
+        }
 
         // Wolff: use-driven bone density from movement speed
         let speed_sq = e.velocity[0] * e.velocity[0] + e.velocity[1] * e.velocity[1];
         let load = speed_sq.sqrt(); // speed as load proxy
         let new_bond = equations::use_driven_bone_density(load, e.bond_energy);
-        if e.bond_energy != new_bond { e.bond_energy = new_bond; }
+        if e.bond_energy != new_bond {
+            e.bond_energy = new_bond;
+        }
     }
 }
 
@@ -277,13 +307,14 @@ mod tests {
         let old = spawn(&mut w, 100.0, 0.0);
         // Simulate age by advancing tick_id
         w.tick_id = 1000;
-        w.entities[old].entity_id = 0;    // spawned at tick 0 → age 1000
+        w.entities[old].entity_id = 0; // spawned at tick 0 → age 1000
         w.entities[young].entity_id = 999; // spawned at tick 999 → age 1
         senescence(&mut w);
         assert!(
             w.entities[old].qe < w.entities[young].qe,
             "old entity should lose more: old={} young={}",
-            w.entities[old].qe, w.entities[young].qe,
+            w.entities[old].qe,
+            w.entities[young].qe,
         );
     }
 
@@ -361,7 +392,10 @@ mod tests {
         let cell = grid_cell([3.0, 3.0]);
         let grid_before = w.nutrient_grid[cell];
         death_reap(&mut w);
-        assert!(w.nutrient_grid[cell] > grid_before, "nutrients should return to grid");
+        assert!(
+            w.nutrient_grid[cell] > grid_before,
+            "nutrients should return to grid"
+        );
     }
 
     #[test]
@@ -400,7 +434,10 @@ mod tests {
         let child_qe = w.entities[1].qe;
         assert!(parent_after < total_before, "parent should lose energy");
         assert!(child_qe > 0.0, "child should have energy");
-        assert!((parent_after + child_qe - total_before).abs() < 1e-4, "energy conserved");
+        assert!(
+            (parent_after + child_qe - total_before).abs() < 1e-4,
+            "energy conserved"
+        );
     }
 
     #[test]
@@ -416,7 +453,10 @@ mod tests {
         let child = &w.entities[1];
         // With VariableGenome mutation, effective biases may shift more than classic mutation
         // due to gene duplication + modulation. Allow wider tolerance.
-        assert!((child.growth_bias - 0.8).abs() < 0.5, "growth_bias in range of parent");
+        assert!(
+            (child.growth_bias - 0.8).abs() < 0.5,
+            "growth_bias in range of parent"
+        );
         assert_eq!(child.archetype, 2, "archetype inherited");
     }
 
@@ -434,7 +474,9 @@ mod tests {
     fn abiogenesis_spawns_with_high_irradiance() {
         let mut w = SimWorldFlat::new(42, 0.05);
         // Fill irradiance grid above threshold
-        for cell in &mut w.irradiance_grid { *cell = 10.0; }
+        for cell in &mut w.irradiance_grid {
+            *cell = 10.0;
+        }
         assert_eq!(w.entity_count, 0);
         abiogenesis(&mut w);
         assert_eq!(w.entity_count, 1, "should spawn a cell");
@@ -445,7 +487,9 @@ mod tests {
     #[test]
     fn abiogenesis_suppressed_at_pop_cap() {
         let mut w = SimWorldFlat::new(42, 0.05);
-        for cell in &mut w.irradiance_grid { *cell = 10.0; }
+        for cell in &mut w.irradiance_grid {
+            *cell = 10.0;
+        }
         // Fill to cap
         for _ in 0..ABIOGENESIS_POP_CAP {
             let mut e = EntitySlot::default();
@@ -479,7 +523,8 @@ mod tests {
         assert!(
             w.entities[idx].growth_bias >= before,
             "cold → growth_bias should not decrease: {} → {}",
-            before, w.entities[idx].growth_bias,
+            before,
+            w.entities[idx].growth_bias,
         );
     }
 
@@ -492,6 +537,9 @@ mod tests {
         let before = w.entities[idx].bond_energy;
         morpho_adaptation(&mut w);
         // Movement → Wolff → bond_energy changes
-        assert_ne!(w.entities[idx].bond_energy, before, "movement should affect bonds");
+        assert_ne!(
+            w.entities[idx].bond_energy, before,
+            "movement should affect bonds"
+        );
     }
 }

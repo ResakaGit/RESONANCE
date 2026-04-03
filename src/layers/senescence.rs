@@ -6,10 +6,10 @@ use bevy::prelude::*;
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
 pub struct SenescenceProfile {
-    pub tick_birth:       u64,
+    pub tick_birth: u64,
     pub senescence_coeff: f32,
-    pub max_viable_age:   u64,
-    pub strategy:         u8,   // 0=Iteroparous, 1=Semelparous
+    pub max_viable_age: u64,
+    pub strategy: u8, // 0=Iteroparous, 1=Semelparous
 }
 
 impl Default for SenescenceProfile {
@@ -42,13 +42,19 @@ mod tests {
 
     #[test]
     fn age_simple_difference() {
-        let s = SenescenceProfile { tick_birth: 100, ..Default::default() };
+        let s = SenescenceProfile {
+            tick_birth: 100,
+            ..Default::default()
+        };
         assert_eq!(s.age(350), 250);
     }
 
     #[test]
     fn age_current_before_birth_saturates_to_zero() {
-        let s = SenescenceProfile { tick_birth: 1000, ..Default::default() };
+        let s = SenescenceProfile {
+            tick_birth: 1000,
+            ..Default::default()
+        };
         assert_eq!(s.age(500), 0);
     }
 

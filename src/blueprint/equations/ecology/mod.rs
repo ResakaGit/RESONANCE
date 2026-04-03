@@ -33,7 +33,8 @@ pub fn metabolic_viability(qe: f32, threshold: f32) -> f32 {
 pub fn env_intake_gain(food_density_t: f32, medium_density_t: f32) -> f32 {
     let food = finite_unit(food_density_t);
     let medium = finite_unit(medium_density_t);
-    (ENV_INTAKE_GAIN_FLOOR + food * ENV_INTAKE_FOOD_WEIGHT + medium * ENV_INTAKE_MEDIUM_WEIGHT).max(0.0)
+    (ENV_INTAKE_GAIN_FLOOR + food * ENV_INTAKE_FOOD_WEIGHT + medium * ENV_INTAKE_MEDIUM_WEIGHT)
+        .max(0.0)
 }
 
 /// Penalización de mantenimiento (`>= 0`) por temperatura y predación.
@@ -42,7 +43,8 @@ pub fn env_maintenance_penalty(temperature_t: f32, predation_pressure_t: f32) ->
     let temp = finite_unit(temperature_t);
     let predation = finite_unit(predation_pressure_t);
     let thermal_deviation = (temp - 0.5).abs() * 2.0;
-    (thermal_deviation * ENV_MAINT_TEMPERATURE_SCALE + predation * ENV_MAINT_PREDATION_SCALE).max(0.0)
+    (thermal_deviation * ENV_MAINT_TEMPERATURE_SCALE + predation * ENV_MAINT_PREDATION_SCALE)
+        .max(0.0)
 }
 
 /// Penalización de estrés (`>= 0`) por presión de caza y densidad del medio.
@@ -66,7 +68,11 @@ pub fn organ_viability_score(
     let maintenance = finite_non_negative(maintenance_penalty);
     let stress = finite_non_negative(stress_penalty);
     let score = base * intake - maintenance - stress;
-    if score.is_finite() { score.max(0.0) } else { 0.0 }
+    if score.is_finite() {
+        score.max(0.0)
+    } else {
+        0.0
+    }
 }
 
 /// Viabilidad base sin entorno para inferencia de órganos.
@@ -93,7 +99,8 @@ pub fn trophic_assimilation(intake_qe: f32, metabolic_efficiency: f32, temperatu
     let intake = finite_non_negative(intake_qe);
     let efficiency = finite_unit(metabolic_efficiency);
     let temp = finite_unit(temperature_t);
-    let temp_penalty = ((temp - 0.5).abs() * 2.0 * TROPHIC_ASSIMILATION_TEMP_PENALTY).clamp(0.0, 1.0);
+    let temp_penalty =
+        ((temp - 0.5).abs() * 2.0 * TROPHIC_ASSIMILATION_TEMP_PENALTY).clamp(0.0, 1.0);
     (intake * efficiency * (1.0 - temp_penalty)).max(0.0)
 }
 
@@ -138,7 +145,11 @@ pub fn evolution_survival_score(viability: f32, net_qe_delta: f32) -> f32 {
 
 /// Score reproductivo condicionado por capacidad y sesgo.
 #[inline]
-pub fn evolution_reproduction_score(can_reproduce: bool, net_qe_delta: f32, reproduction_bias: f32) -> f32 {
+pub fn evolution_reproduction_score(
+    can_reproduce: bool,
+    net_qe_delta: f32,
+    reproduction_bias: f32,
+) -> f32 {
     if can_reproduce {
         (net_qe_delta * finite_unit(reproduction_bias)).max(0.0)
     } else {
@@ -154,7 +165,6 @@ pub fn evolution_aggregate_fitness(
     maintenance_cost: f32,
     maintenance_weight: f32,
 ) -> f32 {
-    finite_non_negative(survival_score)
-        + finite_non_negative(reproduction_score)
+    finite_non_negative(survival_score) + finite_non_negative(reproduction_score)
         - finite_non_negative(maintenance_cost) * finite_non_negative(maintenance_weight)
 }

@@ -10,16 +10,16 @@ use bevy::prelude::*;
 
 use crate::blueprint::constants::*;
 use crate::blueprint::equations;
-use crate::simulation::abiogenesis::constants::{
-    FAUNA_EMERGENT_ADAPT_RATE, FAUNA_EMERGENT_QE_COST_HZ, FAUNA_EMERGENT_STAB_BAND,
-};
 use crate::blueprint::equations::awakening::{AWAKENING_BUDGET_PER_TICK, AWAKENING_SCAN_INTERVAL};
 use crate::blueprint::equations::derived_thresholds as dt;
 use crate::layers::{
-    BaseEnergy, BehavioralAgent, CapabilitySet, Homeostasis,
-    InferenceProfile, MatterCoherence, OscillatorySignature, SpatialVolume, TrophicClass,
+    BaseEnergy, BehavioralAgent, CapabilitySet, Homeostasis, InferenceProfile, MatterCoherence,
+    OscillatorySignature, SpatialVolume, TrophicClass,
 };
 use crate::runtime_platform::simulation_tick::SimulationClock;
+use crate::simulation::abiogenesis::constants::{
+    FAUNA_EMERGENT_ADAPT_RATE, FAUNA_EMERGENT_QE_COST_HZ, FAUNA_EMERGENT_STAB_BAND,
+};
 use crate::worldgen::EnergyFieldGrid;
 
 /// Promotes inert entities to living organisms when coherence conditions are met.
@@ -29,7 +29,14 @@ pub fn awakening_system(
     clock: Res<SimulationClock>,
     grid: Option<Res<EnergyFieldGrid>>,
     candidates: Query<
-        (Entity, &BaseEnergy, &OscillatorySignature, &SpatialVolume, &MatterCoherence, &Transform),
+        (
+            Entity,
+            &BaseEnergy,
+            &OscillatorySignature,
+            &SpatialVolume,
+            &MatterCoherence,
+            &Transform,
+        ),
         Without<BehavioralAgent>,
     >,
 ) {
@@ -52,11 +59,14 @@ pub fn awakening_system(
 
         // Compute coherence from field neighbors (same as abiogenesis).
         let pos = crate::math_types::Vec2::new(transform.translation.x, transform.translation.z);
-        let Some((cx, cy)) = grid.cell_coords(pos) else { continue };
+        let Some((cx, cy)) = grid.cell_coords(pos) else {
+            continue;
+        };
         let neighbors = gather_neighbor_coherence(&grid, cx, cy, cell_size);
         let coherence = equations::cell_coherence_gain(osc.frequency_hz(), &neighbors);
         let dissipation = equations::dissipation_from_state(matter.state());
-        let potential = equations::awakening::awakening_potential(energy.qe(), coherence, dissipation);
+        let potential =
+            equations::awakening::awakening_potential(energy.qe(), coherence, dissipation);
 
         if potential < dt::spawn_potential_threshold() {
             continue;
@@ -64,7 +74,7 @@ pub fn awakening_system(
 
         // Derive capabilities from current energy state (Axiom 1).
         let vol = volume.radius.max(dt::DISSIPATION_SOLID);
-        let density = energy.qe() / (vol * vol);
+        let density = equations::density_from_qe_radius(energy.qe(), vol);
         let coherence_norm = (coherence / (coherence + energy.qe())).clamp(0.0, 1.0);
         let caps = equations::capabilities_from_energy(energy.qe(), density, coherence_norm);
 
@@ -78,7 +88,11 @@ pub fn awakening_system(
 
         // Determine trophic class from capabilities.
         let is_mobile = caps & CapabilitySet::MOVE != 0;
-        let trophic_class = if is_mobile { TrophicClass::Herbivore } else { TrophicClass::PrimaryProducer };
+        let trophic_class = if is_mobile {
+            TrophicClass::Herbivore
+        } else {
+            TrophicClass::PrimaryProducer
+        };
         let intake_rate = if is_mobile {
             ABIOGENESIS_HERBIVORE_INTAKE_RATE
         } else {
@@ -121,11 +135,17 @@ fn gather_neighbor_coherence(
     let mut neighbors = Vec::with_capacity(8);
     for dy in -1_i32..=1 {
         for dx in -1_i32..=1 {
-            if dx == 0 && dy == 0 { continue; }
+            if dx == 0 && dy == 0 {
+                continue;
+            }
             let nx = cx as i32 + dx;
             let ny = cy as i32 + dy;
-            if nx < 0 || ny < 0 { continue; }
-            let Some(ncell) = grid.cell_xy(nx as u32, ny as u32) else { continue };
+            if nx < 0 || ny < 0 {
+                continue;
+            }
+            let Some(ncell) = grid.cell_xy(nx as u32, ny as u32) else {
+                continue;
+            };
             let dist = ((dx * dx + dy * dy) as f32).sqrt() * cell_size;
             neighbors.push((ncell.accumulated_qe, ncell.dominant_frequency_hz, dist));
         }

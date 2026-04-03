@@ -10,12 +10,13 @@
 /// Axiom 5: no energy created — modulation of existing propagation.
 /// Axiom 2: angular momentum conservation justifies rotation.
 
-
 /// Angular velocity from day period in ticks.
 /// `ω = 2π / period_ticks`
 #[inline]
 pub fn angular_velocity_from_period(period_ticks: f32) -> f32 {
-    if period_ticks <= 0.0 { return 0.0; }
+    if period_ticks <= 0.0 {
+        return 0.0;
+    }
     std::f32::consts::TAU / period_ticks
 }
 
@@ -28,7 +29,9 @@ pub fn angular_velocity_from_period(period_ticks: f32) -> f32 {
 /// `meridian_x = (tick × grid_width / period) mod grid_width`
 #[inline]
 pub fn solar_meridian_x(tick: u64, period_ticks: f32, grid_width: f32) -> f32 {
-    if period_ticks <= 0.0 { return 0.0; }
+    if period_ticks <= 0.0 {
+        return 0.0;
+    }
     let progress = (tick as f32 / period_ticks).fract(); // [0, 1)
     progress * grid_width
 }
@@ -45,12 +48,10 @@ pub fn solar_meridian_x(tick: u64, period_ticks: f32, grid_width: f32) -> f32 {
 /// the illuminated hemisphere is always facing the sun, the dark hemisphere
 /// is always away. The meridian sweeps from left to right.
 #[inline]
-pub fn solar_irradiance_factor(
-    cell_x: f32,
-    meridian_x: f32,
-    grid_width: f32,
-) -> f32 {
-    if grid_width <= 0.0 { return 1.0; }
+pub fn solar_irradiance_factor(cell_x: f32, meridian_x: f32, grid_width: f32) -> f32 {
+    if grid_width <= 0.0 {
+        return 1.0;
+    }
     let half = grid_width * 0.5;
 
     // Shortest distance on a wrapping grid (cylindrical topology).
@@ -66,7 +67,7 @@ pub fn solar_irradiance_factor(
 /// `AMBIENT_IRRADIANCE = DISSIPATION_SOLID / DISSIPATION_GAS` — ratio of solid to gas loss.
 /// Solid retains heat; gas radiates. Their ratio gives the floor of residual light.
 pub const AMBIENT_IRRADIANCE: f32 = {
-    use super::derived_thresholds::{DISSIPATION_SOLID, DISSIPATION_GAS};
+    use super::derived_thresholds::{DISSIPATION_GAS, DISSIPATION_SOLID};
     DISSIPATION_SOLID / DISSIPATION_GAS
 };
 
@@ -90,7 +91,9 @@ pub fn seasonal_irradiance_modifier(
     year_period_ticks: f32,
     axial_tilt: f32,
 ) -> f32 {
-    if year_period_ticks <= 0.0 || axial_tilt.abs() < 1e-6 { return 1.0; }
+    if year_period_ticks <= 0.0 || axial_tilt.abs() < 1e-6 {
+        return 1.0;
+    }
     let half_h = grid_height * 0.5;
     let year_progress = (tick as f32 / year_period_ticks).fract();
     // Sub-solar latitude oscillates with the year.
@@ -161,7 +164,10 @@ mod tests {
     fn irradiance_smooth_transition() {
         let near = solar_irradiance_factor(20.0, 24.0, 48.0);
         let far = solar_irradiance_factor(10.0, 24.0, 48.0);
-        assert!(near > far, "closer to meridian = more light: {near} > {far}");
+        assert!(
+            near > far,
+            "closer to meridian = more light: {near} > {far}"
+        );
     }
 
     #[test]
@@ -178,7 +184,7 @@ mod tests {
 
     #[test]
     fn ambient_irradiance_derived_from_dissipation() {
-        use crate::blueprint::equations::derived_thresholds::{DISSIPATION_SOLID, DISSIPATION_GAS};
+        use crate::blueprint::equations::derived_thresholds::{DISSIPATION_GAS, DISSIPATION_SOLID};
         assert!((AMBIENT_IRRADIANCE - DISSIPATION_SOLID / DISSIPATION_GAS).abs() < 1e-6);
         assert!(AMBIENT_IRRADIANCE > 0.0 && AMBIENT_IRRADIANCE < 0.2);
     }
@@ -195,6 +201,9 @@ mod tests {
         // 300 ticks of full shadow: cell should retain >20% (Newton's cooling).
         let frac = night_cooling_fraction();
         let remaining = (1.0 - frac).powi(300);
-        assert!(remaining > 0.15, "cell must survive one night: {remaining:.3}");
+        assert!(
+            remaining > 0.15,
+            "cell must survive one night: {remaining:.3}"
+        );
     }
 }

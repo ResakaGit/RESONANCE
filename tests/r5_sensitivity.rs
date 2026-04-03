@@ -12,8 +12,8 @@ fn partial_sensitivity_linear_fn_returns_slope() {
     // f(x) = 2x → central diff at x=5, delta=0.1:
     // perturbed = f(5.1) - f(4.9) = 10.2 - 9.8 = 0.4 → 0.4 / (2*0.1) = 2.0
     let delta = 0.1f32;
-    let base_out = 2.0f32 * 4.9;    // f(x - delta)
-    let pert_out = 2.0f32 * 5.1;    // f(x + delta)
+    let base_out = 2.0f32 * 4.9; // f(x - delta)
+    let pert_out = 2.0f32 * 5.1; // f(x + delta)
     let s = partial_sensitivity(base_out, pert_out, delta);
     assert!((s - 2.0).abs() < 1e-4, "expected ≈2.0, got {s}");
 }
@@ -22,7 +22,10 @@ fn partial_sensitivity_linear_fn_returns_slope() {
 fn normalized_sensitivity_clamps_zero_nominal() {
     // nominal=0.0 → must not panic, returns 0.0 (guarded)
     let s = normalized_sensitivity(5.0, 0.0);
-    assert!(s == 0.0 || s.is_infinite(), "got {s}; must be 0.0 or INFINITY, must not panic");
+    assert!(
+        s == 0.0 || s.is_infinite(),
+        "got {s}; must be 0.0 or INFINITY, must not panic"
+    );
 }
 
 #[test]
@@ -51,7 +54,10 @@ fn confidence_band_symmetric_around_mean() {
 #[test]
 fn coefficient_of_variation_constant_series_zero() {
     let cv = coefficient_of_variation(&[5.0, 5.0, 5.0, 5.0]);
-    assert!(cv.abs() < 1e-5, "cv of constant series must be ≈0.0, got {cv}");
+    assert!(
+        cv.abs() < 1e-5,
+        "cv of constant series must be ≈0.0, got {cv}"
+    );
 }
 
 #[test]

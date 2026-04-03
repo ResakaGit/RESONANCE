@@ -23,8 +23,8 @@ pub use thermodynamic::{engine_processing, grid_cell, irradiance_update};
 
 // Phase::AtomicLayer
 pub use atomic::{
-    collision, containment_check, dissipation, entrainment, locomotion_drain,
-    movement_integrate, tension_field_apply, velocity_cap, will_to_velocity,
+    collision, containment_check, dissipation, entrainment, locomotion_drain, movement_integrate,
+    tension_field_apply, velocity_cap, will_to_velocity,
 };
 
 // Phase::ChemicalLayer
@@ -32,21 +32,21 @@ pub use chemical::{homeostasis, nutrient_uptake, photosynthesis, state_transitio
 
 // Phase::MetabolicLayer
 pub use metabolic::{
-    cooperation_eval, culture_transmission, pool_distribution, social_pack,
-    trophic_forage, trophic_predation,
+    cooperation_eval, culture_transmission, pool_distribution, social_pack, trophic_forage,
+    trophic_predation,
 };
 
 // Phase::MetabolicLayer (metabolic graph + protein fold)
 pub use metabolic_graph::metabolic_graph_infer;
-pub use protein::protein_fold_infer;
 pub use multicellular::multicellular_step;
-pub use particle_forces::{particle_forces, detect_particle_bonds, count_molecules};
+pub use particle_forces::{count_molecules, detect_particle_bonds, particle_forces};
+pub use protein::protein_fold_infer;
 
 // Phase::MorphologicalLayer (internal field)
 pub use internal_field::internal_diffusion;
 
 // Phase::MorphologicalLayer
 pub use morphological::{
-    abiogenesis, asteroid_impact, death_reap, growth_inference,
-    morpho_adaptation, reproduction, senescence,
+    abiogenesis, asteroid_impact, death_reap, growth_inference, morpho_adaptation, reproduction,
+    senescence,
 };

@@ -1,7 +1,7 @@
-use bevy::prelude::*;
 use crate::blueprint::constants;
-use crate::worldgen::field_grid::EnergyFieldGrid;
 use crate::layers::BaseEnergy;
+use crate::worldgen::field_grid::EnergyFieldGrid;
+use bevy::prelude::*;
 
 /// Define la modalidad sensorial para la transducción pura.
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -14,7 +14,7 @@ pub enum SensoryModality {
     Thermo,
 }
 
-/// Perfil de un receptor sensorial. 
+/// Perfil de un receptor sensorial.
 /// Un `ArtefactoReceptor` puede tener múltiples de estos (Polivalencia).
 #[derive(Debug, Clone, Copy)]
 pub struct SensoryProfile {
@@ -63,54 +63,8 @@ pub fn transduce_signal(incident_hz: f32, incident_energy: f32, profile: &Sensor
     ((incident_energy - profile.activation_threshold) / range).clamp(0.0, 1.0)
 }
 
-/// Grid espacial consolidado de la Atención perceptiva ($A \in [0, 1]$).
-/// Mapea 1:1 con las celdas del mundo.
-#[derive(Resource, Debug, Default)]
-pub struct AttentionGrid {
-    /// Atención por índice de celda.
-    pub a: Vec<f32>,
-    pub width: usize,
-    pub height: usize,
-    pub cell_size: f32,
-    pub origin: Vec2,
-}
-
-impl AttentionGrid {
-    pub fn resize(&mut self, width: usize, height: usize, cell_size: f32, origin: Vec2) {
-        if self.width != width || self.height != height {
-            self.width = width;
-            self.height = height;
-            self.a = vec![0.0; width * height];
-        }
-        self.cell_size = cell_size;
-        self.origin = origin;
-    }
-
-    pub fn idx(&self, x: usize, y: usize) -> usize {
-        y * self.width + x
-    }
-
-    pub fn cell_coords(&self, world_pos: Vec2) -> Option<(usize, usize)> {
-        let rel = world_pos - self.origin;
-        if rel.x < 0.0 || rel.y < 0.0 {
-            return None;
-        }
-        let x = (rel.x / self.cell_size).floor() as usize;
-        let y = (rel.y / self.cell_size).floor() as usize;
-        if x >= self.width || y >= self.height {
-            return None;
-        }
-        Some((x, y))
-    }
-
-    pub fn get_attention(&self, world_pos: Vec2) -> f32 {
-        if let Some((x, y)) = self.cell_coords(world_pos) {
-            self.a[self.idx(x, y)]
-        } else {
-            0.0
-        }
-    }
-}
+// AttentionGrid — canonical definition in runtime_platform/contracts/ (DC-4B)
+pub use crate::runtime_platform::contracts::AttentionGrid;
 
 /// Sistema de superposición competitiva de atención (\max).
 /// Lee el EnergyFieldGrid, evalúa los ArtefactoReceptor de las entidades,
@@ -172,8 +126,8 @@ pub fn attention_convergence_system(
 #[cfg(test)]
 mod sensory_fix_tests {
     use super::{
-        attention_convergence_system, transduce_signal, ArtefactoReceptor, AttentionGrid,
-        SensoryModality, SensoryProfile,
+        ArtefactoReceptor, AttentionGrid, SensoryModality, SensoryProfile,
+        attention_convergence_system, transduce_signal,
     };
     use crate::worldgen::EnergyFieldGrid;
     use bevy::math::Vec2;
@@ -201,7 +155,8 @@ mod sensory_fix_tests {
             }],
         };
         let pos = Vec3::new(2.5, 0.0, 2.5);
-        app.world_mut().spawn((GlobalTransform::from_translation(pos), receptor));
+        app.world_mut()
+            .spawn((GlobalTransform::from_translation(pos), receptor));
 
         app.add_systems(Update, attention_convergence_system);
         app.update();
@@ -345,19 +300,22 @@ mod sensory_fix_tests {
 
         let attention = app.world().resource::<AttentionGrid>();
         let a = attention.a[attention.idx(3, 4)];
-        assert!(a > 0.0, "Expected attention at (3,4) with shifted origin, got {a}");
+        assert!(
+            a > 0.0,
+            "Expected attention at (3,4) with shifted origin, got {a}"
+        );
     }
 }
 
 /// Etiqueta y tracker cronológico para entidades ignoradas por el ECS pesado.
 #[derive(Component, Debug, Default, Clone)]
 pub struct QuantumSuspension {
-    pub suspended_time: f32, // Acumulador delta-t [segundos]
+    pub suspended_time: f32,       // Acumulador delta-t [segundos]
     pub cached_energy: BaseEnergy, // Copia congelada de la energía
 }
 
 /// Congela entidades en celdas con $A \le 0.1$ y transacciona el Colapso Predictivo si despiertan.
-/// Usa un patrón Yanagi: remueve de cuajo el componente `BaseEnergy` para que los 
+/// Usa un patrón Yanagi: remueve de cuajo el componente `BaseEnergy` para que los
 /// sistemas posteriores (`ChemicalLayer`, `MetabolicLayer`) simplemente lo ignoren
 /// sin tener que reescribir docenas de queries.
 pub fn attention_gating_system(
@@ -368,15 +326,15 @@ pub fn attention_gating_system(
     mut suspended_q: Query<(Entity, &GlobalTransform, &mut QuantumSuspension)>,
 ) {
     let dt = time.delta_secs();
-    
+
     // Umbral Yanagi: Si no te miran y no sos ruidoso, entrás en coma.
     const ATTENTION_WAKE_THRESHOLD: f32 = 0.1;
-    
+
     // 1. Asfixiar a los que escaparon de la atención
     for (entity, transform, energy) in &mut awake_q {
         let ep = transform.translation();
         let a = attention.get_attention(Vec2::new(ep.x, ep.z)); // mapeo XZ temporal
-        
+
         if a <= ATTENTION_WAKE_THRESHOLD {
             commands.entity(entity).insert(QuantumSuspension {
                 suspended_time: 0.0,
@@ -393,11 +351,11 @@ pub fn attention_gating_system(
 
         if a > ATTENTION_WAKE_THRESHOLD {
             // Matemática de Interpolación Pura
-            // Simulamos una pérdida entrópica base por el tiempo suspendido, 
+            // Simulamos una pérdida entrópica base por el tiempo suspendido,
             // resolviendo "de golpe" en vez de tick a tick.
             let entropy_drain_rate = constants::ATTENTION_ENTROPY_DRAIN_RATE;
             let lost_energy = susp.suspended_time * entropy_drain_rate;
-            
+
             let mut restored = susp.cached_energy.clone();
             if lost_energy > 0.0 {
                 restored.drain(lost_energy);

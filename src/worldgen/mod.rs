@@ -1,11 +1,11 @@
 pub mod systems;
 
-pub mod cell_field_snapshot;
-pub mod field_visual_sample;
 pub mod archetypes;
+pub mod cell_field_snapshot;
 pub mod constants;
 pub mod contracts;
 pub mod field_grid;
+pub mod field_visual_sample;
 pub mod lod;
 pub mod map_config;
 pub(crate) mod materialization_rules;
@@ -30,10 +30,11 @@ pub use constants::{
 pub use contracts::{
     BoundaryVisual, EnergyCell, EnergyVisual, FrequencyContribution, MaterializationResult,
     Materialized, PendingEnergyVisualRebuild, PhenologyPhaseCache, PhenologyVisualParams,
+    WorldgenReady,
 };
 pub use field_grid::EnergyFieldGrid;
 pub use map_config::{
-    ActiveMapName, AmbientPressureConfig, MapConfig, ValidationError, ROUND_WORLD_ROSA_MAP_SLUG,
+    ActiveMapName, AmbientPressureConfig, MapConfig, ROUND_WORLD_ROSA_MAP_SLUG, ValidationError,
     active_map_slug_from_env, load_default_map_asset, load_map_config_from_env,
     load_map_config_from_env_result, resolve_nuclei_for_spawn, validate_map_config,
 };
@@ -42,10 +43,6 @@ pub use materialization_rules::{
     materialize_cell_at_time, materialize_cell_at_time_with_boundary,
 };
 pub use nucleus::{EnergyNucleus, NucleusReservoir, PropagationDecay};
-pub use propagation_mode::{
-    NucleusEmissionState, PropagationMode,
-    diffuse_propagation_system, insert_nucleus_emission_state_system,
-};
 pub use nutrient_field::{
     COMPETITION_BASE_DRAIN_PER_EXTRA_COMPETITOR_QE, NUTRIENT_WRITE_EPS, NutrientCell,
     NutrientFieldGrid, apply_nucleus_bias, nutrient_bias_from_frequency,
@@ -53,6 +50,10 @@ pub use nutrient_field::{
 };
 /// API pública para benches / integración: el módulo `propagation` sigue siendo `pub(crate)`.
 pub use propagation::{field_dissipation, resolve_dominant_frequency};
+pub use propagation_mode::{
+    NucleusEmissionState, PropagationMode, diffuse_propagation_system,
+    insert_nucleus_emission_state_system,
+};
 pub use visual_derivation::{
     VisualProperties, apply_archetype_visual_profile, boundary_transition_emission_extra,
     color_lerp, compound_color_blend, derive_all, derive_color, derive_color_compound,
@@ -61,22 +62,24 @@ pub use visual_derivation::{
     neutral_visual_linear_rgb, visual_proxy_temperature, zone_class_display_color,
 };
 
-pub use shape_inference::{
-    ShapeInferenceFrameState, ShapeInferred, growth_morphology_system,
-    reset_shape_inference_frame_system, shape_color_inference_system,
+pub use cell_field_snapshot::gpu_layout::{
+    CELL_FIELD_SNAPSHOT_GPU_SCHEMA_VERSION, CELL_FIELD_SNAPSHOT_WGSL_PATH,
+    GPU_CELL_FIELD_ROW_BYTES, GPU_SNAPSHOT_HEADER_BYTES, GpuCellFieldPacked,
+    GpuCellFieldSnapshotHeader, cell_field_snapshot_to_gpu_packed, gpu_cell_field_snapshot_bytes,
+    gpu_packed_rows_from_cache_entries, initial_gpu_cell_field_snapshot_header,
 };
-pub use organ_inference::{AttachmentZone, OrganAttachment, build_organ_mesh, organ_attachment_points, organ_orientation};
-pub use systems::materialization::{NucleusFreqTrack, SeasonTransition};
 pub use cell_field_snapshot::{
     CellFieldSnapshot, CellFieldSnapshotCache, cell_field_snapshot_from_energy_cell,
     cell_field_snapshot_read, cell_field_snapshot_sync_system, frequency_contributions_fingerprint,
 };
-pub use cell_field_snapshot::gpu_layout::{
-    CELL_FIELD_SNAPSHOT_GPU_SCHEMA_VERSION, CELL_FIELD_SNAPSHOT_WGSL_PATH, GpuCellFieldPacked,
-    GpuCellFieldSnapshotHeader, GPU_CELL_FIELD_ROW_BYTES, GPU_SNAPSHOT_HEADER_BYTES,
-    cell_field_snapshot_to_gpu_packed, gpu_cell_field_snapshot_bytes,
-    gpu_packed_rows_from_cache_entries, initial_gpu_cell_field_snapshot_header,
+pub use organ_inference::{
+    AttachmentZone, OrganAttachment, build_organ_mesh, organ_attachment_points, organ_orientation,
 };
+pub use shape_inference::{
+    ShapeInferenceFrameState, ShapeInferred, growth_morphology_system,
+    reset_shape_inference_frame_system, shape_color_inference_system,
+};
+pub use systems::materialization::{NucleusFreqTrack, SeasonTransition};
 // EPI2: mezcla fenológica en lineal = `linear_rgb_lerp` (+ `field_visual_mix_unit` internamente).
 pub use crate::blueprint::equations::{field_visual_mix_unit, linear_rgb_lerp};
 pub use field_visual_sample::{

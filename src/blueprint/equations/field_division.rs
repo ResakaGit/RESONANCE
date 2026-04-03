@@ -111,7 +111,9 @@ mod tests {
         assert!(
             left_total + right_total <= original_total + 1e-5,
             "conservation: {} + {} ≤ {}",
-            left_total, right_total, original_total
+            left_total,
+            right_total,
+            original_total
         );
     }
 

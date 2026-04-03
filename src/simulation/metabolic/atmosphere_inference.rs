@@ -88,7 +88,10 @@ pub fn atmosphere_inference_system(
 
     // Density: fraction of cells with meaningful energy.
     let density_threshold = max_qe_safe * ATMOSPHERE_DENSITY_THRESHOLD_RATIO;
-    let dense_count = field.iter_cells().filter(|c| c.accumulated_qe > density_threshold).count() as f32;
+    let dense_count = field
+        .iter_cells()
+        .filter(|c| c.accumulated_qe > density_threshold)
+        .count() as f32;
     let avg_density = (dense_count * inv_count).clamp(0.0, 1.0);
 
     // Canopy: fraction of cells with materialized entities.
@@ -110,10 +113,12 @@ pub fn atmosphere_inference_system(
 
     let sun_direction = equations::inferred_sun_direction(latitude, time_angle);
     let sun_intensity = equations::inferred_sun_intensity(sun_direction);
-    let (fog_start, fog_end) = equations::inferred_fog_params(world_radius, avg_density, canopy_factor);
+    let (fog_start, fog_end) =
+        equations::inferred_fog_params(world_radius, avg_density, canopy_factor);
     let fog_color = equations::inferred_fog_color(sun_direction, avg_density);
     let bloom_intensity = equations::inferred_bloom_intensity(avg_qe_norm);
-    let (ambient_intensity, ambient_color) = equations::inferred_ambient_light(canopy_factor, sun_intensity);
+    let (ambient_intensity, ambient_color) =
+        equations::inferred_ambient_light(canopy_factor, sun_intensity);
 
     let new_state = AtmosphereState {
         sun_direction,

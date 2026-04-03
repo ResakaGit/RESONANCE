@@ -13,7 +13,11 @@ pub struct MacroStepTarget {
 
 impl MacroStepTarget {
     pub fn new(ticks_remaining: u32, last_qe: f32, decay_rate: f32) -> Self {
-        Self { ticks_remaining, last_qe, decay_rate: decay_rate.max(0.0) }
+        Self {
+            ticks_remaining,
+            last_qe,
+            decay_rate: decay_rate.max(0.0),
+        }
     }
 }
 

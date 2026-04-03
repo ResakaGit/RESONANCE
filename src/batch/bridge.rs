@@ -10,8 +10,7 @@ use crate::blueprint::constants;
 use crate::layers::inference::{InferenceProfile, TrophicClass};
 use crate::layers::trophic::TrophicConsumer;
 use crate::layers::{
-    BaseEnergy, SpatialVolume, OscillatorySignature, FlowVector,
-    MatterCoherence, AlchemicalEngine,
+    AlchemicalEngine, BaseEnergy, FlowVector, MatterCoherence, OscillatorySignature, SpatialVolume,
 };
 
 // ─── Batch → Bevy ───────────────────────────────────────────────────────────
@@ -20,7 +19,9 @@ use crate::layers::{
 ///
 /// Does NOT include archetype-specific components (TrophicConsumer, BehavioralAgent, etc.).
 /// Caller adds those based on `genome.archetype`.
-pub fn genome_to_components(genome: &GenomeBlob) -> (
+pub fn genome_to_components(
+    genome: &GenomeBlob,
+) -> (
     BaseEnergy,
     SpatialVolume,
     OscillatorySignature,
@@ -32,10 +33,7 @@ pub fn genome_to_components(genome: &GenomeBlob) -> (
     (
         BaseEnergy::new(constants::DEFAULT_BASE_ENERGY),
         SpatialVolume::new(0.5),
-        OscillatorySignature::new(
-            frequency_for_archetype(genome.archetype),
-            0.0,
-        ),
+        OscillatorySignature::new(frequency_for_archetype(genome.archetype), 0.0),
         FlowVector::default(),
         MatterCoherence::default(),
         AlchemicalEngine::new(0.0, 20.0, 0.5, 0.5),
@@ -62,23 +60,23 @@ pub fn components_to_genome(
     trophic: Option<&TrophicConsumer>,
 ) -> GenomeBlob {
     GenomeBlob {
-        archetype:      infer_archetype(trophic),
-        trophic_class:  trophic.map(|t| t.class as u8).unwrap_or(0),
-        growth_bias:    profile.growth_bias,
-        mobility_bias:  profile.mobility_bias,
+        archetype: infer_archetype(trophic),
+        trophic_class: trophic.map(|t| t.class as u8).unwrap_or(0),
+        growth_bias: profile.growth_bias,
+        mobility_bias: profile.mobility_bias,
         branching_bias: profile.branching_bias,
-        resilience:     profile.resilience,
-        sigma:          0.15,
+        resilience: profile.resilience,
+        sigma: 0.15,
     }
 }
 
 fn infer_archetype(trophic: Option<&TrophicConsumer>) -> u8 {
     match trophic {
         Some(t) if t.class == TrophicClass::PrimaryProducer => 1,
-        Some(t) if t.class == TrophicClass::Carnivore       => 2,
-        Some(t) if t.class == TrophicClass::Detritivore      => 3,
-        Some(_)                                               => 3, // cell/omnivore
-        None                                                  => 0, // inert
+        Some(t) if t.class == TrophicClass::Carnivore => 2,
+        Some(t) if t.class == TrophicClass::Detritivore => 3,
+        Some(_) => 3, // cell/omnivore
+        None => 0,    // inert
     }
 }
 
@@ -96,11 +94,11 @@ fn trophic_class_from_u8(v: u8) -> Option<TrophicClass> {
 /// Map archetype id to canonical frequency band center.
 fn frequency_for_archetype(archetype: u8) -> f32 {
     match archetype {
-        0 => 100.0,  // inert (Umbra band)
-        1 => 400.0,  // flora (Terra band)
-        2 => 600.0,  // fauna (Aqua band)
-        3 => 300.0,  // cell  (Terra low)
-        4 => 800.0,  // virus (Ignis band)
+        0 => 100.0, // inert (Umbra band)
+        1 => 400.0, // flora (Terra band)
+        2 => 600.0, // fauna (Aqua band)
+        3 => 300.0, // cell  (Terra low)
+        4 => 800.0, // virus (Ignis band)
         _ => 200.0,
     }
 }
@@ -143,18 +141,50 @@ pub fn load_genomes(path: &std::path::Path) -> std::io::Result<Vec<GenomeBlob>> 
     let mut genomes = Vec::with_capacity(count);
     let mut offset = 4;
     for _ in 0..count {
-        let archetype    = data[offset];
+        let archetype = data[offset];
         let trophic_class = data[offset + 1];
-        let growth_bias   = f32::from_le_bytes([data[offset+2], data[offset+3], data[offset+4], data[offset+5]]);
-        let mobility_bias = f32::from_le_bytes([data[offset+6], data[offset+7], data[offset+8], data[offset+9]]);
-        let branching_bias = f32::from_le_bytes([data[offset+10], data[offset+11], data[offset+12], data[offset+13]]);
-        let resilience    = f32::from_le_bytes([data[offset+14], data[offset+15], data[offset+16], data[offset+17]]);
+        let growth_bias = f32::from_le_bytes([
+            data[offset + 2],
+            data[offset + 3],
+            data[offset + 4],
+            data[offset + 5],
+        ]);
+        let mobility_bias = f32::from_le_bytes([
+            data[offset + 6],
+            data[offset + 7],
+            data[offset + 8],
+            data[offset + 9],
+        ]);
+        let branching_bias = f32::from_le_bytes([
+            data[offset + 10],
+            data[offset + 11],
+            data[offset + 12],
+            data[offset + 13],
+        ]);
+        let resilience = f32::from_le_bytes([
+            data[offset + 14],
+            data[offset + 15],
+            data[offset + 16],
+            data[offset + 17],
+        ]);
         let sigma = if offset + 21 < data.len() {
-            f32::from_le_bytes([data[offset+18], data[offset+19], data[offset+20], data[offset+21]])
-        } else { 0.15 };
+            f32::from_le_bytes([
+                data[offset + 18],
+                data[offset + 19],
+                data[offset + 20],
+                data[offset + 21],
+            ])
+        } else {
+            0.15
+        };
         genomes.push(GenomeBlob {
-            archetype, trophic_class,
-            growth_bias, mobility_bias, branching_bias, resilience, sigma,
+            archetype,
+            trophic_class,
+            growth_bias,
+            mobility_bias,
+            branching_bias,
+            resilience,
+            sigma,
         });
         offset += 22;
     }
@@ -172,23 +202,36 @@ mod tests {
     #[test]
     fn round_trip_biases_are_bit_exact() {
         let original = GenomeBlob {
-            archetype: 1, trophic_class: 0,
-            growth_bias: 0.73, mobility_bias: 0.21,
-            branching_bias: 0.88, resilience: 0.45,
+            archetype: 1,
+            trophic_class: 0,
+            growth_bias: 0.73,
+            mobility_bias: 0.21,
+            branching_bias: 0.88,
+            resilience: 0.45,
             ..Default::default()
         };
         let (_, _, _, _, _, _, profile) = genome_to_components(&original);
         let trophic = genome_to_trophic(&original);
         let back = components_to_genome(&profile, trophic.as_ref());
         assert_eq!(original.growth_bias.to_bits(), back.growth_bias.to_bits());
-        assert_eq!(original.mobility_bias.to_bits(), back.mobility_bias.to_bits());
-        assert_eq!(original.branching_bias.to_bits(), back.branching_bias.to_bits());
+        assert_eq!(
+            original.mobility_bias.to_bits(),
+            back.mobility_bias.to_bits()
+        );
+        assert_eq!(
+            original.branching_bias.to_bits(),
+            back.branching_bias.to_bits()
+        );
         assert_eq!(original.resilience.to_bits(), back.resilience.to_bits());
     }
 
     #[test]
     fn round_trip_preserves_archetype_flora() {
-        let g = GenomeBlob { archetype: 1, trophic_class: 0, ..Default::default() };
+        let g = GenomeBlob {
+            archetype: 1,
+            trophic_class: 0,
+            ..Default::default()
+        };
         let (_, _, _, _, _, _, profile) = genome_to_components(&g);
         let trophic = genome_to_trophic(&g);
         let back = components_to_genome(&profile, trophic.as_ref());
@@ -198,7 +241,11 @@ mod tests {
 
     #[test]
     fn round_trip_preserves_archetype_fauna() {
-        let g = GenomeBlob { archetype: 2, trophic_class: 3, ..Default::default() };
+        let g = GenomeBlob {
+            archetype: 2,
+            trophic_class: 3,
+            ..Default::default()
+        };
         let (_, _, _, _, _, _, profile) = genome_to_components(&g);
         let trophic = genome_to_trophic(&g);
         let back = components_to_genome(&profile, trophic.as_ref());
@@ -217,13 +264,19 @@ mod tests {
 
     #[test]
     fn genome_to_trophic_none_for_inert() {
-        let g = GenomeBlob { trophic_class: 255, ..Default::default() };
+        let g = GenomeBlob {
+            trophic_class: 255,
+            ..Default::default()
+        };
         assert!(genome_to_trophic(&g).is_none());
     }
 
     #[test]
     fn genome_to_trophic_some_for_valid() {
-        let g = GenomeBlob { trophic_class: 1, ..Default::default() };
+        let g = GenomeBlob {
+            trophic_class: 1,
+            ..Default::default()
+        };
         let t = genome_to_trophic(&g).unwrap();
         assert_eq!(t.class, TrophicClass::Herbivore);
     }
@@ -243,8 +296,24 @@ mod tests {
     #[test]
     fn save_load_round_trip() {
         let genomes = vec![
-            GenomeBlob { archetype: 1, trophic_class: 0, growth_bias: 0.5, mobility_bias: 0.3, branching_bias: 0.7, resilience: 0.9, ..Default::default() },
-            GenomeBlob { archetype: 2, trophic_class: 3, growth_bias: 0.1, mobility_bias: 0.8, branching_bias: 0.2, resilience: 0.4, ..Default::default() },
+            GenomeBlob {
+                archetype: 1,
+                trophic_class: 0,
+                growth_bias: 0.5,
+                mobility_bias: 0.3,
+                branching_bias: 0.7,
+                resilience: 0.9,
+                ..Default::default()
+            },
+            GenomeBlob {
+                archetype: 2,
+                trophic_class: 3,
+                growth_bias: 0.1,
+                mobility_bias: 0.8,
+                branching_bias: 0.2,
+                resilience: 0.4,
+                ..Default::default()
+            },
         ];
         let dir = std::env::temp_dir();
         let path = dir.join("test_genomes_bs5.bin");
@@ -282,7 +351,8 @@ mod tests {
     #[test]
     fn save_load_preserves_bit_exact() {
         let g = GenomeBlob {
-            archetype: 4, trophic_class: 4,
+            archetype: 4,
+            trophic_class: 4,
             growth_bias: std::f32::consts::PI / 7.0,
             mobility_bias: std::f32::consts::E / 3.0,
             branching_bias: 0.123_456_78,
@@ -295,7 +365,10 @@ mod tests {
         let loaded = load_genomes(&path).unwrap();
         assert_eq!(g.growth_bias.to_bits(), loaded[0].growth_bias.to_bits());
         assert_eq!(g.mobility_bias.to_bits(), loaded[0].mobility_bias.to_bits());
-        assert_eq!(g.branching_bias.to_bits(), loaded[0].branching_bias.to_bits());
+        assert_eq!(
+            g.branching_bias.to_bits(),
+            loaded[0].branching_bias.to_bits()
+        );
         assert_eq!(g.resilience.to_bits(), loaded[0].resilience.to_bits());
         std::fs::remove_file(&path).ok();
     }

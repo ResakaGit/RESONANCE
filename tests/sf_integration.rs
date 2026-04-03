@@ -26,10 +26,46 @@ use resonance::simulation::observability::{
 /// Builds a repeatable set of 4 entity snapshots sorted by id.
 fn canonical_snapshots() -> Vec<EntitySnapshot> {
     vec![
-        EntitySnapshot { id: 1,  position: [-8.0, 0.0,  4.0], energy: 150.0, radius: 1.2, frequency: 75.0,  phase: 0.0,  matter_state: 0, bond_energy: 500.0 },
-        EntitySnapshot { id: 7,  position: [ 0.0, 0.0,  0.0], energy:  80.5, radius: 0.8, frequency: 440.0, phase: 1.57, matter_state: 1, bond_energy: 200.0 },
-        EntitySnapshot { id: 13, position: [ 5.0, 0.0, -3.0], energy: 320.0, radius: 2.0, frequency: 880.0, phase: 3.14, matter_state: 2, bond_energy:  75.0 },
-        EntitySnapshot { id: 42, position: [12.0, 0.0,  8.0], energy:   0.5, radius: 0.3, frequency: 200.0, phase: 0.78, matter_state: 3, bond_energy:   1.0 },
+        EntitySnapshot {
+            id: 1,
+            position: [-8.0, 0.0, 4.0],
+            energy: 150.0,
+            radius: 1.2,
+            frequency: 75.0,
+            phase: 0.0,
+            matter_state: 0,
+            bond_energy: 500.0,
+        },
+        EntitySnapshot {
+            id: 7,
+            position: [0.0, 0.0, 0.0],
+            energy: 80.5,
+            radius: 0.8,
+            frequency: 440.0,
+            phase: 1.57,
+            matter_state: 1,
+            bond_energy: 200.0,
+        },
+        EntitySnapshot {
+            id: 13,
+            position: [5.0, 0.0, -3.0],
+            energy: 320.0,
+            radius: 2.0,
+            frequency: 880.0,
+            phase: 3.14,
+            matter_state: 2,
+            bond_energy: 75.0,
+        },
+        EntitySnapshot {
+            id: 42,
+            position: [12.0, 0.0, 8.0],
+            energy: 0.5,
+            radius: 0.3,
+            frequency: 200.0,
+            phase: 0.78,
+            matter_state: 3,
+            bond_energy: 1.0,
+        },
     ]
 }
 
@@ -43,7 +79,7 @@ fn checkpoint_roundtrip_deterministic() {
     let ron_str = checkpoint_to_ron(&cp).expect("checkpoint_to_ron");
     let json_str = checkpoint_to_json(&cp).expect("checkpoint_to_json");
 
-    let from_ron  = checkpoint_from_ron(&ron_str).expect("checkpoint_from_ron");
+    let from_ron = checkpoint_from_ron(&ron_str).expect("checkpoint_from_ron");
     let from_json = checkpoint_from_json(&json_str).expect("checkpoint_from_json");
 
     assert_eq!(from_ron.tick, 100);
@@ -54,14 +90,22 @@ fn checkpoint_roundtrip_deterministic() {
     for (ron_e, json_e) in from_ron.entities.iter().zip(from_json.entities.iter()) {
         assert_eq!(ron_e.id, json_e.id, "id mismatch");
         assert_eq!(
-            ron_e.energy.to_bits(), json_e.energy.to_bits(),
-            "energy not bit-identical across formats for id={}", ron_e.id,
+            ron_e.energy.to_bits(),
+            json_e.energy.to_bits(),
+            "energy not bit-identical across formats for id={}",
+            ron_e.id,
         );
         assert_eq!(
-            ron_e.frequency.to_bits(), json_e.frequency.to_bits(),
-            "frequency not bit-identical across formats for id={}", ron_e.id,
+            ron_e.frequency.to_bits(),
+            json_e.frequency.to_bits(),
+            "frequency not bit-identical across formats for id={}",
+            ron_e.id,
         );
-        assert_eq!(ron_e.matter_state, json_e.matter_state, "matter_state mismatch for id={}", ron_e.id);
+        assert_eq!(
+            ron_e.matter_state, json_e.matter_state,
+            "matter_state mismatch for id={}",
+            ron_e.id
+        );
     }
 }
 
@@ -72,7 +116,10 @@ fn checkpoint_build_is_pure() {
     let snaps = canonical_snapshots();
     let cp_a = build_checkpoint(50, "map_a", &snaps);
     let cp_b = build_checkpoint(50, "map_a", &snaps);
-    assert_eq!(cp_a, cp_b, "build_checkpoint must be pure — same inputs → same output");
+    assert_eq!(
+        cp_a, cp_b,
+        "build_checkpoint must be pure — same inputs → same output"
+    );
 }
 
 /// Checkpoint entity order is preserved after RON roundtrip.
@@ -87,7 +134,10 @@ fn checkpoint_entity_order_preserved_after_ron_roundtrip() {
     let ids: Vec<u32> = restored.entities.iter().map(|e| e.id).collect();
     let mut sorted = ids.clone();
     sorted.sort_unstable();
-    assert_eq!(ids, sorted, "entity order must be preserved after roundtrip (sorted by id)");
+    assert_eq!(
+        ids, sorted,
+        "entity order must be preserved after roundtrip (sorted by id)"
+    );
 }
 
 // ─── SF-7B: Causalidad de propagación wavefront ───────────────────────────────
@@ -97,10 +147,10 @@ fn checkpoint_entity_order_preserved_after_ron_roundtrip() {
 /// - Celdas a distancia d ≤ front_radius tienen intensidad > 0 (source > 0).
 #[test]
 fn propagation_wave_front_is_causal() {
-    let speed    = PROPAGATION_SPEED_CELLS_PER_TICK;
-    let source   = 500.0_f32;
-    let decay    = 0.05_f32;
-    let damping  = 0.98_f32;
+    let speed = PROPAGATION_SPEED_CELLS_PER_TICK;
+    let source = 500.0_f32;
+    let decay = 0.05_f32;
+    let damping = 0.98_f32;
     // Test distances: from very close to well beyond max front at tick 15.
     let distances: [f32; 6] = [1.0, 4.0, 8.0, 16.0, 22.0, 30.0];
 
@@ -108,7 +158,8 @@ fn propagation_wave_front_is_causal() {
         let front_radius = propagation_front_radius(speed, tick);
 
         for &d in &distances {
-            let intensity = propagation_intensity_at_tick(source, d, decay, front_radius, damping, tick);
+            let intensity =
+                propagation_intensity_at_tick(source, d, decay, front_radius, damping, tick);
 
             if d > front_radius {
                 assert_eq!(
@@ -173,7 +224,10 @@ fn health_system_empty_world_stable() {
     let dash = app.world().resource::<SimulationHealthDashboard>();
     assert_eq!(dash.tick_count, 1, "tick_count must advance each run");
     assert_eq!(dash.drift_rate, 0.0, "empty world has zero drift");
-    assert_eq!(dash.saturation_index, 0.0, "empty world has zero saturation");
+    assert_eq!(
+        dash.saturation_index, 0.0,
+        "empty world has zero saturation"
+    );
 }
 
 /// Con N entidades estables: segundo tick tiene drift cero (energía no cambió).
@@ -197,7 +251,10 @@ fn health_system_converges_on_stable_energy() {
         dash.drift_rate,
     );
     let alerts = app.world().resource::<SimulationAlerts>();
-    assert!(!alerts.conservation_violated, "no conservation violation in stable world");
+    assert!(
+        !alerts.conservation_violated,
+        "no conservation violation in stable world"
+    );
     assert!(!alerts.critical_drift, "no critical drift in stable world");
 }
 
@@ -206,9 +263,14 @@ fn health_system_converges_on_stable_energy() {
 fn health_system_tick_count_is_monotonic() {
     let mut app = make_health_app();
     let n = 10u64;
-    for _ in 0..n { app.update(); }
+    for _ in 0..n {
+        app.update();
+    }
     let dash = app.world().resource::<SimulationHealthDashboard>();
-    assert_eq!(dash.tick_count, n, "tick_count must equal number of system runs");
+    assert_eq!(
+        dash.tick_count, n,
+        "tick_count must equal number of system runs"
+    );
 }
 
 // ─── SF-7D: CSV export — secuencia monotónica, columnas correctas ─────────────
@@ -224,10 +286,10 @@ fn csv_tick_sequence_is_monotonic() {
 
     for &t in &ticks {
         let dash = SimulationHealthDashboard {
-            tick_count:        t,
+            tick_count: t,
             conservation_error: 0.0,
-            drift_rate:         0.001 * t as f32,
-            saturation_index:   0.5,
+            drift_rate: 0.001 * t as f32,
+            saturation_index: 0.5,
         };
         rows.push(export_dashboard_csv_row(&dash));
     }
@@ -236,11 +298,15 @@ fn csv_tick_sequence_is_monotonic() {
     for row in &rows {
         let fields: Vec<&str> = row.split(',').collect();
         assert_eq!(
-            fields.len(), 4,
+            fields.len(),
+            4,
             "each CSV row must have 4 fields, got {}: '{row}'",
             fields.len(),
         );
-        let tick: i64 = fields[0].trim().parse().expect("tick field must be parseable as integer");
+        let tick: i64 = fields[0]
+            .trim()
+            .parse()
+            .expect("tick field must be parseable as integer");
         assert!(
             tick > prev_tick,
             "CSV ticks must be monotonically increasing: prev={prev_tick} current={tick}",
@@ -248,7 +314,10 @@ fn csv_tick_sequence_is_monotonic() {
         // Validate remaining fields are parseable floats.
         for (i, f) in fields[1..].iter().enumerate() {
             f.trim().parse::<f64>().unwrap_or_else(|_| {
-                panic!("CSV field {} is not a valid float: '{f}' in row '{row}'", i + 1)
+                panic!(
+                    "CSV field {} is not a valid float: '{f}' in row '{row}'",
+                    i + 1
+                )
             });
         }
         prev_tick = tick;
@@ -260,5 +329,8 @@ fn csv_tick_sequence_is_monotonic() {
 fn csv_default_dashboard_row_starts_with_zero() {
     let dash = SimulationHealthDashboard::default();
     let row = export_dashboard_csv_row(&dash);
-    assert!(row.starts_with("0,"), "default dashboard tick must be 0, got: '{row}'");
+    assert!(
+        row.starts_with("0,"),
+        "default dashboard tick must be 0, got: '{row}'"
+    );
 }

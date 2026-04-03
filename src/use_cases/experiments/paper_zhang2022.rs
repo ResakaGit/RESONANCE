@@ -10,8 +10,8 @@
 //!
 //! All stateless. Config in → ZhangReport out. BDD-tested.
 
-use crate::blueprint::equations::determinism;
 use crate::blueprint::equations::derived_thresholds::COHERENCE_BANDWIDTH;
+use crate::blueprint::equations::determinism;
 use std::time::Instant;
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -27,88 +27,94 @@ const DT: f32 = 0.01;
 #[derive(Debug, Clone)]
 pub struct ZhangConfig {
     // Subpopulation initial fractions (sum = 1.0)
-    pub frac_sensitive:  f32,   // T+ (drug-sensitive)
-    pub frac_partial:    f32,   // TP (partially resistant)
-    pub frac_resistant:  f32,   // T- (fully resistant)
+    pub frac_sensitive: f32, // T+ (drug-sensitive)
+    pub frac_partial: f32,   // TP (partially resistant)
+    pub frac_resistant: f32, // T- (fully resistant)
 
     // Growth rates (per generation). Zhang 2022 Table S1.
-    pub growth_sensitive:  f32,  // T+: 0.0278/day → normalized
-    pub growth_partial:    f32,  // TP: 0.0355/day
-    pub growth_resistant:  f32,  // T-: 0.0665/day
+    pub growth_sensitive: f32, // T+: 0.0278/day → normalized
+    pub growth_partial: f32,   // TP: 0.0355/day
+    pub growth_resistant: f32, // T-: 0.0665/day
 
     // Carrying capacity (total population units).
     pub carrying_capacity: f32,
 
     // Competition matrix (alpha_ij = inhibition of j by i). Zhang 2022.
-    pub alpha_ss: f32,  // T+ on T+ (self)
-    pub alpha_sp: f32,  // T+ on TP
-    pub alpha_sr: f32,  // T+ on T-
-    pub alpha_ps: f32,  // TP on T+
-    pub alpha_pp: f32,  // TP on TP (self)
-    pub alpha_pr: f32,  // TP on T-
-    pub alpha_rs: f32,  // T- on T+
-    pub alpha_rp: f32,  // T- on TP
-    pub alpha_rr: f32,  // T- on T- (self)
+    pub alpha_ss: f32, // T+ on T+ (self)
+    pub alpha_sp: f32, // T+ on TP
+    pub alpha_sr: f32, // T+ on T-
+    pub alpha_ps: f32, // TP on T+
+    pub alpha_pp: f32, // TP on TP (self)
+    pub alpha_pr: f32, // TP on T-
+    pub alpha_rs: f32, // T- on T+
+    pub alpha_rp: f32, // T- on TP
+    pub alpha_rr: f32, // T- on T- (self)
 
     // Drug effect: frequency-selective kill rate increase (Axiom 4+8).
-    pub drug_freq:        f32,
-    pub sensitive_freq:   f32,
-    pub partial_freq:     f32,
-    pub resistant_freq:   f32,
-    pub drug_kill_rate:   f32,  // Max kill rate at full alignment
+    pub drug_freq: f32,
+    pub sensitive_freq: f32,
+    pub partial_freq: f32,
+    pub resistant_freq: f32,
+    pub drug_kill_rate: f32, // Max kill rate at full alignment
 
     // Adaptive protocol thresholds (Zhang: off at 50% PSA decline, on at return to baseline).
     pub psa_off_threshold: f32,
-    pub psa_on_threshold:  f32,
+    pub psa_on_threshold: f32,
     pub treatment_start_gen: u32,
 
     // Simulation
-    pub generations:     u32,
-    pub steps_per_gen:   u32,
-    pub seed:            u64,
+    pub generations: u32,
+    pub steps_per_gen: u32,
+    pub seed: u64,
 }
 
 impl Default for ZhangConfig {
     fn default() -> Self {
         Self {
             // Zhang 2022: ~55% sensitive, ~30% partially resistant, ~15% fully resistant.
-            frac_sensitive:  0.55,
-            frac_partial:    0.30,
-            frac_resistant:  0.15,
+            frac_sensitive: 0.55,
+            frac_partial: 0.30,
+            frac_resistant: 0.15,
 
             // Growth rates from Zhang 2022 Table S1 (normalized).
             // Key insight: resistant cells grow SLOWER than sensitive without drug
             // (fitness cost of resistance — Zhang/Gatenby core hypothesis).
             // With drug: sensitive die, resistant grow unchecked.
             // Without drug: sensitive outcompete resistant.
-            growth_sensitive:  1.5,
-            growth_partial:    1.2,
-            growth_resistant:  0.8,  // Fitness cost: resistant grow 47% slower without drug
+            growth_sensitive: 1.5,
+            growth_partial: 1.2,
+            growth_resistant: 0.8, // Fitness cost: resistant grow 47% slower without drug
 
             carrying_capacity: 1.0,
 
             // Competition matrix (Zhang 2022: alpha values 0.5-0.9).
             // Sensitive cells are STRONG competitors (Gatenby hypothesis):
             // they suppress resistant growth when drug is off.
-            alpha_ss: 1.0, alpha_sp: 0.9, alpha_sr: 0.9,  // sensitive strongly inhibit others
-            alpha_ps: 0.5, alpha_pp: 1.0, alpha_pr: 0.6,
-            alpha_rs: 0.3, alpha_rp: 0.4, alpha_rr: 1.0,  // resistant weakly inhibit sensitive
+            alpha_ss: 1.0,
+            alpha_sp: 0.9,
+            alpha_sr: 0.9, // sensitive strongly inhibit others
+            alpha_ps: 0.5,
+            alpha_pp: 1.0,
+            alpha_pr: 0.6,
+            alpha_rs: 0.3,
+            alpha_rp: 0.4,
+            alpha_rr: 1.0, // resistant weakly inhibit sensitive
 
             // Drug: targets sensitive frequency (Axiom 8).
-            drug_freq:       400.0,
-            sensitive_freq:  400.0,
-            partial_freq:    440.0,
-            resistant_freq:  600.0,
-            drug_kill_rate:  4.0,  // Strong kill on sensitive cells
+            drug_freq: 400.0,
+            sensitive_freq: 400.0,
+            partial_freq: 440.0,
+            resistant_freq: 600.0,
+            drug_kill_rate: 4.0, // Strong kill on sensitive cells
 
             // Zhang adaptive protocol: off when PSA drops to 60%, on at 85%.
             psa_off_threshold: 0.60,
-            psa_on_threshold:  0.85,
+            psa_on_threshold: 0.85,
             treatment_start_gen: 5,
 
-            generations:     150,
-            steps_per_gen:   100,
-            seed:            42,
+            generations: 150,
+            steps_per_gen: 100,
+            seed: 42,
         }
     }
 }
@@ -119,29 +125,29 @@ impl Default for ZhangConfig {
 /// Per-generation snapshot for one experiment arm.
 #[derive(Debug, Clone)]
 pub struct ZhangSnapshot {
-    pub generation:     u32,
-    pub alive_mean:     f32,    // Total population (N_total / K)
-    pub efficiency:     f32,    // = alive_mean (PSA proxy ∝ tumor burden)
+    pub generation: u32,
+    pub alive_mean: f32, // Total population (N_total / K)
+    pub efficiency: f32, // = alive_mean (PSA proxy ∝ tumor burden)
     pub sensitive_frac: f32,
     pub resistant_frac: f32,
-    pub drug_active:    bool,
-    pub growth_rate:    f32,
+    pub drug_active: bool,
+    pub growth_rate: f32,
 }
 
 /// Reporte completo comparando terapia continua vs adaptativa.
 /// Complete report comparing continuous vs adaptive therapy.
 #[derive(Debug)]
 pub struct ZhangReport {
-    pub config:               ZhangConfig,
-    pub timeline_continuous:  Vec<ZhangSnapshot>,
-    pub timeline_adaptive:    Vec<ZhangSnapshot>,
-    pub continuous_ttp_gen:   Option<u32>,
-    pub adaptive_ttp_gen:     Option<u32>,
-    pub ttp_ratio:            f32,
-    pub drug_exposure_ratio:  f32,
-    pub adaptive_cycles:      u32,
-    pub prediction_met:       bool,
-    pub wall_time_ms:         u64,
+    pub config: ZhangConfig,
+    pub timeline_continuous: Vec<ZhangSnapshot>,
+    pub timeline_adaptive: Vec<ZhangSnapshot>,
+    pub continuous_ttp_gen: Option<u32>,
+    pub adaptive_ttp_gen: Option<u32>,
+    pub ttp_ratio: f32,
+    pub drug_exposure_ratio: f32,
+    pub adaptive_cycles: u32,
+    pub prediction_met: bool,
+    pub wall_time_ms: u64,
 }
 
 // ─── Population state ───────────────────────────────────────────────────────
@@ -150,13 +156,15 @@ pub struct ZhangReport {
 /// 3-subpopulation state (competitive Lotka-Volterra).
 #[derive(Debug, Clone, Copy)]
 struct PopState {
-    s: f32,  // T+ sensitive
-    p: f32,  // TP partial
-    r: f32,  // T- resistant
+    s: f32, // T+ sensitive
+    p: f32, // TP partial
+    r: f32, // T- resistant
 }
 
 impl PopState {
-    fn total(&self) -> f32 { self.s + self.p + self.r }
+    fn total(&self) -> f32 {
+        self.s + self.p + self.r
+    }
     fn sensitive_frac(&self) -> f32 {
         let t = self.total();
         if t > 0.0 { self.s / t } else { 0.0 }
@@ -173,7 +181,9 @@ impl PopState {
 /// Drug kill rate for a subpopulation given its frequency (Axiom 4+8).
 fn drug_kill(subpop_freq: f32, config: &ZhangConfig) -> f32 {
     let alignment = determinism::gaussian_frequency_alignment(
-        subpop_freq, config.drug_freq, COHERENCE_BANDWIDTH,
+        subpop_freq,
+        config.drug_freq,
+        COHERENCE_BANDWIDTH,
     );
     // Axiom 4: drug increases dissipation ∝ alignment. Higher alignment = more kill.
     config.drug_kill_rate * alignment
@@ -192,8 +202,8 @@ fn lotka_volterra_step(pop: PopState, config: &ZhangConfig, drug_on: bool) -> Po
 
     // Effective growth rates (logistic + competition).
     let gs = config.growth_sensitive * (1.0 - inhib_s / k);
-    let gp = config.growth_partial   * (1.0 - inhib_p / k);
-    let gr = config.growth_resistant  * (1.0 - inhib_r / k);
+    let gp = config.growth_partial * (1.0 - inhib_p / k);
+    let gr = config.growth_resistant * (1.0 - inhib_r / k);
 
     // Drug effect: reduce growth rate of drug-sensitive populations (Axiom 4+8).
     let (ds, dp, dr) = if drug_on {
@@ -211,7 +221,11 @@ fn lotka_volterra_step(pop: PopState, config: &ZhangConfig, drug_on: bool) -> Po
     let new_p = (pop.p + DT * pop.p * (gp - dp)).max(0.0);
     let new_r = (pop.r + DT * pop.r * (gr - dr)).max(0.0);
 
-    PopState { s: new_s, p: new_p, r: new_r }
+    PopState {
+        s: new_s,
+        p: new_p,
+        r: new_r,
+    }
 }
 
 // ─── TTP detection ──────────────────────────────────────────────────────────
@@ -222,24 +236,22 @@ fn lotka_volterra_step(pop: PopState, config: &ZhangConfig, drug_on: bool) -> Po
 fn detect_ttp(timeline: &[ZhangSnapshot], treatment_start: u32) -> Option<u32> {
     // TTP = first gen post-treatment where resistant fraction > 0.80.
     // This captures the Zhang insight: progression = resistant clone outcompetes sensitive.
-    timeline.iter().find(|s| {
-        s.generation > treatment_start && s.resistant_frac > 0.80
-    }).map(|s| s.generation)
+    timeline
+        .iter()
+        .find(|s| s.generation > treatment_start && s.resistant_frac > 0.80)
+        .map(|s| s.generation)
 }
 
 // ─── Arm runner ─────────────────────────────────────────────────────────────
 
 /// Ejecuta un brazo del experimento (continuo o adaptativo).
 /// Run one experiment arm (continuous or adaptive).
-fn run_arm(
-    config: &ZhangConfig,
-    adaptive: bool,
-) -> (Vec<ZhangSnapshot>, u32) {
+fn run_arm(config: &ZhangConfig, adaptive: bool) -> (Vec<ZhangSnapshot>, u32) {
     let k = config.carrying_capacity;
     let mut pop = PopState {
-        s: config.frac_sensitive  * k,
-        p: config.frac_partial    * k,
-        r: config.frac_resistant  * k,
+        s: config.frac_sensitive * k,
+        p: config.frac_partial * k,
+        r: config.frac_resistant * k,
     };
 
     let mut timeline = Vec::with_capacity(config.generations as usize);
@@ -281,13 +293,17 @@ fn run_arm(
         }
 
         let total = pop.total();
-        let growth_rate = if prev_pop > 0.0 { (total - prev_pop) / prev_pop } else { 0.0 };
+        let growth_rate = if prev_pop > 0.0 {
+            (total - prev_pop) / prev_pop
+        } else {
+            0.0
+        };
         prev_pop = total;
 
         timeline.push(ZhangSnapshot {
             generation: generation,
             alive_mean: total,
-            efficiency: total,  // PSA proxy ∝ tumor burden
+            efficiency: total, // PSA proxy ∝ tumor burden
             sensitive_frac: pop.sensitive_frac(),
             resistant_frac: pop.resistant_frac(),
             drug_active: drug_on,
@@ -325,12 +341,14 @@ pub fn run(config: &ZhangConfig) -> ZhangReport {
     let adap_drug_gens = timeline_adaptive.iter().filter(|s| s.drug_active).count();
     let drug_exposure_ratio = if cont_drug_gens > 0 {
         adap_drug_gens as f32 / cont_drug_gens as f32
-    } else { 1.0 };
+    } else {
+        1.0
+    };
 
     // Zhang prediction: adaptive TTP > continuous TTP.
     let prediction_met = match (adaptive_ttp, continuous_ttp) {
         (Some(a), Some(c)) => a > c,
-        (None, Some(_)) => true,  // adaptive never progressed
+        (None, Some(_)) => true, // adaptive never progressed
         _ => false,
     };
 
@@ -368,7 +386,10 @@ mod tests {
         let c = ZhangConfig::default();
         let on = drug_kill(c.sensitive_freq, &c);
         let off = drug_kill(c.resistant_freq, &c);
-        assert!(on > off, "on-target kill ({on}) must exceed off-target ({off})");
+        assert!(
+            on > off,
+            "on-target kill ({on}) must exceed off-target ({off})"
+        );
     }
 
     #[test]
@@ -377,30 +398,46 @@ mod tests {
         let sens = drug_kill(c.sensitive_freq, &c);
         let part = drug_kill(c.partial_freq, &c);
         let res = drug_kill(c.resistant_freq, &c);
-        assert!(sens > part && part > res,
-            "kill order: sens={sens} > part={part} > res={res}");
+        assert!(
+            sens > part && part > res,
+            "kill order: sens={sens} > part={part} > res={res}"
+        );
     }
 
     #[test]
     fn lotka_volterra_without_drug_grows() {
         let c = ZhangConfig::default();
-        let pop = PopState { s: 0.3, p: 0.2, r: 0.1 };
+        let pop = PopState {
+            s: 0.3,
+            p: 0.2,
+            r: 0.1,
+        };
         let next = lotka_volterra_step(pop, &c, false);
-        assert!(next.total() > pop.total(), "population should grow without drug");
+        assert!(
+            next.total() > pop.total(),
+            "population should grow without drug"
+        );
     }
 
     #[test]
     fn lotka_volterra_with_drug_kills_sensitive() {
         let c = ZhangConfig::default();
-        let pop = PopState { s: 0.5, p: 0.3, r: 0.2 };
+        let pop = PopState {
+            s: 0.5,
+            p: 0.3,
+            r: 0.2,
+        };
         let mut p = pop;
         for _ in 0..1000 {
             p = lotka_volterra_step(p, &c, true);
         }
         // Under continuous drug, resistant fraction should increase.
-        assert!(p.resistant_frac() > pop.resistant_frac(),
+        assert!(
+            p.resistant_frac() > pop.resistant_frac(),
             "resistant fraction should grow under drug: {:.3} > {:.3}",
-            p.resistant_frac(), pop.resistant_frac());
+            p.resistant_frac(),
+            pop.resistant_frac()
+        );
     }
 
     #[test]
@@ -426,20 +463,39 @@ mod tests {
 
     #[test]
     fn adaptive_uses_less_drug_than_continuous() {
-        let c = ZhangConfig { generations: 60, ..Default::default() };
+        let c = ZhangConfig {
+            generations: 60,
+            ..Default::default()
+        };
         let r = run(&c);
-        assert!(r.drug_exposure_ratio <= 1.0,
-            "adaptive must use <= drug: ratio={}", r.drug_exposure_ratio);
+        assert!(
+            r.drug_exposure_ratio <= 1.0,
+            "adaptive must use <= drug: ratio={}",
+            r.drug_exposure_ratio
+        );
     }
 
     #[test]
     fn continuous_drug_shifts_composition_toward_resistant() {
-        let c = ZhangConfig { generations: 80, ..Default::default() };
+        let c = ZhangConfig {
+            generations: 80,
+            ..Default::default()
+        };
         let r = run(&c);
-        let first_drug = r.timeline_continuous.iter()
-            .find(|s| s.drug_active).map(|s| s.resistant_frac).unwrap_or(0.0);
-        let last = r.timeline_continuous.last().map(|s| s.resistant_frac).unwrap_or(0.0);
-        assert!(last > first_drug,
-            "resistant fraction should increase under continuous drug: {last:.3} > {first_drug:.3}");
+        let first_drug = r
+            .timeline_continuous
+            .iter()
+            .find(|s| s.drug_active)
+            .map(|s| s.resistant_frac)
+            .unwrap_or(0.0);
+        let last = r
+            .timeline_continuous
+            .last()
+            .map(|s| s.resistant_frac)
+            .unwrap_or(0.0);
+        assert!(
+            last > first_drug,
+            "resistant fraction should increase under continuous drug: {last:.3} > {first_drug:.3}"
+        );
     }
 }

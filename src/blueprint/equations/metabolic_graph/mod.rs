@@ -5,14 +5,15 @@ pub use temporal_step::{
     ambient_equivalent_temperature, propagate_edge_flows, redistribute_node_violation,
 };
 pub use writer_monad::{
-    ChainOutput, OrganOutput, distribute_to_children, evaluate_metabolic_chain,
-    exergy_efficiency, organ_transform,
+    ChainOutput, OrganOutput, distribute_to_children, evaluate_metabolic_chain, exergy_efficiency,
+    organ_transform,
 };
 
 use crate::blueprint::constants::*;
 use crate::blueprint::morphogenesis::carnot_efficiency;
+use crate::blueprint::{MAX_ORGANS_PER_ENTITY, OrganRole};
+use crate::layers::OrganManifest;
 use crate::layers::metabolic_graph::{MetabolicGraph, MetabolicGraphBuilder};
-use crate::layers::{OrganManifest, OrganRole, MAX_ORGANS_PER_ENTITY};
 
 // Compile-time: las tablas de constantes deben alinearse con OrganRole.
 const _: () = assert!(ROLE_EFFICIENCY_FACTOR.len() == OrganRole::COUNT);
@@ -23,11 +24,14 @@ const _: () = assert!(ROLE_ACTIVATION_ENERGY.len() == OrganRole::COUNT);
 pub(crate) fn metabolic_topology_tier(role: OrganRole) -> u8 {
     match role {
         OrganRole::Root | OrganRole::Leaf | OrganRole::Sensory => 0,
-        OrganRole::Core                                        => 1,
-        OrganRole::Stem                                        => 2,
-        OrganRole::Fin | OrganRole::Limb                       => 3,
-        OrganRole::Petal | OrganRole::Thorn | OrganRole::Shell
-            | OrganRole::Fruit | OrganRole::Bud                => 4,
+        OrganRole::Core => 1,
+        OrganRole::Stem => 2,
+        OrganRole::Fin | OrganRole::Limb => 3,
+        OrganRole::Petal
+        | OrganRole::Thorn
+        | OrganRole::Shell
+        | OrganRole::Fruit
+        | OrganRole::Bud => 4,
     }
 }
 
@@ -47,10 +51,10 @@ pub fn metabolic_graph_from_manifest(
     let mut builder = MetabolicGraphBuilder::new();
     for spec in slice.iter() {
         let role = spec.role();
-        let i    = role as usize;
-        let eff  = (eta_c * ROLE_EFFICIENCY_FACTOR[i]).clamp(0.0, 1.0);
-        let ea   = ROLE_ACTIVATION_ENERGY[i];
-        builder  = builder.add_node(role, eff, ea);
+        let i = role as usize;
+        let eff = (eta_c * ROLE_EFFICIENCY_FACTOR[i]).clamp(0.0, 1.0);
+        let ea = ROLE_ACTIVATION_ENERGY[i];
+        builder = builder.add_node(role, eff, ea);
     }
 
     let n = slice.len();
@@ -61,10 +65,13 @@ pub fn metabolic_graph_from_manifest(
     idx_perm[..n].sort_by_key(|&j| (metabolic_topology_tier(slice[j as usize].role()), j));
 
     for k in 0..n.saturating_sub(1) {
-        let a   = idx_perm[k];
-        let b   = idx_perm[k + 1];
+        let a = idx_perm[k];
+        let b = idx_perm[k + 1];
         let cap = METABOLIC_EDGE_CAPACITY_BASE
-            * slice[a as usize].scale_factor().max(slice[b as usize].scale_factor()).max(1e-4);
+            * slice[a as usize]
+                .scale_factor()
+                .max(slice[b as usize].scale_factor())
+                .max(1e-4);
         builder = builder.add_edge(a, b, cap);
     }
 
@@ -74,7 +81,8 @@ pub fn metabolic_graph_from_manifest(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::layers::{LifecycleStage, OrganManifest, OrganRole, OrganSpec};
+    use crate::blueprint::{LifecycleStage, OrganRole};
+    use crate::layers::{OrganManifest, OrganSpec};
 
     #[test]
     fn empty_manifest_returns_empty_graph() {
@@ -87,8 +95,8 @@ mod tests {
     #[test]
     fn rosa_manifest_produces_four_nodes() {
         let mut m = OrganManifest::new(LifecycleStage::Mature);
-        m.push(OrganSpec::new(OrganRole::Stem,  1, 1.0));
-        m.push(OrganSpec::new(OrganRole::Leaf,  1, 0.8));
+        m.push(OrganSpec::new(OrganRole::Stem, 1, 1.0));
+        m.push(OrganSpec::new(OrganRole::Leaf, 1, 0.8));
         m.push(OrganSpec::new(OrganRole::Thorn, 1, 0.3));
         m.push(OrganSpec::new(OrganRole::Petal, 1, 0.5));
         let g = metabolic_graph_from_manifest(&m, 400.0, 280.0);
@@ -108,7 +116,9 @@ mod tests {
             assert!(
                 node.efficiency <= eta_c,
                 "{:?} efficiency {} > carnot {}",
-                node.role, node.efficiency, eta_c,
+                node.role,
+                node.efficiency,
+                eta_c,
             );
         }
     }
@@ -116,18 +126,21 @@ mod tests {
     #[test]
     fn edges_flow_from_lower_to_higher_tier() {
         let mut m = OrganManifest::new(LifecycleStage::Mature);
-        m.push(OrganSpec::new(OrganRole::Fin,  1, 1.0));
+        m.push(OrganSpec::new(OrganRole::Fin, 1, 1.0));
         m.push(OrganSpec::new(OrganRole::Root, 1, 1.0));
         m.push(OrganSpec::new(OrganRole::Core, 1, 1.0));
         m.push(OrganSpec::new(OrganRole::Stem, 1, 1.0));
         let g = metabolic_graph_from_manifest(&m, 400.0, 280.0);
         for edge in g.edges() {
             let tier_from = metabolic_topology_tier(g.nodes()[edge.from as usize].role);
-            let tier_to   = metabolic_topology_tier(g.nodes()[edge.to as usize].role);
+            let tier_to = metabolic_topology_tier(g.nodes()[edge.to as usize].role);
             assert!(
                 tier_from <= tier_to,
                 "edge {}→{}: tier {} > tier {}",
-                edge.from, edge.to, tier_from, tier_to,
+                edge.from,
+                edge.to,
+                tier_from,
+                tier_to,
             );
         }
     }

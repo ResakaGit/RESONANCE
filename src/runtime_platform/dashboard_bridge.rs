@@ -26,11 +26,17 @@ const RING_CAP: usize = 512;
 pub struct RingBuffer {
     data: [f32; RING_CAP],
     head: usize,
-    len:  usize,
+    len: usize,
 }
 
 impl Default for RingBuffer {
-    fn default() -> Self { Self { data: [0.0; RING_CAP], head: 0, len: 0 } }
+    fn default() -> Self {
+        Self {
+            data: [0.0; RING_CAP],
+            head: 0,
+            len: 0,
+        }
+    }
 }
 
 impl RingBuffer {
@@ -40,18 +46,24 @@ impl RingBuffer {
     pub fn push(&mut self, value: f32) {
         self.data[self.head] = value;
         self.head = (self.head + 1) & (RING_CAP - 1); // bitwise mod (potencia de 2)
-        if self.len < RING_CAP { self.len += 1; }
+        if self.len < RING_CAP {
+            self.len += 1;
+        }
     }
 
     /// Número de muestras almacenadas.
     /// Number of stored samples.
     #[inline]
-    pub fn len(&self) -> usize { self.len }
+    pub fn len(&self) -> usize {
+        self.len
+    }
 
     /// ¿Está vacío?
     /// Is it empty?
     #[inline]
-    pub fn is_empty(&self) -> bool { self.len == 0 }
+    pub fn is_empty(&self) -> bool {
+        self.len == 0
+    }
 
     /// Iterador en orden cronológico (oldest → newest).
     /// Iterator in chronological order (oldest → newest).
@@ -64,8 +76,14 @@ impl RingBuffer {
     /// Last pushed value. `None` if empty.
     #[inline]
     pub fn last(&self) -> Option<f32> {
-        if self.len == 0 { return None; }
-        let idx = if self.head == 0 { RING_CAP - 1 } else { self.head - 1 };
+        if self.len == 0 {
+            return None;
+        }
+        let idx = if self.head == 0 {
+            RING_CAP - 1
+        } else {
+            self.head - 1
+        };
         Some(self.data[idx])
     }
 
@@ -82,9 +100,9 @@ impl RingBuffer {
 /// Instant aggregates of the current tick. Cheap read for status bars.
 #[derive(Resource, Debug, Clone, Default)]
 pub struct SimTickSummary {
-    pub tick:          u64,
-    pub total_qe:      f32,
-    pub alive_count:   u32,
+    pub tick: u64,
+    pub total_qe: f32,
+    pub alive_count: u32,
     pub species_count: u8,
 }
 
@@ -92,8 +110,8 @@ pub struct SimTickSummary {
 /// Time history for charts. Stack-allocated ring buffers.
 #[derive(Resource, Debug, Clone, Default)]
 pub struct SimTimeSeries {
-    pub qe_history:      RingBuffer,
-    pub pop_history:     RingBuffer,
+    pub qe_history: RingBuffer,
+    pub pop_history: RingBuffer,
     pub species_history: RingBuffer,
 }
 
@@ -102,21 +120,26 @@ pub struct SimTimeSeries {
 #[derive(Resource, Debug, Clone)]
 pub struct SimSpeedConfig {
     pub time_scale: f32,
-    pub paused:     bool,
+    pub paused: bool,
 }
 
 impl Default for SimSpeedConfig {
-    fn default() -> Self { Self { time_scale: 1.0, paused: false } }
+    fn default() -> Self {
+        Self {
+            time_scale: 1.0,
+            paused: false,
+        }
+    }
 }
 
 /// Configuración visual. Escrita por UI, leída por render systems.
 /// Visual config. Written by UI, read by render systems.
 #[derive(Resource, Debug, Clone)]
 pub struct ViewConfig {
-    pub show_grid:         bool,
+    pub show_grid: bool,
     pub show_trajectories: bool,
-    pub color_mode:        ColorMode,
-    pub camera_mode:       CameraMode,
+    pub color_mode: ColorMode,
+    pub camera_mode: CameraMode,
 }
 
 impl Default for ViewConfig {
@@ -164,9 +187,9 @@ pub struct SelectedEntity(pub Option<Entity>);
 /// Stateless: lee queries, escribe Resources. Zero side effects en la simulación.
 pub fn update_dashboard_bridge(
     mut summary: ResMut<SimTickSummary>,
-    mut series:  ResMut<SimTimeSeries>,
-    clock:       Res<SimulationClock>,
-    query:       Query<&BaseEnergy>,
+    mut series: ResMut<SimTimeSeries>,
+    clock: Res<SimulationClock>,
+    query: Query<&BaseEnergy>,
 ) {
     summary.tick = clock.tick_id;
     let (mut total_qe, mut alive) = (0.0_f32, 0_u32);
@@ -193,14 +216,14 @@ pub struct DashboardBridgePlugin;
 impl Plugin for DashboardBridgePlugin {
     fn build(&self, app: &mut App) {
         app.init_resource::<SimTickSummary>()
-           .init_resource::<SimTimeSeries>()
-           .init_resource::<SimSpeedConfig>()
-           .init_resource::<ViewConfig>()
-           .init_resource::<SelectedEntity>()
-           .add_systems(
-               FixedUpdate,
-               update_dashboard_bridge.in_set(Phase::MorphologicalLayer),
-           );
+            .init_resource::<SimTimeSeries>()
+            .init_resource::<SimSpeedConfig>()
+            .init_resource::<ViewConfig>()
+            .init_resource::<SelectedEntity>()
+            .add_systems(
+                FixedUpdate,
+                update_dashboard_bridge.in_set(Phase::MorphologicalLayer),
+            );
     }
 }
 
@@ -264,7 +287,9 @@ mod tests {
     #[test]
     fn ring_to_vec_matches_iter() {
         let mut r = RingBuffer::default();
-        for i in 0..20 { r.push(i as f32); }
+        for i in 0..20 {
+            r.push(i as f32);
+        }
         let from_iter: Vec<f32> = r.iter().collect();
         assert_eq!(r.to_vec(), from_iter);
     }
@@ -273,7 +298,9 @@ mod tests {
     fn ring_push_after_wrap_maintains_chronological() {
         let mut r = RingBuffer::default();
         // Fill completely then push 3 more
-        for i in 0..(RING_CAP + 3) { r.push(i as f32); }
+        for i in 0..(RING_CAP + 3) {
+            r.push(i as f32);
+        }
         let v = r.to_vec();
         // Should be 3, 4, 5, ..., RING_CAP + 2
         for (idx, &val) in v.iter().enumerate() {

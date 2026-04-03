@@ -4,8 +4,8 @@
 use bevy::prelude::*;
 
 use crate::blueprint::checkpoint::{
-    build_checkpoint, checkpoint_from_json, checkpoint_from_ron, checkpoint_to_json,
-    checkpoint_to_ron, matter_state_to_u8, u8_to_matter_state, EntitySnapshot,
+    EntitySnapshot, build_checkpoint, checkpoint_from_json, checkpoint_from_ron,
+    checkpoint_to_json, checkpoint_to_ron, matter_state_to_u8, u8_to_matter_state,
 };
 use crate::blueprint::ids::WorldEntityId;
 use crate::layers::{BaseEnergy, MatterCoherence, OscillatorySignature, SpatialVolume};
@@ -51,13 +51,18 @@ impl CheckpointConfig {
             .and_then(|s| s.parse::<u32>().ok())
             .unwrap_or(0);
         let load_path = std::env::var("RESONANCE_CHECKPOINT_LOAD").ok();
-        let output_dir = std::env::var("RESONANCE_CHECKPOINT_DIR")
-            .unwrap_or_else(|_| "/tmp".to_string());
+        let output_dir =
+            std::env::var("RESONANCE_CHECKPOINT_DIR").unwrap_or_else(|_| "/tmp".to_string());
 
         if save_interval == 0 && load_path.is_none() {
             return None;
         }
-        Some(Self { save_interval, output_dir, load_path, format: CheckpointFormat::Ron })
+        Some(Self {
+            save_interval,
+            output_dir,
+            load_path,
+            format: CheckpointFormat::Ron,
+        })
     }
 }
 
@@ -79,32 +84,47 @@ pub fn checkpoint_save_system(
     )>,
     mut last_save: Local<u64>,
 ) {
-    let Some(cfg) = config else { return; };
-    if cfg.save_interval == 0 { return; }
-    if clock.tick_id % cfg.save_interval as u64 != 0 { return; }
-    if clock.tick_id == *last_save { return; }
+    let Some(cfg) = config else {
+        return;
+    };
+    if cfg.save_interval == 0 {
+        return;
+    }
+    if clock.tick_id % cfg.save_interval as u64 != 0 {
+        return;
+    }
+    if clock.tick_id == *last_save {
+        return;
+    }
 
-    let map = map_name.as_deref().map(|m| m.0.as_str()).unwrap_or("unknown");
+    let map = map_name
+        .as_deref()
+        .map(|m| m.0.as_str())
+        .unwrap_or("unknown");
 
     let mut snapshots: Vec<EntitySnapshot> = query
         .iter()
-        .filter_map(|(id_opt, transform, energy_opt, volume_opt, osc_opt, coherence_opt)| {
-            let Some(energy) = energy_opt else { return None; };
-            let id = id_opt.map(|w| w.0).unwrap_or(0);
-            let pos = transform.translation;
-            Some(EntitySnapshot {
-                id,
-                position: [pos.x, pos.y, pos.z],
-                energy: energy.qe(),
-                radius: volume_opt.map(|v| v.radius).unwrap_or(0.5),
-                frequency: osc_opt.map(|o| o.frequency_hz()).unwrap_or(0.0),
-                phase: osc_opt.map(|o| o.phase()).unwrap_or(0.0),
-                matter_state: coherence_opt
-                    .map(|c| matter_state_to_u8(c.state()))
-                    .unwrap_or(0),
-                bond_energy: coherence_opt.map(|c| c.bond_energy_eb()).unwrap_or(0.0),
-            })
-        })
+        .filter_map(
+            |(id_opt, transform, energy_opt, volume_opt, osc_opt, coherence_opt)| {
+                let Some(energy) = energy_opt else {
+                    return None;
+                };
+                let id = id_opt.map(|w| w.0).unwrap_or(0);
+                let pos = transform.translation;
+                Some(EntitySnapshot {
+                    id,
+                    position: [pos.x, pos.y, pos.z],
+                    energy: energy.qe(),
+                    radius: volume_opt.map(|v| v.radius).unwrap_or(0.5),
+                    frequency: osc_opt.map(|o| o.frequency_hz()).unwrap_or(0.0),
+                    phase: osc_opt.map(|o| o.phase()).unwrap_or(0.0),
+                    matter_state: coherence_opt
+                        .map(|c| matter_state_to_u8(c.state()))
+                        .unwrap_or(0),
+                    bond_energy: coherence_opt.map(|c| c.bond_energy_eb()).unwrap_or(0.0),
+                })
+            },
+        )
         .collect();
 
     // Deterministic order by entity id.
@@ -113,14 +133,29 @@ pub fn checkpoint_save_system(
     let checkpoint = build_checkpoint(clock.tick_id, map, &snapshots);
 
     let (content_result, ext) = match cfg.format {
-        CheckpointFormat::Ron => (checkpoint_to_ron(&checkpoint).map_err(|e| e.to_string()), "ron"),
-        CheckpointFormat::Json => (checkpoint_to_json(&checkpoint).map_err(|e| e.to_string()), "json"),
+        CheckpointFormat::Ron => (
+            checkpoint_to_ron(&checkpoint).map_err(|e| e.to_string()),
+            "ron",
+        ),
+        CheckpointFormat::Json => (
+            checkpoint_to_json(&checkpoint).map_err(|e| e.to_string()),
+            "json",
+        ),
     };
-    let Ok(content) = content_result else { return; };
+    let Ok(content) = content_result else {
+        return;
+    };
 
-    let path = format!("{}/resonance_checkpoint_{}.{}", cfg.output_dir, clock.tick_id, ext);
+    let path = format!(
+        "{}/resonance_checkpoint_{}.{}",
+        cfg.output_dir, clock.tick_id, ext
+    );
     if std::fs::write(&path, content).is_ok() {
-        info!("checkpoint saved: {} entities, tick {}", snapshots.len(), clock.tick_id);
+        info!(
+            "checkpoint saved: {} entities, tick {}",
+            snapshots.len(),
+            clock.tick_id
+        );
         *last_save = clock.tick_id;
     }
 }
@@ -132,8 +167,12 @@ pub fn checkpoint_load_startup_system(
     config: Option<Res<CheckpointConfig>>,
     mut clock: ResMut<SimulationClock>,
 ) {
-    let Some(cfg) = config else { return; };
-    let Some(ref path) = cfg.load_path else { return; };
+    let Some(cfg) = config else {
+        return;
+    };
+    let Some(ref path) = cfg.load_path else {
+        return;
+    };
 
     let Ok(content) = std::fs::read_to_string(path) else {
         warn!("checkpoint_load_startup: cannot read {path}");
@@ -144,7 +183,9 @@ pub fn checkpoint_load_startup_system(
         CheckpointFormat::Ron => checkpoint_from_ron(&content).map_err(|e| e.to_string()),
         CheckpointFormat::Json => checkpoint_from_json(&content).map_err(|e| e.to_string()),
     };
-    let Ok(cp) = checkpoint else { return; };
+    let Ok(cp) = checkpoint else {
+        return;
+    };
 
     clock.tick_id = cp.tick;
 

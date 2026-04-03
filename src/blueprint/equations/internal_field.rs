@@ -27,7 +27,7 @@ pub fn field_diffuse(field: &[f32; NODE_COUNT], conductivity: f32, dt: f32) -> [
         let delta = (out[i] - out[i + 1]) * k * 0.5;
         // Clamp to prevent negative nodes
         let safe = delta.clamp(-out[i + 1] * 0.5, out[i] * 0.5);
-        out[i]     -= safe;
+        out[i] -= safe;
         out[i + 1] += safe;
     }
     out
@@ -42,7 +42,7 @@ pub fn freq_field_entrain(freq: &[f32; NODE_COUNT], coupling: f32, dt: f32) -> [
     let k = coupling.clamp(0.0, 1.0) * dt;
     for i in 0..(NODE_COUNT - 1) {
         let delta = (out[i + 1] - out[i]) * k * 0.5;
-        out[i]     += delta;
+        out[i] += delta;
         out[i + 1] -= delta;
     }
     out
@@ -59,7 +59,11 @@ pub fn field_to_radii(
     max_ratio: f32,
 ) -> [f32; NODE_COUNT] {
     let total = field_total(qe_field);
-    let mean = if total > 1e-6 { total / NODE_COUNT as f32 } else { 1.0 };
+    let mean = if total > 1e-6 {
+        total / NODE_COUNT as f32
+    } else {
+        1.0
+    };
     let mut radii = [0.0; NODE_COUNT];
     for i in 0..NODE_COUNT {
         let ratio = if mean > 1e-6 { qe_field[i] / mean } else { 1.0 };
@@ -162,7 +166,10 @@ mod tests {
         let before = field_total(&field);
         let after_field = field_diffuse(&field, 0.5, 0.05);
         let after = field_total(&after_field);
-        assert!((after - before).abs() < 1e-4, "before={before} after={after}");
+        assert!(
+            (after - before).abs() < 1e-4,
+            "before={before} after={after}"
+        );
     }
 
     #[test]
@@ -211,7 +218,10 @@ mod tests {
         let field = [5.0; 8];
         let radii = field_to_radii(&field, 1.0, 0.3, 2.5);
         for r in &radii {
-            assert!((*r - 1.0).abs() < 1e-4, "uniform field → uniform radii: {r}");
+            assert!(
+                (*r - 1.0).abs() < 1e-4,
+                "uniform field → uniform radii: {r}"
+            );
         }
     }
 
@@ -220,7 +230,12 @@ mod tests {
         let mut field = [1.0; 8];
         field[3] = 10.0; // big lump at node 3
         let radii = field_to_radii(&field, 1.0, 0.3, 2.5);
-        assert!(radii[3] > radii[0], "node 3 should be wider: {} vs {}", radii[3], radii[0]);
+        assert!(
+            radii[3] > radii[0],
+            "node 3 should be wider: {} vs {}",
+            radii[3],
+            radii[0]
+        );
     }
 
     #[test]

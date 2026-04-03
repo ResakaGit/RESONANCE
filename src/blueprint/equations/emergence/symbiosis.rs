@@ -20,7 +20,12 @@ pub fn is_obligate_dependency(intake_without_partner: f32, base_dissipation: f32
 }
 
 /// Estabilidad Nash de la simbiosis: ninguna parte gana más rompiendo la relación.
-pub fn is_symbiosis_stable(a_with_b: f32, a_without_b: f32, b_with_a: f32, b_without_a: f32) -> bool {
+pub fn is_symbiosis_stable(
+    a_with_b: f32,
+    a_without_b: f32,
+    b_with_a: f32,
+    b_without_a: f32,
+) -> bool {
     a_with_b >= a_without_b && b_with_a >= b_without_a
 }
 
@@ -37,8 +42,8 @@ pub fn coevolution_pressure(extraction_b_on_a: f32, resistance_a: f32) -> f32 {
 /// is the group-pooled access scaled by their individual rate.
 pub fn extraction_estimate_in_group(
     individual_rate: f32,
-    group_size:      f32,
-    group_bonus:     f32,
+    group_size: f32,
+    group_bonus: f32,
 ) -> f32 {
     let effective_size = group_size.max(1.0);
     individual_rate * (1.0 + group_bonus / effective_size)
@@ -62,9 +67,9 @@ pub fn extraction_estimate_solo(individual_rate: f32) -> f32 {
 /// `interference_cost`: reduction from AC-1 cross-frequency interference at
 ///   group proximity (pre-computed from `metabolic_interference_factor`).
 pub fn cooperation_is_beneficial(
-    a_rate_solo:     f32,
+    a_rate_solo: f32,
     a_rate_in_group: f32,
-    b_rate_solo:     f32,
+    b_rate_solo: f32,
     b_rate_in_group: f32,
     interference_cost: f32,
 ) -> bool {
@@ -76,10 +81,7 @@ pub fn cooperation_is_beneficial(
 /// Defection temptation: how much entity A could gain by defecting from a group.
 ///
 /// Positive → defection is tempting; negative → staying is clearly better.
-pub fn defection_temptation(
-    a_rate_solo:     f32,
-    a_rate_in_group: f32,
-) -> f32 {
+pub fn defection_temptation(a_rate_solo: f32, a_rate_in_group: f32) -> f32 {
     a_rate_solo - a_rate_in_group
 }
 
@@ -131,7 +133,7 @@ mod tests {
 
     #[test]
     fn extraction_in_group_exceeds_solo_with_positive_bonus() {
-        let solo  = extraction_estimate_solo(10.0);
+        let solo = extraction_estimate_solo(10.0);
         let group = extraction_estimate_in_group(10.0, 3.0, 6.0);
         assert!(group > solo, "solo={solo} group={group}");
     }

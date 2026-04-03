@@ -7,15 +7,15 @@ use resonance::batch::bridge;
 use resonance::blueprint::equations;
 use resonance::blueprint::equations::radial_field;
 use resonance::geometry_flow::creature_builder;
-use resonance::use_cases::cli::{parse_arg, archetype_label};
+use resonance::use_cases::cli::{archetype_label, parse_arg};
 use resonance::use_cases::experiments::fossil::{self, FossilRecord};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
-    let gens   = parse_arg(&args, "--gens", 200);
+    let gens = parse_arg(&args, "--gens", 200);
     let worlds = parse_arg(&args, "--worlds", 200);
-    let ticks  = parse_arg(&args, "--ticks", 500);
-    let seed   = parse_arg(&args, "--seed", 42);
+    let ticks = parse_arg(&args, "--ticks", 500);
+    let seed = parse_arg(&args, "--seed", 42);
 
     println!("╔══════════════════════════════════════════╗");
     println!("║  RESONANCE — Fossil Record                ║");
@@ -23,7 +23,10 @@ fn main() {
 
     let record = fossil::run(
         &resonance::use_cases::presets::EARTH,
-        seed as u64, worlds as usize, gens as u32, ticks as u32,
+        seed as u64,
+        worlds as usize,
+        gens as u32,
+        ticks as u32,
     );
     resonance::use_cases::presenters::terminal::print_fossil(&record);
 
@@ -55,9 +58,9 @@ fn main() {
 
 #[derive(Resource)]
 struct Timeline {
-    record:  FossilRecord,
+    record: FossilRecord,
     current: usize,
-    dirty:   bool,
+    dirty: bool,
 }
 
 #[derive(Component)]
@@ -108,10 +111,16 @@ fn slider_input(keys: Res<ButtonInput<KeyCode>>, mut tl: ResMut<Timeline>) {
     }
     // Jump 10 with shift
     if keys.pressed(KeyCode::ShiftLeft) {
-        if keys.just_pressed(KeyCode::ArrowRight) { tl.current = (tl.current + 10).min(max); }
-        if keys.just_pressed(KeyCode::ArrowLeft) { tl.current = tl.current.saturating_sub(10); }
+        if keys.just_pressed(KeyCode::ArrowRight) {
+            tl.current = (tl.current + 10).min(max);
+        }
+        if keys.just_pressed(KeyCode::ArrowLeft) {
+            tl.current = tl.current.saturating_sub(10);
+        }
     }
-    if tl.current != prev { tl.dirty = true; }
+    if tl.current != prev {
+        tl.dirty = true;
+    }
 }
 
 fn rebuild_creature(
@@ -121,7 +130,9 @@ fn rebuild_creature(
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>,
 ) {
-    if !tl.dirty { return; }
+    if !tl.dirty {
+        return;
+    }
     tl.dirty = false;
 
     // Despawn old
@@ -129,20 +140,29 @@ fn rebuild_creature(
         commands.entity(e).despawn();
     }
 
-    let Some(fossil) = tl.record.fossils.get(tl.current) else { return; };
+    let Some(fossil) = tl.record.fossils.get(tl.current) else {
+        return;
+    };
     let genome = &fossil.genome;
     let freq = bridge::genome_to_components(genome).2.frequency_hz();
     let qe = 20.0 + genome.growth_bias * 80.0;
 
     let field = radial_field::build_viewer_field(
-        genome.growth_bias, genome.resilience, genome.branching_bias, qe,
+        genome.growth_bias,
+        genome.resilience,
+        genome.branching_bias,
+        qe,
     );
     let freq_field = radial_field::build_viewer_freq_field(freq);
 
     let mesh = creature_builder::build_creature_mesh_with_field(
-        genome.growth_bias, genome.mobility_bias,
-        genome.branching_bias, genome.resilience, freq,
-        &field, &freq_field,
+        genome.growth_bias,
+        genome.mobility_bias,
+        genome.branching_bias,
+        genome.resilience,
+        freq,
+        &field,
+        &freq_field,
     );
 
     let tint = equations::frequency_to_tint_rgb(freq);
@@ -169,7 +189,9 @@ fn rebuild_creature(
 }
 
 fn update_hud(tl: Res<Timeline>, mut text: Query<&mut Text, With<HudText>>) {
-    let Some(fossil) = tl.record.fossils.get(tl.current) else { return; };
+    let Some(fossil) = tl.record.fossils.get(tl.current) else {
+        return;
+    };
     for mut t in &mut text {
         *t = Text::new(format!(
             "Gen {}/{} | {} | fit={:.3} | div={:.3} | spp={:.1} | [LEFT/RIGHT]",

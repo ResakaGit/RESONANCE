@@ -1,8 +1,8 @@
 //! D1: Personal Universe — your birthday = your ecosystem.
 
-use crate::use_cases::{evolve_with, ExperimentReport};
-use crate::use_cases::presets::EARTH;
 use crate::blueprint::equations::determinism;
+use crate::use_cases::presets::EARTH;
+use crate::use_cases::{ExperimentReport, evolve_with};
 
 /// Evolve a universe from a personal string (name, birthday, etc.).
 ///

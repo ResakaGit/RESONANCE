@@ -49,7 +49,9 @@ impl SpatialVolume {
     #[inline]
     pub fn set_radius(&mut self, radius: f32) {
         let r = radius.max(VOLUME_MIN_RADIUS);
-        if self.radius != r { self.radius = r; }
+        if self.radius != r {
+            self.radius = r;
+        }
     }
 }
 

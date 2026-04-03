@@ -27,7 +27,11 @@ pub struct InputPacket {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DesyncResult {
     Synchronized,
-    Desynced { player_a: u8, player_b: u8, tick_id: u64 },
+    Desynced {
+        player_a: u8,
+        player_b: u8,
+        tick_id: u64,
+    },
 }
 
 #[derive(Event, Debug, Clone)]
@@ -49,7 +53,11 @@ pub struct LockstepConfig {
 
 impl Default for LockstepConfig {
     fn default() -> Self {
-        Self { player_count: 2, input_delay_ticks: 3, tick_rate_hz: 20.0 }
+        Self {
+            player_count: 2,
+            input_delay_ticks: 3,
+            tick_rate_hz: 20.0,
+        }
     }
 }
 
@@ -114,10 +122,7 @@ pub fn lockstep_checksum_record_system(
     clock: Res<SimulationClock>,
     mut log: ResMut<ChecksumLog>,
 ) {
-    let mut energies: Vec<(u32, f32)> = query
-        .iter()
-        .map(|(id, e)| (id.0, e.qe()))
-        .collect();
+    let mut energies: Vec<(u32, f32)> = query.iter().map(|(id, e)| (id.0, e.qe())).collect();
     energies.sort_unstable_by_key(|(id, _)| *id);
     let values: Vec<f32> = energies.into_iter().map(|(_, qe)| qe).collect();
     let checksum = tick_checksum(&values);
@@ -144,9 +149,21 @@ mod tests {
     fn input_buffer_count_for_tick_matches_only_target() {
         let buf = InputBuffer {
             entries: vec![
-                BufferedInput { tick_id: 5, player_id: 0, commands: vec![] },
-                BufferedInput { tick_id: 5, player_id: 1, commands: vec![] },
-                BufferedInput { tick_id: 6, player_id: 0, commands: vec![] },
+                BufferedInput {
+                    tick_id: 5,
+                    player_id: 0,
+                    commands: vec![],
+                },
+                BufferedInput {
+                    tick_id: 5,
+                    player_id: 1,
+                    commands: vec![],
+                },
+                BufferedInput {
+                    tick_id: 6,
+                    player_id: 0,
+                    commands: vec![],
+                },
             ],
         };
         assert_eq!(buf.count_for_tick(5), 2);

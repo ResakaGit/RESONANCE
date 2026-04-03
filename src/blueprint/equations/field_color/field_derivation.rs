@@ -3,13 +3,11 @@
 use crate::blueprint::almanac::{AlchemicalAlmanac, ElementDef};
 use crate::blueprint::constants::*;
 
+use super::spectrum::{linear_rgb_from_hz_with_identity, sanitize_eac4_hz_identity_weight_pub};
 use super::{
     field_linear_rgb_sanitize_finite, field_visual_clamp01_or_non_finite,
     field_visual_sanitize_unit, linear_rgb_lerp_preclamped, linear_rgba_lerp_preclamped,
     neutral_field_visual_linear_rgb,
-};
-use super::spectrum::{
-    linear_rgb_from_hz_with_identity, sanitize_eac4_hz_identity_weight_pub,
 };
 
 #[inline]
@@ -18,7 +16,11 @@ fn element_def_color_to_linear_rgb(def: &ElementDef) -> [f32; 3] {
     let r = field_visual_sanitize_unit(def.color.0, nch);
     let g = field_visual_sanitize_unit(def.color.1, nch);
     let b = field_visual_sanitize_unit(def.color.2, nch);
-    [super::srgb_to_linear(r), super::srgb_to_linear(g), super::srgb_to_linear(b)]
+    [
+        super::srgb_to_linear(r),
+        super::srgb_to_linear(g),
+        super::srgb_to_linear(b),
+    ]
 }
 
 /// Hz dominante + pureza → RGB lineal. Misma semántica que `worldgen::visual_derivation::derive_color`.
@@ -37,7 +39,9 @@ pub fn field_linear_rgb_from_hz_purity(
             Some(def) => {
                 let ron_lin = element_def_color_to_linear_rgb(def);
                 let w = sanitize_eac4_hz_identity_weight_pub(def.hz_identity_weight);
-                let blended = if w >= FIELD_EAC4_HZ_IDENTITY_WEIGHT_RON_ONLY - FIELD_EAC4_IDENTITY_FULL_RON_EPS {
+                let blended = if w
+                    >= FIELD_EAC4_HZ_IDENTITY_WEIGHT_RON_ONLY - FIELD_EAC4_IDENTITY_FULL_RON_EPS
+                {
                     ron_lin
                 } else if let Some((f_min, f_max)) = almanac.game_frequency_hz_bounds() {
                     linear_rgb_from_hz_with_identity(
@@ -88,11 +92,8 @@ pub fn compound_field_linear_rgba(
         let tw = field_visual_sanitize_unit(secondary_weight, 0.0);
         linear_rgba_lerp_preclamped(primary, secondary, tw)
     } else {
-        let mixed = linear_rgba_lerp_preclamped(
-            primary,
-            secondary,
-            FIELD_COMPOUND_BLEND_DESTRUCTIVE_BASE,
-        );
+        let mixed =
+            linear_rgba_lerp_preclamped(primary, secondary, FIELD_COMPOUND_BLEND_DESTRUCTIVE_BASE);
         let destructive_strength =
             field_visual_sanitize_unit((-interference) * (1.0 - purity), 0.0);
         linear_rgba_lerp_preclamped(mixed, neutral_rgba, destructive_strength)

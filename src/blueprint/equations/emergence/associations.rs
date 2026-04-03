@@ -10,12 +10,10 @@ pub fn association_strength(outcome_qe: f32, elapsed_ticks: u64, decay_rate: f32
 /// Valor esperado de un estímulo dado el historial de entradas y fuerzas.
 /// `stimuli`: hashes de estímulos. `strengths`: fuerza asociada a cada uno.
 /// `query_hash`: estímulo consultado. Retorna 0.0 si no está en historial.
-pub fn expected_stimulus_value(
-    stimuli: &[u32],
-    strengths: &[f32],
-    query_hash: u32,
-) -> f32 {
-    stimuli.iter().zip(strengths.iter())
+pub fn expected_stimulus_value(stimuli: &[u32], strengths: &[f32], query_hash: u32) -> f32 {
+    stimuli
+        .iter()
+        .zip(strengths.iter())
         .find(|&(&s, _)| s == query_hash)
         .map(|(_, &v)| v)
         .unwrap_or(0.0)
@@ -37,7 +35,9 @@ pub fn stimulus_hash(freq_band: u8, rel_x_band: i8, rel_z_band: i8) -> u32 {
 
 /// Índice LRU: posición de la entrada con menor strength (candidata a reemplazo).
 pub fn lru_victim_index(strengths: &[f32]) -> usize {
-    strengths.iter().enumerate()
+    strengths
+        .iter()
+        .enumerate()
         .min_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
         .map(|(i, _)| i)
         .unwrap_or(0)

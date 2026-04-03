@@ -4,14 +4,11 @@
 //! Run with: cargo test --test r9_ci_gates
 
 use resonance::blueprint::constants::{
-    CONSERVATION_ERROR_TOLERANCE, POOL_CONSERVATION_EPSILON,
-    SURROGATE_FITNESS_EPSILON, SURROGATE_MIN_HIT_RATE,
-};
-use resonance::blueprint::equations::{
-    is_within_epsilon,
-    surrogate_error::cache_hit_rate,
+    CONSERVATION_ERROR_TOLERANCE, POOL_CONSERVATION_EPSILON, SURROGATE_FITNESS_EPSILON,
+    SURROGATE_MIN_HIT_RATE,
 };
 use resonance::blueprint::equations::observability::is_conservation_violation;
+use resonance::blueprint::equations::{is_within_epsilon, surrogate_error::cache_hit_rate};
 
 // ─── Threshold configuration gates ───────────────────────────────────────────
 
@@ -32,8 +29,7 @@ fn conservation_tolerance_in_valid_range() {
 #[test]
 fn pool_epsilon_matches_conservation_tolerance() {
     assert_eq!(
-        POOL_CONSERVATION_EPSILON,
-        CONSERVATION_ERROR_TOLERANCE,
+        POOL_CONSERVATION_EPSILON, CONSERVATION_ERROR_TOLERANCE,
         "POOL_CONSERVATION_EPSILON={POOL_CONSERVATION_EPSILON} \
          != CONSERVATION_ERROR_TOLERANCE={CONSERVATION_ERROR_TOLERANCE}"
     );

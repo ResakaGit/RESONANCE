@@ -6,16 +6,11 @@ use crate::blueprint::constants::*;
 /// `pool(t+1) = (pool + intake − extracted − pool × rate).max(0)`.
 /// `total_extracted` clampeado a `pool + intake`; `dissipation_rate` a rango válido.
 #[inline]
-pub fn pool_next_tick(
-    pool: f32,
-    intake: f32,
-    total_extracted: f32,
-    dissipation_rate: f32,
-) -> f32 {
-    let p    = finite_non_negative(pool);
-    let i    = finite_non_negative(intake);
+pub fn pool_next_tick(pool: f32, intake: f32, total_extracted: f32, dissipation_rate: f32) -> f32 {
+    let p = finite_non_negative(pool);
+    let i = finite_non_negative(intake);
     let rate = dissipation_rate.clamp(DISSIPATION_RATE_MIN, DISSIPATION_RATE_MAX);
-    let cap  = p + i;
+    let cap = p + i;
     let extr = total_extracted.clamp(0.0, cap);
     (p + i - extr - p * rate).max(0.0)
 }
@@ -23,7 +18,7 @@ pub fn pool_next_tick(
 /// `loss = pool × rate`. Segunda ley: siempre positiva cuando pool > 0.
 #[inline]
 pub fn dissipation_loss(pool: f32, dissipation_rate: f32) -> f32 {
-    let p    = finite_non_negative(pool);
+    let p = finite_non_negative(pool);
     let rate = dissipation_rate.clamp(DISSIPATION_RATE_MIN, DISSIPATION_RATE_MAX);
     p * rate
 }
@@ -58,10 +53,12 @@ pub fn extract_greedy(available: f32, capacity: f32) -> f32 {
 /// Guard: `total_fitness ≤ 0` → 0; `fitness < 0` → clamped 0.
 #[inline]
 pub fn extract_competitive(available: f32, fitness: f32, total_fitness: f32) -> f32 {
-    let a  = finite_non_negative(available);
-    let f  = fitness.max(0.0);
+    let a = finite_non_negative(available);
+    let f = fitness.max(0.0);
     let tf = total_fitness;
-    if !tf.is_finite() || tf <= EXTRACTION_EPSILON { return 0.0; }
+    if !tf.is_finite() || tf <= EXTRACTION_EPSILON {
+        return 0.0;
+    }
     (a * f / tf).max(0.0)
 }
 
@@ -70,7 +67,7 @@ pub fn extract_competitive(available: f32, fitness: f32, total_fitness: f32) -> 
 /// `pool_damage = taken × damage_rate.clamp(0,1)` — reduce capacidad del padre.
 #[inline]
 pub fn extract_aggressive(available: f32, aggression_factor: f32, damage_rate: f32) -> (f32, f32) {
-    let a   = finite_non_negative(available);
+    let a = finite_non_negative(available);
     let agg = aggression_factor.clamp(0.0, 1.0);
     let dmg = damage_rate.clamp(0.0, 1.0);
     let taken = a * agg;
@@ -90,9 +87,9 @@ pub fn extract_regulated(
     threshold_high: f32,
 ) -> f32 {
     let ratio = finite_unit(pool_ratio);
-    let rate  = base_rate.max(0.0);
-    let lo    = threshold_low.clamp(0.0, 1.0);
-    let hi    = threshold_high.clamp(0.0, 1.0);
+    let rate = base_rate.max(0.0);
+    let lo = threshold_low.clamp(0.0, 1.0);
+    let hi = threshold_high.clamp(0.0, 1.0);
     if ratio > hi {
         rate * REGULATED_AGGRESSIVE_MULT
     } else if ratio < lo {
@@ -119,7 +116,9 @@ pub fn relative_fitness(fitness: f32, sibling_fitnesses: &[f32]) -> f32 {
 /// Invariante post: `Σextractions ≤ available + POOL_CONSERVATION_EPSILON`.
 pub fn scale_extractions_to_available(extractions: &mut [f32], available: f32) {
     let sum: f32 = extractions.iter().copied().sum();
-    if sum <= available + POOL_CONSERVATION_EPSILON { return; }
+    if sum <= available + POOL_CONSERVATION_EPSILON {
+        return;
+    }
     let factor = available / sum.max(EXTRACTION_EPSILON);
     for v in extractions.iter_mut() {
         *v *= factor;
@@ -130,30 +129,22 @@ pub fn scale_extractions_to_available(extractions: &mut [f32], available: f32) {
 
 /// El pool no cambia este tick: `|intake − extracted − loss| < epsilon`.
 #[inline]
-pub fn is_pool_equilibrium(
-    intake: f32,
-    total_extracted: f32,
-    loss: f32,
-    epsilon: f32,
-) -> bool {
+pub fn is_pool_equilibrium(intake: f32, total_extracted: f32, loss: f32, epsilon: f32) -> bool {
     (intake - total_extracted - loss).abs() < epsilon
 }
 
 /// El pool se vaciará este tick: `extracted + loss > intake + pool`.
 #[inline]
-pub fn is_host_collapsing(
-    pool: f32,
-    intake: f32,
-    total_extracted: f32,
-    loss: f32,
-) -> bool {
+pub fn is_host_collapsing(pool: f32, intake: f32, total_extracted: f32, loss: f32) -> bool {
     total_extracted + loss > intake + pool
 }
 
 /// Ticks restantes hasta colapso a tasa constante. `u32::MAX` si no colapsa.
 #[inline]
 pub fn ticks_to_collapse(pool: f32, net_drain_per_tick: f32) -> u32 {
-    if net_drain_per_tick <= 0.0 { return u32::MAX; }
+    if net_drain_per_tick <= 0.0 {
+        return u32::MAX;
+    }
     let p = finite_non_negative(pool);
     (p / net_drain_per_tick).ceil() as u32
 }
@@ -311,7 +302,10 @@ mod tests {
             let mut v: Vec<f32> = init.to_vec();
             scale_extractions_to_available(&mut v, *avail);
             let sum: f32 = v.iter().sum();
-            assert!(sum <= avail + POOL_CONSERVATION_EPSILON, "sum={sum} avail={avail}");
+            assert!(
+                sum <= avail + POOL_CONSERVATION_EPSILON,
+                "sum={sum} avail={avail}"
+            );
         }
     }
 

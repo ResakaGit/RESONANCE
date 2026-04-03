@@ -7,12 +7,12 @@
 use bevy::ecs::schedule::ScheduleLabel;
 use bevy::prelude::*;
 
+use crate::blueprint::constants::EVOLUTION_SURROGATE_CACHE_CAPACITY;
 use crate::bridge::context_fill::bridge_phase_tick;
 use crate::bridge::metrics::bridge_optimizer_enter_active_log_system;
-use crate::bridge::{register_bridge_cache, CachePolicy, EvolutionSurrogateBridge};
-use crate::blueprint::constants::EVOLUTION_SURROGATE_CACHE_CAPACITY;
+use crate::bridge::{CachePolicy, EvolutionSurrogateBridge, register_bridge_cache};
 use crate::runtime_platform::simulation_tick::{
-    advance_simulation_clock_system, SimulationClockSet,
+    SimulationClockSet, advance_simulation_clock_system,
 };
 use crate::simulation::states::{GameState, PlayState};
 use crate::simulation::{self, Phase};
@@ -27,7 +27,10 @@ where
     app.init_resource::<simulation::evolution_surrogate::EvolutionSurrogateConfig>();
     app.init_resource::<simulation::evolution_surrogate::EvolutionSurrogateQueue>();
     app.init_resource::<simulation::evolution_surrogate::EvolutionSurrogateState>();
-    if !app.world().contains_resource::<crate::bridge::BridgeCache<EvolutionSurrogateBridge>>() {
+    if !app
+        .world()
+        .contains_resource::<crate::bridge::BridgeCache<EvolutionSurrogateBridge>>()
+    {
         register_bridge_cache::<EvolutionSurrogateBridge>(
             app,
             EVOLUTION_SURROGATE_CACHE_CAPACITY,
@@ -43,8 +46,7 @@ where
         (
             crate::simulation::game_loop::nucleus_intake_decay_system
                 .in_set(Phase::ThermodynamicLayer),
-            crate::simulation::game_loop::victory_check_system
-                .in_set(Phase::MetabolicLayer),
+            crate::simulation::game_loop::victory_check_system.in_set(Phase::MetabolicLayer),
         ),
     );
 
@@ -136,8 +138,7 @@ where
     // SF-4: Metrics Export — env-gated, zero overhead when RESONANCE_METRICS is unset.
     app.add_systems(
         schedule.clone(),
-        crate::simulation::observability::metrics_batch_system
-            .in_set(Phase::MetabolicLayer),
+        crate::simulation::observability::metrics_batch_system.in_set(Phase::MetabolicLayer),
     );
 
     // SF-5: Checkpoint Save — env-gated, zero overhead when interval is 0.

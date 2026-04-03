@@ -1,9 +1,9 @@
 use bevy::app::AppExit;
 use bevy::prelude::*;
 
-use resonance::plugins::{DebugPlugin, LayersPlugin, SimulationPlugin};
 #[cfg(feature = "v7_worldgen")]
 use resonance::plugins::WorldgenPlugin;
+use resonance::plugins::{DebugPlugin, LayersPlugin, SimulationPlugin};
 #[cfg(feature = "gpu_cell_field_snapshot")]
 use resonance::rendering::gpu_cell_field_snapshot::GpuCellFieldSnapshotPlugin;
 use resonance::rendering::quantized_color::QuantizedColorPlugin;

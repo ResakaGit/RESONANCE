@@ -17,7 +17,7 @@ mod tests;
 pub use catalog::AlchemicalAlmanac;
 pub use element_def::{ElementDef, ElementPhenologyDef};
 pub use loader::ElementDefRonLoader;
-pub use systems::{almanac_hot_reload_system, init_almanac_elements_system, AlmanacElementsState};
+pub use systems::{AlmanacElementsState, almanac_hot_reload_system, init_almanac_elements_system};
 
 pub(crate) use paths::{load_element_defs_with_paths, scan_element_ron_paths};
 

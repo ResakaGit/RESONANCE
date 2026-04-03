@@ -283,4 +283,3 @@ pub fn photosynthetic_growth_bonus(photon_density: f32, absorbed_fraction: f32) 
     };
     (photon * absorbed * PHOTO_GROWTH_BONUS).clamp(0.0, PHOTO_GROWTH_BONUS_CAP)
 }
-

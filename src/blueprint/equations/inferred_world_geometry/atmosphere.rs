@@ -5,9 +5,8 @@ use std::f32::consts::FRAC_PI_2;
 use crate::math_types::Vec3;
 
 use crate::blueprint::constants::inferred_world_geometry::{
-    AMBIENT_BASE_INTENSITY, AMBIENT_CANOPY_REDUCTION, BLOOM_MAX, BLOOM_QE_SCALE,
-    FOG_END_RATIO, FOG_MAX_END, FOG_MIN_START, FOG_START_RATIO, SUN_BASE_INTENSITY,
-    SUN_MIN_INTENSITY,
+    AMBIENT_BASE_INTENSITY, AMBIENT_CANOPY_REDUCTION, BLOOM_MAX, BLOOM_QE_SCALE, FOG_END_RATIO,
+    FOG_MAX_END, FOG_MIN_START, FOG_START_RATIO, SUN_BASE_INTENSITY, SUN_MIN_INTENSITY,
 };
 
 /// Sun direction from latitude and time angle.
@@ -79,7 +78,11 @@ mod tests {
     fn inferred_sun_direction_equator_overhead() {
         let dir = inferred_sun_direction(0.0, 0.0);
         // At equator (latitude=0), elevation = PI/2, so Y component should be ~1
-        assert!(dir.y > 0.99, "equator sun should be nearly overhead, got y={}", dir.y);
+        assert!(
+            dir.y > 0.99,
+            "equator sun should be nearly overhead, got y={}",
+            dir.y
+        );
         assert!(dir.length() > 0.99 && dir.length() < 1.01);
     }
 
@@ -87,7 +90,11 @@ mod tests {
     fn inferred_sun_direction_pole_low() {
         let dir = inferred_sun_direction(1.0, 0.0);
         // At pole (latitude=1), elevation = 0, so Y component should be ~0
-        assert!(dir.y.abs() < 0.01, "pole sun should be at horizon, got y={}", dir.y);
+        assert!(
+            dir.y.abs() < 0.01,
+            "pole sun should be at horizon, got y={}",
+            dir.y
+        );
         assert!(dir.length() > 0.99 && dir.length() < 1.01);
     }
 

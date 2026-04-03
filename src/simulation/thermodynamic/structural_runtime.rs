@@ -46,7 +46,8 @@ pub fn structural_constraint_system(
             sim_plane_pos(target_t.translation, xz) - sim_plane_pos(source_t.translation, xz);
         let distance = delta.length();
         let extension = distance - link.rest_length.max(0.0);
-        let stress = equations::structural_stress(extension, constants::STRUCTURAL_DEFAULT_THERMAL_LOAD);
+        let stress =
+            equations::structural_stress(extension, constants::STRUCTURAL_DEFAULT_THERMAL_LOAD);
         if stress > link.break_stress {
             ev_break.send(StructuralLinkBreakEvent {
                 source,

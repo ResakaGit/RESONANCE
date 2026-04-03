@@ -1,6 +1,6 @@
-use crate::math_types::Vec2;
 use crate::blueprint::constants::*;
 use crate::layers::FieldFalloffMode;
+use crate::math_types::Vec2;
 
 // ═══════════════════════════════════════════════
 // Capa 11: Campo de Tensión
@@ -46,11 +46,7 @@ pub fn tension_field_acceleration(
 
     // a = F / m  con m ~= qe_target.
     let acc = dir_to_source * (total_force / target_qe.max(DIVISION_GUARD_EPSILON));
-    if acc.is_finite() {
-        acc
-    } else {
-        Vec2::ZERO
-    }
+    if acc.is_finite() { acc } else { Vec2::ZERO }
 }
 
 // ═══════════════════════════════════════════════
@@ -144,7 +140,10 @@ mod tests {
         // When delta is very large, cost exceeds any reasonable qe budget.
         let cost = homeostasis_qe_cost(100.0, 2.0);
         let available_qe = 10.0;
-        assert!(cost > available_qe, "cost exceeds available qe — system should skip");
+        assert!(
+            cost > available_qe,
+            "cost exceeds available qe — system should skip"
+        );
     }
 
     #[test]

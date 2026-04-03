@@ -19,8 +19,12 @@ pub fn multicellular_step(world: &mut SimWorldFlat, scratch: &ScratchPad) {
     for k in 0..scratch.pairs_len {
         let (a, b) = scratch.pairs[k];
         let (ai, bi) = (a as usize, b as usize);
-        if ai >= MAX_ENTITIES || bi >= MAX_ENTITIES { continue; }
-        if world.alive_mask & (1 << ai) == 0 || world.alive_mask & (1 << bi) == 0 { continue; }
+        if ai >= MAX_ENTITIES || bi >= MAX_ENTITIES {
+            continue;
+        }
+        if world.alive_mask & (1 << ai) == 0 || world.alive_mask & (1 << bi) == 0 {
+            continue;
+        }
 
         let ea = &world.entities[ai];
         let eb = &world.entities[bi];
@@ -29,7 +33,11 @@ pub fn multicellular_step(world: &mut SimWorldFlat, scratch: &ScratchPad) {
         let dist = (dx * dx + dy * dy).sqrt();
 
         let affinity = multicellular::adhesion_affinity(
-            ea.frequency_hz, eb.frequency_hz, dist, ea.radius, eb.radius,
+            ea.frequency_hz,
+            eb.frequency_hz,
+            dist,
+            ea.radius,
+            eb.radius,
         );
         if multicellular::should_bond(affinity) {
             adjacency[ai][bi] = true;
@@ -41,9 +49,8 @@ pub fn multicellular_step(world: &mut SimWorldFlat, scratch: &ScratchPad) {
     let colonies = multicellular::detect_colonies(&adjacency, world.alive_mask);
 
     // 3. Compute positional gradient
-    let gradient = multicellular::positional_gradient(
-        &adjacency, &colonies.colony_id, world.alive_mask,
-    );
+    let gradient =
+        multicellular::positional_gradient(&adjacency, &colonies.colony_id, world.alive_mask);
 
     // 4. Modulate expression masks + pay bond costs
     let mut mask = world.alive_mask;
@@ -51,7 +58,9 @@ pub fn multicellular_step(world: &mut SimWorldFlat, scratch: &ScratchPad) {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
 
-        if colonies.colony_id[i] == 0 { continue; } // not in a colony
+        if colonies.colony_id[i] == 0 {
+            continue;
+        } // not in a colony
 
         // Differential expression (Axiom 6)
         let new_mask = multicellular::modulate_expression(
@@ -62,9 +71,7 @@ pub fn multicellular_step(world: &mut SimWorldFlat, scratch: &ScratchPad) {
         world.entities[i].expression_mask = new_mask;
 
         // Bond maintenance cost (Axiom 4): count bonds for this entity
-        let bond_count = (0..MAX_ENTITIES)
-            .filter(|&j| adjacency[i][j])
-            .count() as f32;
+        let bond_count = (0..MAX_ENTITIES).filter(|&j| adjacency[i][j]).count() as f32;
         let cost = ADHESION_COST * bond_count;
         let drain = cost.min(world.entities[i].qe);
         world.entities[i].qe -= drain;
@@ -104,7 +111,10 @@ mod tests {
         let qe_before: f32 = (0..4).map(|i| world.entities[i].qe).sum();
         multicellular_step(&mut world, &scratch);
         let qe_after: f32 = (0..4).map(|i| world.entities[i].qe).sum();
-        assert!(qe_after <= qe_before, "energy must not increase: {qe_after} <= {qe_before}");
+        assert!(
+            qe_after <= qe_before,
+            "energy must not increase: {qe_after} <= {qe_before}"
+        );
     }
 
     #[test]
@@ -141,7 +151,10 @@ mod tests {
         let qe_before = world.entities[0].qe;
         multicellular_step(&mut world, &scratch);
         // Bond cost should be lower because fewer bonds formed
-        assert!(world.entities[0].qe >= qe_before - 0.1, "weak/no bonds = minimal cost");
+        assert!(
+            world.entities[0].qe >= qe_before - 0.1,
+            "weak/no bonds = minimal cost"
+        );
     }
 
     #[test]

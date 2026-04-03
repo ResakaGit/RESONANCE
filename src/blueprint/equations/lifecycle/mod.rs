@@ -1,6 +1,6 @@
 use super::finite_helpers::{finite_non_negative, finite_unit};
+use crate::blueprint::LifecycleStage;
 use crate::blueprint::constants::*;
-use crate::layers::LifecycleStage;
 
 #[inline]
 fn can_enter_reproductive_stage(viability: f32, biomass: f32, can_reproduce: bool) -> bool {

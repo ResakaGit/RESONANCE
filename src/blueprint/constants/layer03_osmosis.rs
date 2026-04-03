@@ -10,4 +10,3 @@ pub const OSMOTIC_MAX_TRANSFER_PER_TICK: f32 = 15.0;
 
 /// Presupuesto máximo de celdas procesadas por frame para ósmosis.
 pub const MAX_OSMOSIS_PER_FRAME: u32 = 128;
-

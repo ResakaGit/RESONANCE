@@ -4,12 +4,24 @@
 
 use crate::blueprint::equations::derived_thresholds as dt;
 
-pub fn senescence_coeff_materialized() -> f32 { dt::senescence_coeff_materialized() }
-pub fn senescence_max_age_materialized() -> u64 { dt::max_age_materialized() }
-pub fn senescence_coeff_flora() -> f32 { dt::senescence_coeff_flora() }
-pub fn senescence_max_age_flora() -> u64 { dt::max_age_flora() }
-pub fn senescence_coeff_fauna() -> f32 { dt::senescence_coeff_fauna() }
-pub fn senescence_max_age_fauna() -> u64 { dt::max_age_fauna() }
+pub fn senescence_coeff_materialized() -> f32 {
+    dt::senescence_coeff_materialized()
+}
+pub fn senescence_max_age_materialized() -> u64 {
+    dt::max_age_materialized()
+}
+pub fn senescence_coeff_flora() -> f32 {
+    dt::senescence_coeff_flora()
+}
+pub fn senescence_max_age_flora() -> u64 {
+    dt::max_age_flora()
+}
+pub fn senescence_coeff_fauna() -> f32 {
+    dt::senescence_coeff_fauna()
+}
+pub fn senescence_max_age_fauna() -> u64 {
+    dt::max_age_fauna()
+}
 
 /// Default reproduction strategy: 0 = Iteroparous.
 /// Derived: optimal_reproduction_strategy() selects per-entity; default = iteroparous.

@@ -4,27 +4,27 @@
 //! Interference between nearby entities = chords.
 //! Pure math: genome data → PCM samples → WAV bytes. Zero external crates.
 
-use crate::batch::genome::GenomeBlob;
 use crate::batch::bridge;
+use crate::batch::genome::GenomeBlob;
 
 /// Audio configuration for sonification.
 pub struct SonificationConfig {
     /// Audio sample rate in Hz.
-    pub sample_rate:     u32,
+    pub sample_rate: u32,
     /// Duration in seconds.
-    pub duration_secs:   f32,
+    pub duration_secs: f32,
     /// Scale factor: sim frequency → audible frequency (divide by this).
-    pub freq_divisor:    f32,
+    pub freq_divisor: f32,
     /// Master volume [0..1].
-    pub master_volume:   f32,
+    pub master_volume: f32,
 }
 
 impl Default for SonificationConfig {
     fn default() -> Self {
         Self {
-            sample_rate:   44100,
+            sample_rate: 44100,
             duration_secs: 10.0,
-            freq_divisor:  2.0,   // 400 Hz sim → 200 Hz audio
+            freq_divisor: 2.0, // 400 Hz sim → 200 Hz audio
             master_volume: 0.3,
         }
     }
@@ -40,12 +40,15 @@ pub fn genomes_to_wav(genomes: &[GenomeBlob], config: &SonificationConfig) -> Ve
     let mut pcm = vec![0.0f32; total_samples];
 
     // Each genome = one oscillator
-    let voices: Vec<(f32, f32)> = genomes.iter().map(|g| {
-        let sim_freq = bridge::genome_to_components(g).2.frequency_hz();
-        let audio_freq = sim_freq / config.freq_divisor;
-        let amplitude = (g.resilience * 0.5 + 0.1) * config.master_volume;
-        (audio_freq, amplitude)
-    }).collect();
+    let voices: Vec<(f32, f32)> = genomes
+        .iter()
+        .map(|g| {
+            let sim_freq = bridge::genome_to_components(g).2.frequency_hz();
+            let audio_freq = sim_freq / config.freq_divisor;
+            let amplitude = (g.resilience * 0.5 + 0.1) * config.master_volume;
+            (audio_freq, amplitude)
+        })
+        .collect();
 
     let n_voices = voices.len().max(1) as f32;
     let inv_sqrt_voices = 1.0 / n_voices.sqrt(); // normalize to prevent clipping
@@ -69,7 +72,7 @@ pub fn genomes_to_wav(genomes: &[GenomeBlob], config: &SonificationConfig) -> Ve
 fn pcm_to_wav(samples: &[f32], sample_rate: u32) -> Vec<u8> {
     let num_samples = samples.len() as u32;
     let bytes_per_sample: u16 = 2; // 16-bit
-    let channels: u16 = 1;         // mono
+    let channels: u16 = 1; // mono
     let data_size = num_samples * bytes_per_sample as u32;
     let file_size = 36 + data_size;
 
@@ -82,8 +85,8 @@ fn pcm_to_wav(samples: &[f32], sample_rate: u32) -> Vec<u8> {
 
     // fmt subchunk
     wav.extend_from_slice(b"fmt ");
-    wav.extend_from_slice(&16u32.to_le_bytes());          // subchunk size
-    wav.extend_from_slice(&1u16.to_le_bytes());           // PCM format
+    wav.extend_from_slice(&16u32.to_le_bytes()); // subchunk size
+    wav.extend_from_slice(&1u16.to_le_bytes()); // PCM format
     wav.extend_from_slice(&channels.to_le_bytes());
     wav.extend_from_slice(&sample_rate.to_le_bytes());
     let byte_rate = sample_rate * channels as u32 * bytes_per_sample as u32;

@@ -39,12 +39,16 @@ impl GompertzCache {
     /// Tick exacto en que la entidad muere.
     /// Exact tick at which the entity dies.
     #[inline]
-    pub fn death_tick(&self) -> u64 { self.death_tick }
+    pub fn death_tick(&self) -> u64 {
+        self.death_tick
+    }
 
     /// ¿Debe morir en este tick?
     /// Should entity die at this tick?
     #[inline]
-    pub fn should_die(&self, current_tick: u64) -> bool { current_tick >= self.death_tick }
+    pub fn should_die(&self, current_tick: u64) -> bool {
+        current_tick >= self.death_tick
+    }
 }
 
 #[cfg(test)]
@@ -54,7 +58,12 @@ mod tests {
 
     #[test]
     fn fauna_cache_death_tick_within_max_age() {
-        let c = GompertzCache::from_senescence(0, dt::senescence_coeff_fauna(), dt::senescence_coeff_fauna(), dt::max_age_fauna());
+        let c = GompertzCache::from_senescence(
+            0,
+            dt::senescence_coeff_fauna(),
+            dt::senescence_coeff_fauna(),
+            dt::max_age_fauna(),
+        );
         assert!(c.death_tick() <= dt::max_age_fauna());
         assert!(c.death_tick() > 0);
     }

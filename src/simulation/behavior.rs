@@ -11,7 +11,10 @@ use crate::layers::behavior::{
     BehaviorCooldown, BehaviorIntent, BehaviorMode, BehavioralAgent, EnergyAssessment,
     SensoryAwareness,
 };
-use crate::layers::{AlchemicalEngine, BaseEnergy, CapabilitySet, Faction, InferenceProfile, MobaIdentity, OscillatorySignature, WillActuator};
+use crate::layers::{
+    AlchemicalEngine, BaseEnergy, CapabilitySet, Faction, InferenceProfile, MobaIdentity,
+    OscillatorySignature, WillActuator,
+};
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::runtime_platform::core_math_agnostic::sim_plane_pos;
 use crate::world::SpatialIndex;
@@ -116,7 +119,9 @@ pub fn behavior_evaluate_threats_system(
                 }
                 continue;
             };
-            let Ok(other_id) = identities.get(entry.entity) else { continue; };
+            let Ok(other_id) = identities.get(entry.entity) else {
+                continue;
+            };
 
             if self_id.is_enemy(other_id) && dist < hostile_dist {
                 hostile_entity = Some(entry.entity);
@@ -134,9 +139,17 @@ pub fn behavior_evaluate_threats_system(
 
         commands.entity(entity).insert(SensoryAwareness {
             hostile_entity,
-            hostile_distance: if hostile_entity.is_some() { hostile_dist } else { f32::MAX },
+            hostile_distance: if hostile_entity.is_some() {
+                hostile_dist
+            } else {
+                f32::MAX
+            },
             food_entity,
-            food_distance: if food_entity.is_some() { food_dist } else { f32::MAX },
+            food_distance: if food_entity.is_some() {
+                food_dist
+            } else {
+                f32::MAX
+            },
         });
     }
 }
@@ -165,7 +178,9 @@ pub fn behavior_decision_system(
         let profile = profiles.get(entity).ok();
         let caps = capabilities.get(entity).ok();
         let resilience = InferenceProfile::resilience_effective(profile);
-        let mobility = profile.map(|p| p.mobility_bias).unwrap_or(DEFAULT_MOBILITY_BIAS);
+        let mobility = profile
+            .map(|p| p.mobility_bias)
+            .unwrap_or(DEFAULT_MOBILITY_BIAS);
 
         let mut scores = [0.0_f32; 5];
 
@@ -236,20 +251,19 @@ pub fn behavior_decision_system(
             },
             3 => match awareness.hostile_entity {
                 Some(prey) => {
-                    let chase_ticks =
-                        if let BehaviorMode::Hunt {
-                            prey: old_prey,
-                            chase_ticks,
-                        } = &intent.mode
-                        {
-                            if *old_prey == prey {
-                                chase_ticks + BEHAVIOR_DECISION_INTERVAL
-                            } else {
-                                0
-                            }
+                    let chase_ticks = if let BehaviorMode::Hunt {
+                        prey: old_prey,
+                        chase_ticks,
+                    } = &intent.mode
+                    {
+                        if *old_prey == prey {
+                            chase_ticks + BEHAVIOR_DECISION_INTERVAL
                         } else {
                             0
-                        };
+                        }
+                    } else {
+                        0
+                    };
                     if chase_ticks > MAX_CHASE_TICKS {
                         BehaviorMode::Idle
                     } else {
@@ -328,7 +342,11 @@ pub fn behavior_will_bridge_system(
             }
             BehaviorMode::Regroup { rally_pos } => {
                 let delta = *rally_pos - self_pos;
-                if delta.length_squared() > 1e-6 { delta.normalize() } else { Vec2::ZERO }
+                if delta.length_squared() > 1e-6 {
+                    delta.normalize()
+                } else {
+                    Vec2::ZERO
+                }
             }
         };
 
@@ -422,12 +440,14 @@ pub fn nash_target_select_system(
             continue;
         }
         let faction = identity.faction();
-        let Some(best) =
-            find_nash_target(entity, &faction, osc, awareness, &targets, &config)
+        let Some(best) = find_nash_target(entity, &faction, osc, awareness, &targets, &config)
         else {
             continue;
         };
-        let new_mode = BehaviorMode::FocusFire { target: best, team_priority: 0 };
+        let new_mode = BehaviorMode::FocusFire {
+            target: best,
+            team_priority: 0,
+        };
         if intent.mode != new_mode {
             intent.mode = new_mode;
             intent.target_entity = Some(best);
@@ -501,10 +521,7 @@ mod tests {
         let mut app = App::new();
         app.add_plugins(MinimalPlugins);
 
-        let food = app
-            .world_mut()
-            .spawn(BaseEnergy::new(100.0))
-            .id();
+        let food = app.world_mut().spawn(BaseEnergy::new(100.0)).id();
 
         let agent = app
             .world_mut()
@@ -545,15 +562,9 @@ mod tests {
         let mut app = App::new();
         app.add_plugins(MinimalPlugins);
 
-        let threat = app
-            .world_mut()
-            .spawn(BaseEnergy::new(5000.0))
-            .id();
+        let threat = app.world_mut().spawn(BaseEnergy::new(5000.0)).id();
 
-        let food = app
-            .world_mut()
-            .spawn(BaseEnergy::new(50.0))
-            .id();
+        let food = app.world_mut().spawn(BaseEnergy::new(50.0)).id();
 
         let agent = app
             .world_mut()
@@ -594,10 +605,7 @@ mod tests {
         let mut app = App::new();
         app.add_plugins(MinimalPlugins);
 
-        let prey = app
-            .world_mut()
-            .spawn(BaseEnergy::new(400.0))
-            .id();
+        let prey = app.world_mut().spawn(BaseEnergy::new(400.0)).id();
 
         let agent = app
             .world_mut()

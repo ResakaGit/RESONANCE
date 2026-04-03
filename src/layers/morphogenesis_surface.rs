@@ -49,8 +49,8 @@ impl MorphogenesisSurface {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bevy::ecs::component::StorageType;
     use crate::blueprint::constants::morphogenesis as mg;
+    use bevy::ecs::component::StorageType;
 
     #[test]
     fn new_standard_value_preserved() {

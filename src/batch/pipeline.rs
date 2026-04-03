@@ -88,8 +88,8 @@ impl SimWorldFlat {
     /// Convergence detection skips stabilized diffusion (AS-2).
     /// Same final state as calling `tick()` N times.
     pub fn tick_fast(&mut self, scratch: &mut ScratchPad, total_ticks: u32) {
-        use crate::blueprint::equations::batch_stepping;
         use crate::batch::constants::*;
+        use crate::blueprint::equations::batch_stepping;
 
         // Collect positions for isolation check
         let mut positions = [[0.0f32; 2]; MAX_ENTITIES];
@@ -124,7 +124,11 @@ impl SimWorldFlat {
                 // Growth: O(1) for total_ticks
                 if e.growth_bias > 0.0 {
                     e.radius = batch_stepping::growth_n_ticks(
-                        e.radius, e.growth_bias, 3.0, 0.01, total_ticks,
+                        e.radius,
+                        e.growth_bias,
+                        3.0,
+                        0.01,
+                        total_ticks,
                     );
                 }
                 // Position: integrate with gravity
@@ -132,7 +136,10 @@ impl SimWorldFlat {
                     e.velocity[1] -= GRAVITY_ACCELERATION * self.dt;
                     e.position[0] += e.velocity[0] * self.dt;
                     e.position[1] += e.velocity[1] * self.dt;
-                    if e.position[1] < 0.0 { e.position[1] = 0.0; e.velocity[1] = 0.0; }
+                    if e.position[1] < 0.0 {
+                        e.position[1] = 0.0;
+                        e.velocity[1] = 0.0;
+                    }
                 }
                 // Mark field for re-convergence (qe changed)
                 e.field_converged = false;
@@ -185,8 +192,8 @@ mod tests {
             e.dissipation = 0.01;
             e.frequency_hz = 200.0 + i as f32 * 50.0;
             e.position = [i as f32 * 5.0, 0.0]; // spaced apart → no collision
-            e.archetype = 2;      // fauna — not a producer
-            e.trophic_class = 2;  // omnivore — won't photosynthesize
+            e.archetype = 2; // fauna — not a producer
+            e.trophic_class = 2; // omnivore — won't photosynthesize
             w.spawn(e);
         }
         w.update_total_qe();

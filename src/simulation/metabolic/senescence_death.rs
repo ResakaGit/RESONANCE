@@ -6,8 +6,8 @@
 
 use bevy::prelude::*;
 
-use crate::blueprint::equations::emergence::senescence::survival_probability;
 use crate::blueprint::equations::derived_thresholds as dt;
+use crate::blueprint::equations::emergence::senescence::survival_probability;
 use crate::events::{DeathCause, DeathEvent};
 use crate::layers::{BaseEnergy, SenescenceProfile};
 use crate::runtime_platform::simulation_tick::SimulationClock;
@@ -26,14 +26,24 @@ pub fn senescence_death_system(
 
         // Hard age limit — unconditional death.
         if age >= senescence.max_viable_age {
-            death_events.send(DeathEvent { entity, cause: DeathCause::Dissipation });
+            death_events.send(DeathEvent {
+                entity,
+                cause: DeathCause::Dissipation,
+            });
             continue;
         }
 
         // Gompertz hazard — increasing death probability with age.
-        let prob = survival_probability(age, senescence.senescence_coeff, senescence.senescence_coeff);
+        let prob = survival_probability(
+            age,
+            senescence.senescence_coeff,
+            senescence.senescence_coeff,
+        );
         if prob < dt::survival_probability_threshold() {
-            death_events.send(DeathEvent { entity, cause: DeathCause::Dissipation });
+            death_events.send(DeathEvent {
+                entity,
+                cause: DeathCause::Dissipation,
+            });
         }
     }
 }

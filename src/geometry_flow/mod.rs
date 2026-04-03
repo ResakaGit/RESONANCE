@@ -98,7 +98,10 @@ pub fn spine_paint_vertex_from_raw_field(
     field_raw: &dyn Fn(Vec3) -> ([f32; 3], f32),
 ) -> ([f32; 3], f32) {
     let (rgb, qn) = field_raw(pos);
-    (branch_role_modulated_linear_rgb(rgb, influence.branch_role), qn)
+    (
+        branch_role_modulated_linear_rgb(rgb, influence.branch_role),
+        qn,
+    )
 }
 
 /// Spine con color por nodo: `paint(pos, influence)` devuelve RGB lineal y `qe_norm` ya acotados por el llamador.
@@ -247,18 +250,25 @@ pub fn build_flow_mesh_variable_radius(
     let ring_n = influence.ring_vertex_count() as usize;
     let spine_n = spine.len();
     if spine_n < 2 || ring_n < 3 {
-        return Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
+        return Mesh::new(
+            PrimitiveTopology::TriangleList,
+            RenderAssetUsages::default(),
+        );
     }
 
     let fallback_r = influence.radius_base.max(1e-4);
     let mut positions: Vec<[f32; 3]> = Vec::with_capacity(spine_n * ring_n);
-    let mut normals:   Vec<[f32; 3]> = Vec::with_capacity(spine_n * ring_n);
-    let mut uvs:       Vec<[f32; 2]> = Vec::with_capacity(spine_n * ring_n);
-    let mut colors:    Vec<[f32; 4]> = Vec::with_capacity(spine_n * ring_n);
+    let mut normals: Vec<[f32; 3]> = Vec::with_capacity(spine_n * ring_n);
+    let mut uvs: Vec<[f32; 2]> = Vec::with_capacity(spine_n * ring_n);
+    let mut colors: Vec<[f32; 4]> = Vec::with_capacity(spine_n * ring_n);
     let denom_s = (spine_n - 1).max(1) as f32;
 
     for (i, node) in spine.iter().enumerate() {
-        let r = if i < radii.len() { radii[i].max(1e-4) } else { fallback_r };
+        let r = if i < radii.len() {
+            radii[i].max(1e-4)
+        } else {
+            fallback_r
+        };
         let (n_axis, b_axis) = orthonormal_ring_axes(node.tangent);
         let s_along = i as f32 / denom_s;
         for j in 0..ring_n {
@@ -268,8 +278,10 @@ pub fn build_flow_mesh_variable_radius(
             normals.push(radial_dir.normalize_or_zero().to_array());
             uvs.push([j as f32 / ring_n as f32, s_along]);
             colors.push(vertex_flow_color(
-                node.qe_norm, node.tint_rgb,
-                s_along, j as f32 / ring_n as f32,
+                node.qe_norm,
+                node.tint_rgb,
+                s_along,
+                j as f32 / ring_n as f32,
             ));
         }
     }
@@ -286,7 +298,10 @@ pub fn build_flow_mesh_variable_radius(
         }
     }
 
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
+    let mut mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::default(),
+    );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);
@@ -303,10 +318,10 @@ pub fn merge_meshes(meshes: &[Mesh]) -> Mesh {
     use bevy::render::mesh::VertexAttributeValues;
 
     let mut positions: Vec<[f32; 3]> = Vec::new();
-    let mut normals:   Vec<[f32; 3]> = Vec::new();
-    let mut uvs:       Vec<[f32; 2]> = Vec::new();
-    let mut colors:    Vec<[f32; 4]> = Vec::new();
-    let mut indices:   Vec<u32>      = Vec::new();
+    let mut normals: Vec<[f32; 3]> = Vec::new();
+    let mut uvs: Vec<[f32; 2]> = Vec::new();
+    let mut colors: Vec<[f32; 4]> = Vec::new();
+    let mut indices: Vec<u32> = Vec::new();
 
     for mesh in meshes {
         let base = positions.len() as u32;
@@ -318,7 +333,8 @@ pub fn merge_meshes(meshes: &[Mesh]) -> Mesh {
         } else {
             0
         };
-        if let Some(VertexAttributeValues::Float32x3(src)) = mesh.attribute(Mesh::ATTRIBUTE_NORMAL) {
+        if let Some(VertexAttributeValues::Float32x3(src)) = mesh.attribute(Mesh::ATTRIBUTE_NORMAL)
+        {
             normals.extend(src.iter().copied());
         } else {
             normals.extend(std::iter::repeat_n([0.0, 1.0, 0.0], vtx_count));
@@ -338,7 +354,10 @@ pub fn merge_meshes(meshes: &[Mesh]) -> Mesh {
         }
     }
 
-    let mut mesh = Mesh::new(PrimitiveTopology::TriangleList, RenderAssetUsages::default());
+    let mut mesh = Mesh::new(
+        PrimitiveTopology::TriangleList,
+        RenderAssetUsages::default(),
+    );
     mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, positions);
     mesh.insert_attribute(Mesh::ATTRIBUTE_NORMAL, normals);
     mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs);

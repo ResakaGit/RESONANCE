@@ -11,8 +11,8 @@ use crate::blueprint::AlchemicalAlmanac;
 use crate::eco::boundary_field::EcoBoundaryField;
 use crate::eco::context_lookup::eco_field_aligned_with_grid;
 use crate::layers::{BaseEnergy, MatterCoherence, OscillatorySignature, SpatialVolume};
-use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
+use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::topology::TerrainField;
 use crate::worldgen::constants::{
     ABIOGENESIS_FIELD_OCCUPANT_NAME, MATERIALIZED_COLLIDER_RADIUS_FACTOR,

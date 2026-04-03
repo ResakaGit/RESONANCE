@@ -18,7 +18,10 @@ fn multi_waypoint_traversal_reaches_each_in_order() {
     let step0 = path_follow_step_xz(Vec2::ZERO, &waypoints, 0, reach);
     assert!(!step0.path_finished);
     assert_eq!(step0.next_index, 0);
-    assert!((step0.movement_xz - Vec2::X).length() < 0.01, "should head +X");
+    assert!(
+        (step0.movement_xz - Vec2::X).length() < 0.01,
+        "should head +X"
+    );
 
     // Close to first waypoint — skips to second.
     let step1 = path_follow_step_xz(Vec2::new(9.8, 0.0), &waypoints, 0, reach);
@@ -51,16 +54,28 @@ fn zigzag_path_direction_changes_correctly() {
 
     // Heading east to first waypoint.
     let s0 = path_follow_step_xz(Vec2::ZERO, &waypoints, 0, reach);
-    assert!(s0.movement_xz.x > 0.5, "should head +X: {:?}", s0.movement_xz);
+    assert!(
+        s0.movement_xz.x > 0.5,
+        "should head +X: {:?}",
+        s0.movement_xz
+    );
 
     // At first wp, heading north to second.
     let s1 = path_follow_step_xz(Vec2::new(5.0, 0.1), &waypoints, 0, reach);
-    assert!(s1.movement_xz.y > 0.5, "should head +Z: {:?}", s1.movement_xz);
+    assert!(
+        s1.movement_xz.y > 0.5,
+        "should head +Z: {:?}",
+        s1.movement_xz
+    );
     assert_eq!(s1.next_index, 1);
 
     // At second wp, heading east again to third.
     let s2 = path_follow_step_xz(Vec2::new(5.1, 5.0), &waypoints, 1, reach);
-    assert!(s2.movement_xz.x > 0.5, "should head +X again: {:?}", s2.movement_xz);
+    assert!(
+        s2.movement_xz.x > 0.5,
+        "should head +X again: {:?}",
+        s2.movement_xz
+    );
     assert_eq!(s2.next_index, 2);
 }
 
@@ -96,7 +111,10 @@ fn negative_reach_radius_treated_as_zero() {
     let waypoints = [Vec3::new(0.0, 0.0, 0.0)];
     // Agent right on the waypoint with negative reach — should still detect arrival.
     let step = path_follow_step_xz(Vec2::ZERO, &waypoints, 0, -5.0);
-    assert!(step.path_finished, "negative reach should be clamped to 0, agent at wp");
+    assert!(
+        step.path_finished,
+        "negative reach should be clamped to 0, agent at wp"
+    );
 }
 
 #[test]

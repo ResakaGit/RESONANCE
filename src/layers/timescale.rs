@@ -7,15 +7,20 @@ use bevy::prelude::*;
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
 pub struct TimescaleAdapter {
-    pub genetic_baseline:  f32,
+    pub genetic_baseline: f32,
     pub epigenetic_offset: f32,
-    pub cultural_offset:   f32,
-    pub learned_offset:    f32,
+    pub cultural_offset: f32,
+    pub learned_offset: f32,
 }
 
 impl Default for TimescaleAdapter {
     fn default() -> Self {
-        Self { genetic_baseline: 1.0, epigenetic_offset: 0.0, cultural_offset: 0.0, learned_offset: 0.0 }
+        Self {
+            genetic_baseline: 1.0,
+            epigenetic_offset: 0.0,
+            cultural_offset: 0.0,
+            learned_offset: 0.0,
+        }
     }
 }
 

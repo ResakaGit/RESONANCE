@@ -9,10 +9,12 @@ use bevy::prelude::*;
 
 use crate::blueprint::constants::{DAMAGE_RATE_DEFAULT, MAX_EXTRACTION_MODIFIERS};
 use crate::blueprint::equations::{
-    available_for_extraction, dissipation_loss, evaluate_aggressive_extraction,
-    evaluate_extraction, scale_extractions_to_available, ExtractionContext, ExtractionProfile,
+    ExtractionContext, ExtractionProfile, available_for_extraction, dissipation_loss,
+    evaluate_aggressive_extraction, evaluate_extraction, scale_extractions_to_available,
 };
-use crate::layers::{BaseEnergy, EnergyPool, ExtractionType, PoolConservationLedger, PoolParentLink};
+use crate::layers::{
+    BaseEnergy, EnergyPool, ExtractionType, PoolConservationLedger, PoolParentLink,
+};
 
 /// Máximo de hijos por pool (stack buffer por grupo).
 pub const MAX_CHILDREN_PER_POOL: usize = 64;
@@ -24,10 +26,10 @@ const MAX_ENTRIES: usize = 512;
 #[derive(Clone, Copy)]
 struct ChildEntry {
     parent_idx: u32,
-    parent:     Entity,
-    child:      Entity,
-    etype:      ExtractionType,
-    param:      f32,
+    parent: Entity,
+    child: Entity,
+    etype: ExtractionType,
+    param: f32,
 }
 
 impl ChildEntry {
@@ -35,10 +37,10 @@ impl ChildEntry {
     fn placeholder() -> Self {
         Self {
             parent_idx: u32::MAX,
-            parent:     Entity::PLACEHOLDER,
-            child:      Entity::PLACEHOLDER,
-            etype:      ExtractionType::Proportional,
-            param:      0.0,
+            parent: Entity::PLACEHOLDER,
+            child: Entity::PLACEHOLDER,
+            etype: ExtractionType::Proportional,
+            param: 0.0,
         }
     }
 }
@@ -60,25 +62,25 @@ pub fn pool_intake_system(mut pools: Query<&mut EnergyPool>) {
 /// Distribuye energía de pools padre a hijos según funciones de extracción.
 /// Invariante: `Σ extracted ≤ available_for_extraction(pool)` por tick.
 pub fn pool_distribution_system(
-    mut pools:    Query<&mut EnergyPool>,
-    links:        Query<(Entity, &PoolParentLink)>,
+    mut pools: Query<&mut EnergyPool>,
+    links: Query<(Entity, &PoolParentLink)>,
     mut energies: Query<&mut BaseEnergy>,
-    mut ledgers:  Query<&mut PoolConservationLedger>,
+    mut ledgers: Query<&mut PoolConservationLedger>,
     mut commands: Commands,
 ) {
     // ── Fase 1: recolectar todos los hijos en buffer stack ────────────────────
     let placeholder = ChildEntry::placeholder();
-    let mut buf     = [placeholder; MAX_ENTRIES];
-    let mut count   = 0usize;
+    let mut buf = [placeholder; MAX_ENTRIES];
+    let mut count = 0usize;
 
     for (entity, link) in links.iter() {
         if count < MAX_ENTRIES {
             buf[count] = ChildEntry {
                 parent_idx: link.parent().index(),
-                parent:     link.parent(),
-                child:      entity,
-                etype:      link.extraction_type(),
-                param:      link.primary_param(),
+                parent: link.parent(),
+                child: entity,
+                etype: link.extraction_type(),
+                param: link.primary_param(),
             };
             count += 1;
         }
@@ -92,13 +94,13 @@ pub fn pool_distribution_system(
     buf[..count].sort_unstable_by_key(|e| e.parent_idx);
 
     // ── Fase 2: procesar grupos ───────────────────────────────────────────────
-    let mut orphans:      [Entity; MAX_ENTRIES] = [Entity::PLACEHOLDER; MAX_ENTRIES];
+    let mut orphans: [Entity; MAX_ENTRIES] = [Entity::PLACEHOLDER; MAX_ENTRIES];
     let mut orphan_count: usize = 0;
 
     let mut i = 0;
     while i < count {
         let parent_idx = buf[i].parent_idx;
-        let parent     = buf[i].parent;
+        let parent = buf[i].parent;
 
         // Encontrar fin del grupo (mismo parent_idx).
         let mut j = i + 1;
@@ -120,25 +122,30 @@ pub fn pool_distribution_system(
         };
 
         // ── Contexto de extracción ────────────────────────────────────────────
-        let n_siblings   = group_len as u32;
+        let n_siblings = group_len as u32;
         let total_fitness: f32 = buf[i..i + group_len]
             .iter()
             .filter(|e| matches!(e.etype, ExtractionType::Competitive))
             .map(|e| e.param)
             .sum();
 
-        let available  = available_for_extraction(pool.pool(), 0.0, pool.dissipation_rate());
+        let available = available_for_extraction(pool.pool(), 0.0, pool.dissipation_rate());
         let pool_ratio = pool.pool_ratio();
 
-        let ctx = ExtractionContext { available, pool_ratio, n_siblings, total_fitness };
+        let ctx = ExtractionContext {
+            available,
+            pool_ratio,
+            n_siblings,
+            total_fitness,
+        };
 
         // ── Evaluar claimed por hijo ──────────────────────────────────────────
         let mut claimed = [0.0f32; MAX_CHILDREN_PER_POOL];
         for (k, entry) in buf[i..i + group_len].iter().enumerate() {
             let profile = ExtractionProfile {
-                base:        entry.etype,
+                base: entry.etype,
                 primary_param: entry.param,
-                modifiers:   [None; MAX_EXTRACTION_MODIFIERS],
+                modifiers: [None; MAX_EXTRACTION_MODIFIERS],
             };
             claimed[k] = evaluate_extraction(&profile, &ctx);
         }
@@ -149,8 +156,8 @@ pub fn pool_distribution_system(
         let total_claimed: f32 = claimed[..group_len].iter().sum();
 
         // ── Actualizar pool (distribución + disipación) ───────────────────────
-        let loss      = dissipation_loss(pool.pool(), pool.dissipation_rate());
-        let new_pool  = (pool.pool() - total_claimed - loss).max(0.0);
+        let loss = dissipation_loss(pool.pool(), pool.dissipation_rate());
+        let new_pool = (pool.pool() - total_claimed - loss).max(0.0);
         if pool.pool() != new_pool {
             pool.set_pool(new_pool);
         }
@@ -179,11 +186,12 @@ pub fn pool_distribution_system(
         for entry in buf[i..i + group_len].iter() {
             if entry.etype == ExtractionType::Aggressive {
                 let profile = ExtractionProfile {
-                    base:          entry.etype,
+                    base: entry.etype,
                     primary_param: entry.param,
-                    modifiers:     [None; MAX_EXTRACTION_MODIFIERS],
+                    modifiers: [None; MAX_EXTRACTION_MODIFIERS],
                 };
-                let (_, damage) = evaluate_aggressive_extraction(&profile, &ctx, DAMAGE_RATE_DEFAULT);
+                let (_, damage) =
+                    evaluate_aggressive_extraction(&profile, &ctx, DAMAGE_RATE_DEFAULT);
                 pool.degrade_capacity(damage);
             }
         }
@@ -209,7 +217,7 @@ pub fn pool_distribution_system(
 /// Aplica disipación a pools que no tienen hijos activos.
 /// Pools con hijos ya disiparon en `pool_distribution_system`.
 pub fn pool_dissipation_system(
-    mut pools:   Query<(Entity, &mut EnergyPool)>,
+    mut pools: Query<(Entity, &mut EnergyPool)>,
     child_links: Query<&PoolParentLink>,
 ) {
     for (pool_entity, mut pool) in &mut pools {
@@ -217,7 +225,7 @@ pub fn pool_dissipation_system(
         if has_child {
             continue; // ya disipó en pool_distribution_system
         }
-        let loss     = dissipation_loss(pool.pool(), pool.dissipation_rate());
+        let loss = dissipation_loss(pool.pool(), pool.dissipation_rate());
         let new_pool = (pool.pool() - loss).max(0.0);
         if pool.pool() != new_pool {
             pool.set_pool(new_pool);
@@ -247,7 +255,10 @@ mod tests {
         let mut app = make_app();
         app.add_systems(Update, pool_intake_system);
 
-        let parent = app.world_mut().spawn(EnergyPool::new(1000.0, 2000.0, 50.0, 0.01)).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(1000.0, 2000.0, 50.0, 0.01))
+            .id();
         app.update();
 
         let pool = app.world().get::<EnergyPool>(parent).unwrap();
@@ -259,7 +270,10 @@ mod tests {
         let mut app = make_app();
         app.add_systems(Update, pool_intake_system);
 
-        let parent = app.world_mut().spawn(EnergyPool::new(1990.0, 2000.0, 50.0, 0.01)).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(1990.0, 2000.0, 50.0, 0.01))
+            .id();
         app.update();
 
         let pool = app.world().get::<EnergyPool>(parent).unwrap();
@@ -271,21 +285,39 @@ mod tests {
     #[test]
     fn pool_distribution_three_proportional_children() {
         let mut app = make_app();
-        app.add_systems(Update, (pool_intake_system, pool_distribution_system.after(pool_intake_system)));
+        app.add_systems(
+            Update,
+            (
+                pool_intake_system,
+                pool_distribution_system.after(pool_intake_system),
+            ),
+        );
 
-        let parent = app.world_mut().spawn(EnergyPool::new(1000.0, 2000.0, 0.0, 0.001)).id();
-        let child_a = app.world_mut().spawn((
-            BaseEnergy::new(0.0),
-            PoolParentLink::new(parent, ExtractionType::Proportional, 0.0),
-        )).id();
-        let child_b = app.world_mut().spawn((
-            BaseEnergy::new(0.0),
-            PoolParentLink::new(parent, ExtractionType::Proportional, 0.0),
-        )).id();
-        let child_c = app.world_mut().spawn((
-            BaseEnergy::new(0.0),
-            PoolParentLink::new(parent, ExtractionType::Proportional, 0.0),
-        )).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(1000.0, 2000.0, 0.0, 0.001))
+            .id();
+        let child_a = app
+            .world_mut()
+            .spawn((
+                BaseEnergy::new(0.0),
+                PoolParentLink::new(parent, ExtractionType::Proportional, 0.0),
+            ))
+            .id();
+        let child_b = app
+            .world_mut()
+            .spawn((
+                BaseEnergy::new(0.0),
+                PoolParentLink::new(parent, ExtractionType::Proportional, 0.0),
+            ))
+            .id();
+        let child_c = app
+            .world_mut()
+            .spawn((
+                BaseEnergy::new(0.0),
+                PoolParentLink::new(parent, ExtractionType::Proportional, 0.0),
+            ))
+            .id();
 
         app.update();
 
@@ -302,23 +334,38 @@ mod tests {
     #[test]
     fn pool_distribution_competitive_fitness_split() {
         let mut app = make_app();
-        app.add_systems(Update, (pool_intake_system, pool_distribution_system.after(pool_intake_system)));
+        app.add_systems(
+            Update,
+            (
+                pool_intake_system,
+                pool_distribution_system.after(pool_intake_system),
+            ),
+        );
 
         // pool=1000, 2 children: fitness 0.7 and 0.3
-        let parent = app.world_mut().spawn(EnergyPool::new(1000.0, 2000.0, 0.0, 0.001)).id();
-        let child_strong = app.world_mut().spawn((
-            BaseEnergy::new(0.0),
-            PoolParentLink::new(parent, ExtractionType::Competitive, 0.7),
-        )).id();
-        let child_weak = app.world_mut().spawn((
-            BaseEnergy::new(0.0),
-            PoolParentLink::new(parent, ExtractionType::Competitive, 0.3),
-        )).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(1000.0, 2000.0, 0.0, 0.001))
+            .id();
+        let child_strong = app
+            .world_mut()
+            .spawn((
+                BaseEnergy::new(0.0),
+                PoolParentLink::new(parent, ExtractionType::Competitive, 0.7),
+            ))
+            .id();
+        let child_weak = app
+            .world_mut()
+            .spawn((
+                BaseEnergy::new(0.0),
+                PoolParentLink::new(parent, ExtractionType::Competitive, 0.3),
+            ))
+            .id();
 
         app.update();
 
         let e_strong = app.world().get::<BaseEnergy>(child_strong).unwrap().qe();
-        let e_weak   = app.world().get::<BaseEnergy>(child_weak).unwrap().qe();
+        let e_weak = app.world().get::<BaseEnergy>(child_weak).unwrap().qe();
 
         // strong gets ~70% of available, weak ~30%
         assert!(e_strong > e_weak * 2.0, "strong={e_strong} weak={e_weak}");
@@ -327,18 +374,33 @@ mod tests {
     #[test]
     fn pool_distribution_scaling_enforces_pool_invariant() {
         let mut app = make_app();
-        app.add_systems(Update, (pool_intake_system, pool_distribution_system.after(pool_intake_system)));
+        app.add_systems(
+            Update,
+            (
+                pool_intake_system,
+                pool_distribution_system.after(pool_intake_system),
+            ),
+        );
 
         // pool=100, 2 greedy children each wanting 80 → scaling needed
-        let parent = app.world_mut().spawn(EnergyPool::new(100.0, 2000.0, 0.0, 0.001)).id();
-        let child_a = app.world_mut().spawn((
-            BaseEnergy::new(0.0),
-            PoolParentLink::new(parent, ExtractionType::Greedy, 80.0),
-        )).id();
-        let child_b = app.world_mut().spawn((
-            BaseEnergy::new(0.0),
-            PoolParentLink::new(parent, ExtractionType::Greedy, 80.0),
-        )).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(100.0, 2000.0, 0.0, 0.001))
+            .id();
+        let child_a = app
+            .world_mut()
+            .spawn((
+                BaseEnergy::new(0.0),
+                PoolParentLink::new(parent, ExtractionType::Greedy, 80.0),
+            ))
+            .id();
+        let child_b = app
+            .world_mut()
+            .spawn((
+                BaseEnergy::new(0.0),
+                PoolParentLink::new(parent, ExtractionType::Greedy, 80.0),
+            ))
+            .id();
 
         app.update();
 
@@ -356,51 +418,99 @@ mod tests {
     #[test]
     fn pool_distribution_type_iv_degrades_capacity() {
         let mut app = make_app();
-        app.add_systems(Update, (pool_intake_system, pool_distribution_system.after(pool_intake_system)));
+        app.add_systems(
+            Update,
+            (
+                pool_intake_system,
+                pool_distribution_system.after(pool_intake_system),
+            ),
+        );
 
-        let parent = app.world_mut().spawn(EnergyPool::new(1000.0, 2000.0, 0.0, 0.001)).id();
-        let _child = app.world_mut().spawn((
-            BaseEnergy::new(0.0),
-            PoolParentLink::new(parent, ExtractionType::Aggressive, 0.5),
-        )).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(1000.0, 2000.0, 0.0, 0.001))
+            .id();
+        let _child = app
+            .world_mut()
+            .spawn((
+                BaseEnergy::new(0.0),
+                PoolParentLink::new(parent, ExtractionType::Aggressive, 0.5),
+            ))
+            .id();
 
         let cap_before = app.world().get::<EnergyPool>(parent).unwrap().capacity();
         app.update();
         let cap_after = app.world().get::<EnergyPool>(parent).unwrap().capacity();
 
-        assert!(cap_after < cap_before, "capacity should degrade: before={cap_before} after={cap_after}");
+        assert!(
+            cap_after < cap_before,
+            "capacity should degrade: before={cap_before} after={cap_after}"
+        );
     }
 
     #[test]
     fn pool_distribution_orphan_link_removed_without_panic() {
         let mut app = make_app();
-        app.add_systems(Update, (pool_intake_system, pool_distribution_system.after(pool_intake_system)));
+        app.add_systems(
+            Update,
+            (
+                pool_intake_system,
+                pool_distribution_system.after(pool_intake_system),
+            ),
+        );
 
         // Create child pointing to a non-existent parent
         let fake_parent = Entity::from_raw(9999);
-        let child = app.world_mut().spawn((
-            BaseEnergy::new(100.0),
-            PoolParentLink::new(fake_parent, ExtractionType::Proportional, 0.0),
-        )).id();
+        let child = app
+            .world_mut()
+            .spawn((
+                BaseEnergy::new(100.0),
+                PoolParentLink::new(fake_parent, ExtractionType::Proportional, 0.0),
+            ))
+            .id();
 
         app.update(); // must not panic
         app.update(); // link should be removed after first update's commands are flushed
 
         // Link should be removed
-        assert!(app.world().get::<PoolParentLink>(child).is_none(), "orphan link should be removed");
+        assert!(
+            app.world().get::<PoolParentLink>(child).is_none(),
+            "orphan link should be removed"
+        );
     }
 
     #[test]
     fn pool_distribution_pool_invariant_holds() {
         let mut app = make_app();
-        app.add_systems(Update, (pool_intake_system, pool_distribution_system.after(pool_intake_system)));
+        app.add_systems(
+            Update,
+            (
+                pool_intake_system,
+                pool_distribution_system.after(pool_intake_system),
+            ),
+        );
 
-        let parent = app.world_mut().spawn(EnergyPool::new(1000.0, 2000.0, 0.0, 0.001)).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(1000.0, 2000.0, 0.0, 0.001))
+            .id();
         // 4 mixed children
-        app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(parent, ExtractionType::Proportional, 0.0)));
-        app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(parent, ExtractionType::Greedy, 300.0)));
-        app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(parent, ExtractionType::Competitive, 0.5)));
-        app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(parent, ExtractionType::Regulated, 100.0)));
+        app.world_mut().spawn((
+            BaseEnergy::new(0.0),
+            PoolParentLink::new(parent, ExtractionType::Proportional, 0.0),
+        ));
+        app.world_mut().spawn((
+            BaseEnergy::new(0.0),
+            PoolParentLink::new(parent, ExtractionType::Greedy, 300.0),
+        ));
+        app.world_mut().spawn((
+            BaseEnergy::new(0.0),
+            PoolParentLink::new(parent, ExtractionType::Competitive, 0.5),
+        ));
+        app.world_mut().spawn((
+            BaseEnergy::new(0.0),
+            PoolParentLink::new(parent, ExtractionType::Regulated, 100.0),
+        ));
 
         for _ in 0..10 {
             app.update();
@@ -417,7 +527,10 @@ mod tests {
         let mut app = make_app();
         app.add_systems(Update, pool_dissipation_system);
 
-        let parent = app.world_mut().spawn(EnergyPool::new(1000.0, 2000.0, 0.0, 0.01)).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(1000.0, 2000.0, 0.0, 0.01))
+            .id();
         app.update();
 
         let pool = app.world().get::<EnergyPool>(parent).unwrap();
@@ -430,7 +543,10 @@ mod tests {
         let mut app = make_app();
         app.add_systems(Update, pool_dissipation_system);
 
-        let parent = app.world_mut().spawn(EnergyPool::new(1000.0, 2000.0, 0.0, 0.01)).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(1000.0, 2000.0, 0.0, 0.01))
+            .id();
         // spawn a child linking to this pool
         app.world_mut().spawn((
             BaseEnergy::new(0.0),
@@ -441,7 +557,11 @@ mod tests {
 
         // dissipation_system should skip this pool (has child) — pool unchanged
         let pool = app.world().get::<EnergyPool>(parent).unwrap();
-        assert!((pool.pool() - 1000.0).abs() < 1e-3, "pool should be unchanged: {}", pool.pool());
+        assert!(
+            (pool.pool() - 1000.0).abs() < 1e-3,
+            "pool should be unchanged: {}",
+            pool.pool()
+        );
     }
 
     // ── EC-4E: Pipeline smoke test ───────────────────────────────────────────
@@ -449,13 +569,19 @@ mod tests {
     #[test]
     fn pipeline_minimal_app_runs_without_crash() {
         let mut app = make_app();
-        app.add_systems(Update, (
-            pool_intake_system,
-            pool_distribution_system.after(pool_intake_system),
-            pool_dissipation_system.after(pool_distribution_system),
-        ));
+        app.add_systems(
+            Update,
+            (
+                pool_intake_system,
+                pool_distribution_system.after(pool_intake_system),
+                pool_dissipation_system.after(pool_distribution_system),
+            ),
+        );
 
-        let parent = app.world_mut().spawn(EnergyPool::new(500.0, 1000.0, 10.0, 0.01)).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(500.0, 1000.0, 10.0, 0.01))
+            .id();
         app.world_mut().spawn((
             BaseEnergy::new(0.0),
             PoolParentLink::new(parent, ExtractionType::Proportional, 0.0),

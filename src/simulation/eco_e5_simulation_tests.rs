@@ -5,11 +5,11 @@ use std::time::Duration;
 
 use bevy::prelude::*;
 
+use crate::blueprint::recipes::EffectRecipe;
 use crate::eco::boundary_field::{EcoBoundaryField, aggregate_zone_class_contexts};
 use crate::eco::constants::SUBAQUATIC_DENSITY_THRESHOLD;
 use crate::eco::context_lookup::context_response_legacy_baseline;
 use crate::eco::contracts::{BoundaryMarker, ContextResponse, ZoneClass, ZoneContext};
-use crate::blueprint::recipes::EffectRecipe;
 use crate::events::{
     CatalysisEvent, CatalysisRequest, DeathEvent, DeltaEnergyCommit, PhaseTransitionEvent,
 };
@@ -560,7 +560,10 @@ fn e5_catalysis_pipeline_strategy_y_reducer_aplican_qe() {
     app.update();
 
     let qe_after = app.world().get::<BaseEnergy>(target).unwrap().qe();
-    assert_ne!(qe_after, 100.0, "la cadena completa debe mutar SSOT de energía");
+    assert_ne!(
+        qe_after, 100.0,
+        "la cadena completa debe mutar SSOT de energía"
+    );
     let events = drain_catalysis_events(&mut app);
     assert_eq!(events.len(), 1);
     assert_eq!(events[0].spell, spell);

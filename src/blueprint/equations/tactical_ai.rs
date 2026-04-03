@@ -22,7 +22,11 @@ pub fn extraction_resistance(qe: f32, effective_ext: f32) -> f32 {
 }
 
 /// Total threat magnitude from enemies within `sensory_radius` of `self_pos`.
-pub fn threat_magnitude(self_pos: [f32; 2], enemies: &[([f32; 2], f32)], sensory_radius: f32) -> f32 {
+pub fn threat_magnitude(
+    self_pos: [f32; 2],
+    enemies: &[([f32; 2], f32)],
+    sensory_radius: f32,
+) -> f32 {
     enemies
         .iter()
         .filter(|(pos, _)| {

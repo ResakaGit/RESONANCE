@@ -3,10 +3,12 @@
 /// Nivel de LOD óptimo dado el número de entidades y el horizonte temporal.
 pub fn optimal_lod_level(entity_count: u32, tick_horizon: u32, performance_budget: f32) -> u8 {
     let required_work = entity_count as f32 * tick_horizon as f32;
-    if required_work <= performance_budget { return 0; }
+    if required_work <= performance_budget {
+        return 0;
+    }
     let compression_needed = required_work / performance_budget;
     match compression_needed as u32 {
-        0..=9   => 0,
+        0..=9 => 0,
         10..=99 => 1,
         100..=999 => 2,
         _ => 3,
@@ -26,20 +28,29 @@ pub fn compressed_physics_step(
 
 /// Varianza del grupo para desagregar con ruido apropiado.
 pub fn population_variance(mean_qe: f32, variance_factor: f32, group_size: u32) -> f32 {
-    if group_size == 0 { return 0.0; }
+    if group_size == 0 {
+        return 0.0;
+    }
     mean_qe * variance_factor / (group_size as f32).sqrt()
 }
 
 /// Qe asignado a una entidad al desagregar una población (ruido LCG deterministico).
 pub fn desegregated_qe(mean_qe: f32, variance: f32, entity_seed: u32) -> f32 {
-    let noise = (entity_seed.wrapping_mul(1664525).wrapping_add(1013904223)) as f32 / u32::MAX as f32;
+    let noise =
+        (entity_seed.wrapping_mul(1664525).wrapping_add(1013904223)) as f32 / u32::MAX as f32;
     let centered = noise * 2.0 - 1.0;
     (mean_qe + centered * variance).max(0.0)
 }
 
 /// Tasa de extinción simplificada para LOD alto.
-pub fn population_extinction_rate(mean_qe: f32, dissipation_rate: f32, environmental_stress: f32) -> f32 {
-    if mean_qe <= 0.0 { return 1.0; }
+pub fn population_extinction_rate(
+    mean_qe: f32,
+    dissipation_rate: f32,
+    environmental_stress: f32,
+) -> f32 {
+    if mean_qe <= 0.0 {
+        return 1.0;
+    }
     (dissipation_rate + environmental_stress) / mean_qe
 }
 

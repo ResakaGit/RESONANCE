@@ -4,9 +4,7 @@ use crate::blueprint::equations;
 use crate::blueprint::equations::derived_thresholds as dt;
 use crate::events::DeathEvent;
 use crate::layers::{BaseEnergy, NutrientProfile};
-use crate::worldgen::{
-    Materialized, NUTRIENT_WRITE_EPS, NutrientCell, NutrientFieldGrid,
-};
+use crate::worldgen::{Materialized, NUTRIENT_WRITE_EPS, NutrientCell, NutrientFieldGrid};
 
 pub const MAX_NUTRIENT_UPTAKE_PER_FRAME: u32 = 128;
 

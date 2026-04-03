@@ -9,11 +9,11 @@
 
 use bevy::prelude::*;
 
+use crate::blueprint::equations::derived_thresholds as dt;
 use crate::blueprint::equations::field_division::{
     child_viable, find_valleys, is_split_viable, split_field_at, valley_count,
 };
 use crate::entities::component_groups as cg;
-use crate::blueprint::equations::derived_thresholds as dt;
 use crate::layers::{
     BaseEnergy, InferenceProfile, InternalEnergyField, MatterCoherence, OscillatorySignature,
     SpatialVolume, StructuralLink,
@@ -46,12 +46,18 @@ pub fn axiomatic_split_system(
     let mut splits = 0usize;
 
     for (entity, field, energy, transform, osc, volume, _matter, culture) in &query {
-        if splits >= SPLIT_BUDGET_PER_TICK { break; }
-        if energy.is_dead() { continue; }
+        if splits >= SPLIT_BUDGET_PER_TICK {
+            break;
+        }
+        if energy.is_dead() {
+            continue;
+        }
 
         let valleys = find_valleys(&field.nodes);
         let n_valleys = valley_count(&valleys);
-        if n_valleys == 0 { continue; }
+        if n_valleys == 0 {
+            continue;
+        }
 
         // Find first viable split point (valley ≤ 0).
         let Some(&(valley_idx, _)) = valleys[..n_valleys]
@@ -73,7 +79,11 @@ pub fn axiomatic_split_system(
 
         // Position offset: children separate along the body axis.
         let split_t = valley_idx as f32 / 7.0;
-        let offset = Vec3::new(volume.radius * split_t, 0.0, volume.radius * (1.0 - split_t));
+        let offset = Vec3::new(
+            volume.radius * split_t,
+            0.0,
+            volume.radius * (1.0 - split_t),
+        );
         let pos_left = transform.translation - offset * 0.5;
         let pos_right = transform.translation + offset * 0.5;
 
@@ -94,37 +104,64 @@ pub fn axiomatic_split_system(
         let left_frac = left_qe / total;
         let right_frac = right_qe / total;
         let profile_left = InferenceProfile::new(left_frac, 1.0 - left_frac, left_frac, left_frac);
-        let profile_right = InferenceProfile::new(right_frac, 1.0 - right_frac, right_frac, right_frac);
+        let profile_right =
+            InferenceProfile::new(right_frac, 1.0 - right_frac, right_frac, right_frac);
 
         // Spawn child A (left nodes).
-        let child_a = commands.spawn((
-            cg::physical_components(left_qe, radius_left, freq_left,
-                crate::math_types::Vec2::new(pos_left.x, pos_left.z)),
-            InternalEnergyField { nodes: left_nodes },
-            cg::lifecycle_components(clock.tick_id, is_mobile),
-            profile_left,
-        )).id();
+        let child_a = commands
+            .spawn((
+                cg::physical_components(
+                    left_qe,
+                    radius_left,
+                    freq_left,
+                    crate::math_types::Vec2::new(pos_left.x, pos_left.z),
+                ),
+                InternalEnergyField { nodes: left_nodes },
+                cg::lifecycle_components(clock.tick_id, is_mobile),
+                profile_left,
+            ))
+            .id();
 
         // Spawn child B (right nodes).
-        let child_b = commands.spawn((
-            cg::physical_components(right_qe, radius_right, freq_right,
-                crate::math_types::Vec2::new(pos_right.x, pos_right.z)),
-            InternalEnergyField { nodes: right_nodes },
-            cg::lifecycle_components(clock.tick_id, is_mobile),
-            profile_right,
-        )).id();
+        let child_b = commands
+            .spawn((
+                cg::physical_components(
+                    right_qe,
+                    radius_right,
+                    freq_right,
+                    crate::math_types::Vec2::new(pos_right.x, pos_right.z),
+                ),
+                InternalEnergyField { nodes: right_nodes },
+                cg::lifecycle_components(clock.tick_id, is_mobile),
+                profile_right,
+            ))
+            .id();
 
         // Multicelularity: structural bond between siblings (Axiom 7: spring at distance).
         // rest_length = sum of radii, stiffness = thermal conductivity, break = bond energy.
         let rest_len = radius_left + radius_right;
         let stiffness = dt::materialized_thermal_conductivity();
         let break_stress = dt::materialized_bond_energy();
-        commands.entity(child_a).insert(StructuralLink::new(child_b, rest_len, stiffness, break_stress));
-        commands.entity(child_b).insert(StructuralLink::new(child_a, rest_len, stiffness, break_stress));
+        commands.entity(child_a).insert(StructuralLink::new(
+            child_b,
+            rest_len,
+            stiffness,
+            break_stress,
+        ));
+        commands.entity(child_b).insert(StructuralLink::new(
+            child_a,
+            rest_len,
+            stiffness,
+            break_stress,
+        ));
 
         // Cultural inheritance: larger child gets parent's memes.
         if let Some(culture) = culture {
-            let heir = if left_qe >= right_qe { child_a } else { child_b };
+            let heir = if left_qe >= right_qe {
+                child_a
+            } else {
+                child_b
+            };
             commands.entity(heir).insert(culture.clone());
         }
 

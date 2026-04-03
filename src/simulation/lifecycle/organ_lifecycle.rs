@@ -1,15 +1,16 @@
 use bevy::prelude::*;
 
 use crate::blueprint::constants::{
-    ALLOMETRIC_MAX_RADIUS_FACTOR, LIFECYCLE_HYSTERESIS_TICKS, METABOLIC_STARVATION_BASE_THRESHOLD_QE,
+    ALLOMETRIC_MAX_RADIUS_FACTOR, LIFECYCLE_HYSTERESIS_TICKS,
+    METABOLIC_STARVATION_BASE_THRESHOLD_QE,
 };
 use crate::blueprint::equations::{
     growth_progress, infer_lifecycle_stage, lifecycle_stage_with_hysteresis, metabolic_viability,
     starvation_threshold,
 };
 use crate::layers::{
-    AllometricRadiusAnchor, BaseEnergy, CapabilitySet, GrowthBudget, InferenceProfile, LifecycleStageCache,
-    SpatialVolume,
+    AllometricRadiusAnchor, BaseEnergy, CapabilitySet, GrowthBudget, InferenceProfile,
+    LifecycleStageCache, SpatialVolume,
 };
 use crate::worldgen::shape_inference::PendingGrowthMorphRebuild;
 
@@ -69,10 +70,19 @@ fn infer_lifecycle_transition(
 /// Corre en MorphologicalLayer antes de inferencia de ciclo.
 pub fn lifecycle_stage_init_system(
     mut commands: Commands,
-    query: Query<Entity, (With<GrowthBudget>, With<CapabilitySet>, Without<LifecycleStageCache>)>,
+    query: Query<
+        Entity,
+        (
+            With<GrowthBudget>,
+            With<CapabilitySet>,
+            Without<LifecycleStageCache>,
+        ),
+    >,
 ) {
     for entity in &query {
-        commands.entity(entity).insert(LifecycleStageCache::default());
+        commands
+            .entity(entity)
+            .insert(LifecycleStageCache::default());
     }
 }
 
@@ -109,9 +119,7 @@ pub fn lifecycle_stage_inference_system(
             cache.candidate_ticks = transition.next_candidate_ticks;
             cache.ticks_in_stage = transition.next_ticks_in_stage;
             if transition.stage_changed {
-                commands
-                    .entity(entity)
-                    .insert(PendingGrowthMorphRebuild);
+                commands.entity(entity).insert(PendingGrowthMorphRebuild);
             }
         }
     }
@@ -121,8 +129,8 @@ pub fn lifecycle_stage_inference_system(
 mod tests {
     use super::{lifecycle_stage_inference_system, lifecycle_stage_init_system};
     use crate::layers::{
-        AllometricRadiusAnchor, BaseEnergy, CapabilitySet, GrowthBudget, LifecycleStage, LifecycleStageCache,
-        SpatialVolume,
+        AllometricRadiusAnchor, BaseEnergy, CapabilitySet, GrowthBudget, LifecycleStage,
+        LifecycleStageCache, SpatialVolume,
     };
     use crate::worldgen::shape_inference::PendingGrowthMorphRebuild;
     use bevy::prelude::*;

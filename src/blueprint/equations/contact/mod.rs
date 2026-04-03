@@ -1,6 +1,6 @@
-use std::f32::consts::PI;
 use crate::blueprint::constants::*;
 use crate::layers::{AmbientPressure, ContactType, MatterCoherence, MatterState};
+use std::f32::consts::PI;
 
 // ═══════════════════════════════════════════════
 // Colisiones: Transferencia de Energía

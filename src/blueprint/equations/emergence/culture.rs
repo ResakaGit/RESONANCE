@@ -10,7 +10,9 @@ pub fn meme_fitness(extraction_improvement: f32, adoption_cost: f32, maintenance
 
 /// Tasa de propagación de un meme. Cero si fitness negativa.
 pub fn spread_rate(fitness: f32, contact_rate: f32, imitation_prob: f32) -> f32 {
-    if fitness <= 0.0 { return 0.0; }
+    if fitness <= 0.0 {
+        return 0.0;
+    }
     fitness * contact_rate * imitation_prob
 }
 
@@ -40,8 +42,10 @@ pub fn should_imitate(
 ///
 /// `t` should be `SimulationElapsed.secs` for deterministic results.
 pub fn frequency_imitation_affinity(
-    observer_freq: f32, observer_phase: f32,
-    model_freq:    f32, model_phase:    f32,
+    observer_freq: f32,
+    observer_phase: f32,
+    model_freq: f32,
+    model_phase: f32,
     t: f32,
 ) -> f32 {
     use crate::blueprint::equations::core_physics;
@@ -66,11 +70,11 @@ pub fn group_coherence_imitation_bonus(group_coherence: f32, bonus_cap: f32) -> 
 /// harder to imitate — the gain signal is attenuated.
 pub fn should_imitate_with_affinity(
     observer_current_rate: f32,
-    target_observed_rate:  f32,
-    adoption_cost:         f32,
-    uncertainty:           f32,
-    affinity:              f32,
-    coherence_bonus:       f32,
+    target_observed_rate: f32,
+    adoption_cost: f32,
+    uncertainty: f32,
+    affinity: f32,
+    coherence_bonus: f32,
 ) -> bool {
     let base_gain = (target_observed_rate - observer_current_rate) * (1.0 - uncertainty);
     let effective_gain = base_gain * affinity.clamp(0.0, 1.0) * coherence_bonus.max(1.0);
@@ -79,7 +83,8 @@ pub fn should_imitate_with_affinity(
 
 /// Distancia cultural entre dos poblaciones (L2 en espacio de comportamiento 4D).
 pub fn cultural_distance(behavior_a: [f32; 4], behavior_b: [f32; 4]) -> f32 {
-    behavior_a.iter()
+    behavior_a
+        .iter()
         .zip(behavior_b.iter())
         .map(|(a, b)| (a - b).powi(2))
         .sum::<f32>()
@@ -200,15 +205,21 @@ mod tests {
         // Without affinity weighting: would imitate (gain=100 > cost=1)
         assert!(should_imitate(100.0, 200.0, 1.0, 0.0));
         // With affinity=0.0 (opposite phase): effective_gain = 100 * 0.0 = 0 < cost=1 → no imitate
-        assert!(!should_imitate_with_affinity(100.0, 200.0, 1.0, 0.0, 0.0, 1.0));
+        assert!(!should_imitate_with_affinity(
+            100.0, 200.0, 1.0, 0.0, 0.0, 1.0
+        ));
     }
 
     #[test]
     fn coherence_bonus_enables_marginal_imitation() {
         // Marginal case: affinity=0.5, base_gain=2, cost=1
         // Without bonus: effective = 2 * 0.5 = 1.0, not > 1.0 → no imitate
-        assert!(!should_imitate_with_affinity(100.0, 102.0, 1.0, 0.0, 0.5, 1.0));
+        assert!(!should_imitate_with_affinity(
+            100.0, 102.0, 1.0, 0.0, 0.5, 1.0
+        ));
         // With coherence bonus=1.2: effective = 2 * 0.5 * 1.2 = 1.2 > 1.0 → imitate
-        assert!(should_imitate_with_affinity(100.0, 102.0, 1.0, 0.0, 0.5, 1.2));
+        assert!(should_imitate_with_affinity(
+            100.0, 102.0, 1.0, 0.0, 0.5, 1.2
+        ));
     }
 }

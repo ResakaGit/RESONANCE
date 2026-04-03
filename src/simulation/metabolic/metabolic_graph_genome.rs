@@ -4,16 +4,16 @@
 //! Reads epigenetic mask for gene gating.
 //! Inserts/replaces MetabolicGraph component on the entity.
 
-use bevy::prelude::*;
 use bevy::ecs::query::Or;
+use bevy::prelude::*;
 
 use crate::blueprint::equations::derived_thresholds::DISSIPATION_SOLID;
 use crate::blueprint::equations::metabolic_genome;
 use crate::blueprint::equations::variable_genome::{self, VariableGenome};
+use crate::layers::BaseEnergy;
 use crate::layers::epigenetics::EpigeneticState;
 use crate::layers::inference::InferenceProfile;
 use crate::layers::metabolic_graph::MetabolicGraph;
-use crate::layers::BaseEnergy;
 
 /// Infer MetabolicGraph for entities that gained or changed InferenceProfile.
 ///
@@ -23,7 +23,12 @@ use crate::layers::BaseEnergy;
 pub fn genome_to_metabolic_graph_system(
     mut commands: Commands,
     query: Query<
-        (Entity, &InferenceProfile, Option<&EpigeneticState>, Option<&BaseEnergy>),
+        (
+            Entity,
+            &InferenceProfile,
+            Option<&EpigeneticState>,
+            Option<&BaseEnergy>,
+        ),
         Or<(Changed<InferenceProfile>, Changed<EpigeneticState>)>,
     >,
 ) {
@@ -35,12 +40,12 @@ pub fn genome_to_metabolic_graph_system(
             profile.resilience,
         );
 
-        let mask = epigenetics
-            .map(|e| e.expression_mask)
-            .unwrap_or([1.0; 4]);
+        let mask = epigenetics.map(|e| e.expression_mask).unwrap_or([1.0; 4]);
 
         match metabolic_genome::metabolic_graph_from_variable_genome(&vg, &mask) {
-            Ok(graph) => { commands.entity(entity).insert(graph); }
+            Ok(graph) => {
+                commands.entity(entity).insert(graph);
+            }
             Err(_) => {
                 // Not complex enough for a metabolic graph — remove if present
                 commands.entity(entity).remove::<MetabolicGraph>();
@@ -96,11 +101,20 @@ mod tests {
         app
     }
 
-    fn spawn_entity(app: &mut App, growth: f32, mobility: f32, branching: f32, resilience: f32, qe: f32) -> Entity {
-        app.world_mut().spawn((
-            BaseEnergy::new(qe),
-            InferenceProfile::new(growth, mobility, branching, resilience),
-        )).id()
+    fn spawn_entity(
+        app: &mut App,
+        growth: f32,
+        mobility: f32,
+        branching: f32,
+        resilience: f32,
+        qe: f32,
+    ) -> Entity {
+        app.world_mut()
+            .spawn((
+                BaseEnergy::new(qe),
+                InferenceProfile::new(growth, mobility, branching, resilience),
+            ))
+            .id()
     }
 
     #[test]
@@ -141,17 +155,22 @@ mod tests {
         app.init_schedule(TestSchedule);
         app.add_systems(TestSchedule, genome_maintenance_drain_system);
 
-        let e = app.world_mut().spawn((
-            BaseEnergy::new(100.0),
-            GenomeMaintenanceCost(5.0),
-        )).id();
+        let e = app
+            .world_mut()
+            .spawn((BaseEnergy::new(100.0), GenomeMaintenanceCost(5.0)))
+            .id();
 
         app.world_mut().run_schedule(TestSchedule);
 
         let qe = app.world().entity(e).get::<BaseEnergy>().unwrap().qe();
         assert!(qe < 100.0, "drain should reduce energy: {qe}");
-        assert!(app.world().entity(e).get::<GenomeMaintenanceCost>().is_none(),
-            "cost marker should be removed after drain");
+        assert!(
+            app.world()
+                .entity(e)
+                .get::<GenomeMaintenanceCost>()
+                .is_none(),
+            "cost marker should be removed after drain"
+        );
     }
 
     #[test]
@@ -161,10 +180,10 @@ mod tests {
         app.init_schedule(TestSchedule);
         app.add_systems(TestSchedule, genome_maintenance_drain_system);
 
-        let e = app.world_mut().spawn((
-            BaseEnergy::new(1.0),
-            GenomeMaintenanceCost(999.0),
-        )).id();
+        let e = app
+            .world_mut()
+            .spawn((BaseEnergy::new(1.0), GenomeMaintenanceCost(999.0)))
+            .id();
 
         app.world_mut().run_schedule(TestSchedule);
         let qe = app.world().entity(e).get::<BaseEnergy>().unwrap().qe();

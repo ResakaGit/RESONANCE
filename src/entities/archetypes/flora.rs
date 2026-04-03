@@ -3,8 +3,8 @@ use bevy::prelude::*;
 use crate::blueprint::{ElementId, IdGenerator};
 use crate::entities::builder::EntityBuilder;
 use crate::entities::constants::{
-    flora_ea2, FloraSpawnPreset, FLORA_ELEMENT_SYMBOL, FLORA_GROWTH_LIMITER,
-    FLORA_MINIMAP_ICON_RADIUS,
+    FLORA_ELEMENT_SYMBOL, FLORA_GROWTH_LIMITER, FLORA_MINIMAP_ICON_RADIUS, FloraSpawnPreset,
+    flora_ea2,
 };
 use crate::layers::{CapabilitySet, InferenceProfile, MatterState};
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
@@ -90,10 +90,9 @@ pub fn spawn_botanical_seed(
         .sim_world_layout(layout)
         .spawn(commands);
 
-    commands.entity(e).insert((
-        wid,
-        MinimapIcon::new(12.0, Color::srgb(0.2, 0.8, 0.2)),
-    ));
+    commands
+        .entity(e)
+        .insert((wid, MinimapIcon::new(12.0, Color::srgb(0.2, 0.8, 0.2))));
     e
 }
 
@@ -220,9 +219,21 @@ mod flora_spawn_tests {
         drop(commands);
         app.update();
         let w = app.world();
-        let rosa_be = w.entity(rosa).get::<MatterCoherence>().unwrap().bond_energy_eb;
-        let oak_be = w.entity(oak).get::<MatterCoherence>().unwrap().bond_energy_eb;
-        let moss_be = w.entity(moss).get::<MatterCoherence>().unwrap().bond_energy_eb;
+        let rosa_be = w
+            .entity(rosa)
+            .get::<MatterCoherence>()
+            .unwrap()
+            .bond_energy_eb;
+        let oak_be = w
+            .entity(oak)
+            .get::<MatterCoherence>()
+            .unwrap()
+            .bond_energy_eb;
+        let moss_be = w
+            .entity(moss)
+            .get::<MatterCoherence>()
+            .unwrap()
+            .bond_energy_eb;
         assert_eq!(rosa_be, flora_ea2::ROSA.bond_energy_eb);
         assert_eq!(oak_be, flora_ea2::OAK.bond_energy_eb);
         assert_eq!(moss_be, flora_ea2::MOSS.bond_energy_eb);
@@ -240,8 +251,16 @@ mod flora_spawn_tests {
         drop(commands);
         app.update();
         let w = app.world();
-        let oak_r = w.entity(oak_e).get::<InferenceProfile>().unwrap().resilience;
-        let moss_r = w.entity(moss_e).get::<InferenceProfile>().unwrap().resilience;
+        let oak_r = w
+            .entity(oak_e)
+            .get::<InferenceProfile>()
+            .unwrap()
+            .resilience;
+        let moss_r = w
+            .entity(moss_e)
+            .get::<InferenceProfile>()
+            .unwrap()
+            .resilience;
         assert_eq!(moss_r, flora_ea2::MOSS.resilience);
         assert_eq!(oak_r, flora_ea2::OAK.resilience);
         assert!(oak_r > moss_r);

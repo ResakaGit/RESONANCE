@@ -6,8 +6,7 @@ use crate::layers::{
     AlchemicalEngine, AlchemicalInjector, AllometricRadiusAnchor, AmbientPressure, BaseEnergy,
     Faction, FlowVector, GrowthBudget, Homeostasis, IrradianceReceiver, MatterCoherence,
     MatterState, MetabolicGraph, MobaIdentity, MorphogenesisShapeParams, NutrientProfile,
-    OrganManifest, OscillatorySignature, SpatialVolume, StructuralLink,
-    TensionField, WillActuator,
+    OrganManifest, OscillatorySignature, SpatialVolume, StructuralLink, TensionField, WillActuator,
 };
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::runtime_platform::kinematics_3d_adapter::V6RuntimeEntity;
@@ -96,7 +95,10 @@ impl EntityBuilder {
     pub fn wave_from_hz(mut self, frequency_hz: f32) -> Self {
         use crate::blueprint::equations::element_symbol_from_frequency;
         let sym = element_symbol_from_frequency(frequency_hz);
-        self.wave = Some((ElementId::from_name(sym), OscillatorySignature::new(frequency_hz, 0.0)));
+        self.wave = Some((
+            ElementId::from_name(sym),
+            OscillatorySignature::new(frequency_hz, 0.0),
+        ));
         self
     }
 
@@ -157,12 +159,7 @@ impl EntityBuilder {
     }
 
     /// Capa 9
-    pub fn identity(
-        mut self,
-        faction: Faction,
-        tag_bits: u8,
-        critical_multiplier: f32,
-    ) -> Self {
+    pub fn identity(mut self, faction: Faction, tag_bits: u8, critical_multiplier: f32) -> Self {
         self.identity = Some(MobaIdentity {
             faction,
             relational_tags: tag_bits,
@@ -213,7 +210,9 @@ impl EntityBuilder {
             .organ_manifest
             .as_ref()
             .expect("with_organ_manifest must be called before with_metabolic_graph_inferred");
-        self.metabolic_graph = Some(equations::metabolic_graph_from_manifest(manifest, t_core, t_env));
+        self.metabolic_graph = Some(equations::metabolic_graph_from_manifest(
+            manifest, t_core, t_env,
+        ));
         self
     }
 
@@ -356,7 +355,11 @@ mod tests {
             .spawn(&mut commands);
         drop(commands);
         app.update();
-        assert!(app.world().entity(entity).contains::<MorphogenesisShapeParams>());
+        assert!(
+            app.world()
+                .entity(entity)
+                .contains::<MorphogenesisShapeParams>()
+        );
     }
 
     #[test]
@@ -395,7 +398,11 @@ mod tests {
             .spawn(&mut commands);
         drop(commands);
         app.update();
-        let ir = app.world().entity(entity).get::<IrradianceReceiver>().unwrap();
+        let ir = app
+            .world()
+            .entity(entity)
+            .get::<IrradianceReceiver>()
+            .unwrap();
         assert!((ir.photon_density - 50.0).abs() < 1e-6);
     }
 

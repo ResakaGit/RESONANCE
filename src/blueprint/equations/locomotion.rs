@@ -1,7 +1,7 @@
+use crate::blueprint::MatterState;
 use crate::blueprint::constants::{
     LOCOMOTION_KINETIC_FACTOR, SLOPE_COST_SCALE, STAMINA_BASE_RECOVERY,
 };
-use crate::layers::MatterState;
 
 /// E1: Kinetic energy cost of locomotion.
 /// `E_locomotion = KINETIC_FACTOR × mass × speed² × terrain_factor`
@@ -16,9 +16,9 @@ pub fn locomotion_energy_cost(mass: f32, speed: f32, terrain_factor: f32) -> f32
 /// `f_terrain = (1 + slope × SLOPE_COST_SCALE) × viscosity × state_multiplier`
 pub fn terrain_locomotion_factor(slope: f32, viscosity: f32, matter_state: MatterState) -> f32 {
     let state_multiplier = match matter_state {
-        MatterState::Solid  => 1.0,
+        MatterState::Solid => 1.0,
         MatterState::Liquid => 1.5,
-        MatterState::Gas    => 0.8,
+        MatterState::Gas => 0.8,
         MatterState::Plasma => 2.0,
     };
     let slope_clamped = slope.max(0.0);
@@ -38,7 +38,9 @@ pub fn stamina_recovery_rate(current_buffer: f32, max_buffer: f32) -> f32 {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::blueprint::constants::{LOCOMOTION_KINETIC_FACTOR, SLOPE_COST_SCALE, STAMINA_BASE_RECOVERY};
+    use crate::blueprint::constants::{
+        LOCOMOTION_KINETIC_FACTOR, SLOPE_COST_SCALE, STAMINA_BASE_RECOVERY,
+    };
 
     // --- locomotion_energy_cost ---
 
@@ -123,7 +125,7 @@ mod tests {
 
     #[test]
     fn terrain_factor_liquid_higher_than_solid() {
-        let solid  = terrain_locomotion_factor(0.3, 1.0, MatterState::Solid);
+        let solid = terrain_locomotion_factor(0.3, 1.0, MatterState::Solid);
         let liquid = terrain_locomotion_factor(0.3, 1.0, MatterState::Liquid);
         assert!(liquid > solid);
     }
@@ -131,13 +133,13 @@ mod tests {
     #[test]
     fn terrain_factor_gas_lower_than_solid() {
         let solid = terrain_locomotion_factor(0.3, 1.0, MatterState::Solid);
-        let gas   = terrain_locomotion_factor(0.3, 1.0, MatterState::Gas);
+        let gas = terrain_locomotion_factor(0.3, 1.0, MatterState::Gas);
         assert!(gas < solid);
     }
 
     #[test]
     fn terrain_factor_plasma_highest() {
-        let solid  = terrain_locomotion_factor(0.3, 1.0, MatterState::Solid);
+        let solid = terrain_locomotion_factor(0.3, 1.0, MatterState::Solid);
         let plasma = terrain_locomotion_factor(0.3, 1.0, MatterState::Plasma);
         assert!(plasma > solid);
         assert!((plasma / solid - 2.0).abs() < 1e-5);
@@ -145,7 +147,7 @@ mod tests {
 
     #[test]
     fn terrain_factor_high_viscosity_increases_cost() {
-        let low  = terrain_locomotion_factor(0.0, 1.0, MatterState::Solid);
+        let low = terrain_locomotion_factor(0.0, 1.0, MatterState::Solid);
         let high = terrain_locomotion_factor(0.0, 2.0, MatterState::Solid);
         assert!((high - 2.0 * low).abs() < 1e-5);
     }
@@ -211,7 +213,7 @@ mod tests {
     #[test]
     fn stamina_recovery_quadratic_not_linear() {
         let quarter = stamina_recovery_rate(25.0, 100.0);
-        let half    = stamina_recovery_rate(50.0, 100.0);
+        let half = stamina_recovery_rate(50.0, 100.0);
         // quarter: BASE × 0.0625, half: BASE × 0.25
         // ratio should be 4:1, not 2:1 (quadratic)
         assert!((half / quarter - 4.0).abs() < 1e-4);

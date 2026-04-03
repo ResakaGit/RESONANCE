@@ -3,8 +3,8 @@
 //! Zero heap allocation. Zero Bevy dependency. `repr(C)` for predictable layout.
 
 use crate::blueprint::equations;
-use crate::blueprint::equations::radial_field::{AXIAL, RADIAL};
 use crate::blueprint::equations::codon_genome::{CodonGenome, CodonTable};
+use crate::blueprint::equations::radial_field::{AXIAL, RADIAL};
 use crate::blueprint::equations::variable_genome::VariableGenome;
 
 use super::constants::{GRID_CELLS, MAX_ENTITIES, QE_MIN_EXISTENCE};
@@ -21,7 +21,9 @@ pub enum ForceStrategy {
 }
 
 impl Default for ForceStrategy {
-    fn default() -> Self { Self::Disabled } // disabled by default for backward compatibility
+    fn default() -> Self {
+        Self::Disabled
+    } // disabled by default for backward compatibility
 }
 use super::events::EventBuffer;
 
@@ -36,75 +38,75 @@ use super::events::EventBuffer;
 #[repr(C)]
 pub struct EntitySlot {
     // ── identity ───────────────────────────
-    pub entity_id:      u32,
+    pub entity_id: u32,
 
     // ── L0  BaseEnergy ─────────────────────
-    pub qe:             f32,
+    pub qe: f32,
 
     // ── L1  SpatialVolume ──────────────────
-    pub radius:         f32,
+    pub radius: f32,
 
     // ── L2  OscillatorySignature ───────────
-    pub frequency_hz:   f32,
-    pub phase:          f32,
+    pub frequency_hz: f32,
+    pub phase: f32,
 
     // ── L3  FlowVector ─────────────────────
-    pub velocity:       [f32; 2],
-    pub dissipation:    f32,
+    pub velocity: [f32; 2],
+    pub dissipation: f32,
 
     // ── L4  MatterCoherence ────────────────
-    pub bond_energy:    f32,
-    pub conductivity:   f32,
+    pub bond_energy: f32,
+    pub conductivity: f32,
 
     // ── L5  AlchemicalEngine ───────────────
-    pub engine_buffer:  f32,
-    pub engine_max:     f32,
-    pub input_valve:    f32,
-    pub output_valve:   f32,
+    pub engine_buffer: f32,
+    pub engine_max: f32,
+    pub input_valve: f32,
+    pub output_valve: f32,
 
     // ── L6  AmbientPressure ────────────────
-    pub pressure_dqe:   f32,
-    pub viscosity:      f32,
+    pub pressure_dqe: f32,
+    pub viscosity: f32,
 
     // ── L7  WillActuator ───────────────────
-    pub will_intent:    [f32; 2],
+    pub will_intent: [f32; 2],
 
     // ── L12 Homeostasis ────────────────────
-    pub adapt_rate_hz:  f32,
+    pub adapt_rate_hz: f32,
     pub stability_band: f32,
 
     // ── Position (sim-plane) ─���─────────────
-    pub position:       [f32; 2],
+    pub position: [f32; 2],
 
     // ── Genome (InferenceProfile) ──────────
-    pub growth_bias:    f32,
-    pub mobility_bias:  f32,
+    pub growth_bias: f32,
+    pub mobility_bias: f32,
     pub branching_bias: f32,
-    pub resilience:     f32,
+    pub resilience: f32,
 
     // ── Trophic state ──────────────────────
-    pub satiation:      f32,
+    pub satiation: f32,
 
     // ── Epigenetic mask ────────────────────
     pub expression_mask: [f32; 4],
 
     // ── Internal energy field (AXIAL × RADIAL nodes)
-    pub qe_field:   [[f32; RADIAL]; AXIAL],
-    pub freq_field:  [[f32; RADIAL]; AXIAL],
+    pub qe_field: [[f32; RADIAL]; AXIAL],
+    pub freq_field: [[f32; RADIAL]; AXIAL],
 
     // ── L-1 ParticleCharge ──────────────────
-    pub charge:         f32,
-    pub particle_mass:  f32,
+    pub charge: f32,
+    pub particle_mass: f32,
 
     // ── Flags (packed) ─────────────────────
-    pub alive:          bool,
-    pub archetype:      u8,
-    pub matter_state:   u8,
-    pub channeling:     bool,
-    pub faction:        u8,
-    pub trophic_class:  u8,
+    pub alive: bool,
+    pub archetype: u8,
+    pub matter_state: u8,
+    pub channeling: bool,
+    pub faction: u8,
+    pub trophic_class: u8,
     pub field_converged: bool,
-    pub _pad:           [u8; 1],
+    pub _pad: [u8; 1],
 }
 
 impl Default for EntitySlot {
@@ -113,26 +115,43 @@ impl Default for EntitySlot {
         // SAFETY: This is safe because EntitySlot is repr(C) and all-zeros is a valid state.
         // We avoid unsafe here by using explicit construction.
         Self {
-            entity_id: 0, qe: 0.0, radius: 0.0,
-            frequency_hz: 0.0, phase: 0.0,
-            velocity: [0.0; 2], dissipation: 0.0,
-            bond_energy: 0.0, conductivity: 0.0,
-            engine_buffer: 0.0, engine_max: 0.0,
-            input_valve: 0.0, output_valve: 0.0,
-            pressure_dqe: 0.0, viscosity: 0.0,
+            entity_id: 0,
+            qe: 0.0,
+            radius: 0.0,
+            frequency_hz: 0.0,
+            phase: 0.0,
+            velocity: [0.0; 2],
+            dissipation: 0.0,
+            bond_energy: 0.0,
+            conductivity: 0.0,
+            engine_buffer: 0.0,
+            engine_max: 0.0,
+            input_valve: 0.0,
+            output_valve: 0.0,
+            pressure_dqe: 0.0,
+            viscosity: 0.0,
             will_intent: [0.0; 2],
-            adapt_rate_hz: 0.0, stability_band: 0.0,
+            adapt_rate_hz: 0.0,
+            stability_band: 0.0,
             position: [0.0; 2],
-            growth_bias: 0.0, mobility_bias: 0.0,
-            branching_bias: 0.0, resilience: 0.0,
+            growth_bias: 0.0,
+            mobility_bias: 0.0,
+            branching_bias: 0.0,
+            resilience: 0.0,
             satiation: 0.0,
             expression_mask: [1.0; 4], // fully expressed by default (ET-6)
             qe_field: [[0.0; RADIAL]; AXIAL],
             freq_field: [[0.0; RADIAL]; AXIAL],
-            charge: 0.0, particle_mass: 1.0,
-            alive: false, archetype: 0, matter_state: 0,
-            channeling: false, faction: 0, trophic_class: 0,
-            field_converged: false, _pad: [0; 1],
+            charge: 0.0,
+            particle_mass: 1.0,
+            alive: false,
+            archetype: 0,
+            matter_state: 0,
+            channeling: false,
+            faction: 0,
+            trophic_class: 0,
+            field_converged: false,
+            _pad: [0; 1],
         }
     }
 }
@@ -146,26 +165,26 @@ impl Default for EntitySlot {
 /// `alive_mask` and `entity_count` consistent.
 #[derive(Clone)]
 pub struct SimWorldFlat {
-    pub tick_id:         u64,
-    pub seed:            u64,
-    pub dt:              f32,
-    pub entity_count:    u8,
-    pub alive_mask:      u128,
+    pub tick_id: u64,
+    pub seed: u64,
+    pub dt: f32,
+    pub entity_count: u8,
+    pub alive_mask: u128,
     /// Particle force strategy. Disabled = legacy (no charge physics).
-    pub force_strategy:  ForceStrategy,
-    pub next_id:         u32,
-    pub entities:        [EntitySlot; MAX_ENTITIES],
+    pub force_strategy: ForceStrategy,
+    pub next_id: u32,
+    pub entities: [EntitySlot; MAX_ENTITIES],
     /// Side-table: variable-length genomes per entity (cold data, DoD separation).
     /// Synced with entities[] by index. Only accessed during reproduction + metabolic inference.
-    pub genomes:         [VariableGenome; MAX_ENTITIES],
+    pub genomes: [VariableGenome; MAX_ENTITIES],
     /// Side-table: codon genomes (PD-5). Cold data, DoD.
-    pub codon_genomes:   [CodonGenome; MAX_ENTITIES],
+    pub codon_genomes: [CodonGenome; MAX_ENTITIES],
     /// Side-table: genetic code per lineage (PD-5). Evolves with organism.
-    pub codon_tables:    [CodonTable; MAX_ENTITIES],
-    pub total_qe:        f32,
-    pub nutrient_grid:   [f32; GRID_CELLS],
+    pub codon_tables: [CodonTable; MAX_ENTITIES],
+    pub total_qe: f32,
+    pub nutrient_grid: [f32; GRID_CELLS],
     pub irradiance_grid: [f32; GRID_CELLS],
-    pub events:          EventBuffer,
+    pub events: EventBuffer,
 }
 
 impl SimWorldFlat {
@@ -204,8 +223,12 @@ impl SimWorldFlat {
 
     /// Kill entity at index. Clears slot, updates bitmask.
     pub fn kill(&mut self, idx: usize) {
-        if idx >= MAX_ENTITIES { return; }
-        if self.alive_mask & (1 << idx) == 0 { return; }
+        if idx >= MAX_ENTITIES {
+            return;
+        }
+        if self.alive_mask & (1 << idx) == 0 {
+            return;
+        }
         self.entities[idx] = EntitySlot::default();
         self.alive_mask &= !(1 << idx);
         self.entity_count = self.entity_count.saturating_sub(1);
@@ -214,7 +237,9 @@ impl SimWorldFlat {
     /// First free slot via trailing zeros on inverted mask.
     pub fn first_free_slot(&self) -> Option<usize> {
         let free = !self.alive_mask;
-        if free == 0 { return None; }
+        if free == 0 {
+            return None;
+        }
         let idx = free.trailing_zeros() as usize;
         if idx >= MAX_ENTITIES { None } else { Some(idx) }
     }
@@ -251,7 +276,9 @@ impl SimWorldFlat {
             mask &= mask - 1;
             debug_assert!(
                 equations::conservation::is_valid_qe(self.entities[i].qe),
-                "INV-B2: entity {} has invalid qe={}", i, self.entities[i].qe,
+                "INV-B2: entity {} has invalid qe={}",
+                i,
+                self.entities[i].qe,
             );
         }
     }
@@ -284,7 +311,10 @@ mod tests {
     fn entity_slot_size_is_reasonable() {
         let size = std::mem::size_of::<EntitySlot>();
         assert!(size <= 1200, "EntitySlot too large: {size} bytes");
-        assert!(size >= 100, "EntitySlot too small: {size} bytes — fields missing?");
+        assert!(
+            size >= 100,
+            "EntitySlot too small: {size} bytes — fields missing?"
+        );
     }
 
     // ── SimWorldFlat ────────────────────────────────────────────────────────

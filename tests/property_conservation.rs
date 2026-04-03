@@ -6,18 +6,15 @@ use resonance::blueprint::equations::conservation::{
     conservation_error, global_conservation_error, has_invalid_values, is_valid_qe,
 };
 use resonance::blueprint::equations::{
-    dissipation_loss, extract_aggressive, extract_competitive,
-    extract_greedy, extract_proportional, extract_regulated, pool_next_tick, relative_fitness,
+    dissipation_loss, extract_aggressive, extract_competitive, extract_greedy,
+    extract_proportional, extract_regulated, pool_next_tick, relative_fitness,
     scale_extractions_to_available, ticks_to_collapse,
 };
 
 // ─── Generators ──────────────────────────────────────────────────────────────
 
 fn qe_value() -> impl Strategy<Value = f32> {
-    prop_oneof![
-        Just(0.0_f32),
-        0.001_f32..1e6,
-    ]
+    prop_oneof![Just(0.0_f32), 0.001_f32..1e6,]
 }
 
 #[allow(dead_code)]

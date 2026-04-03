@@ -43,11 +43,7 @@ pub fn allometric_consumption(base_output: f32, radius: f32) -> f32 {
     };
     let surface_proxy = ALLOMETRIC_SURFACE_FACTOR * r * r;
     let out = output * surface_proxy;
-    if out.is_finite() {
-        out
-    } else {
-        0.0
-    }
+    if out.is_finite() { out } else { 0.0 }
 }
 
 /// Feedback logístico de crecimiento radial.

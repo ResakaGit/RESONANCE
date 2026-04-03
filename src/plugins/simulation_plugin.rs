@@ -10,12 +10,12 @@ use crate::plugins::morphological_plugin::MorphologicalPlugin;
 use crate::plugins::thermodynamic_plugin::ThermodynamicPlugin;
 use crate::runtime_platform::compat_2d3d::{RenderCompatProfile, SimWorldTransformParams};
 use crate::runtime_platform::fog_overlay::spawn_fog_world_overlay_startup_system;
+use crate::simulation::lifecycle::{enter_game_state_playing_system, transition_to_active_system};
 use crate::simulation::{init_simulation_bootstrap, pipeline};
 use crate::topology::config::init_terrain_config_system;
 use crate::world::fog_of_war::init_fog_of_war_from_energy_field_system;
 use crate::worldgen::systems::startup::{
-    enter_game_state_playing_system, load_map_config_startup_system, mark_play_state_active_system,
-    spawn_nuclei_from_map_config_system, worldgen_warmup_system,
+    load_map_config_startup_system, spawn_nuclei_from_map_config_system, worldgen_warmup_system,
 };
 use crate::worldgen::systems::terrain::insert_terrain_field_startup_system;
 
@@ -78,7 +78,7 @@ impl Plugin for SimulationPlugin {
                 crate::worldgen::seed_nutrient_field_from_nuclei_system,
                 enter_game_state_playing_system,
                 worldgen_warmup_system,
-                mark_play_state_active_system,
+                transition_to_active_system,
             )
                 .chain(),
         );
@@ -87,7 +87,7 @@ impl Plugin for SimulationPlugin {
             Startup,
             spawn_fog_world_overlay_startup_system
                 .run_if(resource_exists::<Assets<Image>>)
-                .after(mark_play_state_active_system),
+                .after(transition_to_active_system),
         );
     }
 }

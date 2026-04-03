@@ -14,8 +14,8 @@ use crate::geometry_flow::deformation::{
 use crate::geometry_flow::deformation_cache::GeometryDeformationCache;
 use crate::geometry_flow::{GeometryInfluence, build_flow_spine};
 use crate::layers::{BaseEnergy, OscillatorySignature};
-use crate::worldgen::contracts::Materialized;
 use crate::worldgen::EnergyFieldGrid;
+use crate::worldgen::contracts::Materialized;
 
 /// Capacidad del cache de deformación (parallel-array, modulo entity index).
 const GF2_CACHE_CAPACITY: usize = 4096;
@@ -30,9 +30,13 @@ pub fn geometry_deformation_system(
     mut meshes: ResMut<Assets<Mesh>>,
     mut cache: ResMut<GeometryDeformationCache>,
     grid: Option<Res<EnergyFieldGrid>>,
-    query: Query<
-        (Entity, &BaseEnergy, &OscillatorySignature, &Mesh3d, &Materialized),
-    >,
+    query: Query<(
+        Entity,
+        &BaseEnergy,
+        &OscillatorySignature,
+        &Mesh3d,
+        &Materialized,
+    )>,
 ) {
     let grid_ref = grid.as_deref();
 
@@ -65,7 +69,10 @@ pub fn geometry_deformation_system(
 
         let cache_idx = entity.index() as usize % GF2_CACHE_CAPACITY;
 
-        if cache.lookup(fingerprint, tensor_magnitude, cache_idx).is_some() {
+        if cache
+            .lookup(fingerprint, tensor_magnitude, cache_idx)
+            .is_some()
+        {
             cache.record_hit(cache_idx);
             continue;
         }
@@ -110,10 +117,18 @@ fn sample_field_gradient(grid: Option<&EnergyFieldGrid>, mat: &Materialized) -> 
     let ux = mat.cell_x as u32;
     let uy = mat.cell_y as u32;
     let center = g.cell_xy(ux, uy).map_or(0.0, |c| c.accumulated_qe);
-    let left  = if ux > 0 { g.cell_xy(ux - 1, uy).map_or(center, |c| c.accumulated_qe) } else { center };
+    let left = if ux > 0 {
+        g.cell_xy(ux - 1, uy).map_or(center, |c| c.accumulated_qe)
+    } else {
+        center
+    };
     let right = g.cell_xy(ux + 1, uy).map_or(center, |c| c.accumulated_qe);
-    let down  = if uy > 0 { g.cell_xy(ux, uy - 1).map_or(center, |c| c.accumulated_qe) } else { center };
-    let up    = g.cell_xy(ux, uy + 1).map_or(center, |c| c.accumulated_qe);
+    let down = if uy > 0 {
+        g.cell_xy(ux, uy - 1).map_or(center, |c| c.accumulated_qe)
+    } else {
+        center
+    };
+    let up = g.cell_xy(ux, uy + 1).map_or(center, |c| c.accumulated_qe);
     energy_gradient_from_neighbors(left, right, down, up, g.cell_size)
 }
 

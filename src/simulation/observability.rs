@@ -89,7 +89,10 @@ pub fn simulation_health_system(
 
     let new_tick = dashboard.tick_count + 1;
 
-    if dashboard.drift_rate != drift || dashboard.saturation_index != sat || dashboard.tick_count != new_tick {
+    if dashboard.drift_rate != drift
+        || dashboard.saturation_index != sat
+        || dashboard.tick_count != new_tick
+    {
         dashboard.drift_rate = drift;
         dashboard.saturation_index = sat;
         dashboard.tick_count = new_tick;
@@ -123,7 +126,9 @@ pub fn metrics_snapshot_system(
     let tick = clock.tick_id;
 
     // Idempotent guard: skip if already processed this tick.
-    if snapshot.tick == tick && tick > 0 { return; }
+    if snapshot.tick == tick && tick > 0 {
+        return;
+    }
 
     // ─── Field metrics ───────────────────────────────────────────────────
     let (total_qe, occupancy, matter_dist, freq_diversity) = if let Some(ref grid) = field {
@@ -177,21 +182,28 @@ pub fn metrics_snapshot_system(
 
 /// Occupancy computed from iterator of cell references (avoids clone).
 fn field_occupancy_from_refs(cells: &[&crate::worldgen::EnergyCell], threshold: f32) -> f32 {
-    if cells.is_empty() { return 0.0; }
-    let active = cells.iter().filter(|c| c.accumulated_qe > threshold).count();
+    if cells.is_empty() {
+        return 0.0;
+    }
+    let active = cells
+        .iter()
+        .filter(|c| c.accumulated_qe > threshold)
+        .count();
     active as f32 / cells.len() as f32
 }
 
 /// Matter distribution from cell references.
 fn matter_distribution_from_refs(cells: &[&crate::worldgen::EnergyCell]) -> [f32; 4] {
     use crate::layers::MatterState;
-    if cells.is_empty() { return [0.0; 4]; }
+    if cells.is_empty() {
+        return [0.0; 4];
+    }
     let mut counts = [0u32; 4];
     for cell in cells {
         let idx = match cell.matter_state {
-            MatterState::Solid  => 0,
+            MatterState::Solid => 0,
             MatterState::Liquid => 1,
-            MatterState::Gas    => 2,
+            MatterState::Gas => 2,
             MatterState::Plasma => 3,
         };
         counts[idx] += 1;
@@ -211,15 +223,21 @@ fn frequency_band_histogram_from_refs(
     num_bands: usize,
 ) -> Vec<u32> {
     let mut counts = vec![0u32; num_bands.max(1)];
-    if cells.is_empty() || num_bands == 0 { return counts; }
+    if cells.is_empty() || num_bands == 0 {
+        return counts;
+    }
     let max_freq = cells
         .iter()
         .map(|c| c.dominant_frequency_hz)
         .fold(0.0f32, f32::max);
-    if max_freq <= 0.0 { return counts; }
+    if max_freq <= 0.0 {
+        return counts;
+    }
     let band_width = max_freq / num_bands as f32;
     for cell in cells {
-        if cell.dominant_frequency_hz <= 0.0 { continue; }
+        if cell.dominant_frequency_hz <= 0.0 {
+            continue;
+        }
         let band = ((cell.dominant_frequency_hz / band_width) as usize).min(num_bands - 1);
         counts[band] += 1;
     }
@@ -285,8 +303,12 @@ pub fn metrics_batch_system(
     mut buffer: Local<Vec<String>>,
     mut header_written: Local<bool>,
 ) {
-    let Some(cfg) = config else { return; };
-    if !cfg.enabled { return; }
+    let Some(cfg) = config else {
+        return;
+    };
+    if !cfg.enabled {
+        return;
+    }
 
     let row = match cfg.format {
         MetricsFormat::Csv => format_csv_row(&snapshot, &ecology, &dashboard),
@@ -294,17 +316,24 @@ pub fn metrics_batch_system(
     };
     buffer.push(row);
 
-    if buffer.len() < cfg.batch_size as usize { return; }
+    if buffer.len() < cfg.batch_size as usize {
+        return;
+    }
 
     use std::io::Write;
     let Ok(mut file) = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
         .open(&cfg.output_path)
-    else { return; };
+    else {
+        return;
+    };
 
     if !*header_written && cfg.format == MetricsFormat::Csv {
-        let _ = writeln!(file, "tick,total_qe,field_occupancy,solid,liquid,gas,plasma,entities,deaths,growth_rate,diversity,conservation_error,drift_rate,saturation");
+        let _ = writeln!(
+            file,
+            "tick,total_qe,field_occupancy,solid,liquid,gas,plasma,entities,deaths,growth_rate,diversity,conservation_error,drift_rate,saturation"
+        );
         *header_written = true;
     }
     for line in buffer.drain(..) {
@@ -320,10 +349,20 @@ fn format_csv_row(
     let [solid, liquid, gas, plasma] = s.matter_distribution;
     format!(
         "{},{:.6},{:.6},{:.6},{:.6},{:.6},{:.6},{},{},{:.6},{:.6},{:.6},{:.6},{:.6}",
-        s.tick, s.total_qe, s.field_occupancy,
-        solid, liquid, gas, plasma,
-        e.entity_count, e.deaths_this_tick, e.growth_rate, e.frequency_diversity,
-        d.conservation_error, d.drift_rate, d.saturation_index,
+        s.tick,
+        s.total_qe,
+        s.field_occupancy,
+        solid,
+        liquid,
+        gas,
+        plasma,
+        e.entity_count,
+        e.deaths_this_tick,
+        e.growth_rate,
+        e.frequency_diversity,
+        d.conservation_error,
+        d.drift_rate,
+        d.saturation_index,
     )
 }
 
@@ -335,10 +374,20 @@ fn format_json_row(
     let [solid, liquid, gas, plasma] = s.matter_distribution;
     format!(
         r#"{{"tick":{},"total_qe":{:.6},"field_occupancy":{:.6},"matter":[{:.6},{:.6},{:.6},{:.6}],"entities":{},"deaths":{},"growth_rate":{:.6},"diversity":{:.6},"conservation_error":{:.6},"drift_rate":{:.6},"saturation":{:.6}}}"#,
-        s.tick, s.total_qe, s.field_occupancy,
-        solid, liquid, gas, plasma,
-        e.entity_count, e.deaths_this_tick, e.growth_rate, e.frequency_diversity,
-        d.conservation_error, d.drift_rate, d.saturation_index,
+        s.tick,
+        s.total_qe,
+        s.field_occupancy,
+        solid,
+        liquid,
+        gas,
+        plasma,
+        e.entity_count,
+        e.deaths_this_tick,
+        e.growth_rate,
+        e.frequency_diversity,
+        d.conservation_error,
+        d.drift_rate,
+        d.saturation_index,
     )
 }
 

@@ -1,8 +1,8 @@
 //! `ContextLookup`: SystemParam stateless — posición → contexto (interior O(1), frontera lerp).
 //! Ver `docs/sprints/ECO_BOUNDARIES/README.md` y `docs/design/ECO_BOUNDARIES.md` §6.
 
-use bevy::ecs::system::SystemParam;
 use crate::math_types::Vec2;
+use bevy::ecs::system::SystemParam;
 use bevy::prelude::{Res, Resource};
 
 use crate::eco::boundary_field::EcoBoundaryField;

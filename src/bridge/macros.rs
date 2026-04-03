@@ -58,9 +58,7 @@ macro_rules! impl_bridgeable_scalar {
             }
 
             #[inline]
-            fn from_cached(
-                value: $crate::bridge::cache::CachedValue,
-            ) -> Option<Self::Output> {
+            fn from_cached(value: $crate::bridge::cache::CachedValue) -> Option<Self::Output> {
                 if let $crate::bridge::cache::CachedValue::Scalar(v) = value {
                     Some(v)
                 } else {
@@ -100,9 +98,7 @@ macro_rules! impl_bridgeable_scalar_io {
         }
 
         #[inline]
-        fn from_cached(
-            value: $crate::bridge::cache::CachedValue,
-        ) -> Option<Self::Output> {
+        fn from_cached(value: $crate::bridge::cache::CachedValue) -> Option<Self::Output> {
             if let $crate::bridge::cache::CachedValue::Scalar(v) = value {
                 Some(v)
             } else {

@@ -115,7 +115,8 @@ pub const COMPOUND_BLEND_DESTRUCTIVE_BASE: f32 =
 pub const MATERIALIZED_SPAWN_BOND_ENERGY: f32 = super::visual_calibration::VISUAL_SPAWN_BOND_ENERGY;
 
 /// Thermal conductivity for terrain tiles (visual calibration).
-pub const MATERIALIZED_SPAWN_THERMAL_CONDUCTIVITY: f32 = super::visual_calibration::VISUAL_SPAWN_THERMAL_CONDUCTIVITY;
+pub const MATERIALIZED_SPAWN_THERMAL_CONDUCTIVITY: f32 =
+    super::visual_calibration::VISUAL_SPAWN_THERMAL_CONDUCTIVITY;
 
 /// Collider = half cell (geometric, Axiom 1).
 pub const MATERIALIZED_COLLIDER_RADIUS_FACTOR: f32 = 0.5;

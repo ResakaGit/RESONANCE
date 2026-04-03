@@ -7,8 +7,8 @@ pub mod cli;
 pub mod experiments;
 pub mod export;
 pub mod orchestrators;
-pub mod presets;
 pub mod presenters;
+pub mod presets;
 
 use crate::batch::genome::GenomeBlob;
 use crate::batch::harness::GenerationStats;
@@ -16,14 +16,14 @@ use crate::batch::harness::GenerationStats;
 /// Result of any evolutionary experiment. Owned, serializable, Bevy-free.
 #[derive(Debug, Clone)]
 pub struct ExperimentReport {
-    pub preset_name:   &'static str,
-    pub seed:          u64,
-    pub generations:   u32,
+    pub preset_name: &'static str,
+    pub seed: u64,
+    pub generations: u32,
     pub ticks_per_gen: u32,
-    pub world_count:   usize,
-    pub top_genomes:   Vec<GenomeBlob>,
-    pub history:       Vec<GenerationStats>,
-    pub wall_time_ms:  u64,
+    pub world_count: usize,
+    pub top_genomes: Vec<GenomeBlob>,
+    pub history: Vec<GenerationStats>,
+    pub wall_time_ms: u64,
 }
 
 /// Ejecuta un experimento con config completa. Single source of truth.
@@ -86,10 +86,13 @@ pub fn compare_universes(
     generations: u32,
     ticks: u32,
 ) -> Vec<(&'static str, Vec<ExperimentReport>)> {
-    presets.iter().map(|preset| {
-        let reports: Vec<ExperimentReport> = (0..seeds_per)
-            .map(|i| evolve_with(preset, i as u64, 100, generations, ticks, 12))
-            .collect();
-        (preset.name, reports)
-    }).collect()
+    presets
+        .iter()
+        .map(|preset| {
+            let reports: Vec<ExperimentReport> = (0..seeds_per)
+                .map(|i| evolve_with(preset, i as u64, 100, generations, ticks, 12))
+                .collect();
+            (preset.name, reports)
+        })
+        .collect()
 }

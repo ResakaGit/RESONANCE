@@ -5,11 +5,13 @@
 
 use bevy::prelude::*;
 
-use crate::blueprint::constants::{CENSUS_INTERVAL, SUCCESSION_TICK_INTERVAL, SUCCESSION_TICK_STEP};
+use crate::blueprint::constants::{
+    CENSUS_INTERVAL, SUCCESSION_TICK_INTERVAL, SUCCESSION_TICK_STEP,
+};
 use crate::blueprint::equations;
+use crate::layers::BaseEnergy;
 use crate::layers::inference::TrophicClass;
 use crate::layers::trophic::TrophicConsumer;
-use crate::layers::BaseEnergy;
 use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::worldgen::{EnergyFieldGrid, Materialized, NutrientFieldGrid};
 
@@ -111,10 +113,7 @@ pub fn carrying_capacity_system(
     for y in 0..grid.height {
         for x in 0..grid.width {
             let idx = y as usize * grid.width as usize + x as usize;
-            let cell_qe = grid
-                .cell_xy(x, y)
-                .map(|c| c.accumulated_qe)
-                .unwrap_or(0.0);
+            let cell_qe = grid.cell_xy(x, y).map(|c| c.accumulated_qe).unwrap_or(0.0);
             let nutrient_total = nutrient_grid
                 .cell_xy(x, y)
                 .map(|c| c.carbon_norm + c.nitrogen_norm + c.phosphorus_norm + c.water_norm)
@@ -128,11 +127,10 @@ pub fn carrying_capacity_system(
 }
 
 /// S3: Advance succession state based on census demographics and elapsed time.
-pub fn succession_system(
-    census: Res<PopulationCensus>,
-    mut state: ResMut<SuccessionState>,
-) {
-    state.time_since_disturbance = state.time_since_disturbance.saturating_add(SUCCESSION_TICK_STEP);
+pub fn succession_system(census: Res<PopulationCensus>, mut state: ResMut<SuccessionState>) {
+    state.time_since_disturbance = state
+        .time_since_disturbance
+        .saturating_add(SUCCESSION_TICK_STEP);
     let dominant = census
         .by_trophic_class
         .iter()
@@ -150,8 +148,8 @@ pub fn succession_system(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use bevy::app::App;
     use crate::worldgen::archetypes::WorldArchetype;
+    use bevy::app::App;
 
     fn test_app() -> App {
         let mut app = App::new();
@@ -187,7 +185,11 @@ mod tests {
     }
 
     fn mat(cx: i32, cy: i32) -> Materialized {
-        Materialized { cell_x: cx, cell_y: cy, archetype: WorldArchetype::Void }
+        Materialized {
+            cell_x: cx,
+            cell_y: cy,
+            archetype: WorldArchetype::Void,
+        }
     }
 
     #[test]
@@ -205,7 +207,10 @@ mod tests {
         app.update();
         let census = app.world().resource::<PopulationCensus>();
         assert_eq!(census.total_entities, 3);
-        assert_eq!(census.by_trophic_class[TrophicClass::PrimaryProducer as usize], 2);
+        assert_eq!(
+            census.by_trophic_class[TrophicClass::PrimaryProducer as usize],
+            2
+        );
         assert_eq!(census.by_trophic_class[TrophicClass::Herbivore as usize], 1);
     }
 
@@ -219,7 +224,10 @@ mod tests {
         let census = app.world().resource::<PopulationCensus>();
         let idx = 3 * 4 + 2;
         assert_eq!(census.by_cell[idx], 1);
-        let other_sum: u32 = census.by_cell.iter().enumerate()
+        let other_sum: u32 = census
+            .by_cell
+            .iter()
+            .enumerate()
             .filter(|(i, _)| *i != idx)
             .map(|(_, v)| v)
             .sum();
@@ -231,14 +239,22 @@ mod tests {
         let mut app = test_app();
         insert_grids(&mut app, 2, 2, 1.0, 100.0);
         app.world_mut().spawn((BaseEnergy::new(10.0), mat(0, 0)));
-        app.add_systems(bevy::app::Update, (census_system, carrying_capacity_system).chain());
+        app.add_systems(
+            bevy::app::Update,
+            (census_system, carrying_capacity_system).chain(),
+        );
         app.update();
         let field = app.world().resource::<ReproductionPressureField>();
-        assert!(field.pressure[0] > 0.0, "cell with entity should have pressure > 0");
-        assert!(field.pressure[0] < 1.0, "cell with entity should have pressure < 1");
         assert!(
-            (field.pressure[1] - 1.0).abs() < f32::EPSILON
-                || field.carrying_capacity[1] == 0,
+            field.pressure[0] > 0.0,
+            "cell with entity should have pressure > 0"
+        );
+        assert!(
+            field.pressure[0] < 1.0,
+            "cell with entity should have pressure < 1"
+        );
+        assert!(
+            (field.pressure[1] - 1.0).abs() < f32::EPSILON || field.carrying_capacity[1] == 0,
             "empty cell with capacity should have full pressure",
         );
         assert!(field.carrying_capacity[0] > 0);
@@ -249,7 +265,10 @@ mod tests {
         let mut app = test_app();
         insert_grids(&mut app, 2, 2, 1.0, 10.0);
         app.world_mut().spawn((BaseEnergy::new(10.0), mat(0, 0)));
-        app.add_systems(bevy::app::Update, (census_system, succession_system).chain());
+        app.add_systems(
+            bevy::app::Update,
+            (census_system, succession_system).chain(),
+        );
         {
             let state = app.world().resource::<SuccessionState>();
             assert_eq!(state.stage, equations::SuccessionStage::Pioneer);

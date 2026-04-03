@@ -55,4 +55,3 @@ pub const EVOLUTION_HOSTILE_PREDATION_DELTA: f32 = 0.2;
 pub const EVOLUTION_HOSTILE_TEMPERATURE_DELTA: f32 = 0.2;
 /// Competencia en escenario "hostile" (LI9).
 pub const EVOLUTION_HOSTILE_COMPETITION: f32 = 0.8;
-

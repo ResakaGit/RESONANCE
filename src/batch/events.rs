@@ -7,30 +7,30 @@ use super::constants::MAX_ENTITIES;
 /// Per-world event buffers. Integrated into `SimWorldFlat`.
 #[derive(Clone)]
 pub struct EventBuffer {
-    pub deaths:       [u8; MAX_ENTITIES],
-    pub deaths_len:   usize,
+    pub deaths: [u8; MAX_ENTITIES],
+    pub deaths_len: usize,
     pub reproductions: [(u8, u8); 32],
-    pub repro_len:    usize,
-    pub hunger:       [u8; MAX_ENTITIES],
-    pub hunger_len:   usize,
+    pub repro_len: usize,
+    pub hunger: [u8; MAX_ENTITIES],
+    pub hunger_len: usize,
 }
 
 impl EventBuffer {
     pub fn new() -> Self {
         Self {
-            deaths:       [0; MAX_ENTITIES],
-            deaths_len:   0,
+            deaths: [0; MAX_ENTITIES],
+            deaths_len: 0,
             reproductions: [(0, 0); 32],
-            repro_len:    0,
-            hunger:       [0; MAX_ENTITIES],
-            hunger_len:   0,
+            repro_len: 0,
+            hunger: [0; MAX_ENTITIES],
+            hunger_len: 0,
         }
     }
 
     #[inline]
     pub fn clear(&mut self) {
         self.deaths_len = 0;
-        self.repro_len  = 0;
+        self.repro_len = 0;
         self.hunger_len = 0;
     }
 
@@ -57,7 +57,9 @@ impl EventBuffer {
 }
 
 impl Default for EventBuffer {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 #[cfg(test)]

@@ -32,9 +32,9 @@ const FACTIONS: [Faction; FACTION_COUNT] =
 fn faction_idx(f: Faction) -> usize {
     match f {
         Faction::Neutral => 0,
-        Faction::Red     => 1,
-        Faction::Blue    => 2,
-        Faction::Wild    => 3,
+        Faction::Red => 1,
+        Faction::Blue => 2,
+        Faction::Wild => 3,
     }
 }
 
@@ -53,20 +53,20 @@ pub fn every_culture_observation_interval(clock: Res<SimulationClock>) -> bool {
 pub struct CultureObservationState {
     /// Coherence at the previous observation tick — baseline for resilience.
     /// 0.0 means "never observed" (sentinel).
-    prev_coherence:  [f32; FACTION_COUNT],
+    prev_coherence: [f32; FACTION_COUNT],
     /// Tick at which this faction first had ≥ N_min members.
     /// 0 means "never observed".
     first_seen_tick: [u64; FACTION_COUNT],
     /// Whether culture was emergent at the previous observation.
-    was_emergent:    [bool; FACTION_COUNT],
+    was_emergent: [bool; FACTION_COUNT],
 }
 
 impl Default for CultureObservationState {
     fn default() -> Self {
         Self {
-            prev_coherence:  [0.0; FACTION_COUNT],
+            prev_coherence: [0.0; FACTION_COUNT],
             first_seen_tick: [0; FACTION_COUNT],
-            was_emergent:    [false; FACTION_COUNT],
+            was_emergent: [false; FACTION_COUNT],
         }
     }
 }
@@ -78,13 +78,17 @@ pub struct FactionFreqBuffers {
 
 impl Default for FactionFreqBuffers {
     fn default() -> Self {
-        Self { bins: [Vec::new(), Vec::new(), Vec::new(), Vec::new()] }
+        Self {
+            bins: [Vec::new(), Vec::new(), Vec::new(), Vec::new()],
+        }
     }
 }
 
 impl FactionFreqBuffers {
     fn clear(&mut self) {
-        for bin in &mut self.bins { bin.clear(); }
+        for bin in &mut self.bins {
+            bin.clear();
+        }
     }
 
     fn push(&mut self, faction: Faction, freq: f32) {
@@ -105,12 +109,12 @@ impl FactionFreqBuffers {
 /// phase transitions and `CultureConflictEvent` when destructive interference
 /// is active between two factions.
 pub fn culture_observation_system(
-    query:             Query<(&OscillatorySignature, &MobaIdentity)>,
-    clock:             Res<SimulationClock>,
-    mut obs_state:     Local<CultureObservationState>,
-    mut buffers:       Local<FactionFreqBuffers>,
-    mut emergence_w:   EventWriter<CultureEmergenceEvent>,
-    mut conflict_w:    EventWriter<CultureConflictEvent>,
+    query: Query<(&OscillatorySignature, &MobaIdentity)>,
+    clock: Res<SimulationClock>,
+    mut obs_state: Local<CultureObservationState>,
+    mut buffers: Local<FactionFreqBuffers>,
+    mut emergence_w: EventWriter<CultureEmergenceEvent>,
+    mut conflict_w: EventWriter<CultureConflictEvent>,
 ) {
     let tick = clock.tick_id;
 
@@ -122,10 +126,12 @@ pub fn culture_observation_system(
 
     // 2. Per-faction metrics and emergence events.
     for &faction in &FACTIONS {
-        let idx    = faction_idx(faction);
-        let freqs  = buffers.freqs(faction);
+        let idx = faction_idx(faction);
+        let freqs = buffers.freqs(faction);
 
-        if freqs.len() < CULTURE_GROUP_MIN_SIZE { continue; }
+        if freqs.len() < CULTURE_GROUP_MIN_SIZE {
+            continue;
+        }
 
         let coherence = group_frequency_coherence(freqs);
         let synthesis = internal_synthesis_rate(freqs);
@@ -158,11 +164,15 @@ pub fn culture_observation_system(
 
         // Emit only on rising edge (false → true transition).
         if emergent && !obs_state.was_emergent[idx] {
-            emergence_w.send(CultureEmergenceEvent { faction, culture_index: ci, coherence });
+            emergence_w.send(CultureEmergenceEvent {
+                faction,
+                culture_index: ci,
+                coherence,
+            });
         }
 
         obs_state.prev_coherence[idx] = coherence;
-        obs_state.was_emergent[idx]   = emergent;
+        obs_state.was_emergent[idx] = emergent;
     }
 
     // 3. Cross-faction conflict (C(4,2) = 6 pairs — constant cost).
@@ -173,9 +183,7 @@ pub fn culture_observation_system(
             let fa_freqs = buffers.freqs(fa);
             let fb_freqs = buffers.freqs(fb);
 
-            if fa_freqs.len() < CULTURE_GROUP_MIN_SIZE
-                || fb_freqs.len() < CULTURE_GROUP_MIN_SIZE
-            {
+            if fa_freqs.len() < CULTURE_GROUP_MIN_SIZE || fb_freqs.len() < CULTURE_GROUP_MIN_SIZE {
                 continue;
             }
 
@@ -205,11 +213,21 @@ mod tests {
         for tick in 0..300u64 {
             let should = tick % CULTURE_OBSERVATION_INTERVAL_TICKS == 0;
             // Spot-check specific ticks.
-            if tick == 0   { assert!(should,  "tick 0 should fire"); }
-            if tick == 30  { assert!(should,  "tick 30 should fire"); }
-            if tick == 60  { assert!(should,  "tick 60 should fire"); }
-            if tick == 15  { assert!(!should, "tick 15 should not fire"); }
-            if tick == 31  { assert!(!should, "tick 31 should not fire"); }
+            if tick == 0 {
+                assert!(should, "tick 0 should fire");
+            }
+            if tick == 30 {
+                assert!(should, "tick 30 should fire");
+            }
+            if tick == 60 {
+                assert!(should, "tick 60 should fire");
+            }
+            if tick == 15 {
+                assert!(!should, "tick 15 should not fire");
+            }
+            if tick == 31 {
+                assert!(!should, "tick 31 should not fire");
+            }
         }
     }
 
@@ -237,7 +255,10 @@ mod tests {
         buf.push(Faction::Blue, 200.0);
         buf.clear();
         for &f in &FACTIONS {
-            assert!(buf.freqs(f).is_empty(), "bin for {f:?} should be empty after clear");
+            assert!(
+                buf.freqs(f).is_empty(),
+                "bin for {f:?} should be empty after clear"
+            );
         }
     }
 
@@ -247,10 +268,10 @@ mod tests {
         buf.push(Faction::Red, 440.0);
         buf.push(Faction::Red, 450.0);
         buf.push(Faction::Blue, 250.0);
-        assert_eq!(buf.freqs(Faction::Red).len(),     2);
-        assert_eq!(buf.freqs(Faction::Blue).len(),    1);
+        assert_eq!(buf.freqs(Faction::Red).len(), 2);
+        assert_eq!(buf.freqs(Faction::Blue).len(), 1);
         assert_eq!(buf.freqs(Faction::Neutral).len(), 0);
-        assert_eq!(buf.freqs(Faction::Wild).len(),    0);
+        assert_eq!(buf.freqs(Faction::Wild).len(), 0);
     }
 
     // ── CultureObservationState ───────────────────────────────────────────────
@@ -259,7 +280,7 @@ mod tests {
     fn culture_observation_state_default_zero_sentinel() {
         let s = CultureObservationState::default();
         for i in 0..FACTION_COUNT {
-            assert_eq!(s.prev_coherence[i],  0.0);
+            assert_eq!(s.prev_coherence[i], 0.0);
             assert_eq!(s.first_seen_tick[i], 0);
             assert!(!s.was_emergent[i]);
         }
@@ -271,7 +292,11 @@ mod tests {
     fn resilience_first_observation_returns_one() {
         // Guard: prev_coherence == 0.0 → resilience = 1.0
         let prev = 0.0f32;
-        let resilience = if prev == 0.0 { 1.0 } else { pattern_resilience(prev, 0.7) };
+        let resilience = if prev == 0.0 {
+            1.0
+        } else {
+            pattern_resilience(prev, 0.7)
+        };
         assert!((resilience - 1.0).abs() < 1e-6);
     }
 
@@ -282,6 +307,6 @@ mod tests {
         let first_seen: u64 = 50;
         let tick: u64 = 30;
         let age = tick.saturating_sub(first_seen) as f32;
-        assert_eq!(age, 0.0);  // saturating: no wrap-around
+        assert_eq!(age, 0.0); // saturating: no wrap-around
     }
 }

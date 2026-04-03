@@ -1,7 +1,11 @@
 //! ET-14: Institutions — ecuaciones puras. Sin deps de Bevy.
 
 /// Estabilidad de una institución: compliance sostenida menos costos administrativos.
-pub fn institution_stability(compliance_rate: f32, enforcement_efficiency: f32, admin_cost: f32) -> f32 {
+pub fn institution_stability(
+    compliance_rate: f32,
+    enforcement_efficiency: f32,
+    admin_cost: f32,
+) -> f32 {
     compliance_rate * enforcement_efficiency - admin_cost
 }
 
@@ -18,7 +22,9 @@ pub fn compliance_incentive(
 
 /// Eficiencia del enforcement: qe recuperado de defectores vs. costo de detección.
 pub fn enforcement_efficiency(penalty_collected: f32, enforcement_cost: f32) -> f32 {
-    if enforcement_cost <= 0.0 { return 0.0; }
+    if enforcement_cost <= 0.0 {
+        return 0.0;
+    }
     (penalty_collected - enforcement_cost) / enforcement_cost
 }
 
@@ -30,7 +36,7 @@ pub fn institution_roi(
     founding_cost: f32,
     horizon_ticks: u32,
 ) -> f32 {
-    let _ = member_count;  // simplificado: surplus ya es colectivo
+    let _ = member_count; // simplificado: surplus ya es colectivo
     let total_benefit = surplus_per_tick * horizon_ticks as f32;
     let total_cost = founding_cost + admin_cost_per_tick * horizon_ticks as f32;
     total_benefit - total_cost
@@ -38,7 +44,9 @@ pub fn institution_roi(
 
 /// Distribución de surplus institucional (proporcional a contribución).
 pub fn allocation_share(own_contribution: f32, total_contributions: f32) -> f32 {
-    if total_contributions <= 0.0 { return 0.0; }
+    if total_contributions <= 0.0 {
+        return 0.0;
+    }
     own_contribution / total_contributions
 }
 

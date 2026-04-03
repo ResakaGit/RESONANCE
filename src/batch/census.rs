@@ -5,9 +5,9 @@
 //! `PopulationCensus` agrupa todos los snapshots de una generación.
 //! Stateless capture: pure function over `SimWorldFlat` → owned data.
 
+use crate::batch::MAX_ENTITIES;
 use crate::batch::arena::{EntitySlot, SimWorldFlat};
 use crate::batch::lineage::LineageId;
-use crate::batch::MAX_ENTITIES;
 
 // ─── EntitySnapshot ─────────────────────────────────────────────────────────
 
@@ -15,20 +15,20 @@ use crate::batch::MAX_ENTITIES;
 /// Immutable entity state at the end of an evaluation. Copy, stack-allocated.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct EntitySnapshot {
-    pub lineage_id:     LineageId,
-    pub world_index:    u16,
-    pub slot_index:     u8,
-    pub archetype:      u8,
-    pub alive:          bool,
-    pub qe:             f32,
-    pub radius:         f32,
-    pub frequency_hz:   f32,
-    pub growth_bias:    f32,
-    pub mobility_bias:  f32,
+    pub lineage_id: LineageId,
+    pub world_index: u16,
+    pub slot_index: u8,
+    pub archetype: u8,
+    pub alive: bool,
+    pub qe: f32,
+    pub radius: f32,
+    pub frequency_hz: f32,
+    pub growth_bias: f32,
+    pub mobility_bias: f32,
     pub branching_bias: f32,
-    pub resilience:     f32,
-    pub trophic_class:  u8,
-    pub age_ticks:      u16,
+    pub resilience: f32,
+    pub trophic_class: u8,
+    pub age_ticks: u16,
 }
 
 impl EntitySnapshot {
@@ -45,17 +45,17 @@ impl EntitySnapshot {
             lineage_id,
             world_index,
             slot_index,
-            archetype:      slot.archetype,
-            alive:          slot.alive,
-            qe:             slot.qe,
-            radius:         slot.radius,
-            frequency_hz:   slot.frequency_hz,
-            growth_bias:    slot.growth_bias,
-            mobility_bias:  slot.mobility_bias,
+            archetype: slot.archetype,
+            alive: slot.alive,
+            qe: slot.qe,
+            radius: slot.radius,
+            frequency_hz: slot.frequency_hz,
+            growth_bias: slot.growth_bias,
+            mobility_bias: slot.mobility_bias,
             branching_bias: slot.branching_bias,
-            resilience:     slot.resilience,
-            trophic_class:  slot.trophic_class,
-            age_ticks:      0, // Batch EntitySlot no rastrea edad; se infiere del lineage si se necesita
+            resilience: slot.resilience,
+            trophic_class: slot.trophic_class,
+            age_ticks: 0, // Batch EntitySlot no rastrea edad; se infiere del lineage si se necesita
         }
     }
 }
@@ -67,7 +67,7 @@ impl EntitySnapshot {
 #[derive(Clone, Debug)]
 pub struct PopulationCensus {
     pub generation: u32,
-    pub snapshots:  Vec<EntitySnapshot>,
+    pub snapshots: Vec<EntitySnapshot>,
 }
 
 impl PopulationCensus {
@@ -88,7 +88,10 @@ impl PopulationCensus {
                 ));
             }
         }
-        Self { generation, snapshots }
+        Self {
+            generation,
+            snapshots,
+        }
     }
 
     /// Iterador sobre entidades vivas.
@@ -115,9 +118,9 @@ impl PopulationCensus {
     /// Media de un campo sobre entidades vivas.
     /// Mean of a field over alive entities.
     pub fn mean<F: Fn(&EntitySnapshot) -> f32>(&self, f: F) -> f32 {
-        let (sum, count) = self.alive().fold((0.0_f32, 0_u32), |(s, c), snap| {
-            (s + f(snap), c + 1)
-        });
+        let (sum, count) = self
+            .alive()
+            .fold((0.0_f32, 0_u32), |(s, c), snap| (s + f(snap), c + 1));
         if count == 0 { 0.0 } else { sum / count as f32 }
     }
 }
@@ -204,7 +207,10 @@ mod tests {
 
     #[test]
     fn census_mean_empty_returns_zero() {
-        let census = PopulationCensus { generation: 0, snapshots: vec![] };
+        let census = PopulationCensus {
+            generation: 0,
+            snapshots: vec![],
+        };
         assert_eq!(census.mean(|s| s.qe), 0.0);
     }
 

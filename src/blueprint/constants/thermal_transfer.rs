@@ -20,4 +20,3 @@ pub const RADIATION_VISIBILITY_FALLBACK: f32 = 0.5;
 
 /// Distancia mínima en ley 1/r² para radiación (evita singularidad en d→0).
 pub const RADIATION_MIN_DISTANCE: f32 = 1.0;
-

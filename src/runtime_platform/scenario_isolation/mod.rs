@@ -176,7 +176,10 @@ fn ensure_v6_ground_plane_system(
     owned: Query<Entity, With<V6ScenarioOwned>>,
     ground: Query<Entity, With<V6GroundPlane>>,
 ) {
-    if active_map.as_ref().is_some_and(|m| m.0 == ROUND_WORLD_ROSA_MAP_SLUG) {
+    if active_map
+        .as_ref()
+        .is_some_and(|m| m.0 == ROUND_WORLD_ROSA_MAP_SLUG)
+    {
         return;
     }
     if owned.iter().next().is_none() || ground.iter().next().is_some() {
@@ -274,7 +277,10 @@ fn ensure_v6_atmosphere_slab_system(
     play: Option<Res<State<PlayState>>>,
     existing: Query<Entity, With<V6AtmosphereSlab>>,
 ) {
-    if active_map.as_ref().is_some_and(|m| m.0 == ROUND_WORLD_ROSA_MAP_SLUG) {
+    if active_map
+        .as_ref()
+        .is_some_and(|m| m.0 == ROUND_WORLD_ROSA_MAP_SLUG)
+    {
         return;
     }
     let Some(meshes) = meshes.as_deref_mut() else {

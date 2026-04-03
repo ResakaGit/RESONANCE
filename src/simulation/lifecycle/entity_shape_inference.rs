@@ -14,24 +14,23 @@ use bevy::prelude::*;
 
 use crate::blueprint::constants::{FINENESS_DEFAULT, VISUAL_QE_REFERENCE};
 use crate::blueprint::equations::{
-    albedo_luminosity_blend, entity_geometry_influence, entity_lod_detail,
-    frequency_to_tint_rgb, matter_to_gf1_resistance, normalized_qe,
-    organ_slot_scale, rugosity_to_detail_multiplier, shape_cache_signature,
-    shape_cache_signature_with_surface,
+    albedo_luminosity_blend, entity_geometry_influence, entity_lod_detail, frequency_to_tint_rgb,
+    matter_to_gf1_resistance, normalized_qe, organ_slot_scale, rugosity_to_detail_multiplier,
+    shape_cache_signature, shape_cache_signature_with_surface,
 };
-use crate::geometry_flow::{build_flow_mesh, build_flow_spine, merge_meshes, GeometryInfluence};
+use crate::geometry_flow::{GeometryInfluence, build_flow_mesh, build_flow_spine, merge_meshes};
 use crate::layers::{
     BaseEnergy, BodyPlanLayout, CacheScope, EnergyAssessment, FlowVector, HasInferredShape,
-    InferenceProfile, InferredAlbedo, MatterCoherence, MorphogenesisSurface,
-    MorphogenesisShapeParams, OscillatorySignature, PerformanceCachePolicy, SensoryAwareness,
+    InferenceProfile, InferredAlbedo, MatterCoherence, MorphogenesisShapeParams,
+    MorphogenesisSurface, OscillatorySignature, PerformanceCachePolicy, SensoryAwareness,
     SpatialVolume,
 };
 use crate::runtime_platform::render_bridge_3d::V6VisualRoot;
 use crate::worldgen::ShapeInferred;
 
-const DEFAULT_Z:             f32 = 0.0;
-const HUNGER_FINENESS_BOOST: f32 = 0.25;  // max +25% elongation when fully hungry
-const HOSTILE_RESIST_MULT:   f32 = 1.35;  // +35% stiffness when predator is nearby
+const DEFAULT_Z: f32 = 0.0;
+const HUNGER_FINENESS_BOOST: f32 = 0.25; // max +25% elongation when fully hungry
+const HOSTILE_RESIST_MULT: f32 = 1.35; // +35% stiffness when predator is nearby
 
 /// Infers GF1 tube mesh from entity physics layers with `PerformanceCachePolicy` caching.
 ///
@@ -67,20 +66,40 @@ pub fn entity_shape_inference_system(
     mut visual_query: Query<(&mut Mesh3d, &mut Transform), Without<HasInferredShape>>,
     profile_query: Query<&InferenceProfile>,
 ) {
-    for (entity, energy, volume, wave, flow, matter, shape_opt,
-         hunger_opt, sensory_opt, mut policy_opt, shape_inferred, visual_root,
-         surface_opt, albedo_opt, body_plan_opt)
-        in query.iter_mut()
+    for (
+        entity,
+        energy,
+        volume,
+        wave,
+        flow,
+        matter,
+        shape_opt,
+        hunger_opt,
+        sensory_opt,
+        mut policy_opt,
+        shape_inferred,
+        visual_root,
+        surface_opt,
+        albedo_opt,
+        body_plan_opt,
+    ) in query.iter_mut()
     {
-        let qe_norm        = normalized_qe(energy.qe(), VISUAL_QE_REFERENCE);
-        let fineness_base  = shape_opt.map(|s| s.fineness_ratio()).unwrap_or(FINENESS_DEFAULT);
-        let hunger         = hunger_opt.map(|e| e.hunger_fraction).unwrap_or(0.0);
+        let qe_norm = normalized_qe(energy.qe(), VISUAL_QE_REFERENCE);
+        let fineness_base = shape_opt
+            .map(|s| s.fineness_ratio())
+            .unwrap_or(FINENESS_DEFAULT);
+        let hunger = hunger_opt.map(|e| e.hunger_fraction).unwrap_or(0.0);
         let (food_dist, has_hostile) = sensory_opt
             .map(|s| (s.food_distance, s.hostile_entity.is_some()))
             .unwrap_or((f32::MAX, false));
 
         let base_sig = shape_cache_signature(
-            fineness_base, qe_norm, volume.radius, hunger, food_dist, has_hostile,
+            fineness_base,
+            qe_norm,
+            volume.radius,
+            hunger,
+            food_dist,
+            has_hostile,
         );
         let new_sig = shape_cache_signature_with_surface(
             base_sig,
@@ -91,9 +110,13 @@ pub fn entity_shape_inference_system(
         // ── Cache hit check ───────────────────────────────────────────────────
         if shape_inferred.is_some() {
             match policy_opt.as_deref() {
-                Some(p) if p.enabled
+                Some(p)
+                    if p.enabled
                         && p.scope == CacheScope::StableWindow
-                        && p.dependency_signature == new_sig => continue,
+                        && p.dependency_signature == new_sig =>
+                {
+                    continue;
+                }
                 None => continue, // no policy + already built → keep sphere
                 _ => {}           // policy disabled, FrameLocal, or sig changed → rebuild
             }
@@ -102,7 +125,11 @@ pub fn entity_shape_inference_system(
         // ── Sensory geometry modulation ───────────────────────────────────────
         let fineness = fineness_base * (1.0 + hunger * HUNGER_FINENESS_BOOST);
         let base_res = matter_to_gf1_resistance(matter.bond_energy_eb(), matter.state());
-        let resistance = if has_hostile { (base_res * HOSTILE_RESIST_MULT).min(2.5) } else { base_res };
+        let resistance = if has_hostile {
+            (base_res * HOSTILE_RESIST_MULT).min(2.5)
+        } else {
+            base_res
+        };
         let tint_base = frequency_to_tint_rgb(wave.frequency_hz());
         let detail_base = entity_lod_detail(qe_norm, volume.radius);
 
@@ -141,29 +168,34 @@ pub fn entity_shape_inference_system(
         let final_mesh = if let Some(layout) = body_plan_opt {
             let count = layout.active_count();
             if count > 0 {
-                let mobility = profile_query.get(entity).map(|p| p.mobility_bias).unwrap_or(0.5);
+                let mobility = profile_query
+                    .get(entity)
+                    .map(|p| p.mobility_bias)
+                    .unwrap_or(0.5);
                 let mut organ_meshes = Vec::with_capacity(count as usize + 1);
                 organ_meshes.push(torso_mesh);
 
                 for i in 0..count as usize {
                     let (len_factor, rad_factor) = organ_slot_scale(i, count, mobility);
-                    if len_factor <= 0.0 { continue; }
+                    if len_factor <= 0.0 {
+                        continue;
+                    }
 
                     let organ_pos = layout.position(i);
                     let organ_dir = layout.direction(i);
                     let organ_inf = GeometryInfluence {
-                        detail:                     influence.detail * 0.7,
-                        energy_direction:           organ_dir,
-                        energy_strength:            influence.energy_strength * 0.3,
-                        resistance:                 influence.resistance,
+                        detail: influence.detail * 0.7,
+                        energy_direction: organ_dir,
+                        energy_strength: influence.energy_strength * 0.3,
+                        resistance: influence.resistance,
                         least_resistance_direction: organ_dir.cross(Vec3::Y).normalize_or(Vec3::X),
-                        length_budget:              influence.length_budget * len_factor,
-                        max_segments:               8,
-                        radius_base:                influence.radius_base * rad_factor,
-                        start_position:             organ_pos,
-                        qe_norm:                    influence.qe_norm,
-                        tint_rgb:                   influence.tint_rgb,
-                        branch_role:                influence.branch_role,
+                        length_budget: influence.length_budget * len_factor,
+                        max_segments: 8,
+                        radius_base: influence.radius_base * rad_factor,
+                        start_position: organ_pos,
+                        qe_norm: influence.qe_norm,
+                        tint_rgb: influence.tint_rgb,
+                        branch_role: influence.branch_role,
                     };
                     let organ_spine = build_flow_spine(&organ_inf);
                     organ_meshes.push(build_flow_mesh(&organ_spine, &organ_inf));
@@ -180,7 +212,7 @@ pub fn entity_shape_inference_system(
 
         if let Ok((mut mesh3d, mut tf)) = visual_query.get_mut(visual_root.visual_entity) {
             mesh3d.0 = mesh_handle;
-            tf.scale  = Vec3::ONE;
+            tf.scale = Vec3::ONE;
         }
 
         // ── Write-back ────────────────────────────────────────────────────────
@@ -267,14 +299,20 @@ mod tests {
         attach_visual_root(&mut app, sim_entity);
         app.update(); // first build — sets ShapeInferred + policy.dependency_signature
 
-        let ve = app.world().entity(sim_entity).get::<V6VisualRoot>().unwrap().visual_entity;
+        let ve = app
+            .world()
+            .entity(sim_entity)
+            .get::<V6VisualRoot>()
+            .unwrap()
+            .visual_entity;
         let handle_after_first = app.world().entity(ve).get::<Mesh3d>().unwrap().0.clone();
 
         app.update(); // second update — signature unchanged → cache hit → no rebuild
         let handle_after_second = app.world().entity(ve).get::<Mesh3d>().unwrap().0.clone();
 
         assert_eq!(
-            handle_after_first.id(), handle_after_second.id(),
+            handle_after_first.id(),
+            handle_after_second.id(),
             "mesh handle should not change on cache hit"
         );
     }
@@ -298,22 +336,30 @@ mod tests {
         attach_visual_root(&mut app, sim_entity);
         app.update(); // first build
 
-        let ve = app.world().entity(sim_entity).get::<V6VisualRoot>().unwrap().visual_entity;
+        let ve = app
+            .world()
+            .entity(sim_entity)
+            .get::<V6VisualRoot>()
+            .unwrap()
+            .visual_entity;
         let handle_before = app.world().entity(ve).get::<Mesh3d>().unwrap().0.clone();
 
         // Introduce hostile entity in sensory awareness.
         let hostile = app.world_mut().spawn_empty().id();
-        app.world_mut().entity_mut(sim_entity).insert(SensoryAwareness {
-            hostile_entity: Some(hostile),
-            hostile_distance: 0.5,
-            food_entity: None,
-            food_distance: f32::MAX,
-        });
+        app.world_mut()
+            .entity_mut(sim_entity)
+            .insert(SensoryAwareness {
+                hostile_entity: Some(hostile),
+                hostile_distance: 0.5,
+                food_entity: None,
+                food_distance: f32::MAX,
+            });
         app.update(); // signature changes → rebuild
 
         let handle_after = app.world().entity(ve).get::<Mesh3d>().unwrap().0.clone();
         assert_ne!(
-            handle_before.id(), handle_after.id(),
+            handle_before.id(),
+            handle_after.id(),
             "mesh should be rebuilt when hostile enters sensory range"
         );
     }
@@ -340,10 +386,18 @@ mod tests {
 
     #[test]
     fn hunger_modulation_does_not_panic_at_extremes() {
-        let ea_full   = EnergyAssessment { hunger_fraction: 1.0, energy_ratio: 0.1, biomass: 10.0 };
-        let ea_sated  = EnergyAssessment { hunger_fraction: 0.0, energy_ratio: 0.9, biomass: 10.0 };
-        assert!(ea_full.hunger_fraction  > ea_sated.hunger_fraction);
+        let ea_full = EnergyAssessment {
+            hunger_fraction: 1.0,
+            energy_ratio: 0.1,
+            biomass: 10.0,
+        };
+        let ea_sated = EnergyAssessment {
+            hunger_fraction: 0.0,
+            energy_ratio: 0.9,
+            biomass: 10.0,
+        };
+        assert!(ea_full.hunger_fraction > ea_sated.hunger_fraction);
         assert!(ea_sated.hunger_fraction >= 0.0);
-        assert!(ea_full.hunger_fraction  <= 1.0);
+        assert!(ea_full.hunger_fraction <= 1.0);
     }
 }

@@ -16,16 +16,20 @@ pub fn homeostasis(world: &mut SimWorldFlat) {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
         let e = &mut world.entities[i];
-        if e.adapt_rate_hz <= 0.0 { continue; }
+        if e.adapt_rate_hz <= 0.0 {
+            continue;
+        }
         let cost = equations::thermoregulation_cost(
-            e.frequency_hz,                  // t_core proxy
+            e.frequency_hz,                   // t_core proxy
             constants::ENDOTHERM_TARGET_TEMP, // t_env (simplified: use default)
-            e.qe,                            // mass proxy
+            e.qe,                             // mass proxy
             e.conductivity,
             constants::INSULATION_BASE,
         );
         let drain = cost.min(e.qe);
-        if drain > 0.0 { e.qe -= drain; }
+        if drain > 0.0 {
+            e.qe -= drain;
+        }
     }
 }
 
@@ -38,11 +42,15 @@ pub fn state_transitions(world: &mut SimWorldFlat) {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
         let e = &mut world.entities[i];
-        if e.radius <= 0.0 { continue; }
+        if e.radius <= 0.0 {
+            continue;
+        }
         let density = equations::density(e.qe, e.radius);
         let temp = equations::equivalent_temperature(density);
         let new_state = temp_to_matter_state(temp, e.bond_energy);
-        if e.matter_state != new_state { e.matter_state = new_state; }
+        if e.matter_state != new_state {
+            e.matter_state = new_state;
+        }
     }
 }
 
@@ -52,10 +60,15 @@ pub fn state_transitions(world: &mut SimWorldFlat) {
 /// 0=Solid, 1=Liquid, 2=Gas, 3=Plasma.
 fn temp_to_matter_state(temp: f32, bond_energy: f32) -> u8 {
     let threshold = bond_energy * constants::GAME_BOLTZMANN;
-    if temp < threshold * constants::SOLID_TRANSITION { 0 }
-    else if temp < threshold * constants::LIQUID_TRANSITION { 1 }
-    else if temp < threshold * constants::GAS_TRANSITION { 2 }
-    else { 3 }
+    if temp < threshold * constants::SOLID_TRANSITION {
+        0
+    } else if temp < threshold * constants::LIQUID_TRANSITION {
+        1
+    } else if temp < threshold * constants::GAS_TRANSITION {
+        2
+    } else {
+        3
+    }
 }
 
 /// Photosynthesis: entities absorb energy from irradiance grid.
@@ -73,11 +86,17 @@ pub fn photosynthesis(world: &mut SimWorldFlat) {
         let delta_f = (e.frequency_hz - SOLAR_FREQUENCY).abs();
         let bw = SOLAR_BANDWIDTH;
         let solar_resonance = (-delta_f * delta_f / (2.0 * bw * bw)).exp();
-        if solar_resonance < SOLAR_RESONANCE_MIN { continue; }
+        if solar_resonance < SOLAR_RESONANCE_MIN {
+            continue;
+        }
         let cell = grid_cell(e.position);
-        if cell >= GRID_CELLS { continue; }
+        if cell >= GRID_CELLS {
+            continue;
+        }
         let irr = world.irradiance_grid[cell];
-        if irr <= 0.0 { continue; }
+        if irr <= 0.0 {
+            continue;
+        }
         // Axiom 3: gain = base × interference_factor.
         let area = e.radius * e.radius;
         let gain = irr * area * PHOTOSYNTHESIS_EFFICIENCY * solar_resonance;
@@ -96,11 +115,17 @@ pub fn nutrient_uptake(world: &mut SimWorldFlat) {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
         let e = &world.entities[i];
-        if e.radius <= 0.0 { continue; }
+        if e.radius <= 0.0 {
+            continue;
+        }
         let cell = grid_cell(e.position);
-        if cell >= GRID_CELLS { continue; }
+        if cell >= GRID_CELLS {
+            continue;
+        }
         let available = world.nutrient_grid[cell];
-        if available <= 0.0 { continue; }
+        if available <= 0.0 {
+            continue;
+        }
         let extract = (e.radius * NUTRIENT_UPTAKE_RATE).min(available);
         // Must re-borrow mutably in separate scope
         world.nutrient_grid[cell] -= extract;
@@ -153,7 +178,7 @@ mod tests {
     fn state_transitions_low_temp_is_solid() {
         let mut w = SimWorldFlat::new(0, 0.05);
         let idx = flora(&mut w, 0.01, [0.0, 0.0]);
-        w.entities[idx].radius = 5.0;  // low qe + large radius → low density → low temp
+        w.entities[idx].radius = 5.0; // low qe + large radius → low density → low temp
         w.entities[idx].bond_energy = 5000.0; // high bond → high threshold
         state_transitions(&mut w);
         // temp = density / 1.0 ≈ tiny, threshold = 5000 * 0.3 = 1500 → solid
@@ -164,7 +189,7 @@ mod tests {
     fn state_transitions_high_temp_is_plasma() {
         let mut w = SimWorldFlat::new(0, 0.05);
         let idx = flora(&mut w, 1000.0, [0.0, 0.0]);
-        w.entities[idx].radius = 0.1;  // high qe + small radius → high density → high temp
+        w.entities[idx].radius = 0.1; // high qe + small radius → high density → high temp
         w.entities[idx].bond_energy = 1.0; // low bond → low threshold
         state_transitions(&mut w);
         assert_eq!(w.entities[idx].matter_state, 3, "high temp → plasma");
@@ -172,10 +197,10 @@ mod tests {
 
     #[test]
     fn temp_to_matter_state_thresholds() {
-        assert_eq!(temp_to_matter_state(0.0, 100.0), 0);   // Solid
-        assert_eq!(temp_to_matter_state(50.0, 100.0), 1);   // Liquid
-        assert_eq!(temp_to_matter_state(200.0, 100.0), 2);  // Gas
-        assert_eq!(temp_to_matter_state(500.0, 100.0), 3);  // Plasma
+        assert_eq!(temp_to_matter_state(0.0, 100.0), 0); // Solid
+        assert_eq!(temp_to_matter_state(50.0, 100.0), 1); // Liquid
+        assert_eq!(temp_to_matter_state(200.0, 100.0), 2); // Gas
+        assert_eq!(temp_to_matter_state(500.0, 100.0), 3); // Plasma
     }
 
     // ── photosynthesis ──────────────────────────────────────────────────────
@@ -204,7 +229,10 @@ mod tests {
         w.irradiance_grid[cell] = 10.0;
         let before = w.entities[idx].qe;
         photosynthesis(&mut w);
-        assert!(w.entities[idx].qe - before < 0.5, "low resonance → minimal gain");
+        assert!(
+            w.entities[idx].qe - before < 0.5,
+            "low resonance → minimal gain"
+        );
     }
 
     // ── nutrient_uptake ─────────────────────────────────────────────────────

@@ -1,17 +1,17 @@
 //! B1: Fermi Paradox Simulator — probability of complex life across random universes.
 
-use crate::use_cases::{evolve_with, ExperimentReport};
 use crate::use_cases::presets::UniversePreset;
+use crate::use_cases::{ExperimentReport, evolve_with};
 
 /// Result of a Fermi Paradox experiment.
 #[derive(Debug)]
 pub struct FermiReport {
-    pub total_universes:    usize,
-    pub with_life:          usize, // species_count > 1
-    pub with_complex_life:  usize, // species_count > 3
-    pub life_probability:   f32,
+    pub total_universes: usize,
+    pub with_life: usize,         // species_count > 1
+    pub with_complex_life: usize, // species_count > 3
+    pub life_probability: f32,
     pub complex_probability: f32,
-    pub reports:            Vec<ExperimentReport>,
+    pub reports: Vec<ExperimentReport>,
 }
 
 /// Run N random universes and count how many develop life.
@@ -28,12 +28,14 @@ pub fn run(n_universes: usize, gens: u32, ticks: u32) -> FermiReport {
         let preset = UniversePreset::from_seed(i as u64 * 7 + 13);
         let report = evolve_with(&preset, i as u64, 50, gens, ticks, 12);
 
-        let species = report.history.last()
-            .map(|s| s.species_mean)
-            .unwrap_or(0.0);
+        let species = report.history.last().map(|s| s.species_mean).unwrap_or(0.0);
 
-        if species > 1.0 { with_life += 1; }
-        if species > 3.0 { with_complex += 1; }
+        if species > 1.0 {
+            with_life += 1;
+        }
+        if species > 3.0 {
+            with_complex += 1;
+        }
         reports.push(report);
     }
 

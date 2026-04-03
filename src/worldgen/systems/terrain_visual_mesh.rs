@@ -16,7 +16,7 @@ pub struct TerrainMeshEntity;
 /// Terrain mesh generated in FixedUpdate, pending sync to Mesh3d.
 #[derive(Resource, Default)]
 pub struct TerrainMeshResource {
-    pub mesh:  Option<Mesh>,
+    pub mesh: Option<Mesh>,
     pub dirty: bool,
 }
 

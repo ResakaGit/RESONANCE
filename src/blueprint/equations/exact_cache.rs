@@ -15,7 +15,9 @@ use crate::blueprint::equations::derived_thresholds as dt;
 /// Non-finite inputs (NaN, Inf) se tratan como 0.
 #[inline]
 pub fn kleiber_volume_factor(radius: f32) -> f32 {
-    if !radius.is_finite() { return 0.0; }
+    if !radius.is_finite() {
+        return 0.0;
+    }
     radius.max(0.0).powf(dt::KLEIBER_EXPONENT)
 }
 
@@ -127,7 +129,10 @@ mod tests {
         let coeff = dt::senescence_coeff_fauna();
         let max_age = dt::max_age_fauna();
         let tick = exact_death_tick(0, coeff, coeff, max_age);
-        assert!(tick <= max_age, "death_tick {tick} should not exceed max_age {max_age}");
+        assert!(
+            tick <= max_age,
+            "death_tick {tick} should not exceed max_age {max_age}"
+        );
         assert!(tick > 0, "fauna should survive at least 1 tick");
     }
 
@@ -173,7 +178,11 @@ mod tests {
     fn exact_death_tick_birth_offset_applied() {
         let tick_a = exact_death_tick(0, 0.02, 0.02, 200);
         let tick_b = exact_death_tick(1000, 0.02, 0.02, 200);
-        assert_eq!(tick_b - tick_a, 1000, "birth offset should shift death_tick by same amount");
+        assert_eq!(
+            tick_b - tick_a,
+            1000,
+            "birth offset should shift death_tick by same amount"
+        );
     }
 
     #[test]
@@ -208,7 +217,10 @@ mod tests {
     #[test]
     fn frequency_alignment_far_apart_near_zero() {
         let a = frequency_alignment_exact(100.0, 400.0, 50.0);
-        assert!(a < 0.01, "300 Hz apart with 50 Hz bandwidth should be near zero, got {a}");
+        assert!(
+            a < 0.01,
+            "300 Hz apart with 50 Hz bandwidth should be near zero, got {a}"
+        );
     }
 
     #[test]

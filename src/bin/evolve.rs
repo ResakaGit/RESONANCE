@@ -6,16 +6,16 @@
 use resonance::batch::batch::BatchConfig;
 use resonance::batch::bridge;
 use resonance::batch::harness::GeneticHarness;
-use resonance::use_cases::cli::{parse_arg, archetype_label, trophic_label};
+use resonance::use_cases::cli::{archetype_label, parse_arg, trophic_label};
 use std::path::Path;
 use std::time::Instant;
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let worlds = parse_arg(&args, "--worlds", 1000);
-    let gens   = parse_arg(&args, "--gens", 500);
-    let ticks  = parse_arg(&args, "--ticks", 500);
-    let seed   = parse_arg(&args, "--seed", 42);
+    let gens = parse_arg(&args, "--gens", 500);
+    let ticks = parse_arg(&args, "--ticks", 500);
+    let seed = parse_arg(&args, "--seed", 42);
 
     println!("╔══════════════════════════════════════════════════════════╗");
     println!("║  RESONANCE — Batch Evolution                           ║");
@@ -37,8 +37,12 @@ fn main() {
     let mut harness = GeneticHarness::new(config);
     let start = Instant::now();
 
-    println!("  Gen │  Best  │  Mean  │ Worst  │ Diversity │ Surv │ Spp  │ Genes │ Graph │ Prot │ Time");
-    println!("──────┼────────┼────────┼────────┼───────────┼──────┼──────┼───────┼───────┼──────┼──────");
+    println!(
+        "  Gen │  Best  │  Mean  │ Worst  │ Diversity │ Surv │ Spp  │ Genes │ Graph │ Prot │ Time"
+    );
+    println!(
+        "──────┼────────┼────────┼────────┼───────────┼──────┼──────┼───────┼───────┼──────┼──────"
+    );
 
     for g in 0..gens as u32 {
         let gen_start = Instant::now();
@@ -66,7 +70,8 @@ fn main() {
     let elapsed = start.elapsed();
     println!();
     println!("══════════════════════════════════════════════════════════════");
-    println!("  Total time: {:.1}s ({:.1} gen/s)",
+    println!(
+        "  Total time: {:.1}s ({:.1} gen/s)",
         elapsed.as_secs_f32(),
         gens as f32 / elapsed.as_secs_f32(),
     );
@@ -81,8 +86,13 @@ fn main() {
     for (i, g) in top.iter().enumerate() {
         println!(
             "  {:>2} │ {:<5} │ {:<5} │ {:>6.3} │ {:>6.3} │ {:>6.3} │ {:>5.3}",
-            i + 1, archetype_label(g.archetype), trophic_label(g.trophic_class),
-            g.growth_bias, g.mobility_bias, g.branching_bias, g.resilience,
+            i + 1,
+            archetype_label(g.archetype),
+            trophic_label(g.trophic_class),
+            g.growth_bias,
+            g.mobility_bias,
+            g.branching_bias,
+            g.resilience,
         );
     }
 
@@ -91,19 +101,25 @@ fn main() {
     println!("  GENOME ANALYSIS");
     println!("  ─────────────────────────────────────────────────────────");
     if !top.is_empty() {
-        let avg_growth: f32   = top.iter().map(|g| g.growth_bias).sum::<f32>() / top.len() as f32;
+        let avg_growth: f32 = top.iter().map(|g| g.growth_bias).sum::<f32>() / top.len() as f32;
         let avg_mobility: f32 = top.iter().map(|g| g.mobility_bias).sum::<f32>() / top.len() as f32;
-        let avg_branch: f32   = top.iter().map(|g| g.branching_bias).sum::<f32>() / top.len() as f32;
-        let avg_resil: f32    = top.iter().map(|g| g.resilience).sum::<f32>() / top.len() as f32;
+        let avg_branch: f32 = top.iter().map(|g| g.branching_bias).sum::<f32>() / top.len() as f32;
+        let avg_resil: f32 = top.iter().map(|g| g.resilience).sum::<f32>() / top.len() as f32;
 
         println!("  Avg growth:    {:>5.3}  {}", avg_growth, bar(avg_growth));
-        println!("  Avg mobility:  {:>5.3}  {}", avg_mobility, bar(avg_mobility));
+        println!(
+            "  Avg mobility:  {:>5.3}  {}",
+            avg_mobility,
+            bar(avg_mobility)
+        );
         println!("  Avg branching: {:>5.3}  {}", avg_branch, bar(avg_branch));
         println!("  Avg resilience:{:>5.3}  {}", avg_resil, bar(avg_resil));
 
         // Archetype distribution
         let mut arch_counts = [0u32; 5];
-        for g in &top { arch_counts[g.archetype.min(4) as usize] += 1; }
+        for g in &top {
+            arch_counts[g.archetype.min(4) as usize] += 1;
+        }
         println!();
         println!("  Archetype distribution:");
         for (i, &c) in arch_counts.iter().enumerate() {
@@ -127,16 +143,25 @@ fn main() {
         } else {
             0.0
         };
-        println!("  Gen 1:    best={:.3} mean={:.3} diversity={:.3}",
-            first.best_fitness, first.mean_fitness, first.diversity);
-        println!("  Gen {}:  best={:.3} mean={:.3} diversity={:.3}",
-            last.generation, last.best_fitness, last.mean_fitness, last.diversity);
+        println!(
+            "  Gen 1:    best={:.3} mean={:.3} diversity={:.3}",
+            first.best_fitness, first.mean_fitness, first.diversity
+        );
+        println!(
+            "  Gen {}:  best={:.3} mean={:.3} diversity={:.3}",
+            last.generation, last.best_fitness, last.mean_fitness, last.diversity
+        );
         println!("  Improvement: {:.1}%", improvement);
 
         let diversity_drop = if first.diversity > 0.0 {
             (1.0 - last.diversity / first.diversity) * 100.0
-        } else { 0.0 };
-        println!("  Diversity reduction: {:.1}% (convergence)", diversity_drop);
+        } else {
+            0.0
+        };
+        println!(
+            "  Diversity reduction: {:.1}% (convergence)",
+            diversity_drop
+        );
     }
 
     // Save genomes
@@ -157,4 +182,3 @@ fn bar(value: f32) -> String {
     let width = (value * 30.0) as usize;
     format!("[{}{}]", "█".repeat(width), "░".repeat(30 - width))
 }
-

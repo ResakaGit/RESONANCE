@@ -2,10 +2,10 @@
 
 use bevy::prelude::*;
 use resonance::layers::{BaseEnergy, MatterState, SenescenceProfile};
-use resonance::runtime_platform::simulation_tick::SimulationClock;
-use resonance::worldgen::{EnergyFieldGrid, Materialized};
-use resonance::worldgen::systems::materialization_delta::materialization_incremental_system;
 use resonance::runtime_platform::compat_2d3d::SimWorldTransformParams;
+use resonance::runtime_platform::simulation_tick::SimulationClock;
+use resonance::worldgen::systems::materialization_delta::materialization_incremental_system;
+use resonance::worldgen::{EnergyFieldGrid, Materialized};
 
 #[test]
 fn incremental_materialization_inserts_senescence_profile() {
@@ -32,16 +32,25 @@ fn incremental_materialization_inserts_senescence_profile() {
     let mut q = world.query::<(&Materialized, &BaseEnergy, Option<&SenescenceProfile>)>();
     let results: Vec<_> = q.iter(world).collect();
 
-    assert!(!results.is_empty(), "should have spawned at least one materialized entity");
+    assert!(
+        !results.is_empty(),
+        "should have spawned at least one materialized entity"
+    );
 
     let (mat, energy, sen) = results[0];
     assert_eq!(mat.cell_x, 1);
     assert_eq!(mat.cell_y, 1);
     assert!(energy.qe() > 0.0);
-    assert!(sen.is_some(), "SenescenceProfile should be present on materialized entity");
+    assert!(
+        sen.is_some(),
+        "SenescenceProfile should be present on materialized entity"
+    );
 
     let profile = sen.unwrap();
-    assert_eq!(profile.tick_birth, 42, "tick_birth should match SimulationClock.tick_id");
+    assert_eq!(
+        profile.tick_birth, 42,
+        "tick_birth should match SimulationClock.tick_id"
+    );
     // max_viable_age = 1/DISSIPATION_SOLID = 1/0.005 = 200 (axiom-derived)
     assert_eq!(profile.max_viable_age, 200);
 }

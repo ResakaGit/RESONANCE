@@ -2,8 +2,8 @@
 //! Validates that keyboard input correctly translates to movement intent
 //! and that grimoire slot selection fires SlotActivatedEvent.
 
-use bevy::prelude::*;
 use bevy::input::ButtonInput;
+use bevy::prelude::*;
 use resonance::blueprint::recipes::EffectRecipe;
 use resonance::events::AbilitySelectionEvent;
 use resonance::layers::{

@@ -19,8 +19,8 @@ use resonance::rendering::quantized_color::PaletteRegistry;
 use resonance::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use resonance::runtime_platform::simulation_tick::{SimulationClock, SimulationTickPlugin};
 use resonance::viewer::frame_buffer;
-use resonance::worldgen::{EnergyFieldGrid, NutrientFieldGrid};
 use resonance::worldgen::systems::day_night::DayNightConfig;
+use resonance::worldgen::{EnergyFieldGrid, NutrientFieldGrid};
 
 // ── Visual constants (rendering, not physics) ────────────────────────────────
 const PLANET_RADIUS: f32 = 5.0;
@@ -47,10 +47,12 @@ fn main() {
 
     // Simulation speed: SIM_TICKS_PER_SEC ticks/s (axiom-derived 5× multiplier).
     // FixedUpdate runs at this rate; Bevy caps catch-up to ~250ms by default.
-    app.insert_resource(resonance::runtime_platform::simulation_tick::V6RuntimeConfig {
-        use_fixed_tick: true,
-        fixed_hz: SIM_TICKS_PER_SEC,
-    });
+    app.insert_resource(
+        resonance::runtime_platform::simulation_tick::V6RuntimeConfig {
+            use_fixed_tick: true,
+            fixed_hz: SIM_TICKS_PER_SEC,
+        },
+    );
     app.init_resource::<PaletteRegistry>();
     app.add_plugins(SimulationTickPlugin);
     app.insert_resource(SimWorldTransformParams::default());
@@ -104,7 +106,11 @@ fn setup_planet(
     let texture_handle = images.add(image);
     commands.insert_resource(PlanetTexture(texture_handle.clone()));
 
-    let sphere_mesh = meshes.add(Sphere::new(PLANET_RADIUS).mesh().uv(SPHERE_SEGMENTS, SPHERE_RINGS));
+    let sphere_mesh = meshes.add(
+        Sphere::new(PLANET_RADIUS)
+            .mesh()
+            .uv(SPHERE_SEGMENTS, SPHERE_RINGS),
+    );
     // unlit: true ignores emissive_texture entirely — only base_color_texture matters.
     // Removed emissive_texture to avoid confusion.
     let planet_material = materials.add(StandardMaterial {
@@ -121,15 +127,14 @@ fn setup_planet(
 
     // No directional/ambient light needed — unlit material shows texture directly.
 
-    commands.spawn((
-        CameraPivot,
-        Transform::default(),
-    )).with_children(|parent| {
-        parent.spawn((
-            Camera3d::default(),
-            Transform::from_xyz(0.0, 3.0, CAMERA_DISTANCE).looking_at(Vec3::ZERO, Vec3::Y),
-        ));
-    });
+    commands
+        .spawn((CameraPivot, Transform::default()))
+        .with_children(|parent| {
+            parent.spawn((
+                Camera3d::default(),
+                Transform::from_xyz(0.0, 3.0, CAMERA_DISTANCE).looking_at(Vec3::ZERO, Vec3::Y),
+            ));
+        });
 
     commands.insert_resource(ClearColor(Color::srgb(0.02, 0.02, 0.05)));
 }
@@ -156,7 +161,12 @@ fn update_planet_texture(
     grid: Option<Res<EnergyFieldGrid>>,
     planet_tex: Option<Res<PlanetTexture>>,
     mut images: ResMut<Assets<Image>>,
-    entities_q: Query<(&Transform, &BaseEnergy, &OscillatorySignature, Option<&BehavioralAgent>)>,
+    entities_q: Query<(
+        &Transform,
+        &BaseEnergy,
+        &OscillatorySignature,
+        Option<&BehavioralAgent>,
+    )>,
 ) {
     let Some(grid) = grid else { return };
     let Some(tex) = planet_tex else { return };
@@ -164,7 +174,9 @@ fn update_planet_texture(
     let mut ent_positions = Vec::new();
     let mut beh_positions = Vec::new();
     for (tr, energy, osc, beh) in &entities_q {
-        if energy.is_dead() { continue; }
+        if energy.is_dead() {
+            continue;
+        }
         let pos = bevy::math::Vec2::new(tr.translation.x, tr.translation.z);
         if let Some((cx, cy)) = grid.cell_coords(pos) {
             ent_positions.push((cx, cy, osc.frequency_hz()));
@@ -187,7 +199,11 @@ fn update_planet_texture(
     // Replace the entire Image asset (forces GPU re-upload every frame).
     // Bevy 0.15 bug #17350: in-place data mutation doesn't propagate to GPU.
     let mut new_image = Image::new(
-        Extent3d { width: w, height: h, depth_or_array_layers: 1 },
+        Extent3d {
+            width: w,
+            height: h,
+            depth_or_array_layers: 1,
+        },
         TextureDimension::D2,
         data,
         TextureFormat::Rgba8UnormSrgb,
@@ -207,10 +223,15 @@ fn update_hud(
     linked_q: Query<(), With<StructuralLink>>,
     mut text_q: Query<&mut Text, With<MetricsText>>,
 ) {
-    let Ok(mut text) = text_q.get_single_mut() else { return };
+    let Ok(mut text) = text_q.get_single_mut() else {
+        return;
+    };
     let tick = clock.as_ref().map(|c| c.tick_id).unwrap_or(0);
     let day_period = config.as_ref().map(|c| c.period_ticks).unwrap_or(1200.0);
-    let year_period = config.as_ref().map(|c| c.year_period_ticks).unwrap_or(438000.0);
+    let year_period = config
+        .as_ref()
+        .map(|c| c.year_period_ticks)
+        .unwrap_or(438000.0);
 
     // Time metrics.
     let sim_day = tick as f32 / day_period;
@@ -243,15 +264,21 @@ fn update_hud(
     let grid_qe = grid.as_ref().map(|g| g.total_qe()).unwrap_or(0.0);
 
     // Water coverage.
-    let water_coverage = nutrients.as_ref().map(|n| {
-        let total_cells = (n.width * n.height) as f32;
-        if total_cells <= 0.0 { return 0.0; }
-        let wet_cells = (0..n.height).flat_map(|y| (0..n.width).map(move |x| (x, y)))
-            .filter_map(|(x, y)| n.cell_xy(x, y))
-            .filter(|c| c.water_norm > 0.3)
-            .count() as f32;
-        wet_cells / total_cells * 100.0
-    }).unwrap_or(0.0);
+    let water_coverage = nutrients
+        .as_ref()
+        .map(|n| {
+            let total_cells = (n.width * n.height) as f32;
+            if total_cells <= 0.0 {
+                return 0.0;
+            }
+            let wet_cells = (0..n.height)
+                .flat_map(|y| (0..n.width).map(move |x| (x, y)))
+                .filter_map(|(x, y)| n.cell_xy(x, y))
+                .filter(|c| c.water_norm > 0.3)
+                .count() as f32;
+            wet_cells / total_cells * 100.0
+        })
+        .unwrap_or(0.0);
 
     **text = format!(
         "EARTH SIMULATION\n\
@@ -269,7 +296,9 @@ fn update_hud(
          -------------------------\n\
          Water cover: {:.1}%\n\
          Avg qe/entity: {:.1}",
-        tick, sim_day, sim_year,
+        tick,
+        sim_day,
+        sim_year,
         season,
         alive,
         behavioral,
@@ -278,14 +307,15 @@ fn update_hud(
         total_qe,
         grid_qe + total_qe,
         water_coverage,
-        if alive > 0 { total_qe / alive as f32 } else { 0.0 },
+        if alive > 0 {
+            total_qe / alive as f32
+        } else {
+            0.0
+        },
     );
 }
 
-fn rotate_camera(
-    time: Res<Time>,
-    mut pivot: Query<&mut Transform, With<CameraPivot>>,
-) {
+fn rotate_camera(time: Res<Time>, mut pivot: Query<&mut Transform, With<CameraPivot>>) {
     for mut tr in &mut pivot {
         tr.rotate_y(CAMERA_ORBIT_SPEED * time.delta_secs());
     }

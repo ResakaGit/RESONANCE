@@ -1,9 +1,9 @@
 //! Bridge implementations — `Bridgeable` impls + `SystemParam` wrappers.
 
+pub mod ops;
 #[cfg(feature = "bridge_optimizer")]
 pub mod physics;
-pub mod ops;
 
+pub use ops::*;
 #[cfg(feature = "bridge_optimizer")]
 pub use physics::*;
-pub use ops::*;

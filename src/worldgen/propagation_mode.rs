@@ -4,8 +4,8 @@
 use bevy::prelude::*;
 
 use crate::blueprint::equations::{
-    diffusion_delta, propagation_front_radius,
     DIFFUSION_BUDGET_MAX, DIFFUSION_CONDUCTIVITY_DEFAULT, PROPAGATION_SPEED_CELLS_PER_TICK,
+    diffusion_delta, propagation_front_radius,
 };
 use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::worldgen::EnergyFieldGrid;
@@ -44,7 +44,10 @@ impl NucleusEmissionState {
     /// Current front radius based on elapsed ticks and propagation speed.
     #[inline]
     pub fn current_front(&self, current_tick: u64) -> f32 {
-        propagation_front_radius(PROPAGATION_SPEED_CELLS_PER_TICK, self.elapsed_ticks(current_tick))
+        propagation_front_radius(
+            PROPAGATION_SPEED_CELLS_PER_TICK,
+            self.elapsed_ticks(current_tick),
+        )
     }
 }
 
@@ -55,7 +58,13 @@ impl NucleusEmissionState {
 pub fn insert_nucleus_emission_state_system(
     mut commands: Commands,
     clock: Res<SimulationClock>,
-    nuclei: Query<Entity, (With<crate::worldgen::EnergyNucleus>, Without<NucleusEmissionState>)>,
+    nuclei: Query<
+        Entity,
+        (
+            With<crate::worldgen::EnergyNucleus>,
+            Without<NucleusEmissionState>,
+        ),
+    >,
 ) {
     for entity in &nuclei {
         commands.entity(entity).insert(NucleusEmissionState {
@@ -106,7 +115,9 @@ pub fn diffuse_propagation_system(
     for (cx, cy) in &dirty_cells {
         let cx = *cx;
         let cy = *cy;
-        let Some(source_qe) = grid.cell_xy(cx, cy).map(|c| c.accumulated_qe) else { continue; };
+        let Some(source_qe) = grid.cell_xy(cx, cy).map(|c| c.accumulated_qe) else {
+            continue;
+        };
 
         // 4 neighbors.
         let neighbors: [(i32, i32); 4] = [(1, 0), (-1, 0), (0, 1), (0, -1)];
@@ -117,7 +128,9 @@ pub fn diffuse_propagation_system(
                 continue;
             }
             let (nx, ny) = (nx as u32, ny as u32);
-            let Some(target_qe) = grid.cell_xy(nx, ny).map(|c| c.accumulated_qe) else { continue; };
+            let Some(target_qe) = grid.cell_xy(nx, ny).map(|c| c.accumulated_qe) else {
+                continue;
+            };
             let delta = diffusion_delta(source_qe, target_qe, k, dt);
             let src_idx = (cy * w + cx) as usize;
             let dst_idx = (ny * w + nx) as usize;

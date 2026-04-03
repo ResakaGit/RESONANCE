@@ -57,12 +57,20 @@ impl TrophicState {
 
 #[inline]
 fn sanitize_positive(value: f32) -> f32 {
-    if value.is_finite() { value.max(0.0) } else { 0.0 }
+    if value.is_finite() {
+        value.max(0.0)
+    } else {
+        0.0
+    }
 }
 
 #[inline]
 fn sanitize_unit(value: f32) -> f32 {
-    if value.is_finite() { value.clamp(0.0, 1.0) } else { 0.0 }
+    if value.is_finite() {
+        value.clamp(0.0, 1.0)
+    } else {
+        0.0
+    }
 }
 
 #[cfg(test)]

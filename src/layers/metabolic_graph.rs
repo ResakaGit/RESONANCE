@@ -15,21 +15,21 @@ pub const METABOLIC_GRAPH_MAX_EDGES: usize = 16;
 /// Nodo funcional del DAG (órgano lógico).
 #[derive(Clone, Copy, Debug, PartialEq, Reflect)]
 pub struct ExergyNode {
-    pub role:              OrganRole,
-    pub efficiency:        f32,
+    pub role: OrganRole,
+    pub efficiency: f32,
     pub activation_energy: f32,
-    pub thermal_output:    f32,
-    pub entropy_rate:      f32,
+    pub thermal_output: f32,
+    pub entropy_rate: f32,
 }
 
 impl Default for ExergyNode {
     fn default() -> Self {
         Self {
-            role:              OrganRole::Stem,
-            efficiency:        0.0,
+            role: OrganRole::Stem,
+            efficiency: 0.0,
             activation_energy: 0.0,
-            thermal_output:    0.0,
-            entropy_rate:      0.0,
+            thermal_output: 0.0,
+            entropy_rate: 0.0,
         }
     }
 }
@@ -39,16 +39,22 @@ impl Default for ExergyNode {
 /// Arista dirigida: topología + datos de flujo entre nodos.
 #[derive(Clone, Copy, Debug, PartialEq, Reflect)]
 pub struct ExergyEdge {
-    pub from:           u8,
-    pub to:             u8,
-    pub flow_rate:      f32,
-    pub max_capacity:   f32,
+    pub from: u8,
+    pub to: u8,
+    pub flow_rate: f32,
+    pub max_capacity: f32,
     pub transport_cost: f32,
 }
 
 impl Default for ExergyEdge {
     fn default() -> Self {
-        Self { from: 0, to: 0, flow_rate: 0.0, max_capacity: 0.0, transport_cost: 0.0 }
+        Self {
+            from: 0,
+            to: 0,
+            flow_rate: 0.0,
+            max_capacity: 0.0,
+            transport_cost: 0.0,
+        }
     }
 }
 
@@ -59,35 +65,58 @@ impl Default for ExergyEdge {
 #[reflect(Component)]
 #[component(storage = "SparseSet")]
 pub struct MetabolicGraph {
-    nodes:              [ExergyNode; METABOLIC_GRAPH_MAX_NODES],
-    nodes_len:          u8,
-    edges:              [ExergyEdge; METABOLIC_GRAPH_MAX_EDGES],
-    edges_len:          u8,
+    nodes: [ExergyNode; METABOLIC_GRAPH_MAX_NODES],
+    nodes_len: u8,
+    edges: [ExergyEdge; METABOLIC_GRAPH_MAX_EDGES],
+    edges_len: u8,
     total_entropy_rate: f32,
 }
 
 impl Default for MetabolicGraph {
-    fn default() -> Self { Self::empty() }
+    fn default() -> Self {
+        Self::empty()
+    }
 }
 
 impl MetabolicGraph {
     pub fn empty() -> Self {
         Self {
-            nodes:              [ExergyNode::default(); METABOLIC_GRAPH_MAX_NODES],
-            nodes_len:          0,
-            edges:              [ExergyEdge::default(); METABOLIC_GRAPH_MAX_EDGES],
-            edges_len:          0,
+            nodes: [ExergyNode::default(); METABOLIC_GRAPH_MAX_NODES],
+            nodes_len: 0,
+            edges: [ExergyEdge::default(); METABOLIC_GRAPH_MAX_EDGES],
+            edges_len: 0,
             total_entropy_rate: 0.0,
         }
     }
 
-    #[inline] pub fn nodes(&self) -> &[ExergyNode]            { &self.nodes[..self.nodes_len as usize] }
-    #[inline] pub fn nodes_mut(&mut self) -> &mut [ExergyNode] { &mut self.nodes[..self.nodes_len as usize] }
-    #[inline] pub fn edges(&self) -> &[ExergyEdge]            { &self.edges[..self.edges_len as usize] }
-    #[inline] pub fn edges_mut(&mut self) -> &mut [ExergyEdge] { &mut self.edges[..self.edges_len as usize] }
-    #[inline] pub fn node_count(&self) -> usize                { self.nodes_len as usize }
-    #[inline] pub fn edge_count(&self) -> usize                { self.edges_len as usize }
-    #[inline] pub fn total_entropy_rate(&self) -> f32          { self.total_entropy_rate }
+    #[inline]
+    pub fn nodes(&self) -> &[ExergyNode] {
+        &self.nodes[..self.nodes_len as usize]
+    }
+    #[inline]
+    pub fn nodes_mut(&mut self) -> &mut [ExergyNode] {
+        &mut self.nodes[..self.nodes_len as usize]
+    }
+    #[inline]
+    pub fn edges(&self) -> &[ExergyEdge] {
+        &self.edges[..self.edges_len as usize]
+    }
+    #[inline]
+    pub fn edges_mut(&mut self) -> &mut [ExergyEdge] {
+        &mut self.edges[..self.edges_len as usize]
+    }
+    #[inline]
+    pub fn node_count(&self) -> usize {
+        self.nodes_len as usize
+    }
+    #[inline]
+    pub fn edge_count(&self) -> usize {
+        self.edges_len as usize
+    }
+    #[inline]
+    pub fn total_entropy_rate(&self) -> f32 {
+        self.total_entropy_rate
+    }
 
     #[inline]
     pub fn set_total_entropy_rate(&mut self, val: f32) {
@@ -113,22 +142,24 @@ pub enum MetabolicGraphError {
 /// Builder fluido; valida aciclicidad, índices, y mínimo funcional.
 #[derive(Clone, Debug)]
 pub struct MetabolicGraphBuilder {
-    nodes:     [ExergyNode; METABOLIC_GRAPH_MAX_NODES],
+    nodes: [ExergyNode; METABOLIC_GRAPH_MAX_NODES],
     nodes_len: u8,
-    edges:     [ExergyEdge; METABOLIC_GRAPH_MAX_EDGES],
+    edges: [ExergyEdge; METABOLIC_GRAPH_MAX_EDGES],
     edges_len: u8,
 }
 
 impl Default for MetabolicGraphBuilder {
-    fn default() -> Self { Self::new() }
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl MetabolicGraphBuilder {
     pub fn new() -> Self {
         Self {
-            nodes:     [ExergyNode::default(); METABOLIC_GRAPH_MAX_NODES],
+            nodes: [ExergyNode::default(); METABOLIC_GRAPH_MAX_NODES],
             nodes_len: 0,
-            edges:     [ExergyEdge::default(); METABOLIC_GRAPH_MAX_EDGES],
+            edges: [ExergyEdge::default(); METABOLIC_GRAPH_MAX_EDGES],
             edges_len: 0,
         }
     }
@@ -142,7 +173,7 @@ impl MetabolicGraphBuilder {
                 efficiency,
                 activation_energy,
                 thermal_output: 0.0,
-                entropy_rate:   0.0,
+                entropy_rate: 0.0,
             };
             self.nodes_len += 1;
         }
@@ -173,7 +204,10 @@ impl MetabolicGraphBuilder {
         }
 
         let has_captor = self.nodes[..n].iter().any(|node| {
-            matches!(node.role, OrganRole::Root | OrganRole::Leaf | OrganRole::Sensory)
+            matches!(
+                node.role,
+                OrganRole::Root | OrganRole::Leaf | OrganRole::Sensory
+            )
         });
         if !has_captor {
             return Err(MetabolicGraphError::NoCaptorNode);
@@ -189,8 +223,7 @@ impl MetabolicGraphBuilder {
 
         for i in 0..e {
             for j in (i + 1)..e {
-                if self.edges[i].from == self.edges[j].from
-                    && self.edges[i].to == self.edges[j].to
+                if self.edges[i].from == self.edges[j].from && self.edges[i].to == self.edges[j].to
                 {
                     return Err(MetabolicGraphError::DuplicateEdge);
                 }
@@ -202,10 +235,10 @@ impl MetabolicGraphBuilder {
         }
 
         Ok(MetabolicGraph {
-            nodes:              self.nodes,
-            nodes_len:          self.nodes_len,
-            edges:              self.edges,
-            edges_len:          self.edges_len,
+            nodes: self.nodes,
+            nodes_len: self.nodes_len,
+            edges: self.edges,
+            edges_len: self.edges_len,
             total_entropy_rate: 0.0,
         })
     }
@@ -226,8 +259,8 @@ fn has_cycle(n: usize, edges: &[ExergyEdge]) -> bool {
         }
     }
     let mut queue = [0u8; METABOLIC_GRAPH_MAX_NODES];
-    let mut head  = 0usize;
-    let mut tail  = 0usize;
+    let mut head = 0usize;
+    let mut tail = 0usize;
     for i in 0..n {
         if in_degree[i] == 0 {
             queue[tail] = i as u8;
@@ -265,7 +298,10 @@ mod tests {
 
     #[test]
     fn exergy_node_is_copy_and_clone() {
-        let a = ExergyNode { role: OrganRole::Root, ..Default::default() };
+        let a = ExergyNode {
+            role: OrganRole::Root,
+            ..Default::default()
+        };
         let b = a;
         let c = a.clone();
         assert_eq!(a, b);
@@ -282,13 +318,15 @@ mod tests {
 
     #[test]
     fn build_empty_returns_err() {
-        assert_eq!(MetabolicGraphBuilder::new().build(), Err(MetabolicGraphError::Empty));
+        assert_eq!(
+            MetabolicGraphBuilder::new().build(),
+            Err(MetabolicGraphError::Empty)
+        );
     }
 
     #[test]
     fn build_max_nodes_and_edges_ok() {
-        let mut b = MetabolicGraphBuilder::new()
-            .add_node(OrganRole::Root, 0.5, 1.0);
+        let mut b = MetabolicGraphBuilder::new().add_node(OrganRole::Root, 0.5, 1.0);
         for _ in 1..METABOLIC_GRAPH_MAX_NODES {
             b = b.add_node(OrganRole::Core, 0.5, 1.0);
         }
@@ -382,7 +420,7 @@ mod tests {
             .add_node(OrganRole::Root, 0.9, 3.0)
             .add_node(OrganRole::Stem, 0.8, 5.0)
             .add_node(OrganRole::Core, 0.7, 8.0)
-            .add_node(OrganRole::Fin,  0.8, 5.0)
+            .add_node(OrganRole::Fin, 0.8, 5.0)
             .add_edge(0, 1, 50.0)
             .add_edge(0, 2, 50.0)
             .add_edge(0, 3, 50.0)
@@ -446,9 +484,9 @@ mod tests {
     #[test]
     fn three_node_cycle_rejected() {
         let r = MetabolicGraphBuilder::new()
-            .add_node(OrganRole::Root,   0.5, 1.0)
-            .add_node(OrganRole::Stem,   0.5, 1.0)
-            .add_node(OrganRole::Core,   0.5, 1.0)
+            .add_node(OrganRole::Root, 0.5, 1.0)
+            .add_node(OrganRole::Stem, 0.5, 1.0)
+            .add_node(OrganRole::Core, 0.5, 1.0)
             .add_edge(0, 1, 10.0)
             .add_edge(1, 2, 10.0)
             .add_edge(2, 0, 10.0)
@@ -462,7 +500,7 @@ mod tests {
             .add_node(OrganRole::Root, 0.9, 3.0) // 0
             .add_node(OrganRole::Stem, 0.8, 5.0) // 1
             .add_node(OrganRole::Core, 0.7, 8.0) // 2
-            .add_node(OrganRole::Fin,  0.8, 5.0) // 3
+            .add_node(OrganRole::Fin, 0.8, 5.0) // 3
             .add_edge(0, 1, 50.0)
             .add_edge(0, 2, 50.0)
             .add_edge(1, 3, 40.0)
@@ -487,7 +525,7 @@ mod tests {
     fn sensory_as_sole_captor_accepted() {
         let g = MetabolicGraphBuilder::new()
             .add_node(OrganRole::Sensory, 0.5, 4.0)
-            .add_node(OrganRole::Core,    0.7, 8.0)
+            .add_node(OrganRole::Core, 0.7, 8.0)
             .add_edge(0, 1, 30.0)
             .build()
             .unwrap();

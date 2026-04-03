@@ -8,9 +8,9 @@
 
 use bevy::prelude::*;
 
-use crate::simulation::{self, Phase};
 use crate::simulation::post::faction_identity_system;
 use crate::simulation::states::{GameState, PlayState};
+use crate::simulation::{self, Phase};
 
 /// Registers all Phase::MetabolicLayer systems.
 pub struct MetabolicPlugin;

@@ -9,10 +9,10 @@ use crate::worldgen::archetypes::WorldArchetype;
 use crate::worldgen::constants::{
     MATERIALIZED_COLLIDER_RADIUS_FACTOR, MATERIALIZED_MIN_COLLIDER_RADIUS, REFERENCE_DENSITY,
     VISUAL_EMISSION_GAS_SCALE, VISUAL_EMISSION_GAS_TEMP_DIVISOR, VISUAL_EMISSION_PLASMA_OFFSET,
-    VISUAL_EMISSION_PLASMA_TEMP_DIVISOR, VISUAL_MIN_SCALE,
-    VISUAL_OPACITY_GAS_BASE, VISUAL_OPACITY_GAS_RANGE, VISUAL_OPACITY_LIQUID_BASE,
-    VISUAL_OPACITY_LIQUID_RANGE, VISUAL_OPACITY_PLASMA_BASE, VISUAL_OPACITY_PLASMA_RANGE,
-    VISUAL_SCALE_GAS_BASE, VISUAL_SCALE_GAS_RANGE, VISUAL_SCALE_LIQUID, VISUAL_SCALE_PLASMA_BASE,
+    VISUAL_EMISSION_PLASMA_TEMP_DIVISOR, VISUAL_MIN_SCALE, VISUAL_OPACITY_GAS_BASE,
+    VISUAL_OPACITY_GAS_RANGE, VISUAL_OPACITY_LIQUID_BASE, VISUAL_OPACITY_LIQUID_RANGE,
+    VISUAL_OPACITY_PLASMA_BASE, VISUAL_OPACITY_PLASMA_RANGE, VISUAL_SCALE_GAS_BASE,
+    VISUAL_SCALE_GAS_RANGE, VISUAL_SCALE_LIQUID, VISUAL_SCALE_PLASMA_BASE,
     VISUAL_SCALE_PLASMA_RANGE, VISUAL_SCALE_SOLID_BASE, VISUAL_SCALE_SOLID_RANGE,
 };
 use crate::worldgen::contracts::BoundaryVisual;
@@ -83,24 +83,14 @@ pub fn derive_color_phenology(young: Color, mature: Color, phase: f32) -> Color 
         [b_lin.red, b_lin.green, b_lin.blue],
         t,
     );
-    Color::linear_rgba(
-        rgb[0],
-        rgb[1],
-        rgb[2],
-        lerp(a_lin.alpha, b_lin.alpha, t),
-    )
+    Color::linear_rgba(rgb[0], rgb[1], rgb[2], lerp(a_lin.alpha, b_lin.alpha, t))
 }
 
 /// Deriva color desde frecuencia + pureza usando el Almanac como fuente de verdad.
 /// Núcleo numérico: [`equations::field_linear_rgb_from_hz_purity`].
 pub fn derive_color(frequency_hz: f32, purity: f32, almanac: &AlchemicalAlmanac) -> Color {
     let rgb = equations::field_linear_rgb_from_hz_purity(frequency_hz, purity, almanac);
-    Color::linear_rgba(
-        rgb[0],
-        rgb[1],
-        rgb[2],
-        FIELD_VISUAL_OPAQUE_ALPHA,
-    )
+    Color::linear_rgba(rgb[0], rgb[1], rgb[2], FIELD_VISUAL_OPAQUE_ALPHA)
 }
 
 /// Mezcla de color para compuestos:

@@ -20,7 +20,9 @@ use crate::layers::{MatterState, PhysicsOps};
 // --- Bridgeable: densidad / temperatura / fase ------------------------------------------------
 
 impl_bridgeable_scalar!(DensityBridge, |normalized| normalized);
-impl_bridgeable_scalar!(TemperatureBridge, |normalized| equations::equivalent_temperature(normalized));
+impl_bridgeable_scalar!(TemperatureBridge, |normalized| {
+    equations::equivalent_temperature(normalized)
+});
 
 impl Bridgeable for PhaseTransitionBridge {
     type Input = (f32, f32);
@@ -182,8 +184,18 @@ mod tests {
 
     fn narrow_bands() -> Vec<BandDef> {
         vec![
-            BandDef { min: 0.0,   max: 100.0, canonical: 50.0,  stable: true },
-            BandDef { min: 100.0, max: 200.0, canonical: 150.0, stable: true },
+            BandDef {
+                min: 0.0,
+                max: 100.0,
+                canonical: 50.0,
+                stable: true,
+            },
+            BandDef {
+                min: 100.0,
+                max: 200.0,
+                canonical: 150.0,
+                stable: true,
+            },
         ]
     }
 
@@ -191,11 +203,18 @@ mod tests {
     fn enabled_density_and_temperature_near_physics_ops_on_entity() {
         let mut world = World::new();
         world.insert_resource(DensityBridge::config_for_preset(RigidityPreset::Moderate));
-        world.insert_resource(TemperatureBridge::config_for_preset(RigidityPreset::Moderate));
-        world.insert_resource(PhaseTransitionBridge::config_for_preset(RigidityPreset::Moderate));
+        world.insert_resource(TemperatureBridge::config_for_preset(
+            RigidityPreset::Moderate,
+        ));
+        world.insert_resource(PhaseTransitionBridge::config_for_preset(
+            RigidityPreset::Moderate,
+        ));
         world.insert_resource(BridgeCache::<DensityBridge>::new(256, CachePolicy::Lru));
         world.insert_resource(BridgeCache::<TemperatureBridge>::new(256, CachePolicy::Lru));
-        world.insert_resource(BridgeCache::<PhaseTransitionBridge>::new(256, CachePolicy::Lru));
+        world.insert_resource(BridgeCache::<PhaseTransitionBridge>::new(
+            256,
+            CachePolicy::Lru,
+        ));
         world.insert_resource(BridgePhaseState::active_only());
 
         let entity = world
@@ -228,25 +247,43 @@ mod tests {
         let mut world = World::new();
         world.insert_resource(
             BridgeConfig::<DensityBridge>::new(
-                narrow_bands(), 1.0, 32, CachePolicy::Lru, false, Rigidity::Moderate,
+                narrow_bands(),
+                1.0,
+                32,
+                CachePolicy::Lru,
+                false,
+                Rigidity::Moderate,
             )
             .expect("bands"),
         );
         world.insert_resource(
             BridgeConfig::<TemperatureBridge>::new(
-                narrow_bands(), 1.0, 32, CachePolicy::Lru, false, Rigidity::Moderate,
+                narrow_bands(),
+                1.0,
+                32,
+                CachePolicy::Lru,
+                false,
+                Rigidity::Moderate,
             )
             .expect("bands"),
         );
         world.insert_resource(
             BridgeConfig::<PhaseTransitionBridge>::new(
-                narrow_bands(), 1.0, 32, CachePolicy::Lru, false, Rigidity::Moderate,
+                narrow_bands(),
+                1.0,
+                32,
+                CachePolicy::Lru,
+                false,
+                Rigidity::Moderate,
             )
             .expect("bands"),
         );
         world.insert_resource(BridgeCache::<DensityBridge>::new(32, CachePolicy::Lru));
         world.insert_resource(BridgeCache::<TemperatureBridge>::new(32, CachePolicy::Lru));
-        world.insert_resource(BridgeCache::<PhaseTransitionBridge>::new(32, CachePolicy::Lru));
+        world.insert_resource(BridgeCache::<PhaseTransitionBridge>::new(
+            32,
+            CachePolicy::Lru,
+        ));
         world.insert_resource(BridgePhaseState::active_only());
 
         let entity = world
@@ -274,8 +311,12 @@ mod tests {
     fn density_second_call_cache_hit() {
         let mut world = World::new();
         world.insert_resource(DensityBridge::config_for_preset(RigidityPreset::Moderate));
-        world.insert_resource(TemperatureBridge::config_for_preset(RigidityPreset::Moderate));
-        world.insert_resource(PhaseTransitionBridge::config_for_preset(RigidityPreset::Moderate));
+        world.insert_resource(TemperatureBridge::config_for_preset(
+            RigidityPreset::Moderate,
+        ));
+        world.insert_resource(PhaseTransitionBridge::config_for_preset(
+            RigidityPreset::Moderate,
+        ));
         world.insert_resource(BridgeCache::<DensityBridge>::new(
             DensityBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity,
             CachePolicy::Lru,
@@ -313,11 +354,18 @@ mod tests {
     fn phase_hysteresis_near_threshold() {
         let mut world = World::new();
         world.insert_resource(DensityBridge::config_for_preset(RigidityPreset::Moderate));
-        world.insert_resource(TemperatureBridge::config_for_preset(RigidityPreset::Moderate));
-        world.insert_resource(PhaseTransitionBridge::config_for_preset(RigidityPreset::Moderate));
+        world.insert_resource(TemperatureBridge::config_for_preset(
+            RigidityPreset::Moderate,
+        ));
+        world.insert_resource(PhaseTransitionBridge::config_for_preset(
+            RigidityPreset::Moderate,
+        ));
         world.insert_resource(BridgeCache::<DensityBridge>::new(64, CachePolicy::Lru));
         world.insert_resource(BridgeCache::<TemperatureBridge>::new(64, CachePolicy::Lru));
-        world.insert_resource(BridgeCache::<PhaseTransitionBridge>::new(64, CachePolicy::Lru));
+        world.insert_resource(BridgeCache::<PhaseTransitionBridge>::new(
+            64,
+            CachePolicy::Lru,
+        ));
         world.insert_resource(BridgePhaseState::active_only());
 
         let entity = world
@@ -351,11 +399,18 @@ mod tests {
     fn random_inputs_within_bridge_epsilon_per_equation() {
         let mut world = World::new();
         world.insert_resource(DensityBridge::config_for_preset(RigidityPreset::Moderate));
-        world.insert_resource(TemperatureBridge::config_for_preset(RigidityPreset::Moderate));
-        world.insert_resource(PhaseTransitionBridge::config_for_preset(RigidityPreset::Moderate));
+        world.insert_resource(TemperatureBridge::config_for_preset(
+            RigidityPreset::Moderate,
+        ));
+        world.insert_resource(PhaseTransitionBridge::config_for_preset(
+            RigidityPreset::Moderate,
+        ));
         world.insert_resource(BridgeCache::<DensityBridge>::new(256, CachePolicy::Lru));
         world.insert_resource(BridgeCache::<TemperatureBridge>::new(256, CachePolicy::Lru));
-        world.insert_resource(BridgeCache::<PhaseTransitionBridge>::new(256, CachePolicy::Lru));
+        world.insert_resource(BridgeCache::<PhaseTransitionBridge>::new(
+            256,
+            CachePolicy::Lru,
+        ));
 
         let cfg_d0 = world.resource::<BridgeConfig<DensityBridge>>().clone();
         let lo = cfg_d0.bands.first().expect("bands").min;

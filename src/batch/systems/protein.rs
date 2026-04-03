@@ -51,16 +51,24 @@ pub fn protein_fold_infer(world: &mut SimWorldFlat) {
             let h_count = chain[..len].iter().filter(|m| m.is_hydrophobic()).count() as u8;
             let total_contacts = density[..len].iter().map(|&d| d as u16).sum::<u16>() / 2;
             protein_fold::ProteinPhenotype {
-                chain_length: len as u8, fold_energy: protein_fold::fold_energy(&chain, &fold, len, &freq),
-                h_count, p_count: len as u8 - h_count, total_contacts, function,
+                chain_length: len as u8,
+                fold_energy: protein_fold::fold_energy(&chain, &fold, len, &freq),
+                h_count,
+                p_count: len as u8 - h_count,
+                total_contacts,
+                function,
             }
         } else {
             let vg = world.genomes[i];
-            if vg.gene_count() < 4 { continue; }
+            if vg.gene_count() < 4 {
+                continue;
+            }
             protein_fold::compute_protein_phenotype(&vg, seed)
         };
 
-        let Some(func) = phenotype.function else { continue; };
+        let Some(func) = phenotype.function else {
+            continue;
+        };
 
         // Catalytic bonus: efficiency × specificity, capped.
         let bonus = (func.efficiency_boost * func.specificity * CATALYSIS_BONUS_CAP)
@@ -100,10 +108,14 @@ mod tests {
 
     #[test]
     fn fold_reduces_dissipation_for_functional_protein() {
-        let mut world = world_with_genome(&[0.9, 0.8, 0.9, 0.7, 0.8, 0.9, 0.7, 0.8, 0.9, 0.8, 0.9, 0.7]);
+        let mut world =
+            world_with_genome(&[0.9, 0.8, 0.9, 0.7, 0.8, 0.9, 0.7, 0.8, 0.9, 0.8, 0.9, 0.7]);
         let diss_before = world.entities[0].dissipation;
         protein_fold_infer(&mut world);
-        assert!(world.entities[0].dissipation <= diss_before, "functional protein → less dissipation");
+        assert!(
+            world.entities[0].dissipation <= diss_before,
+            "functional protein → less dissipation"
+        );
     }
 
     #[test]
@@ -121,7 +133,10 @@ mod tests {
         let mut b = world_with_genome(&[0.8, 0.3, 0.9, 0.6, 0.7, 0.5, 0.8, 0.4]);
         protein_fold_infer(&mut a);
         protein_fold_infer(&mut b);
-        assert_eq!(a.entities[0].dissipation.to_bits(), b.entities[0].dissipation.to_bits());
+        assert_eq!(
+            a.entities[0].dissipation.to_bits(),
+            b.entities[0].dissipation.to_bits()
+        );
     }
 
     #[test]

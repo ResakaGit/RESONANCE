@@ -3,4 +3,3 @@
 pub const ALMANAC_COHERENCE_EPS_HZ: f32 = 1e-4;
 /// Prefijo estable del error de símbolos duplicados (CI / grep).
 pub const EAC1_ERR_DUPLICATE_SYMBOL_PREFIX: &str = "duplicate element symbol(s): ";
-

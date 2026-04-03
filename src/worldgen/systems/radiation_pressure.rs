@@ -11,7 +11,7 @@ use crate::blueprint::constants::nucleus_lifecycle::{
     radiation_pressure_threshold_qe, radiation_pressure_transfer_rate,
 };
 use crate::blueprint::equations::{
-    radiation_pressure_transfer_coherent, PRESSURE_FREQUENCY_BANDWIDTH,
+    PRESSURE_FREQUENCY_BANDWIDTH, radiation_pressure_transfer_coherent,
 };
 use crate::worldgen::EnergyFieldGrid;
 
@@ -30,7 +30,9 @@ pub fn radiation_pressure_system(mut grid: ResMut<EnergyFieldGrid>) {
 
     for y in 0..h {
         for x in 0..w {
-            let Some(cell) = grid.cell_xy(x, y) else { continue };
+            let Some(cell) = grid.cell_xy(x, y) else {
+                continue;
+            };
             if cell.accumulated_qe <= radiation_pressure_threshold_qe() {
                 continue;
             }
@@ -43,7 +45,8 @@ pub fn radiation_pressure_system(mut grid: ResMut<EnergyFieldGrid>) {
             let src_idx = y as usize * w as usize + x as usize;
             for neighbor in neighbors.iter().flatten() {
                 let (nx, ny) = *neighbor;
-                let target_freq = grid.cell_xy(nx, ny)
+                let target_freq = grid
+                    .cell_xy(nx, ny)
                     .map(|c| c.dominant_frequency_hz)
                     .unwrap_or(0.0);
                 let transfer = radiation_pressure_transfer_coherent(

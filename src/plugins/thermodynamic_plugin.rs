@@ -7,8 +7,8 @@ use bevy::prelude::*;
 
 use crate::eco::climate::{climate_config_hot_reload_system, climate_tick_system};
 use crate::eco::eco_boundaries_system;
-use crate::simulation::{self, Phase};
 use crate::simulation::states::{GameState, PlayState};
+use crate::simulation::{self, Phase};
 use crate::topology::config::terrain_config_loader_system;
 
 /// Registers all Phase::ThermodynamicLayer systems.
@@ -58,7 +58,9 @@ impl Plugin for ThermodynamicPlugin {
                 .chain()
                 .in_set(Phase::ThermodynamicLayer)
                 .run_if(run_gameplay.clone())
-                .after(crate::worldgen::systems::visual::flush_pending_energy_visual_rebuild_system),
+                .after(
+                    crate::worldgen::systems::visual::flush_pending_energy_visual_rebuild_system,
+                ),
         );
 
         // Radiation pressure: excess energy above threshold pushes outward.
@@ -77,8 +79,9 @@ impl Plugin for ThermodynamicPlugin {
             (
                 crate::worldgen::systems::planetary_formation::planetary_formation_system
                     .after(crate::worldgen::systems::radiation_pressure::radiation_pressure_system),
-                crate::worldgen::systems::day_night::day_night_modulation_system
-                    .after(crate::worldgen::systems::planetary_formation::planetary_formation_system),
+                crate::worldgen::systems::day_night::day_night_modulation_system.after(
+                    crate::worldgen::systems::planetary_formation::planetary_formation_system,
+                ),
                 crate::worldgen::systems::water_cycle::water_cycle_system
                     .after(crate::worldgen::systems::day_night::day_night_modulation_system),
             )

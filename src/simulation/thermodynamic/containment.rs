@@ -129,7 +129,12 @@ pub fn containment_overlap_system(
     time: Res<Time>,
     layout: Res<SimWorldTransformParams>,
     hosts: Query<(Entity, &Transform, &SpatialVolume, &AmbientPressure)>,
-    targets: Query<(Entity, &Transform, &SpatialVolume, Option<&ContainmentContact>)>,
+    targets: Query<(
+        Entity,
+        &Transform,
+        &SpatialVolume,
+        Option<&ContainmentContact>,
+    )>,
 ) {
     let dt = simulation_delta_secs(fixed, &time);
     let xz = layout.use_xz_ground;
@@ -260,9 +265,7 @@ pub fn containment_thermal_system(
 
 /// Sistema: aplica drag de viscosidad por containment usando `ContainmentContact` cacheado.
 /// Fase: Phase::ThermodynamicLayer — después de `containment_thermal_system`.
-pub fn containment_drag_system(
-    mut targets: Query<(&ContainmentContact, &mut FlowVector)>,
-) {
+pub fn containment_drag_system(mut targets: Query<(&ContainmentContact, &mut FlowVector)>) {
     for (contact, mut flow) in &mut targets {
         let drag_factor = contact.drag_factor;
         if (drag_factor - 1.0).abs() > f32::EPSILON {

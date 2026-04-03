@@ -7,8 +7,8 @@
 //! Axiom 1: charge = energy polarity. Axiom 7: F∝1/r². Axiom 8: freq modulates bonds.
 
 use crate::blueprint::equations::coulomb::{
-    self, ChargedParticle, MoleculeSignature, accumulate_forces, detect_bonds,
-    classify_molecule, count_element_types,
+    self, ChargedParticle, MoleculeSignature, accumulate_forces, classify_molecule,
+    count_element_types, detect_bonds,
 };
 use crate::blueprint::equations::determinism;
 use std::time::Instant;
@@ -88,7 +88,9 @@ pub struct ParticleLabReport {
 /// 4. Dissipate: velocity *= (1 - damping) (Axiom 4)
 /// 5. Bounce: reflect off arena walls
 fn physics_tick(particles: &mut [ChargedParticle], count: usize, dt: f32, arena: f32) {
-    if count < 2 { return; }
+    if count < 2 {
+        return;
+    }
 
     // Forces (pure HOF)
     let forces = accumulate_forces(particles, count);
@@ -108,10 +110,24 @@ fn physics_tick(particles: &mut [ChargedParticle], count: usize, dt: f32, arena:
         particles[i].position[1] += particles[i].velocity[1] * dt;
         // Bounce off walls (elastic, conserves energy)
         for dim in 0..2 {
-            let p = if dim == 0 { &mut particles[i].position[0] } else { &mut particles[i].position[1] };
-            let v = if dim == 0 { &mut particles[i].velocity[0] } else { &mut particles[i].velocity[1] };
-            if *p < 0.0 { *p = -*p; *v = -*v; }
-            if *p > arena { *p = 2.0 * arena - *p; *v = -*v; }
+            let p = if dim == 0 {
+                &mut particles[i].position[0]
+            } else {
+                &mut particles[i].position[1]
+            };
+            let v = if dim == 0 {
+                &mut particles[i].velocity[0]
+            } else {
+                &mut particles[i].velocity[1]
+            };
+            if *p < 0.0 {
+                *p = -*p;
+                *v = -*v;
+            }
+            if *p > arena {
+                *p = 2.0 * arena - *p;
+                *v = -*v;
+            }
         }
     }
 }
@@ -120,13 +136,15 @@ fn physics_tick(particles: &mut [ChargedParticle], count: usize, dt: f32, arena:
 fn compute_snapshot(particles: &[ChargedParticle], count: usize, step: u32) -> ParticleSnapshot {
     let n = count.max(1) as f32;
 
-    let mean_ke: f32 = particles[..count].iter()
+    let mean_ke: f32 = particles[..count]
+        .iter()
         .map(|p| 0.5 * p.mass * (p.velocity[0].powi(2) + p.velocity[1].powi(2)))
-        .sum::<f32>() / n;
+        .sum::<f32>()
+        / n;
 
     let mut total_pe = 0.0f32;
     for i in 0..count {
-        for j in (i+1)..count {
+        for j in (i + 1)..count {
             total_pe += coulomb::bond_energy(&particles[i], &particles[j]);
         }
     }
@@ -134,10 +152,17 @@ fn compute_snapshot(particles: &[ChargedParticle], count: usize, step: u32) -> P
     let total_charge: f32 = particles[..count].iter().map(|p| p.charge).sum();
     let (bonds, bond_count) = detect_bonds(particles, count);
 
-    let mut sigs = [MoleculeSignature { total_charge: 0.0, mean_frequency: 0.0, particle_count: 0, bond_count: 0 }; 256];
+    let mut sigs = [MoleculeSignature {
+        total_charge: 0.0,
+        mean_frequency: 0.0,
+        particle_count: 0,
+        bond_count: 0,
+    }; 256];
     let mut sig_count = 0;
     for k in 0..bond_count {
-        if sig_count >= 256 { break; }
+        if sig_count >= 256 {
+            break;
+        }
         let (a, b, _) = bonds[k];
         sigs[sig_count] = classify_molecule(particles, &[a, b], 2, 1);
         sig_count += 1;
@@ -145,9 +170,12 @@ fn compute_snapshot(particles: &[ChargedParticle], count: usize, step: u32) -> P
     let types = count_element_types(&sigs, sig_count);
 
     ParticleSnapshot {
-        step, particle_count: count as u8,
-        bond_count: bond_count as u8, molecule_types: types,
-        mean_kinetic_energy: mean_ke, mean_potential_energy: total_pe / n,
+        step,
+        particle_count: count as u8,
+        bond_count: bond_count as u8,
+        molecule_types: types,
+        mean_kinetic_energy: mean_ke,
+        mean_potential_energy: total_pe / n,
         total_charge,
     }
 }
@@ -161,8 +189,11 @@ pub fn run(config: &ParticleLabConfig) -> ParticleLabReport {
 
     // Spawn particles
     let mut particles = [ChargedParticle {
-        charge: 0.0, mass: 1.0, frequency: 0.0,
-        position: [0.0; 2], velocity: [0.0; 2],
+        charge: 0.0,
+        mass: 1.0,
+        frequency: 0.0,
+        position: [0.0; 2],
+        velocity: [0.0; 2],
     }; 128];
 
     let mut s = config.seed;
@@ -214,7 +245,9 @@ pub fn run(config: &ParticleLabConfig) -> ParticleLabReport {
     }
 
     ParticleLabReport {
-        config: config.clone(), timeline, final_molecules: final_mols,
+        config: config.clone(),
+        timeline,
+        final_molecules: final_mols,
         wall_time_ms: start.elapsed().as_millis() as u64,
     }
 }
@@ -227,61 +260,114 @@ mod tests {
 
     #[test]
     fn run_no_panic() {
-        let r = run(&ParticleLabConfig { positive_count: 3, negative_count: 3, snapshots: 5, ticks_per_snapshot: 10, ..Default::default() });
+        let r = run(&ParticleLabConfig {
+            positive_count: 3,
+            negative_count: 3,
+            snapshots: 5,
+            ticks_per_snapshot: 10,
+            ..Default::default()
+        });
         assert_eq!(r.timeline.len(), 5);
     }
 
     #[test]
     fn run_deterministic() {
-        let c = ParticleLabConfig { positive_count: 5, negative_count: 5, snapshots: 5, ticks_per_snapshot: 10, ..Default::default() };
-        let a = run(&c); let b = run(&c);
+        let c = ParticleLabConfig {
+            positive_count: 5,
+            negative_count: 5,
+            snapshots: 5,
+            ticks_per_snapshot: 10,
+            ..Default::default()
+        };
+        let a = run(&c);
+        let b = run(&c);
         for i in 0..5 {
             assert_eq!(a.timeline[i].bond_count, b.timeline[i].bond_count);
-            assert_eq!(a.timeline[i].mean_kinetic_energy.to_bits(), b.timeline[i].mean_kinetic_energy.to_bits());
+            assert_eq!(
+                a.timeline[i].mean_kinetic_energy.to_bits(),
+                b.timeline[i].mean_kinetic_energy.to_bits()
+            );
         }
     }
 
     #[test]
     fn charge_conservation() {
-        let c = ParticleLabConfig { positive_count: 10, negative_count: 10, snapshots: 10, ticks_per_snapshot: 20, ..Default::default() };
+        let c = ParticleLabConfig {
+            positive_count: 10,
+            negative_count: 10,
+            snapshots: 10,
+            ticks_per_snapshot: 20,
+            ..Default::default()
+        };
         let r = run(&c);
         for snap in &r.timeline {
-            assert!((snap.total_charge - 0.0).abs() < 1e-4, "Axiom 5: Σcharge = 0: {}", snap.total_charge);
+            assert!(
+                (snap.total_charge - 0.0).abs() < 1e-4,
+                "Axiom 5: Σcharge = 0: {}",
+                snap.total_charge
+            );
         }
     }
 
     #[test]
     fn bonds_form_at_some_point() {
-        let c = ParticleLabConfig { positive_count: 10, negative_count: 10, snapshots: 30, ticks_per_snapshot: 30, ..Default::default() };
+        let c = ParticleLabConfig {
+            positive_count: 10,
+            negative_count: 10,
+            snapshots: 30,
+            ticks_per_snapshot: 30,
+            ..Default::default()
+        };
         let r = run(&c);
         let peak_bonds = r.timeline.iter().map(|s| s.bond_count).max().unwrap_or(0);
         // Opposite charges attract → bonds must form at some snapshot
-        assert!(peak_bonds > 0, "Axiom 7+8: opposite charges should form bonds");
+        assert!(
+            peak_bonds > 0,
+            "Axiom 7+8: opposite charges should form bonds"
+        );
     }
 
     #[test]
     fn kinetic_energy_decreases() {
-        let c = ParticleLabConfig { positive_count: 5, negative_count: 5, snapshots: 20, ticks_per_snapshot: 20, ..Default::default() };
+        let c = ParticleLabConfig {
+            positive_count: 5,
+            negative_count: 5,
+            snapshots: 20,
+            ticks_per_snapshot: 20,
+            ..Default::default()
+        };
         let r = run(&c);
         // Initial KE = 0 (particles start stationary), but forces create KE, then damping reduces it
         // After many ticks, KE should be lower than peak (system cools)
-        let peak_ke = r.timeline.iter().map(|s| s.mean_kinetic_energy).fold(0.0f32, f32::max);
+        let peak_ke = r
+            .timeline
+            .iter()
+            .map(|s| s.mean_kinetic_energy)
+            .fold(0.0f32, f32::max);
         let final_ke = r.timeline.last().unwrap().mean_kinetic_energy;
-        assert!(final_ke <= peak_ke, "Axiom 4: system cools: {final_ke} <= {peak_ke}");
+        assert!(
+            final_ke <= peak_ke,
+            "Axiom 4: system cools: {final_ke} <= {peak_ke}"
+        );
     }
 
     #[test]
     fn molecule_types_emerge() {
         let c = ParticleLabConfig {
-            positive_count: 10, negative_count: 10,
+            positive_count: 10,
+            negative_count: 10,
             freq_spread: 200.0, // wide spread → different "elements"
-            snapshots: 30, ticks_per_snapshot: 30,
+            snapshots: 30,
+            ticks_per_snapshot: 30,
             ..Default::default()
         };
         let r = run(&c);
         let types = r.timeline.last().unwrap().molecule_types;
         // With freq spread, some molecule types should emerge
         // (may be 0 if no bonds formed, but should be ≥ 0)
-        assert!(types <= r.timeline.last().unwrap().bond_count, "types ≤ bonds");
+        assert!(
+            types <= r.timeline.last().unwrap().bond_count,
+            "types ≤ bonds"
+        );
     }
 }

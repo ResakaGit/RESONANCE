@@ -51,7 +51,10 @@ mod tests {
         let pos = Vec2::ZERO;
         let centroid = Vec2::new(10.0, 0.0);
         let force = pack_cohesion_force(pos, centroid, 3.0);
-        assert!(force.x > 0.0, "force should point toward centroid: {force:?}");
+        assert!(
+            force.x > 0.0,
+            "force should point toward centroid: {force:?}"
+        );
     }
 
     #[test]
@@ -60,7 +63,10 @@ mod tests {
         let centroid = Vec2::new(1.0, 0.0);
         let force = pack_cohesion_force(pos, centroid, 5.0);
         // distance(1) < rest(5) → magnitude negative → force points away
-        assert!(force.x < 0.0, "should repel when closer than rest: {force:?}");
+        assert!(
+            force.x < 0.0,
+            "should repel when closer than rest: {force:?}"
+        );
     }
 
     #[test]
@@ -70,7 +76,10 @@ mod tests {
         let far = Vec2::new(20.0, 0.0);
         let f_near = pack_cohesion_force(pos, near, 3.0).length();
         let f_far = pack_cohesion_force(pos, far, 3.0).length();
-        assert!(f_far > f_near, "farther = stronger pull: near={f_near}, far={f_far}");
+        assert!(
+            f_far > f_near,
+            "farther = stronger pull: near={f_near}, far={f_far}"
+        );
     }
 
     #[test]
@@ -87,7 +96,10 @@ mod tests {
     fn dominance_score_resilience_increases_score() {
         let low_res = dominance_contest_score(100.0, 2.0, 0.0);
         let high_res = dominance_contest_score(100.0, 2.0, 1.0);
-        assert!(high_res > low_res, "high_res={high_res} > low_res={low_res}");
+        assert!(
+            high_res > low_res,
+            "high_res={high_res} > low_res={low_res}"
+        );
     }
 
     #[test]
@@ -134,6 +146,9 @@ mod tests {
         let b4 = pack_hunt_bonus(4, 100.0);
         let delta_2_3 = b3 - b2;
         let delta_3_4 = b4 - b3;
-        assert!(delta_3_4 < delta_2_3, "diminishing: Δ(3→4)={delta_3_4} < Δ(2→3)={delta_2_3}");
+        assert!(
+            delta_3_4 < delta_2_3,
+            "diminishing: Δ(3→4)={delta_3_4} < Δ(2→3)={delta_2_3}"
+        );
     }
 }

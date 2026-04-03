@@ -12,12 +12,12 @@ use super::types::{ChampionId, EffectId, WorldEntityId};
 /// Resolución de IDs fuertes a `Entity` viva en el mundo actual.
 #[derive(Resource, Default, Debug)]
 pub struct EntityLookup {
-    champions:         HashMap<ChampionId, Entity>,
+    champions: HashMap<ChampionId, Entity>,
     champion_by_entity: HashMap<Entity, ChampionId>,
-    world_entities:    HashMap<WorldEntityId, Entity>,
-    world_by_entity:   HashMap<Entity, WorldEntityId>,
-    effects:           HashMap<EffectId, Entity>,
-    effect_by_entity:  HashMap<Entity, EffectId>,
+    world_entities: HashMap<WorldEntityId, Entity>,
+    world_by_entity: HashMap<Entity, WorldEntityId>,
+    effects: HashMap<EffectId, Entity>,
+    effect_by_entity: HashMap<Entity, EffectId>,
 }
 
 impl EntityLookup {

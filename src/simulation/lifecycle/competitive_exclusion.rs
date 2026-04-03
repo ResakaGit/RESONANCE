@@ -8,7 +8,7 @@ use crate::blueprint::equations;
 use crate::events::DeathCause;
 use crate::layers::{BaseEnergy, EnergyOps, InferenceProfile, NutrientProfile};
 use crate::worldgen::{
-    EnergyFieldGrid, Materialized, COMPETITION_BASE_DRAIN_PER_EXTRA_COMPETITOR_QE,
+    COMPETITION_BASE_DRAIN_PER_EXTRA_COMPETITOR_QE, EnergyFieldGrid, Materialized,
 };
 
 /// Penaliza energía de **celdas del campo** (`Materialized` sin metabolismo de flora) que comparten

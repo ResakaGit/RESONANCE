@@ -32,7 +32,9 @@ pub fn radial_max_delta(a: &RadialField, b: &RadialField) -> f32 {
     for ax in 0..AXIAL {
         for rad in 0..RADIAL {
             let d = (a[ax][rad] - b[ax][rad]).abs();
-            if d > max { max = d; }
+            if d > max {
+                max = d;
+            }
         }
     }
     max
@@ -85,12 +87,16 @@ pub fn radial_rescale(field: &mut RadialField, target_qe: f32) {
     let sum = radial_total(field);
     if sum < 1e-10 {
         let per = target_qe.max(0.0) / (AXIAL * RADIAL) as f32;
-        for row in field.iter_mut() { row.fill(per); }
+        for row in field.iter_mut() {
+            row.fill(per);
+        }
         return;
     }
     let factor = target_qe / sum;
     for row in field.iter_mut() {
-        for v in row.iter_mut() { *v *= factor; }
+        for v in row.iter_mut() {
+            *v *= factor;
+        }
     }
 }
 
@@ -102,7 +108,10 @@ pub fn radial_rescale(field: &mut RadialField, target_qe: f32) {
 /// branching → lateral sectors (1, 3). All sectors start equal → bilateral emerges.
 /// Axiom 6: symmetry from isotropy, not from mirroring.
 pub fn distribute_to_radial(
-    total_qe: f32, growth: f32, resilience: f32, branching: f32,
+    total_qe: f32,
+    growth: f32,
+    resilience: f32,
+    branching: f32,
 ) -> RadialField {
     let mut profile = [[1.0_f32; RADIAL]; AXIAL];
 
@@ -134,7 +143,9 @@ pub fn distribute_to_radial(
     if sum > 1e-10 && total_qe > 0.0 {
         let factor = total_qe / sum;
         for row in profile.iter_mut() {
-            for v in row.iter_mut() { *v *= factor; }
+            for v in row.iter_mut() {
+                *v *= factor;
+            }
         }
     }
     profile
@@ -155,7 +166,9 @@ pub fn detect_peaks(field: &RadialField, threshold_factor: f32) -> [(u8, u8, f32
     for a in 0..AXIAL {
         for r in 0..RADIAL {
             let v = field[a][r];
-            if v < threshold { continue; }
+            if v < threshold {
+                continue;
+            }
 
             // Check 4 neighbors (axial±1, radial±1 wrapping)
             let higher_than_all = [
@@ -163,7 +176,9 @@ pub fn detect_peaks(field: &RadialField, threshold_factor: f32) -> [(u8, u8, f32
                 if a < AXIAL - 1 { field[a + 1][r] } else { 0.0 },
                 field[a][(r + RADIAL - 1) % RADIAL],
                 field[a][(r + 1) % RADIAL],
-            ].iter().all(|&n| v > n);
+            ]
+            .iter()
+            .all(|&n| v > n);
 
             if higher_than_all && count < MAX_PEAKS {
                 peaks[count] = (a as u8, r as u8, v);
@@ -173,7 +188,8 @@ pub fn detect_peaks(field: &RadialField, threshold_factor: f32) -> [(u8, u8, f32
     }
 
     // Sort by qe descending
-    peaks[..count].sort_unstable_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
+    peaks[..count]
+        .sort_unstable_by(|a, b| b.2.partial_cmp(&a.2).unwrap_or(std::cmp::Ordering::Equal));
     peaks
 }
 
@@ -213,22 +229,36 @@ pub fn peak_aspect_ratio(field: &RadialField, ax: u8, rad: u8) -> f32 {
     let a = ax as usize;
     let r = rad as usize;
     let center_qe = field[a][r];
-    if center_qe < 1e-6 { return 1.0; }
+    if center_qe < 1e-6 {
+        return 1.0;
+    }
     let half = center_qe * 0.5;
 
     // Axial extent: count stations where qe > half of peak
     let mut ax_extent = 1u8;
     for da in 1..AXIAL {
-        if a + da < AXIAL && field[a + da][r] > half { ax_extent += 1; } else { break; }
+        if a + da < AXIAL && field[a + da][r] > half {
+            ax_extent += 1;
+        } else {
+            break;
+        }
     }
     for da in 1..AXIAL {
-        if a >= da && field[a - da][r] > half { ax_extent += 1; } else { break; }
+        if a >= da && field[a - da][r] > half {
+            ax_extent += 1;
+        } else {
+            break;
+        }
     }
 
     // Radial extent: count sectors where qe > half of peak
     let mut rad_extent = 1u8;
     for dr in 1..RADIAL {
-        if field[a][(r + dr) % RADIAL] > half { rad_extent += 1; } else { break; }
+        if field[a][(r + dr) % RADIAL] > half {
+            rad_extent += 1;
+        } else {
+            break;
+        }
     }
 
     let ratio = ax_extent as f32 / rad_extent.max(1) as f32;
@@ -241,14 +271,25 @@ pub fn peak_aspect_ratio(field: &RadialField, ax: u8, rad: u8) -> f32 {
 ///
 /// Axiom 1: radius ∝ sqrt(local_qe / mean_qe).
 pub fn radial_to_axial_radii(
-    field: &RadialField, base_radius: f32, min_ratio: f32, max_ratio: f32,
+    field: &RadialField,
+    base_radius: f32,
+    min_ratio: f32,
+    max_ratio: f32,
 ) -> [f32; AXIAL] {
     let total = radial_total(field);
-    let mean = if total > 1e-6 { total / (AXIAL * RADIAL) as f32 } else { 1.0 };
+    let mean = if total > 1e-6 {
+        total / (AXIAL * RADIAL) as f32
+    } else {
+        1.0
+    };
     let mut radii = [0.0f32; AXIAL];
     for a in 0..AXIAL {
         let station_mean: f32 = field[a].iter().sum::<f32>() / RADIAL as f32;
-        let ratio = if mean > 1e-6 { station_mean / mean } else { 1.0 };
+        let ratio = if mean > 1e-6 {
+            station_mean / mean
+        } else {
+            1.0
+        };
         radii[a] = base_radius * ratio.sqrt().clamp(min_ratio, max_ratio);
     }
     radii
@@ -261,12 +302,11 @@ pub fn radial_to_axial_radii(
 /// A cross-sectional valley = natural segmentation point.
 /// Returns (axial_idx, min_qe_at_station) for stations that qualify.
 /// Axiom 6: joints are energy valleys, never hardcoded.
-pub fn detect_joints(
-    field: &RadialField, threshold: f32,
-) -> [(u8, f32); AXIAL] {
+pub fn detect_joints(field: &RadialField, threshold: f32) -> [(u8, f32); AXIAL] {
     let mut joints = [(0u8, 0.0f32); AXIAL];
     let mut count = 0usize;
-    for a in 1..(AXIAL - 1) { // skip tips
+    for a in 1..(AXIAL - 1) {
+        // skip tips
         let station_min = field[a].iter().copied().fold(f32::MAX, f32::min);
         let station_max = field[a].iter().copied().fold(0.0f32, f32::max);
         // Valley: all sectors low AND lower than neighbors
@@ -317,15 +357,16 @@ pub fn extract_appendage_profile(
 /// Returns `(position_t ∈ [0,1], flexibility ∈ [0,1])` pairs.
 /// `flexibility = 1.0 - (valley_qe / peak_qe).sqrt()` — lower qe = more flexible.
 /// Axiom 1: joint = low energy region. Axiom 4: dissipation thins the connection.
-pub fn detect_appendage_joints(
-    profile: &[f32],
-    len: usize,
-) -> [(f32, f32); AXIAL] {
+pub fn detect_appendage_joints(profile: &[f32], len: usize) -> [(f32, f32); AXIAL] {
     let mut joints = [(0.0f32, 0.0f32); AXIAL];
-    if len < 3 { return joints; }
+    if len < 3 {
+        return joints;
+    }
     let active = &profile[..len];
     let peak_qe = active.iter().copied().fold(0.0f32, f32::max);
-    if peak_qe <= 0.0 { return joints; }
+    if peak_qe <= 0.0 {
+        return joints;
+    }
 
     let mut count = 0usize;
     for i in 1..(len - 1) {
@@ -359,7 +400,9 @@ pub fn segmented_radii(
     stations: usize,
 ) -> [f32; AXIAL] {
     let mut radii = [base_radius; AXIAL];
-    if stations == 0 { return radii; }
+    if stations == 0 {
+        return radii;
+    }
     for j in 0..joint_count {
         let (t, flexibility) = joints[j];
         let idx = (t * (stations - 1).max(1) as f32) as usize;
@@ -417,11 +460,9 @@ pub fn peak_to_3d_offset(
     let attach_pos = spine_positions[attach_idx];
 
     let sector_angle = peak_rad as f32 * std::f32::consts::FRAC_PI_2;
-    let branch_dir = crate::math_types::Vec3::new(
-        sector_angle.sin(),
-        sector_angle.cos() * 0.3,
-        0.0,
-    ).normalize_or_zero();
+    let branch_dir =
+        crate::math_types::Vec3::new(sector_angle.sin(), sector_angle.cos() * 0.3, 0.0)
+            .normalize_or_zero();
 
     (attach_pos, branch_dir)
 }
@@ -472,7 +513,10 @@ const VIEWER_FREQ_RADIAL_GRAD: f32 = 10.0;
 /// Applies isotropic distribution + diffusion steps to develop emergent
 /// bilateral peaks. Used by viewer/export binaries for mesh construction.
 pub fn build_viewer_field(
-    growth: f32, resilience: f32, branching: f32, base_qe: f32,
+    growth: f32,
+    resilience: f32,
+    branching: f32,
+    base_qe: f32,
 ) -> RadialField {
     let mut field = distribute_to_radial(base_qe, growth, resilience, branching);
     for _ in 0..VIEWER_DIFFUSION_STEPS {
@@ -583,8 +627,11 @@ mod tests {
         for a in 0..AXIAL {
             let first = f[a][0];
             for r in 1..RADIAL {
-                assert!((f[a][r] - first).abs() < 1e-4,
-                    "station {a}: sector {r}={} vs sector 0={first}", f[a][r]);
+                assert!(
+                    (f[a][r] - first).abs() < 1e-4,
+                    "station {a}: sector {r}={} vs sector 0={first}",
+                    f[a][r]
+                );
             }
         }
     }
@@ -595,7 +642,10 @@ mod tests {
         // Sectors 1 and 3 (lateral) should have more than sectors 0 and 2
         let lateral: f32 = (0..AXIAL).map(|a| f[a][1] + f[a][3]).sum();
         let dorsal_ventral: f32 = (0..AXIAL).map(|a| f[a][0] + f[a][2]).sum();
-        assert!(lateral > dorsal_ventral, "lateral={lateral} > dv={dorsal_ventral}");
+        assert!(
+            lateral > dorsal_ventral,
+            "lateral={lateral} > dv={dorsal_ventral}"
+        );
     }
 
     #[test]
@@ -603,8 +653,12 @@ mod tests {
         let f = distribute_to_radial(100.0, 0.5, 0.5, 0.8);
         // Sectors 1 (right) and 3 (left) should be equal (isotropic init)
         for a in 0..AXIAL {
-            assert!((f[a][1] - f[a][3]).abs() < 1e-4,
-                "station {a}: right={} left={}", f[a][1], f[a][3]);
+            assert!(
+                (f[a][1] - f[a][3]).abs() < 1e-4,
+                "station {a}: right={} left={}",
+                f[a][1],
+                f[a][3]
+            );
         }
     }
 
@@ -686,9 +740,16 @@ mod tests {
     #[test]
     fn spike_station_wider() {
         let mut f = uniform(50.0);
-        for r in 0..RADIAL { f[3][r] += 20.0; }
+        for r in 0..RADIAL {
+            f[3][r] += 20.0;
+        }
         let radii = radial_to_axial_radii(&f, 1.0, 0.3, 2.5);
-        assert!(radii[3] > radii[0], "spike station wider: {}>{}", radii[3], radii[0]);
+        assert!(
+            radii[3] > radii[0],
+            "spike station wider: {}>{}",
+            radii[3],
+            radii[0]
+        );
     }
 
     // ── detect_joints ───────────────────────────────────────────────────────
@@ -818,7 +879,10 @@ mod tests {
         let spine = vec![crate::math_types::Vec3::ZERO, crate::math_types::Vec3::Y];
         let (_, dir_0) = peak_to_3d_offset(0, 0, &spine);
         let (_, dir_1) = peak_to_3d_offset(0, 1, &spine);
-        assert!((dir_0 - dir_1).length() > 0.01, "different sectors → different directions");
+        assert!(
+            (dir_0 - dir_1).length() > 0.01,
+            "different sectors → different directions"
+        );
     }
 
     // ── peak_to_spine_params ─────────────────────────────────────────────────
@@ -827,14 +891,20 @@ mod tests {
     fn spine_params_high_ar_longer() {
         let (len_low, _, _) = peak_to_spine_params(10.0, 0.5, 5.0, 1.0, 100.0);
         let (len_high, _, _) = peak_to_spine_params(10.0, 2.5, 5.0, 1.0, 100.0);
-        assert!(len_high > len_low, "high AR → longer: {len_high} vs {len_low}");
+        assert!(
+            len_high > len_low,
+            "high AR → longer: {len_high} vs {len_low}"
+        );
     }
 
     #[test]
     fn spine_params_more_qe_wider() {
         let (_, rad_low, _) = peak_to_spine_params(5.0, 1.0, 5.0, 1.0, 100.0);
         let (_, rad_high, _) = peak_to_spine_params(50.0, 1.0, 5.0, 1.0, 100.0);
-        assert!(rad_high > rad_low, "more qe → wider: {rad_high} vs {rad_low}");
+        assert!(
+            rad_high > rad_low,
+            "more qe → wider: {rad_high} vs {rad_low}"
+        );
     }
 
     #[test]

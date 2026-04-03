@@ -1,5 +1,5 @@
-use crate::math_types::Vec2;
 use crate::layers::{AbilitySlot, AlchemicalEngine};
+use crate::math_types::Vec2;
 
 // ═══════════════════════════════════════════════
 // Grimoire × Motor: “cooldown” = buffer / intake (sin timers en slots)
@@ -46,4 +46,3 @@ pub fn ability_point_in_cast_range(caster_plane: Vec2, target_plane: Vec2, range
 pub fn projectile_dissipation(spawn_radius: f32) -> f32 {
     0.5 + 0.02 * spawn_radius.max(0.0)
 }
-

@@ -15,10 +15,10 @@ pub enum SymbiosisType {
 #[reflect(Component)]
 #[component(storage = "SparseSet")]
 pub struct SymbiosisLink {
-    pub partner_id:   u32,
+    pub partner_id: u32,
     pub relationship: SymbiosisType,
     pub bonus_factor: f32,
-    pub drain_rate:   f32,
+    pub drain_rate: f32,
 }
 
 impl Default for SymbiosisLink {

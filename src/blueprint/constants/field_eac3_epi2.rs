@@ -16,4 +16,3 @@ pub const FIELD_COMPOUND_INTERFERENCE_CLAMP_MAX: f32 = 1.0;
 pub mod eac3_test_thresholds {
     pub const MIN_RGB_L1_DISTINCT: f32 = 0.1;
 }
-

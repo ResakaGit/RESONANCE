@@ -173,7 +173,10 @@ mod tests {
     fn drain_overdraw_returns_only_available() {
         let mut e = BaseEnergy::new(30.0);
         let got = e.drain(100.0);
-        assert!((got - 30.0).abs() < 1e-5, "should return available, not requested: {got}");
+        assert!(
+            (got - 30.0).abs() < 1e-5,
+            "should return available, not requested: {got}"
+        );
         assert_eq!(e.qe(), 0.0);
     }
 

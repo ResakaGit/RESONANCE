@@ -3,9 +3,11 @@
 
 use bevy::prelude::*;
 use resonance::blueprint::constants::POOL_CONSERVATION_EPSILON;
-use resonance::blueprint::equations::{conservation_error, PoolHealthStatus};
-use resonance::layers::{BaseEnergy, EnergyPool, ExtractionType, PoolConservationLedger, PoolParentLink};
-use resonance::simulation::competition_dynamics::{competition_dynamics_system, PoolDiagnostic};
+use resonance::blueprint::equations::{PoolHealthStatus, conservation_error};
+use resonance::layers::{
+    BaseEnergy, EnergyPool, ExtractionType, PoolConservationLedger, PoolParentLink,
+};
+use resonance::simulation::competition_dynamics::{PoolDiagnostic, competition_dynamics_system};
 use resonance::simulation::metabolic::pool_conservation::pool_conservation_system;
 use resonance::simulation::metabolic::pool_distribution::{
     pool_dissipation_system, pool_distribution_system, pool_intake_system,
@@ -20,14 +22,17 @@ fn make_ec_app() -> App {
     app.register_type::<BaseEnergy>();
     app.register_type::<PoolConservationLedger>();
     app.register_type::<PoolDiagnostic>();
-    app.add_systems(Update, (
-        pool_intake_system,
-        pool_distribution_system.after(pool_intake_system),
-        pool_dissipation_system.after(pool_distribution_system),
-        pool_conservation_system.after(pool_dissipation_system),
-        competition_dynamics_system.after(pool_dissipation_system),
-        scale_composition_system.after(pool_conservation_system),
-    ));
+    app.add_systems(
+        Update,
+        (
+            pool_intake_system,
+            pool_distribution_system.after(pool_intake_system),
+            pool_dissipation_system.after(pool_distribution_system),
+            pool_conservation_system.after(pool_dissipation_system),
+            competition_dynamics_system.after(pool_dissipation_system),
+            scale_composition_system.after(pool_conservation_system),
+        ),
+    );
     app
 }
 
@@ -38,21 +43,41 @@ fn make_ec_app() -> App {
 fn lotka_volterra_emergent_no_collapse() {
     let mut app = make_ec_app();
 
-    let pool = app.world_mut().spawn(EnergyPool::new(5000.0, 10000.0, 100.0, 0.001)).id();
-    app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(pool, ExtractionType::Competitive, 0.7)));
-    app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(pool, ExtractionType::Competitive, 0.3)));
-    app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(pool, ExtractionType::Regulated, 30.0)));
+    let pool = app
+        .world_mut()
+        .spawn(EnergyPool::new(5000.0, 10000.0, 100.0, 0.001))
+        .id();
+    app.world_mut().spawn((
+        BaseEnergy::new(0.0),
+        PoolParentLink::new(pool, ExtractionType::Competitive, 0.7),
+    ));
+    app.world_mut().spawn((
+        BaseEnergy::new(0.0),
+        PoolParentLink::new(pool, ExtractionType::Competitive, 0.3),
+    ));
+    app.world_mut().spawn((
+        BaseEnergy::new(0.0),
+        PoolParentLink::new(pool, ExtractionType::Regulated, 30.0),
+    ));
 
     for _ in 0..500 {
         app.update();
     }
 
     let ep = app.world().get::<EnergyPool>(pool).unwrap();
-    assert!(ep.pool() >= 0.0, "pool must be non-negative after 500 ticks: {}", ep.pool());
+    assert!(
+        ep.pool() >= 0.0,
+        "pool must be non-negative after 500 ticks: {}",
+        ep.pool()
+    );
 
     let ledger = app.world().get::<PoolConservationLedger>(pool);
     if let Some(l) = ledger {
-        assert!(l.active_children() > 0, "children must still be active: {}", l.active_children());
+        assert!(
+            l.active_children() > 0,
+            "children must still be active: {}",
+            l.active_children()
+        );
     }
 }
 
@@ -64,8 +89,17 @@ fn host_collapse_capacity_degrades_and_pool_hits_zero() {
     let mut app = make_ec_app();
 
     // intake_rate=0 para que el pool colapse sin recuperación
-    let pool = app.world_mut().spawn(EnergyPool::new(1000.0, 5000.0, 0.0, 0.001)).id();
-    let child = app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(pool, ExtractionType::Aggressive, 0.9))).id();
+    let pool = app
+        .world_mut()
+        .spawn(EnergyPool::new(1000.0, 5000.0, 0.0, 0.001))
+        .id();
+    let child = app
+        .world_mut()
+        .spawn((
+            BaseEnergy::new(0.0),
+            PoolParentLink::new(pool, ExtractionType::Aggressive, 0.9),
+        ))
+        .id();
 
     let initial_capacity = app.world().get::<EnergyPool>(pool).unwrap().capacity();
     let mut last_capacity = initial_capacity;
@@ -88,10 +122,17 @@ fn host_collapse_capacity_degrades_and_pool_hits_zero() {
 
     // Pool should have reached 0
     let ep = app.world().get::<EnergyPool>(pool).unwrap();
-    assert!(ep.pool() <= 1.0, "pool should collapse to near 0: {}", ep.pool());
+    assert!(
+        ep.pool() <= 1.0,
+        "pool should collapse to near 0: {}",
+        ep.pool()
+    );
 
     // Capacity degraded
-    assert!(last_capacity < initial_capacity, "capacity must have degraded");
+    assert!(
+        last_capacity < initial_capacity,
+        "capacity must have degraded"
+    );
 
     // Post-collapse: children get no more energy
     let qe_at_collapse = app.world().get::<BaseEnergy>(child).unwrap().qe();
@@ -112,9 +153,18 @@ fn homeostasis_regulated_children_healthy_pool() {
     let mut app = make_ec_app();
 
     // intake=200 >> extraction of 2 * base_rate=50 → always Healthy
-    let pool = app.world_mut().spawn(EnergyPool::new(5000.0, 10000.0, 200.0, 0.001)).id();
-    app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(pool, ExtractionType::Regulated, 50.0)));
-    app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(pool, ExtractionType::Regulated, 50.0)));
+    let pool = app
+        .world_mut()
+        .spawn(EnergyPool::new(5000.0, 10000.0, 200.0, 0.001))
+        .id();
+    app.world_mut().spawn((
+        BaseEnergy::new(0.0),
+        PoolParentLink::new(pool, ExtractionType::Regulated, 50.0),
+    ));
+    app.world_mut().spawn((
+        BaseEnergy::new(0.0),
+        PoolParentLink::new(pool, ExtractionType::Regulated, 50.0),
+    ));
 
     for _ in 0..200 {
         app.update();
@@ -126,7 +176,8 @@ fn homeostasis_regulated_children_healthy_pool() {
     // PoolDiagnostic is inserted via commands on tick 1, visible from tick 2
     if let Some(diag) = app.world().get::<PoolDiagnostic>(pool) {
         assert!(
-            diag.health_status == PoolHealthStatus::Healthy || diag.health_status == PoolHealthStatus::Stressed,
+            diag.health_status == PoolHealthStatus::Healthy
+                || diag.health_status == PoolHealthStatus::Stressed,
             "health must be Healthy or Stressed, not Collapsing/Collapsed: {:?}",
             diag.health_status,
         );
@@ -140,17 +191,30 @@ fn homeostasis_regulated_children_healthy_pool() {
 fn matryoshka_sub_pool_fitness_propagates() {
     let mut app = make_ec_app();
 
-    let root = app.world_mut().spawn(EnergyPool::new(5000.0, 10000.0, 200.0, 0.001)).id();
-    let sub = app.world_mut().spawn((
-        EnergyPool::new(1000.0, 2000.0, 50.0, 0.01),
-        PoolParentLink::new(root, ExtractionType::Competitive, 0.5),
-    )).id();
+    let root = app
+        .world_mut()
+        .spawn(EnergyPool::new(5000.0, 10000.0, 200.0, 0.001))
+        .id();
+    let sub = app
+        .world_mut()
+        .spawn((
+            EnergyPool::new(1000.0, 2000.0, 50.0, 0.01),
+            PoolParentLink::new(root, ExtractionType::Competitive, 0.5),
+        ))
+        .id();
     for _ in 0..4 {
-        app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(sub, ExtractionType::Proportional, 0.0)));
+        app.world_mut().spawn((
+            BaseEnergy::new(0.0),
+            PoolParentLink::new(sub, ExtractionType::Proportional, 0.0),
+        ));
     }
 
     // Initial param
-    let initial_param = app.world().get::<PoolParentLink>(sub).unwrap().primary_param();
+    let initial_param = app
+        .world()
+        .get::<PoolParentLink>(sub)
+        .unwrap()
+        .primary_param();
 
     for _ in 0..100 {
         app.update();
@@ -160,9 +224,18 @@ fn matryoshka_sub_pool_fitness_propagates() {
     let final_param = link.primary_param();
 
     // scale_composition_system should have updated the param
-    assert_ne!(final_param, initial_param, "primary_param must change after 100 ticks");
-    assert!(final_param.is_finite(), "primary_param must be finite: {final_param}");
-    assert!(final_param >= 0.0, "primary_param must be non-negative: {final_param}");
+    assert_ne!(
+        final_param, initial_param,
+        "primary_param must change after 100 ticks"
+    );
+    assert!(
+        final_param.is_finite(),
+        "primary_param must be finite: {final_param}"
+    );
+    assert!(
+        final_param >= 0.0,
+        "primary_param must be non-negative: {final_param}"
+    );
 }
 
 /// EC-8E Test 5: Conservación estricta.
@@ -171,10 +244,22 @@ fn matryoshka_sub_pool_fitness_propagates() {
 fn strict_conservation_1000_ticks() {
     let mut app = make_ec_app();
 
-    let pool = app.world_mut().spawn(EnergyPool::new(1000.0, 2000.0, 50.0, 0.01)).id();
-    app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(pool, ExtractionType::Proportional, 0.0)));
-    app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(pool, ExtractionType::Competitive, 0.6)));
-    app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(pool, ExtractionType::Regulated, 30.0)));
+    let pool = app
+        .world_mut()
+        .spawn(EnergyPool::new(1000.0, 2000.0, 50.0, 0.01))
+        .id();
+    app.world_mut().spawn((
+        BaseEnergy::new(0.0),
+        PoolParentLink::new(pool, ExtractionType::Proportional, 0.0),
+    ));
+    app.world_mut().spawn((
+        BaseEnergy::new(0.0),
+        PoolParentLink::new(pool, ExtractionType::Competitive, 0.6),
+    ));
+    app.world_mut().spawn((
+        BaseEnergy::new(0.0),
+        PoolParentLink::new(pool, ExtractionType::Regulated, 30.0),
+    ));
 
     // Warmup tick to insert ledger
     app.update();
@@ -182,20 +267,27 @@ fn strict_conservation_1000_ticks() {
     for tick in 0..1000 {
         let snap = *app.world().get::<EnergyPool>(pool).unwrap();
         let pool_before = snap.pool();
-        let intake_rate  = snap.intake_rate();
-        let capacity     = snap.capacity();
+        let intake_rate = snap.intake_rate();
+        let capacity = snap.capacity();
 
         app.update();
 
         let pool_after = app.world().get::<EnergyPool>(pool).unwrap().pool();
-        let Some(ledger) = app.world().get::<PoolConservationLedger>(pool) else { continue; };
+        let Some(ledger) = app.world().get::<PoolConservationLedger>(pool) else {
+            continue;
+        };
 
-        if pool_before <= POOL_CONSERVATION_EPSILON { continue; }
+        if pool_before <= POOL_CONSERVATION_EPSILON {
+            continue;
+        }
 
         let actual_intake = (pool_before + intake_rate).min(capacity) - pool_before;
         let err = conservation_error(
-            pool_before, pool_after, actual_intake,
-            ledger.total_extracted(), ledger.total_dissipated(),
+            pool_before,
+            pool_after,
+            actual_intake,
+            ledger.total_extracted(),
+            ledger.total_dissipated(),
         );
         assert!(
             err < POOL_CONSERVATION_EPSILON,
@@ -210,11 +302,25 @@ fn strict_conservation_1000_ticks() {
 fn determinism_same_scenario_same_results() {
     fn run_scenario() -> (f32, f32, f32) {
         let mut app = make_ec_app();
-        let pool = app.world_mut().spawn(EnergyPool::new(5000.0, 10000.0, 100.0, 0.001)).id();
-        app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(pool, ExtractionType::Competitive, 0.7)));
-        app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(pool, ExtractionType::Competitive, 0.3)));
-        app.world_mut().spawn((BaseEnergy::new(0.0), PoolParentLink::new(pool, ExtractionType::Regulated, 30.0)));
-        for _ in 0..200 { app.update(); }
+        let pool = app
+            .world_mut()
+            .spawn(EnergyPool::new(5000.0, 10000.0, 100.0, 0.001))
+            .id();
+        app.world_mut().spawn((
+            BaseEnergy::new(0.0),
+            PoolParentLink::new(pool, ExtractionType::Competitive, 0.7),
+        ));
+        app.world_mut().spawn((
+            BaseEnergy::new(0.0),
+            PoolParentLink::new(pool, ExtractionType::Competitive, 0.3),
+        ));
+        app.world_mut().spawn((
+            BaseEnergy::new(0.0),
+            PoolParentLink::new(pool, ExtractionType::Regulated, 30.0),
+        ));
+        for _ in 0..200 {
+            app.update();
+        }
         let ep = app.world().get::<EnergyPool>(pool).unwrap();
         let ledger = app.world().get::<PoolConservationLedger>(pool);
         let extracted = ledger.map(|l| l.total_extracted()).unwrap_or(0.0);
@@ -225,7 +331,16 @@ fn determinism_same_scenario_same_results() {
     let (pool1, ext1, dis1) = run_scenario();
     let (pool2, ext2, dis2) = run_scenario();
 
-    assert!((pool1 - pool2).abs() < 1e-4, "pool diverged: {pool1} vs {pool2}");
-    assert!((ext1 - ext2).abs() < 1e-4,  "extraction diverged: {ext1} vs {ext2}");
-    assert!((dis1 - dis2).abs() < 1e-4,  "dissipation diverged: {dis1} vs {dis2}");
+    assert!(
+        (pool1 - pool2).abs() < 1e-4,
+        "pool diverged: {pool1} vs {pool2}"
+    );
+    assert!(
+        (ext1 - ext2).abs() < 1e-4,
+        "extraction diverged: {ext1} vs {ext2}"
+    );
+    assert!(
+        (dis1 - dis2).abs() < 1e-4,
+        "dissipation diverged: {dis1} vs {dis2}"
+    );
 }

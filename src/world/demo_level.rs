@@ -4,8 +4,8 @@ use crate::blueprint::AlchemicalAlmanac;
 use crate::blueprint::IdGenerator;
 use crate::entities::archetypes::spawn_rosa;
 use crate::layers::{
-    BaseEnergy, CapabilitySet, GrowthBudget, InferenceProfile, LifecycleStage,
-    LifecycleStageCache, SpatialVolume,
+    BaseEnergy, CapabilitySet, GrowthBudget, InferenceProfile, LifecycleStage, LifecycleStageCache,
+    SpatialVolume,
 };
 use crate::rendering::quantized_color::QuantizedPrecision;
 use crate::runtime_platform::camera_controller_3d::{
@@ -52,8 +52,12 @@ fn attach_rosa_to_field(
     almanac: &AlchemicalAlmanac,
     t: f32,
 ) {
-    let Some((cx, cy)) = grid.cell_coords(Vec2::ZERO) else { return };
-    let Some(cell) = grid.cell_xy(cx, cy) else { return };
+    let Some((cx, cy)) = grid.cell_coords(Vec2::ZERO) else {
+        return;
+    };
+    let Some(cell) = grid.cell_xy(cx, cy) else {
+        return;
+    };
     let archetype = materialize_cell_at_time(cell, almanac, t, grid.cell_size, None)
         .map(|r| r.archetype)
         .unwrap_or(WorldArchetype::TerraSolid);
@@ -61,11 +65,18 @@ fn attach_rosa_to_field(
     commands.entity(rosa).insert((
         Name::new("flora_rosa"),
         RosaLifecycleFocus,
-        Materialized { cell_x: cx as i32, cell_y: cy as i32, archetype },
+        Materialized {
+            cell_x: cx as i32,
+            cell_y: cy as i32,
+            archetype,
+        },
         QuantizedPrecision(1.0),
         CapabilitySet::new(
-            CapabilitySet::GROW | CapabilitySet::BRANCH | CapabilitySet::ROOT
-            | CapabilitySet::PHOTOSYNTH | CapabilitySet::REPRODUCE,
+            CapabilitySet::GROW
+                | CapabilitySet::BRANCH
+                | CapabilitySet::ROOT
+                | CapabilitySet::PHOTOSYNTH
+                | CapabilitySet::REPRODUCE,
         ),
         LifecycleStageCache {
             stage: LifecycleStage::Growing,
@@ -74,7 +85,12 @@ fn attach_rosa_to_field(
             candidate_ticks: 0,
         },
         InferenceProfile::new(0.93, 0.0, 0.94, 0.52),
-        EnergyVisual { color: Color::srgb(0.25, 0.6, 0.2), scale: 1.0, emission: 0.0, opacity: 1.0 },
+        EnergyVisual {
+            color: Color::srgb(0.25, 0.6, 0.2),
+            scale: 1.0,
+            emission: 0.0,
+            opacity: 1.0,
+        },
     ));
     commands.entity(rosa).remove::<V6RuntimeEntity>();
 }
@@ -131,7 +147,13 @@ pub fn spawn_demo_level_startup_system(
 
     // Acoplar al campo V7.
     if let Some(g) = grid.as_deref() {
-        attach_rosa_to_field(&mut commands, rosa, g, almanac.as_ref(), time.elapsed_secs());
+        attach_rosa_to_field(
+            &mut commands,
+            rosa,
+            g,
+            almanac.as_ref(),
+            time.elapsed_secs(),
+        );
     }
 
     // Ocultar todo lo que no sea la rosa.
@@ -162,15 +184,22 @@ pub fn pin_rosa_lod_focus_system(
     mut lod: ResMut<WorldgenLodContext>,
 ) {
     let Some(grid) = grid.as_deref() else { return };
-    let Some((cx, cy)) = grid.cell_coords(Vec2::ZERO) else { return };
-    let Some(center) = grid.world_pos(cx, cy) else { return };
+    let Some((cx, cy)) = grid.cell_coords(Vec2::ZERO) else {
+        return;
+    };
+    let Some(center) = grid.world_pos(cx, cy) else {
+        return;
+    };
     lod.focus_world = Some(center);
 }
 
 /// Oculta todo excepto la rosa — tiles, núcleos, runtime entities.
 pub fn enforce_rosa_focus_system(
     mut commands: Commands,
-    materialized_q: Query<(Entity, Option<&Visibility>, Option<&RosaLifecycleFocus>), With<Materialized>>,
+    materialized_q: Query<
+        (Entity, Option<&Visibility>, Option<&RosaLifecycleFocus>),
+        With<Materialized>,
+    >,
     nuclei_q: Query<(Entity, Option<&Visibility>), With<StartupNucleus>>,
     runtime_q: Query<Entity, (With<V6RuntimeEntity>, Without<RosaLifecycleFocus>)>,
 ) {
@@ -202,13 +231,17 @@ pub fn stabilize_rosa_growth_system(
     mut bio_q: Query<(&mut GrowthBudget, &mut BaseEnergy), With<RosaLifecycleFocus>>,
     rebuild_q: Query<
         Entity,
-        (With<RosaLifecycleFocus>,
-         With<crate::worldgen::shape_inference::ShapeInferred>,
-         Without<crate::worldgen::shape_inference::PendingGrowthMorphRebuild>),
+        (
+            With<RosaLifecycleFocus>,
+            With<crate::worldgen::shape_inference::ShapeInferred>,
+            Without<crate::worldgen::shape_inference::PendingGrowthMorphRebuild>,
+        ),
     >,
 ) {
     for mut prec in &mut prec_q {
-        if prec.0 < 1.0 { prec.0 = 1.0; }
+        if prec.0 < 1.0 {
+            prec.0 = 1.0;
+        }
     }
     for (mut budget, mut energy) in &mut bio_q {
         if budget.biomass_available < ROSA_FOCUS_BIOMASS_FLOOR {
@@ -220,22 +253,42 @@ pub fn stabilize_rosa_growth_system(
         }
     }
     for entity in &rebuild_q {
-        commands.entity(entity).insert(crate::worldgen::shape_inference::PendingGrowthMorphRebuild);
+        commands
+            .entity(entity)
+            .insert(crate::worldgen::shape_inference::PendingGrowthMorphRebuild);
     }
 }
 
 /// Telemetría flora_*.
 pub fn debug_botanical_seed_system(
     sim_elapsed: Option<Res<SimulationElapsed>>,
-    q: Query<(&Name, &BaseEnergy, &SpatialVolume, Option<&GrowthBudget>, Option<&LifecycleStageCache>)>,
+    q: Query<(
+        &Name,
+        &BaseEnergy,
+        &SpatialVolume,
+        Option<&GrowthBudget>,
+        Option<&LifecycleStageCache>,
+    )>,
 ) {
     let sim_secs = sim_elapsed.map(|e| e.secs).unwrap_or(0.0);
     let bio_months = (sim_secs * DEMO_BIO_SECS_PER_SIM_SEC) / SECONDS_PER_MONTH;
     for (name, energy, volume, budget, stage) in &q {
-        if !name.as_str().starts_with("flora_") { continue; }
-        let b = budget.map(|g| format!("Bio={:.3} Eff={:.2}", g.biomass_available, g.efficiency)).unwrap_or("NoBudget".into());
-        let s = stage.map(|s| format!("{:?}", s.stage)).unwrap_or("NoStage".into());
-        info!("[{}] t={:.1}m | qe={:.0} | r={:.3} | {b} | stage={s}", name.as_str(), bio_months, energy.qe, volume.radius);
+        if !name.as_str().starts_with("flora_") {
+            continue;
+        }
+        let b = budget
+            .map(|g| format!("Bio={:.3} Eff={:.2}", g.biomass_available, g.efficiency))
+            .unwrap_or("NoBudget".into());
+        let s = stage
+            .map(|s| format!("{:?}", s.stage))
+            .unwrap_or("NoStage".into());
+        info!(
+            "[{}] t={:.1}m | qe={:.0} | r={:.3} | {b} | stage={s}",
+            name.as_str(),
+            bio_months,
+            energy.qe,
+            volume.radius
+        );
     }
 }
 

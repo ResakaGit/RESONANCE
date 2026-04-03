@@ -119,7 +119,11 @@ pub fn frequency_purity_at_distance(distance: f32, lambda_coherence: f32) -> f32
 ///
 /// The Kuramoto model requires knowing the neighbour's frequency precisely.
 /// At low purity the coupling collapses, giving the system a natural radius.
-pub fn entrainment_coupling_at_distance(base_coupling: f32, distance: f32, lambda_coherence: f32) -> f32 {
+pub fn entrainment_coupling_at_distance(
+    base_coupling: f32,
+    distance: f32,
+    lambda_coherence: f32,
+) -> f32 {
     base_coupling.max(0.0) * frequency_purity_at_distance(distance, lambda_coherence)
 }
 
@@ -339,7 +343,7 @@ mod tests {
     #[test]
     fn freq_purity_decreases_monotonically() {
         let near = frequency_purity_at_distance(5.0, 12.0);
-        let far  = frequency_purity_at_distance(20.0, 12.0);
+        let far = frequency_purity_at_distance(20.0, 12.0);
         assert!(near > far, "near={near} far={far}");
     }
 
@@ -372,8 +376,8 @@ mod tests {
 
     #[test]
     fn entrainment_coupling_decays_with_distance() {
-        let close = entrainment_coupling_at_distance(1.0, 2.0,  12.0);
-        let far   = entrainment_coupling_at_distance(1.0, 30.0, 12.0);
+        let close = entrainment_coupling_at_distance(1.0, 2.0, 12.0);
+        let far = entrainment_coupling_at_distance(1.0, 30.0, 12.0);
         assert!(close > far, "close={close} far={far}");
     }
 

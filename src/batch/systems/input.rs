@@ -5,8 +5,8 @@
 
 use crate::batch::arena::SimWorldFlat;
 use crate::batch::constants::{
-    BEHAVIOR_MOBILITY_MIN, FOOD_QE_RATIO, GUARD_EPSILON,
-    HUNT_MOBILITY_THRESHOLD, MAX_ENTITIES, THREAT_QE_RATIO,
+    BEHAVIOR_MOBILITY_MIN, FOOD_QE_RATIO, GUARD_EPSILON, HUNT_MOBILITY_THRESHOLD, MAX_ENTITIES,
+    THREAT_QE_RATIO,
 };
 use crate::batch::scratch::ScratchPad;
 use crate::blueprint::{constants, equations};
@@ -29,10 +29,13 @@ pub fn behavior_assess(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
         mi &= mi - 1;
         // Axiom 6: behavior emerges from composition, not top-down tags.
         // Entities with mobility capacity (mobility_bias > 0) exhibit behavior.
-        if world.entities[i].mobility_bias <= BEHAVIOR_MOBILITY_MIN { continue; }
+        if world.entities[i].mobility_bias <= BEHAVIOR_MOBILITY_MIN {
+            continue;
+        }
 
         let (hunger, _energy_ratio) = equations::assess_energy(
-            world.entities[i].engine_buffer, world.entities[i].engine_max.max(GUARD_EPSILON),
+            world.entities[i].engine_buffer,
+            world.entities[i].engine_max.max(GUARD_EPSILON),
         );
 
         let mut best_food_dist_sq = f32::MAX;
@@ -44,7 +47,9 @@ pub fn behavior_assess(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
         while mj != 0 {
             let j = mj.trailing_zeros() as usize;
             mj &= mj - 1;
-            if i == j { continue; }
+            if i == j {
+                continue;
+            }
 
             let dx = world.entities[i].position[0] - world.entities[j].position[0];
             let dy = world.entities[i].position[1] - world.entities[j].position[1];
@@ -77,24 +82,34 @@ pub fn behavior_assess(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
         };
 
         if best_food_idx < MAX_ENTITIES as u8 {
-            scores[1] = equations::utility_forage(hunger, food_dist, world.entities[i].mobility_bias);
+            scores[1] =
+                equations::utility_forage(hunger, food_dist, world.entities[i].mobility_bias);
             // Axiom 6: hunt ability from mobility composition, not trophic tag.
             if world.entities[i].mobility_bias > HUNT_MOBILITY_THRESHOLD {
                 scores[3] = equations::utility_hunt(
                     world.entities[best_food_idx as usize].qe,
-                    food_dist, world.entities[i].qe, world.entities[i].mobility_bias,
+                    food_dist,
+                    world.entities[i].qe,
+                    world.entities[i].mobility_bias,
                 );
             }
         }
         if best_threat_idx < MAX_ENTITIES as u8 {
             scores[2] = equations::utility_flee(
-                equations::threat_level(world.entities[best_threat_idx as usize].qe, world.entities[i].qe),
-                threat_dist, constants::HUNT_MAX_RANGE, world.entities[i].resilience,
+                equations::threat_level(
+                    world.entities[best_threat_idx as usize].qe,
+                    world.entities[i].qe,
+                ),
+                threat_dist,
+                constants::HUNT_MAX_RANGE,
+                world.entities[i].resilience,
             );
         }
 
         let mut action = equations::select_best_action(&scores) as u8;
-        if scores[2] >= constants::PANIC_THRESHOLD { action = 2; }
+        if scores[2] >= constants::PANIC_THRESHOLD {
+            action = 2;
+        }
 
         // Encode: action in top 2 bits, target idx in bottom 6 bits (supports 64 entities)
         let target = match action {
@@ -188,7 +203,10 @@ mod tests {
         let mut scratch = ScratchPad::new();
         behavior_assess(&mut w, &mut scratch);
         // Predator should intend rightward (positive x)
-        assert!(w.entities[pred].will_intent[0] > 0.0, "should move toward prey");
+        assert!(
+            w.entities[pred].will_intent[0] > 0.0,
+            "should move toward prey"
+        );
     }
 
     #[test]
@@ -199,7 +217,10 @@ mod tests {
         let mut scratch = ScratchPad::new();
         behavior_assess(&mut w, &mut scratch);
         // Herbivore should flee leftward (negative x)
-        assert!(w.entities[prey].will_intent[0] < 0.0, "should flee from threat");
+        assert!(
+            w.entities[prey].will_intent[0] < 0.0,
+            "should flee from threat"
+        );
     }
 
     #[test]

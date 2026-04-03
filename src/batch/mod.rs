@@ -8,11 +8,11 @@
 pub mod arena;
 pub mod batch;
 pub mod bridge;
+pub mod census;
 pub mod constants;
 pub mod events;
 pub mod genome;
 pub mod harness;
-pub mod census;
 pub mod lineage;
 pub mod pipeline;
 pub mod scratch;

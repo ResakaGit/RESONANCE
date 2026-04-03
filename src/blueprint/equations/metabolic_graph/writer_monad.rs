@@ -5,25 +5,27 @@
 
 use crate::blueprint::constants::{CHAIN_CONSERVATION_EPSILON, DIVISION_GUARD_EPSILON};
 use crate::blueprint::morphogenesis::{san_efficiency_01, san_nonneg};
-use crate::layers::metabolic_graph::{MetabolicGraph, METABOLIC_GRAPH_MAX_EDGES, METABOLIC_GRAPH_MAX_NODES};
+use crate::layers::metabolic_graph::{
+    METABOLIC_GRAPH_MAX_EDGES, METABOLIC_GRAPH_MAX_NODES, MetabolicGraph,
+};
 
 // ── Tipos (Copy, stack-only) ────────────────────────────────────────
 
 /// Salida de un organo logico: util + desechos (Writer).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct OrganOutput {
-    pub mass_out:        f32,
-    pub exergy_out:      f32,
-    pub waste_mass:      f32,
+    pub mass_out: f32,
+    pub exergy_out: f32,
+    pub waste_mass: f32,
     pub heat_dissipated: f32,
 }
 
 /// Resultado de evaluar todo el DAG en orden topologico.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ChainOutput {
-    pub final_exergy:  f32,
-    pub total_heat:    f32,
-    pub total_waste:   f32,
+    pub final_exergy: f32,
+    pub total_heat: f32,
+    pub total_waste: f32,
     pub per_node_heat: [f32; METABOLIC_GRAPH_MAX_NODES],
 }
 
@@ -59,7 +61,12 @@ pub fn organ_transform(
         "exergy conservation violated: in={e}, out={exergy_out}, heat={heat_dissipated}, ea={ea}",
     );
 
-    OrganOutput { mass_out, exergy_out, waste_mass, heat_dissipated }
+    OrganOutput {
+        mass_out,
+        exergy_out,
+        waste_mass,
+        heat_dissipated,
+    }
 }
 
 // ── distribute_to_children ──────────────────────────────────────────
@@ -110,7 +117,11 @@ pub fn distribute_to_children(
 pub fn exergy_efficiency(final_exergy: f32, initial_exergy: f32) -> f32 {
     let num = san_nonneg(final_exergy);
     let den = san_nonneg(initial_exergy);
-    if den > DIVISION_GUARD_EPSILON { num / den } else { 0.0 }
+    if den > DIVISION_GUARD_EPSILON {
+        num / den
+    } else {
+        0.0
+    }
 }
 
 // ── evaluate_metabolic_chain ────────────────────────────────────────
@@ -125,9 +136,9 @@ pub fn evaluate_metabolic_chain(
     let node_count = graph.node_count();
     if node_count == 0 {
         return ChainOutput {
-            final_exergy:  0.0,
-            total_heat:    0.0,
-            total_waste:   0.0,
+            final_exergy: 0.0,
+            total_heat: 0.0,
+            total_waste: 0.0,
             per_node_heat: [0.0; METABOLIC_GRAPH_MAX_NODES],
         };
     }
@@ -145,7 +156,7 @@ pub fn evaluate_metabolic_chain(
     }
 
     let root_count = in_degree[..node_count].iter().filter(|&&d| d == 0).count();
-    let mut mass_in  = [0.0f32; METABOLIC_GRAPH_MAX_NODES];
+    let mut mass_in = [0.0f32; METABOLIC_GRAPH_MAX_NODES];
     let mut exergy_in = [0.0f32; METABOLIC_GRAPH_MAX_NODES];
     if root_count > 0 {
         let m_share = san_nonneg(initial_mass) / root_count as f32;
@@ -159,17 +170,16 @@ pub fn evaluate_metabolic_chain(
     }
 
     // Pre-compute outgoing adjacency: O(E) once
-    let (adj_indices, adj_starts, has_outgoing) =
-        build_outgoing_adjacency(edges, node_count);
+    let (adj_indices, adj_starts, has_outgoing) = build_outgoing_adjacency(edges, node_count);
 
     // Kahn determinista (cola ordenada por indice ascendente)
     let order = kahn_topological_order(&in_degree, &adj_indices, &adj_starts, edges, node_count);
 
     // Acumuladores
-    let mut per_node_heat  = [0.0f32; METABOLIC_GRAPH_MAX_NODES];
+    let mut per_node_heat = [0.0f32; METABOLIC_GRAPH_MAX_NODES];
     let mut exergy_out_per = [0.0f32; METABOLIC_GRAPH_MAX_NODES];
-    let mut total_heat     = 0.0f32;
-    let mut total_waste    = 0.0f32;
+    let mut total_heat = 0.0f32;
+    let mut total_waste = 0.0f32;
 
     for &ni in &order[..node_count] {
         let idx = ni as usize;
@@ -189,7 +199,7 @@ pub fn evaluate_metabolic_chain(
 
         // Outgoing edges via pre-computed adjacency: O(out-degree)
         let start = adj_starts[idx] as usize;
-        let end   = adj_starts[idx + 1] as usize;
+        let end = adj_starts[idx + 1] as usize;
         if start < end {
             let mut out_caps = [(0u8, 0.0f32); METABOLIC_GRAPH_MAX_EDGES];
             let out_count = end - start;
@@ -217,7 +227,12 @@ pub fn evaluate_metabolic_chain(
         .map(|i| exergy_out_per[i])
         .sum();
 
-    ChainOutput { final_exergy, total_heat, total_waste, per_node_heat }
+    ChainOutput {
+        final_exergy,
+        total_heat,
+        total_waste,
+        per_node_heat,
+    }
 }
 
 /// Pre-computes outgoing edge adjacency in O(E). Stack-only.
@@ -289,7 +304,7 @@ fn kahn_topological_order(
         head += 1;
 
         let start = adj_starts[u] as usize;
-        let end   = adj_starts[u + 1] as usize;
+        let end = adj_starts[u + 1] as usize;
         for k in start..end {
             let ei = adj_indices[k] as usize;
             let v = edges[ei].to as usize;
@@ -320,14 +335,20 @@ fn kahn_topological_order(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::blueprint::OrganRole;
     use crate::blueprint::morphogenesis::exergy_balance;
-    use crate::layers::{MetabolicGraphBuilder, OrganRole};
+    use crate::layers::MetabolicGraphBuilder;
 
     // ── MG-6A: Type properties ──
 
     #[test]
     fn organ_output_is_copy() {
-        let a = OrganOutput { mass_out: 1.0, exergy_out: 2.0, waste_mass: 0.5, heat_dissipated: 0.3 };
+        let a = OrganOutput {
+            mass_out: 1.0,
+            exergy_out: 2.0,
+            waste_mass: 0.5,
+            heat_dissipated: 0.3,
+        };
         let b = a;
         assert_eq!(a, b);
     }
@@ -335,7 +356,9 @@ mod tests {
     #[test]
     fn chain_output_is_copy() {
         let a = ChainOutput {
-            final_exergy: 1.0, total_heat: 2.0, total_waste: 3.0,
+            final_exergy: 1.0,
+            total_heat: 2.0,
+            total_waste: 3.0,
             per_node_heat: [0.0; METABOLIC_GRAPH_MAX_NODES],
         };
         let b = a;
@@ -354,12 +377,28 @@ mod tests {
     #[test]
     fn organ_transform_standard_case() {
         let out = organ_transform(100.0, 500.0, 0.7, 10.0);
-        assert!((out.mass_out - 70.0).abs() < 1e-4, "mass_out={}", out.mass_out);
-        assert!((out.waste_mass - 30.0).abs() < 1e-4, "waste_mass={}", out.waste_mass);
+        assert!(
+            (out.mass_out - 70.0).abs() < 1e-4,
+            "mass_out={}",
+            out.mass_out
+        );
+        assert!(
+            (out.waste_mass - 30.0).abs() < 1e-4,
+            "waste_mass={}",
+            out.waste_mass
+        );
         let expected_exergy = exergy_balance(500.0, 0.7, 10.0);
-        assert!((out.exergy_out - expected_exergy).abs() < 1e-4, "exergy_out={}", out.exergy_out);
+        assert!(
+            (out.exergy_out - expected_exergy).abs() < 1e-4,
+            "exergy_out={}",
+            out.exergy_out
+        );
         let expected_heat = 500.0 - expected_exergy - 10.0;
-        assert!((out.heat_dissipated - expected_heat).abs() < 1e-4, "heat={}", out.heat_dissipated);
+        assert!(
+            (out.heat_dissipated - expected_heat).abs() < 1e-4,
+            "heat={}",
+            out.heat_dissipated
+        );
     }
 
     #[test]
@@ -387,7 +426,10 @@ mod tests {
     #[test]
     fn organ_transform_activation_exceeds_exergy() {
         let out = organ_transform(100.0, 5.0, 0.7, 10.0);
-        assert_eq!(out.exergy_out, 0.0, "activation > exergy*eta => exergy_out=0");
+        assert_eq!(
+            out.exergy_out, 0.0,
+            "activation > exergy*eta => exergy_out=0"
+        );
         assert!(out.mass_out >= 0.0);
         assert!(out.waste_mass >= 0.0);
         assert!(out.heat_dissipated >= 0.0);
@@ -418,16 +460,26 @@ mod tests {
     #[test]
     fn organ_transform_conservation_table_driven() {
         let cases: [(f32, f32, f32, f32); 20] = [
-            (100.0, 500.0, 0.7, 10.0), (50.0, 200.0, 0.9, 5.0),
-            (200.0, 100.0, 0.5, 20.0), (10.0, 1000.0, 0.3, 50.0),
-            (0.0,   0.0,   0.7, 10.0), (100.0, 5.0,   0.7, 10.0),
-            (1.0,   1.0,   0.1, 0.0),  (1000.0, 1000.0, 0.99, 1.0),
-            (0.5,   0.5,   0.5, 0.5),  (100.0, 100.0, 0.0, 0.0),
-            (100.0, 100.0, 1.0, 0.0),  (100.0, 100.0, 1.0, 100.0),
-            (1e-3,  1e-3,  0.5, 0.0),  (1e6,   1e6,   0.8, 1e3),
-            (42.0,  137.0, 0.42, 3.14),(99.9,  99.9,  0.999, 0.001),
-            (1.0,   1000.0, 0.01, 0.0),(1000.0, 1.0, 0.99, 0.0),
-            (50.0,  50.0,  0.5, 25.0), (75.0,  300.0, 0.6, 15.0),
+            (100.0, 500.0, 0.7, 10.0),
+            (50.0, 200.0, 0.9, 5.0),
+            (200.0, 100.0, 0.5, 20.0),
+            (10.0, 1000.0, 0.3, 50.0),
+            (0.0, 0.0, 0.7, 10.0),
+            (100.0, 5.0, 0.7, 10.0),
+            (1.0, 1.0, 0.1, 0.0),
+            (1000.0, 1000.0, 0.99, 1.0),
+            (0.5, 0.5, 0.5, 0.5),
+            (100.0, 100.0, 0.0, 0.0),
+            (100.0, 100.0, 1.0, 0.0),
+            (100.0, 100.0, 1.0, 100.0),
+            (1e-3, 1e-3, 0.5, 0.0),
+            (1e6, 1e6, 0.8, 1e3),
+            (42.0, 137.0, 0.42, 3.14),
+            (99.9, 99.9, 0.999, 0.001),
+            (1.0, 1000.0, 0.01, 0.0),
+            (1000.0, 1.0, 0.99, 0.0),
+            (50.0, 50.0, 0.5, 25.0),
+            (75.0, 300.0, 0.6, 15.0),
         ];
         for (i, &(m, e, eta, ea)) in cases.iter().enumerate() {
             let out = organ_transform(m, e, eta, ea);
@@ -436,7 +488,8 @@ mod tests {
             assert!(
                 (m_safe - out.mass_out - out.waste_mass).abs() < eps_m,
                 "case {i}: mass conservation failed: {m_safe} != {} + {}",
-                out.mass_out, out.waste_mass,
+                out.mass_out,
+                out.waste_mass,
             );
             let e_safe = san_nonneg(e);
             let ea_safe = san_nonneg(ea);
@@ -472,8 +525,14 @@ mod tests {
         let (dist, n) = distribute_to_children(100.0, 500.0, &[(0, 60.0), (1, 40.0)]);
         let sum_m: f32 = (0..n).map(|i| dist[i].1).sum();
         let sum_e: f32 = (0..n).map(|i| dist[i].2).sum();
-        assert!((sum_m - 100.0).abs() < CHAIN_CONSERVATION_EPSILON, "mass sum={sum_m}");
-        assert!((sum_e - 500.0).abs() < CHAIN_CONSERVATION_EPSILON, "exergy sum={sum_e}");
+        assert!(
+            (sum_m - 100.0).abs() < CHAIN_CONSERVATION_EPSILON,
+            "mass sum={sum_m}"
+        );
+        assert!(
+            (sum_e - 500.0).abs() < CHAIN_CONSERVATION_EPSILON,
+            "exergy sum={sum_e}"
+        );
     }
 
     #[test]
@@ -499,9 +558,9 @@ mod tests {
 
     fn build_linear_3_graph() -> MetabolicGraph {
         MetabolicGraphBuilder::new()
-            .add_node(OrganRole::Root, 0.9, 3.0)  // Captador
-            .add_node(OrganRole::Core, 0.7, 8.0)  // Procesador
-            .add_node(OrganRole::Fin,  0.6, 5.0)  // Actuador
+            .add_node(OrganRole::Root, 0.9, 3.0) // Captador
+            .add_node(OrganRole::Core, 0.7, 8.0) // Procesador
+            .add_node(OrganRole::Fin, 0.6, 5.0) // Actuador
             .add_edge(0, 1, 50.0)
             .add_edge(1, 2, 40.0)
             .build()
@@ -515,39 +574,63 @@ mod tests {
 
         // Nodo 0: organ_transform(100, 500, 0.9, 3)
         let n0 = organ_transform(100.0, 500.0, 0.9, 3.0);
-        assert!((chain.per_node_heat[0] - n0.heat_dissipated).abs() < 1e-3,
-            "node 0 heat: {} vs {}", chain.per_node_heat[0], n0.heat_dissipated);
+        assert!(
+            (chain.per_node_heat[0] - n0.heat_dissipated).abs() < 1e-3,
+            "node 0 heat: {} vs {}",
+            chain.per_node_heat[0],
+            n0.heat_dissipated
+        );
 
         // Nodo 1: organ_transform(n0.mass_out, n0.exergy_out, 0.7, 8)
         let n1 = organ_transform(n0.mass_out, n0.exergy_out, 0.7, 8.0);
-        assert!((chain.per_node_heat[1] - n1.heat_dissipated).abs() < 1e-3,
-            "node 1 heat: {} vs {}", chain.per_node_heat[1], n1.heat_dissipated);
+        assert!(
+            (chain.per_node_heat[1] - n1.heat_dissipated).abs() < 1e-3,
+            "node 1 heat: {} vs {}",
+            chain.per_node_heat[1],
+            n1.heat_dissipated
+        );
 
         // Nodo 2: organ_transform(n1.mass_out, n1.exergy_out, 0.6, 5)
         let n2 = organ_transform(n1.mass_out, n1.exergy_out, 0.6, 5.0);
-        assert!((chain.per_node_heat[2] - n2.heat_dissipated).abs() < 1e-3,
-            "node 2 heat: {} vs {}", chain.per_node_heat[2], n2.heat_dissipated);
+        assert!(
+            (chain.per_node_heat[2] - n2.heat_dissipated).abs() < 1e-3,
+            "node 2 heat: {} vs {}",
+            chain.per_node_heat[2],
+            n2.heat_dissipated
+        );
 
         let expected_total_heat = n0.heat_dissipated + n1.heat_dissipated + n2.heat_dissipated;
-        assert!((chain.total_heat - expected_total_heat).abs() < 1e-2,
-            "total heat: {} vs {}", chain.total_heat, expected_total_heat);
+        assert!(
+            (chain.total_heat - expected_total_heat).abs() < 1e-2,
+            "total heat: {} vs {}",
+            chain.total_heat,
+            expected_total_heat
+        );
 
         let expected_total_waste = n0.waste_mass + n1.waste_mass + n2.waste_mass;
-        assert!((chain.total_waste - expected_total_waste).abs() < 1e-2,
-            "total waste: {} vs {}", chain.total_waste, expected_total_waste);
+        assert!(
+            (chain.total_waste - expected_total_waste).abs() < 1e-2,
+            "total waste: {} vs {}",
+            chain.total_waste,
+            expected_total_waste
+        );
 
-        assert!((chain.final_exergy - n2.exergy_out).abs() < 1e-2,
-            "final exergy: {} vs {}", chain.final_exergy, n2.exergy_out);
+        assert!(
+            (chain.final_exergy - n2.exergy_out).abs() < 1e-2,
+            "final exergy: {} vs {}",
+            chain.final_exergy,
+            n2.exergy_out
+        );
     }
 
     #[test]
     fn chain_fork_proportional_distribution() {
         let graph = MetabolicGraphBuilder::new()
-            .add_node(OrganRole::Root, 0.9, 3.0)  // 0: captador
-            .add_node(OrganRole::Stem, 0.8, 5.0)  // 1: procesador A
-            .add_node(OrganRole::Fin,  0.7, 4.0)  // 2: procesador B
-            .add_edge(0, 1, 60.0)  // 60% capacity
-            .add_edge(0, 2, 40.0)  // 40% capacity
+            .add_node(OrganRole::Root, 0.9, 3.0) // 0: captador
+            .add_node(OrganRole::Stem, 0.8, 5.0) // 1: procesador A
+            .add_node(OrganRole::Fin, 0.7, 4.0) // 2: procesador B
+            .add_edge(0, 1, 60.0) // 60% capacity
+            .add_edge(0, 2, 40.0) // 40% capacity
             .build()
             .unwrap();
 
@@ -565,8 +648,12 @@ mod tests {
         let n2 = organ_transform(mass_2, exergy_2, 0.7, 4.0);
 
         let expected_waste = n0.waste_mass + n1.waste_mass + n2.waste_mass;
-        assert!((chain.total_waste - expected_waste).abs() < 1e-1,
-            "fork waste: {} vs {}", chain.total_waste, expected_waste);
+        assert!(
+            (chain.total_waste - expected_waste).abs() < 1e-1,
+            "fork waste: {} vs {}",
+            chain.total_waste,
+            expected_waste
+        );
 
         // Conservation: total inputs >= total outputs
         assert!(chain.total_heat >= 0.0);
@@ -577,9 +664,9 @@ mod tests {
     #[test]
     fn chain_join_sums_parent_outputs() {
         let graph = MetabolicGraphBuilder::new()
-            .add_node(OrganRole::Root,    0.9, 3.0) // 0: captador A
+            .add_node(OrganRole::Root, 0.9, 3.0) // 0: captador A
             .add_node(OrganRole::Sensory, 0.8, 2.0) // 1: captador B
-            .add_node(OrganRole::Core,    0.7, 8.0) // 2: procesador (join)
+            .add_node(OrganRole::Core, 0.7, 8.0) // 2: procesador (join)
             .add_edge(0, 2, 50.0)
             .add_edge(1, 2, 50.0)
             .build()
@@ -595,13 +682,22 @@ mod tests {
         let n2 = organ_transform(
             n0.mass_out + n1.mass_out,
             n0.exergy_out + n1.exergy_out,
-            0.7, 8.0,
+            0.7,
+            8.0,
         );
 
-        assert!((chain.per_node_heat[2] - n2.heat_dissipated).abs() < 1e-2,
-            "join node heat: {} vs {}", chain.per_node_heat[2], n2.heat_dissipated);
-        assert!((chain.final_exergy - n2.exergy_out).abs() < 1e-2,
-            "final exergy: {} vs {}", chain.final_exergy, n2.exergy_out);
+        assert!(
+            (chain.per_node_heat[2] - n2.heat_dissipated).abs() < 1e-2,
+            "join node heat: {} vs {}",
+            chain.per_node_heat[2],
+            n2.heat_dissipated
+        );
+        assert!(
+            (chain.final_exergy - n2.exergy_out).abs() < 1e-2,
+            "final exergy: {} vs {}",
+            chain.final_exergy,
+            n2.exergy_out
+        );
     }
 
     #[test]
@@ -611,8 +707,11 @@ mod tests {
         for _ in 0..100 {
             let run = evaluate_metabolic_chain(&graph, 100.0, 500.0);
             assert_eq!(
-                first.final_exergy.to_bits(), run.final_exergy.to_bits(),
-                "non-deterministic: {} vs {}", first.final_exergy, run.final_exergy,
+                first.final_exergy.to_bits(),
+                run.final_exergy.to_bits(),
+                "non-deterministic: {} vs {}",
+                first.final_exergy,
+                run.final_exergy,
             );
             assert_eq!(first.total_heat.to_bits(), run.total_heat.to_bits());
             assert_eq!(first.total_waste.to_bits(), run.total_waste.to_bits());

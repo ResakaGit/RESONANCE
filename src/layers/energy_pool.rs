@@ -34,13 +34,21 @@ impl EnergyPool {
     }
 
     #[inline]
-    pub fn pool(&self) -> f32 { self.pool }
+    pub fn pool(&self) -> f32 {
+        self.pool
+    }
     #[inline]
-    pub fn capacity(&self) -> f32 { self.capacity }
+    pub fn capacity(&self) -> f32 {
+        self.capacity
+    }
     #[inline]
-    pub fn intake_rate(&self) -> f32 { self.intake_rate }
+    pub fn intake_rate(&self) -> f32 {
+        self.intake_rate
+    }
     #[inline]
-    pub fn dissipation_rate(&self) -> f32 { self.dissipation_rate }
+    pub fn dissipation_rate(&self) -> f32 {
+        self.dissipation_rate
+    }
 
     /// pool / capacity — derivado, no almacenado.
     #[inline]

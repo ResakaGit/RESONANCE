@@ -6,8 +6,7 @@ use crate::blueprint::{constants, equations};
 use crate::events::ThreatDetectedEvent;
 use crate::layers::behavior::{BehavioralAgent, SensoryAwareness};
 use crate::layers::{
-    AlchemicalEngine, BaseEnergy, CapabilitySet, FlowVector, Faction, MobaIdentity,
-    TrophicConsumer,
+    AlchemicalEngine, BaseEnergy, CapabilitySet, Faction, FlowVector, MobaIdentity, TrophicConsumer,
 };
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::runtime_platform::core_math_agnostic::sim_plane_pos;
@@ -111,8 +110,7 @@ pub fn sensory_frequency_scan_system(
                     .get(entry.entity)
                     .map(|f| f.velocity().length())
                     .unwrap_or(0.0);
-                let score =
-                    equations::threat_level_assessment(other_qe, speed, is_predator, dist);
+                let score = equations::threat_level_assessment(other_qe, speed, is_predator, dist);
                 if score > best_threat_score {
                     best_threat_score = score;
                     best_threat = Some(entry.entity);
@@ -164,10 +162,7 @@ pub fn sensory_frequency_scan_system(
 /// Phase: Input, after S1.
 pub fn sensory_threat_memory_system(
     mut commands: Commands,
-    mut query: Query<
-        (Entity, &SensoryAwareness, Option<&mut ThreatMemory>),
-        With<BehavioralAgent>,
-    >,
+    mut query: Query<(Entity, &SensoryAwareness, Option<&mut ThreatMemory>), With<BehavioralAgent>>,
     transforms: Query<&Transform>,
     layout: Res<SimWorldTransformParams>,
 ) {
@@ -296,13 +291,7 @@ mod tests {
             .id()
     }
 
-    fn spawn_target(
-        app: &mut App,
-        pos: Vec3,
-        qe: f32,
-        faction: Faction,
-        radius: f32,
-    ) -> Entity {
+    fn spawn_target(app: &mut App, pos: Vec3, qe: f32, faction: Faction, radius: f32) -> Entity {
         app.world_mut()
             .spawn((
                 Transform::from_translation(pos),
@@ -350,7 +339,13 @@ mod tests {
             .entity_mut(agent)
             .insert(crate::layers::SpatialVolume::new(1.0));
 
-        let enemy = spawn_target(&mut app, Vec3::new(5.0, 0.0, 0.0), 300.0, Faction::Blue, 1.0);
+        let enemy = spawn_target(
+            &mut app,
+            Vec3::new(5.0, 0.0, 0.0),
+            300.0,
+            Faction::Blue,
+            1.0,
+        );
 
         rebuild_spatial(&mut app);
         app.update();
@@ -395,7 +390,13 @@ mod tests {
             .entity_mut(agent)
             .insert(crate::layers::SpatialVolume::new(1.0));
 
-        spawn_target(&mut app, Vec3::new(5.0, 0.0, 0.0), 300.0, Faction::Blue, 1.0);
+        spawn_target(
+            &mut app,
+            Vec3::new(5.0, 0.0, 0.0),
+            300.0,
+            Faction::Blue,
+            1.0,
+        );
 
         rebuild_spatial(&mut app);
         app.update();
@@ -417,13 +418,22 @@ mod tests {
             .entity_mut(agent)
             .insert(crate::layers::SpatialVolume::new(1.0));
 
-        spawn_target(&mut app, Vec3::new(5.0, 0.0, 0.0), 300.0, Faction::Blue, 1.0);
+        spawn_target(
+            &mut app,
+            Vec3::new(5.0, 0.0, 0.0),
+            300.0,
+            Faction::Blue,
+            1.0,
+        );
 
         rebuild_spatial(&mut app);
         app.update();
 
         let memory = app.world().get::<ThreatMemory>(agent);
-        assert!(memory.is_some(), "should create ThreatMemory on threat detection");
+        assert!(
+            memory.is_some(),
+            "should create ThreatMemory on threat detection"
+        );
         assert_eq!(memory.unwrap().ticks_since_seen, 0);
     }
 
@@ -562,10 +572,7 @@ mod tests {
         app.add_event::<ThreatDetectedEvent>();
         app.add_systems(Update, sensory_awareness_event_system);
 
-        let threat = app
-            .world_mut()
-            .spawn(BaseEnergy::new(10.0))
-            .id();
+        let threat = app.world_mut().spawn(BaseEnergy::new(10.0)).id();
 
         app.world_mut().spawn((
             BehavioralAgent,

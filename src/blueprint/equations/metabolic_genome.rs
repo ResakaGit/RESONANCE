@@ -7,18 +7,18 @@
 //! Axiom 6: topology emerges from gene positions, not templates.
 //! Axiom 7: edge capacity ∝ 1/(1 + gene_distance × cost_factor).
 
+use crate::blueprint::OrganRole;
 use crate::blueprint::constants::{
     METABOLIC_EDGE_CAPACITY_BASE, ROLE_ACTIVATION_ENERGY, ROLE_EFFICIENCY_FACTOR,
 };
-use crate::blueprint::equations::derived_thresholds::{DISSIPATION_SOLID, DISSIPATION_LIQUID};
-use crate::blueprint::equations::variable_genome::{VariableGenome, MIN_GENES};
+use crate::blueprint::equations::derived_thresholds::{DISSIPATION_LIQUID, DISSIPATION_SOLID};
 #[cfg(test)]
 use crate::blueprint::equations::variable_genome::MAX_GENES;
+use crate::blueprint::equations::variable_genome::{MIN_GENES, VariableGenome};
 use crate::layers::metabolic_graph::{
-    ExergyEdge, ExergyNode, MetabolicGraph, MetabolicGraphBuilder, MetabolicGraphError,
-    METABOLIC_GRAPH_MAX_EDGES, METABOLIC_GRAPH_MAX_NODES,
+    ExergyEdge, ExergyNode, METABOLIC_GRAPH_MAX_EDGES, METABOLIC_GRAPH_MAX_NODES, MetabolicGraph,
+    MetabolicGraphBuilder, MetabolicGraphError,
 };
-use crate::layers::OrganRole;
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -38,9 +38,9 @@ const TRANSPORT_COST_PER_DISTANCE: f32 = DISSIPATION_SOLID * 20.0;
 /// dimension 2 (branching):  Leaf (captor)  → Stem (process) → Petal (actuator)
 /// dimension 3 (resilience): Shell (captor) → Thorn (process)→ Sensory (actuator)
 const ROLE_MAP: [[OrganRole; 3]; 4] = [
-    [OrganRole::Root,  OrganRole::Core,  OrganRole::Fruit],   // growth
-    [OrganRole::Fin,   OrganRole::Limb,  OrganRole::Bud],     // mobility
-    [OrganRole::Leaf,  OrganRole::Stem,  OrganRole::Petal],   // branching
+    [OrganRole::Root, OrganRole::Core, OrganRole::Fruit], // growth
+    [OrganRole::Fin, OrganRole::Limb, OrganRole::Bud],    // mobility
+    [OrganRole::Leaf, OrganRole::Stem, OrganRole::Petal], // branching
     [OrganRole::Shell, OrganRole::Thorn, OrganRole::Sensory], // resilience
 ];
 
@@ -48,7 +48,9 @@ const ROLE_MAP: [[OrganRole; 3]; 4] = [
 /// Metabolic dimension of an OrganRole. Inverse lookup on ROLE_MAP.
 pub fn organ_role_dimension(role: OrganRole) -> u32 {
     for (dim, roles) in ROLE_MAP.iter().enumerate() {
-        if roles.contains(&role) { return dim as u32; }
+        if roles.contains(&role) {
+            return dim as u32;
+        }
     }
     0
 }
@@ -59,7 +61,9 @@ pub fn organ_role_dimension(role: OrganRole) -> u32 {
 ///
 /// Axiom 6: role is a consequence of position, not an assignment.
 pub fn infer_role_from_gene(gene_index: usize) -> OrganRole {
-    if gene_index < MIN_GENES { return OrganRole::Stem; } // core biases aren't organs
+    if gene_index < MIN_GENES {
+        return OrganRole::Stem;
+    } // core biases aren't organs
     let dimension = gene_index % 4;
     let tier = ((gene_index - MIN_GENES) / 4).min(2);
     ROLE_MAP[dimension][tier]
@@ -87,7 +91,9 @@ pub fn gene_to_exergy_node(gene_value: f32, gene_index: usize) -> ExergyNode {
 
 /// Tier of a gene (distance from core): 0=captor, 1=process, 2=actuator.
 fn gene_tier(gene_index: usize) -> usize {
-    if gene_index < MIN_GENES { return 0; }
+    if gene_index < MIN_GENES {
+        return 0;
+    }
     ((gene_index - MIN_GENES) / 4).min(2)
 }
 
@@ -120,23 +126,33 @@ pub(crate) fn infer_topology(
     active_gene_indices: &[usize],
     gene_values: &[f32],
 ) -> ([EdgeCandidate; METABOLIC_GRAPH_MAX_EDGES], usize) {
-    let mut edges = [EdgeCandidate { from: 0, to: 0, capacity: 0.0 }; METABOLIC_GRAPH_MAX_EDGES];
+    let mut edges = [EdgeCandidate {
+        from: 0,
+        to: 0,
+        capacity: 0.0,
+    }; METABOLIC_GRAPH_MAX_EDGES];
     let mut count = 0usize;
     let n = active_gene_indices.len();
 
     for i in 0..n {
         for j in 0..n {
-            if count >= METABOLIC_GRAPH_MAX_EDGES { return (edges, count); }
+            if count >= METABOLIC_GRAPH_MAX_EDGES {
+                return (edges, count);
+            }
             let gi = active_gene_indices[i];
             let gj = active_gene_indices[j];
             let ti = gene_tier(gi);
             let tj = gene_tier(gj);
-            if ti >= tj { continue; } // must flow lower → higher tier
+            if ti >= tj {
+                continue;
+            } // must flow lower → higher tier
 
             let di = gene_dimension(gi);
             let dj = gene_dimension(gj);
             // Same metabolic pathway OR growth hub (dim 0 connects to all)
-            if di != dj && di != 0 { continue; }
+            if di != dj && di != 0 {
+                continue;
+            }
 
             let vi = sanitize(gene_values[i]);
             let vj = sanitize(gene_values[j]);
@@ -181,7 +197,9 @@ pub fn metabolic_graph_from_variable_genome(
     let mut active_count = 0usize;
 
     for i in MIN_GENES..genome.gene_count() {
-        if active_count >= METABOLIC_GRAPH_MAX_NODES { break; }
+        if active_count >= METABOLIC_GRAPH_MAX_NODES {
+            break;
+        }
         let dim = gene_dimension(i);
         let mask = expression_mask[dim].clamp(0.0, 1.0);
         let gated = genome.genes[i] * mask;
@@ -263,18 +281,25 @@ pub fn competitive_flow_distribution(
     outgoing: &[(u8, f32, f32)], // (edge_idx, capacity, target_efficiency)
 ) -> ([f32; METABOLIC_GRAPH_MAX_EDGES], f32) {
     let mut shares = [0.0f32; METABOLIC_GRAPH_MAX_EDGES];
-    if outgoing.is_empty() || j_in <= 0.0 { return (shares, 0.0); }
+    if outgoing.is_empty() || j_in <= 0.0 {
+        return (shares, 0.0);
+    }
 
     let overhead = COMPETITION_OVERHEAD_RATE * outgoing.len() as f32;
     let available = (j_in - overhead).max(0.0);
-    if available <= 0.0 { return (shares, overhead.min(j_in)); }
+    if available <= 0.0 {
+        return (shares, overhead.min(j_in));
+    }
 
     // Weighted score: η × capacity (Axiom 3)
-    let total_score: f32 = outgoing.iter()
+    let total_score: f32 = outgoing
+        .iter()
         .map(|&(_, cap, eta)| sanitize(eta) * cap.max(0.0))
         .sum();
 
-    if total_score <= 0.0 { return (shares, overhead.min(j_in)); }
+    if total_score <= 0.0 {
+        return (shares, overhead.min(j_in));
+    }
 
     // Distribute proportionally, clamped by capacity (Axiom 2)
     for &(idx, cap, eta) in outgoing {
@@ -386,10 +411,14 @@ pub fn catalytic_activation_reduction(
     for k in 0..ec {
         let from = edges[k].from as usize;
         let to = edges[k].to as usize;
-        if from >= nc || to >= nc { continue; }
+        if from >= nc || to >= nc {
+            continue;
+        }
 
         let heat = nodes[from].thermal_output.max(0.0);
-        if heat <= 0.0 { continue; }
+        if heat <= 0.0 {
+            continue;
+        }
 
         let f_from = node_frequencies.get(from).copied().unwrap_or(0.0);
         let f_to = node_frequencies.get(to).copied().unwrap_or(0.0);
@@ -406,7 +435,11 @@ pub fn catalytic_activation_reduction(
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 fn sanitize(v: f32) -> f32 {
-    if v.is_finite() { v.clamp(0.0, 1.0) } else { 0.0 }
+    if v.is_finite() {
+        v.clamp(0.0, 1.0)
+    } else {
+        0.0
+    }
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────
@@ -467,8 +500,12 @@ mod tests {
         for idx in MIN_GENES..MAX_GENES {
             let node = gene_to_exergy_node(1.0, idx);
             let role_idx = node.role as usize;
-            assert!(node.efficiency <= ROLE_EFFICIENCY_FACTOR[role_idx] + 1e-5,
-                "gene {idx}: η={} > factor={}", node.efficiency, ROLE_EFFICIENCY_FACTOR[role_idx]);
+            assert!(
+                node.efficiency <= ROLE_EFFICIENCY_FACTOR[role_idx] + 1e-5,
+                "gene {idx}: η={} > factor={}",
+                node.efficiency,
+                ROLE_EFFICIENCY_FACTOR[role_idx]
+            );
             assert!(node.efficiency >= 0.0);
         }
     }
@@ -483,8 +520,10 @@ mod tests {
     fn gene_to_node_high_value_low_activation() {
         let node_high = gene_to_exergy_node(1.0, 4);
         let node_low = gene_to_exergy_node(0.0, 4);
-        assert!(node_high.activation_energy < node_low.activation_energy,
-            "high gene should lower activation barrier");
+        assert!(
+            node_high.activation_energy < node_low.activation_energy,
+            "high gene should lower activation barrier"
+        );
     }
 
     #[test]
@@ -527,7 +566,7 @@ mod tests {
         let (edges, count) = infer_topology(&[4, 8], &[0.5, 0.5]);
         assert_eq!(count, 1);
         assert_eq!(edges[0].from, 0); // index 0 in active list
-        assert_eq!(edges[0].to, 1);   // index 1 in active list
+        assert_eq!(edges[0].to, 1); // index 1 in active list
     }
 
     #[test]
@@ -563,18 +602,23 @@ mod tests {
         let (edges_near, cn) = infer_topology(&[4, 8], &[0.5, 0.5]);
         // gene 4 (dim=0, tier=0) → gene 12 (dim=0, tier=2): distance = 8
         let (edges_far, cf) = infer_topology(&[4, 12], &[0.5, 0.5]);
-        assert_eq!(cn, 1); assert_eq!(cf, 1);
+        assert_eq!(cn, 1);
+        assert_eq!(cf, 1);
         // Axiom 7: farther genes → lower capacity (distance penalty baked in)
-        assert!(edges_far[0].capacity < edges_near[0].capacity,
+        assert!(
+            edges_far[0].capacity < edges_near[0].capacity,
             "farther genes should have lower capacity: {} < {}",
-            edges_far[0].capacity, edges_near[0].capacity);
+            edges_far[0].capacity,
+            edges_near[0].capacity
+        );
     }
 
     #[test]
     fn topology_capacity_scales_with_gene_value() {
         let (edges_high, c1) = infer_topology(&[4, 8], &[0.9, 0.9]);
         let (edges_low, c2) = infer_topology(&[4, 8], &[0.1, 0.1]);
-        assert_eq!(c1, 1); assert_eq!(c2, 1);
+        assert_eq!(c1, 1);
+        assert_eq!(c2, 1);
         assert!(edges_high[0].capacity > edges_low[0].capacity);
     }
 
@@ -591,7 +635,10 @@ mod tests {
         let (a, ca) = infer_topology(&[4, 5, 8, 9], &[0.5, 0.6, 0.7, 0.8]);
         let (b, cb) = infer_topology(&[4, 5, 8, 9], &[0.5, 0.6, 0.7, 0.8]);
         assert_eq!(ca, cb);
-        for k in 0..ca { assert_eq!(a[k].from, b[k].from); assert_eq!(a[k].to, b[k].to); }
+        for k in 0..ca {
+            assert_eq!(a[k].from, b[k].from);
+            assert_eq!(a[k].to, b[k].to);
+        }
     }
 
     // ── MGN-3: MetabolicGraph from VariableGenome ───────────────────────────
@@ -606,7 +653,9 @@ mod tests {
     #[test]
     fn eight_gene_genome_produces_graph() {
         let mut g = VariableGenome::from_biases(0.5, 0.5, 0.5, 0.5);
-        for i in 4..8 { g.genes[i] = 0.6; }
+        for i in 4..8 {
+            g.genes[i] = 0.6;
+        }
         g.len = 8;
         let result = metabolic_graph_from_variable_genome(&g, &[1.0; 4]);
         assert!(result.is_ok(), "8 genes should produce a valid graph");
@@ -617,7 +666,9 @@ mod tests {
     #[test]
     fn fully_silenced_returns_empty() {
         let mut g = VariableGenome::from_biases(0.5, 0.5, 0.5, 0.5);
-        for i in 4..8 { g.genes[i] = 0.5; }
+        for i in 4..8 {
+            g.genes[i] = 0.5;
+        }
         g.len = 8;
         let result = metabolic_graph_from_variable_genome(&g, &[0.0; 4]);
         assert!(result.is_err(), "fully silenced → no nodes → empty");
@@ -626,7 +677,9 @@ mod tests {
     #[test]
     fn partial_mask_filters_dimensions() {
         let mut g = VariableGenome::from_biases(0.5, 0.5, 0.5, 0.5);
-        for i in 4..12 { g.genes[i] = 0.6; }
+        for i in 4..12 {
+            g.genes[i] = 0.6;
+        }
         g.len = 12;
         // Silence mobility (dim 1) and resilience (dim 3)
         let mask = [1.0, 0.0, 1.0, 0.0];
@@ -634,7 +687,9 @@ mod tests {
         if let Ok(graph) = result {
             // Nodes for dim 1 (Fin/Limb) and dim 3 (Shell/Thorn) should be absent
             let roles: Vec<OrganRole> = graph.nodes()[..graph.node_count()]
-                .iter().map(|n| n.role).collect();
+                .iter()
+                .map(|n| n.role)
+                .collect();
             assert!(!roles.contains(&OrganRole::Fin), "mobility silenced");
             assert!(!roles.contains(&OrganRole::Shell), "resilience silenced");
         }
@@ -644,10 +699,13 @@ mod tests {
     fn node_count_scales_with_genome_length() {
         let build = |n: usize| -> usize {
             let mut g = VariableGenome::from_biases(0.5, 0.5, 0.5, 0.5);
-            for i in 4..n { g.genes[i] = 0.6; }
+            for i in 4..n {
+                g.genes[i] = 0.6;
+            }
             g.len = n as u8;
             metabolic_graph_from_variable_genome(&g, &[1.0; 4])
-                .map(|g| g.node_count()).unwrap_or(0)
+                .map(|g| g.node_count())
+                .unwrap_or(0)
         };
         let n8 = build(8);
         let n16 = build(16);
@@ -657,7 +715,9 @@ mod tests {
     #[test]
     fn graph_is_valid_dag() {
         let mut g = VariableGenome::from_biases(0.5, 0.5, 0.5, 0.5);
-        for i in 4..16 { g.genes[i] = 0.6; }
+        for i in 4..16 {
+            g.genes[i] = 0.6;
+        }
         g.len = 16;
         // build() internally validates DAG (no cycles, valid indices)
         let result = metabolic_graph_from_variable_genome(&g, &[1.0; 4]);
@@ -667,7 +727,9 @@ mod tests {
     #[test]
     fn max_genome_valid_graph() {
         let mut g = VariableGenome::default();
-        for i in 0..MAX_GENES { g.genes[i] = 0.6; }
+        for i in 0..MAX_GENES {
+            g.genes[i] = 0.6;
+        }
         g.len = MAX_GENES as u8;
         let result = metabolic_graph_from_variable_genome(&g, &[1.0; 4]);
         assert!(result.is_ok(), "max genome should produce valid graph");
@@ -680,15 +742,16 @@ mod tests {
     fn mutated_genome_produces_different_graph() {
         use crate::blueprint::equations::variable_genome::mutate_variable;
         let mut g = VariableGenome::from_biases(0.5, 0.5, 0.5, 0.5);
-        for i in 4..12 { g.genes[i] = 0.5; }
+        for i in 4..12 {
+            g.genes[i] = 0.5;
+        }
         g.len = 12;
         let m = mutate_variable(&g, 42);
         let graph_original = metabolic_graph_from_variable_genome(&g, &[1.0; 4]);
         let graph_mutated = metabolic_graph_from_variable_genome(&m, &[1.0; 4]);
         // At least one should differ (node count or edge flows)
         if let (Ok(go), Ok(gm)) = (graph_original, graph_mutated) {
-            let diff = go.node_count() != gm.node_count()
-                || go.edge_count() != gm.edge_count();
+            let diff = go.node_count() != gm.node_count() || go.edge_count() != gm.edge_count();
             // May or may not differ — mutation is stochastic
             let _ = diff; // just verify no panic
         }
@@ -697,7 +760,9 @@ mod tests {
     #[test]
     fn deterministic() {
         let mut g = VariableGenome::from_biases(0.3, 0.7, 0.2, 0.8);
-        for i in 4..10 { g.genes[i] = 0.5; }
+        for i in 4..10 {
+            g.genes[i] = 0.5;
+        }
         g.len = 10;
         let mask = [0.8, 0.5, 1.0, 0.3];
         let a = metabolic_graph_from_variable_genome(&g, &mask);
@@ -723,7 +788,9 @@ mod tests {
     #[test]
     fn phenotype_some_for_long_genome() {
         let mut g = VariableGenome::from_biases(0.5, 0.5, 0.5, 0.5);
-        for i in 4..12 { g.genes[i] = 0.6; } // need tier 0 + tier 1 for edges
+        for i in 4..12 {
+            g.genes[i] = 0.6;
+        } // need tier 0 + tier 1 for edges
         g.len = 12;
         let p = compute_metabolic_phenotype(&g, &[1.0; 4]);
         assert!(p.is_some());
@@ -735,7 +802,9 @@ mod tests {
     #[test]
     fn phenotype_consistent_with_direct_build() {
         let mut g = VariableGenome::from_biases(0.5, 0.5, 0.5, 0.5);
-        for i in 4..10 { g.genes[i] = 0.6; }
+        for i in 4..10 {
+            g.genes[i] = 0.6;
+        }
         g.len = 10;
         let mask = [1.0; 4];
         let direct = metabolic_graph_from_variable_genome(&g, &mask).unwrap();
@@ -751,7 +820,10 @@ mod tests {
         let out = [(0u8, 50.0f32, 0.8f32), (1, 40.0, 0.5), (2, 30.0, 0.3)];
         let (shares, overhead) = competitive_flow_distribution(100.0, &out);
         let total: f32 = shares[..3].iter().sum::<f32>() + overhead;
-        assert!(total <= 100.0 + 1e-3, "Axiom 2: Σ shares + overhead ≤ input: {total}");
+        assert!(
+            total <= 100.0 + 1e-3,
+            "Axiom 2: Σ shares + overhead ≤ input: {total}"
+        );
     }
 
     #[test]
@@ -761,7 +833,10 @@ mod tests {
             let out = [(0u8, 20.0f32, 0.9f32), (1, 15.0, 0.4)];
             let (shares, overhead) = competitive_flow_distribution(j_in, &out);
             let total = shares[0] + shares[1] + overhead;
-            assert!(total <= j_in + 1e-3, "Axiom 2 at j_in={j_in}: total={total}");
+            assert!(
+                total <= j_in + 1e-3,
+                "Axiom 2 at j_in={j_in}: total={total}"
+            );
         }
     }
 
@@ -776,14 +851,22 @@ mod tests {
     fn competition_higher_efficiency_gets_more() {
         let out = [(0u8, 50.0f32, 0.9f32), (1, 50.0, 0.1)];
         let (shares, _) = competitive_flow_distribution(100.0, &out);
-        assert!(shares[0] > shares[1], "η=0.9 should get more than η=0.1: {} vs {}", shares[0], shares[1]);
+        assert!(
+            shares[0] > shares[1],
+            "η=0.9 should get more than η=0.1: {} vs {}",
+            shares[0],
+            shares[1]
+        );
     }
 
     #[test]
     fn competition_equal_efficiency_equal_share() {
         let out = [(0u8, 50.0f32, 0.5f32), (1, 50.0, 0.5)];
         let (shares, _) = competitive_flow_distribution(100.0, &out);
-        assert!((shares[0] - shares[1]).abs() < 1e-3, "equal η → equal share");
+        assert!(
+            (shares[0] - shares[1]).abs() < 1e-3,
+            "equal η → equal share"
+        );
     }
 
     #[test]
@@ -803,13 +886,18 @@ mod tests {
     fn competition_capacity_bottleneck() {
         let out = [(0u8, 5.0f32, 0.9f32)]; // capacity = 5, much less than j_in
         let (shares, _) = competitive_flow_distribution(100.0, &out);
-        assert!(shares[0] <= 5.0 + 1e-3, "share capped by capacity: {}", shares[0]);
+        assert!(
+            shares[0] <= 5.0 + 1e-3,
+            "share capped by capacity: {}",
+            shares[0]
+        );
     }
 
     #[test]
     fn competition_overhead_increases_with_edges() {
         let (_, ov1) = competitive_flow_distribution(100.0, &[(0, 50.0, 0.5)]);
-        let (_, ov3) = competitive_flow_distribution(100.0, &[(0, 50.0, 0.5), (1, 50.0, 0.5), (2, 50.0, 0.5)]);
+        let (_, ov3) =
+            competitive_flow_distribution(100.0, &[(0, 50.0, 0.5), (1, 50.0, 0.5), (2, 50.0, 0.5)]);
         assert!(ov3 > ov1, "more edges → more overhead: {} vs {}", ov3, ov1);
     }
 
@@ -836,7 +924,12 @@ mod tests {
         let flows = [45.0f32]; // 90% utilization > 50% baseline
         let costs = [0.1f32];
         let (new, _) = hebbian_capacity_update(&caps, &flows, &costs, 1);
-        assert!(new[0] > caps[0], "high usage → capacity grows: {} vs {}", new[0], caps[0]);
+        assert!(
+            new[0] > caps[0],
+            "high usage → capacity grows: {} vs {}",
+            new[0],
+            caps[0]
+        );
     }
 
     #[test]
@@ -845,7 +938,12 @@ mod tests {
         let flows = [5.0f32]; // 10% utilization < 50% baseline
         let costs = [0.1f32];
         let (new, _) = hebbian_capacity_update(&caps, &flows, &costs, 1);
-        assert!(new[0] < caps[0], "low usage → capacity shrinks: {} vs {}", new[0], caps[0]);
+        assert!(
+            new[0] < caps[0],
+            "low usage → capacity shrinks: {} vs {}",
+            new[0],
+            caps[0]
+        );
     }
 
     #[test]
@@ -854,7 +952,11 @@ mod tests {
         let flows = [25.0f32]; // 50% = baseline
         let costs = [0.1f32];
         let (new, _) = hebbian_capacity_update(&caps, &flows, &costs, 1);
-        assert!((new[0] - caps[0]).abs() < 1e-3, "baseline → no change: {}", new[0]);
+        assert!(
+            (new[0] - caps[0]).abs() < 1e-3,
+            "baseline → no change: {}",
+            new[0]
+        );
     }
 
     #[test]
@@ -893,12 +995,17 @@ mod tests {
     fn hebbian_far_edge_costs_more() {
         let caps = [50.0, 50.0];
         let flows = [45.0, 45.0]; // both strengthen equally
-        let costs = [0.1, 1.0];   // second edge is "farther"
+        let costs = [0.1, 1.0]; // second edge is "farther"
         let (_, _) = hebbian_capacity_update(&caps, &flows, &costs, 2);
         // Individual cost check: delta is same, but cost[1] > cost[0]
         let (_, cost_near) = hebbian_capacity_update(&[50.0], &[45.0], &[0.1], 1);
         let (_, cost_far) = hebbian_capacity_update(&[50.0], &[45.0], &[1.0], 1);
-        assert!(cost_far > cost_near, "far edge costs more: {} vs {}", cost_far, cost_near);
+        assert!(
+            cost_far > cost_near,
+            "far edge costs more: {} vs {}",
+            cost_far,
+            cost_near
+        );
     }
 
     #[test]
@@ -912,7 +1019,11 @@ mod tests {
         }
         // After many iterations, should stabilize near some equilibrium
         let (new, _) = hebbian_capacity_update(&cap, &flow, &cost, 1);
-        assert!((new[0] - cap[0]).abs() < 0.5, "should converge: delta={}", (new[0] - cap[0]).abs());
+        assert!(
+            (new[0] - cap[0]).abs() < 0.5,
+            "should converge: delta={}",
+            (new[0] - cap[0]).abs()
+        );
     }
 
     #[test]
@@ -942,7 +1053,13 @@ mod tests {
     }
 
     fn make_test_edge(from: u8, to: u8) -> ExergyEdge {
-        ExergyEdge { from, to, flow_rate: 10.0, max_capacity: 50.0, transport_cost: 0.1 }
+        ExergyEdge {
+            from,
+            to,
+            flow_rate: 10.0,
+            max_capacity: 50.0,
+            transport_cost: 0.1,
+        }
     }
 
     #[test]
@@ -951,8 +1068,12 @@ mod tests {
         let edges = [make_test_edge(0, 1)]; // 0 → 1
         let freqs = [100.0, 100.0]; // same freq → max alignment
         let (ea, _) = catalytic_activation_reduction(&nodes, &edges, 2, 1, &freqs);
-        assert!(ea[1] < nodes[1].activation_energy,
-            "catalysis should reduce E_a[1]: {} < {}", ea[1], nodes[1].activation_energy);
+        assert!(
+            ea[1] < nodes[1].activation_energy,
+            "catalysis should reduce E_a[1]: {} < {}",
+            ea[1],
+            nodes[1].activation_energy
+        );
     }
 
     #[test]
@@ -986,8 +1107,12 @@ mod tests {
         nodes[1].activation_energy = 1.0; // low base E_a
         let edges = [make_test_edge(0, 1)];
         let (ea, _) = catalytic_activation_reduction(&nodes, &edges, 2, 1, &[100.0, 100.0]);
-        assert!(ea[1] >= CATALYSIS_MIN_ACTIVATION,
-            "E_a[1] must be ≥ minimum: {} ≥ {}", ea[1], CATALYSIS_MIN_ACTIVATION);
+        assert!(
+            ea[1] >= CATALYSIS_MIN_ACTIVATION,
+            "E_a[1] must be ≥ minimum: {} ≥ {}",
+            ea[1],
+            CATALYSIS_MIN_ACTIVATION
+        );
     }
 
     #[test]
@@ -1000,7 +1125,10 @@ mod tests {
     fn catalysis_different_freq_reduced() {
         let same = catalytic_freq_alignment(100.0, 100.0);
         let diff = catalytic_freq_alignment(100.0, 200.0);
-        assert!(diff < same, "different freq → less alignment: {diff} < {same}");
+        assert!(
+            diff < same,
+            "different freq → less alignment: {diff} < {same}"
+        );
     }
 
     #[test]
@@ -1056,6 +1184,9 @@ mod tests {
         let freqs = [100.0, 100.0];
         let (_, cost_low) = catalytic_activation_reduction(&nodes_low, &edges, 2, 1, &freqs);
         let (_, cost_high) = catalytic_activation_reduction(&nodes_high, &edges, 2, 1, &freqs);
-        assert!(cost_high > cost_low, "more heat → more catalysis → more cost");
+        assert!(
+            cost_high > cost_low,
+            "more heat → more catalysis → more cost"
+        );
     }
 }

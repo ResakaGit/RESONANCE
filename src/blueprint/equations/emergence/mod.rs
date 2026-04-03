@@ -2,19 +2,19 @@
 //! Sin dependencias de Bevy — 100% testeable sin ECS.
 
 pub mod associations;
-pub mod entrainment;
-pub mod other_model;
-pub mod culture;
-pub mod infrastructure;
-pub mod symbiosis;
-pub mod epigenetics;
-pub mod senescence;
 pub mod coalitions;
-pub mod niche;
-pub mod timescale;
-pub mod multiscale;
-pub mod tectonics;
+pub mod culture;
+pub mod entrainment;
+pub mod epigenetics;
 pub mod geological_lod;
+pub mod infrastructure;
 pub mod institutions;
 pub mod language;
+pub mod multiscale;
+pub mod niche;
+pub mod other_model;
 pub mod self_model;
+pub mod senescence;
+pub mod symbiosis;
+pub mod tectonics;
+pub mod timescale;

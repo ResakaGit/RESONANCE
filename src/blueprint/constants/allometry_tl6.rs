@@ -9,4 +9,3 @@ pub const ALLOMETRIC_INTAKE_FLOOR: f32 = 0.1;
 pub const ALLOMETRIC_SURFACE_FACTOR: f32 = 2.598_076;
 /// Epsilon de escritura para evitar `Changed<SpatialVolume>` espurio.
 pub const VOLUME_WRITE_EPS: f32 = 1e-4;
-

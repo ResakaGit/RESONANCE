@@ -17,7 +17,11 @@ pub fn model_maintenance_cost(accuracy: f32, base_cost: f32) -> f32 {
 }
 
 /// Valor de la deception: qe ganado si el rival tiene modelo incorrecto de ti.
-pub fn deception_value(misprediction_magnitude: f32, energy_at_stake: f32, false_signal_cost: f32) -> f32 {
+pub fn deception_value(
+    misprediction_magnitude: f32,
+    energy_at_stake: f32,
+    false_signal_cost: f32,
+) -> f32 {
     misprediction_magnitude * energy_at_stake - false_signal_cost
 }
 

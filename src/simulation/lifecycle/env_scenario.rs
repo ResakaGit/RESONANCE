@@ -43,8 +43,14 @@ pub struct EffectiveOrganViability {
 fn pressure_from_snapshot(snapshot: EnvScenarioSnapshot) -> EnvPressureFactors {
     EnvPressureFactors {
         intake_gain: env_intake_gain(snapshot.food_density_t, snapshot.medium_density_t),
-        maintenance_penalty: env_maintenance_penalty(snapshot.temperature_t, snapshot.predation_pressure_t),
-        stress_penalty: env_stress_penalty(snapshot.predation_pressure_t, snapshot.medium_density_t),
+        maintenance_penalty: env_maintenance_penalty(
+            snapshot.temperature_t,
+            snapshot.predation_pressure_t,
+        ),
+        stress_penalty: env_stress_penalty(
+            snapshot.predation_pressure_t,
+            snapshot.medium_density_t,
+        ),
     }
 }
 
@@ -74,7 +80,9 @@ pub fn effective_viability_init_system(
     query: Query<Entity, (With<GrowthBudget>, Without<EffectiveOrganViability>)>,
 ) {
     for entity in &query {
-        commands.entity(entity).insert(EffectiveOrganViability::default());
+        commands
+            .entity(entity)
+            .insert(EffectiveOrganViability::default());
     }
 }
 
@@ -142,7 +150,10 @@ mod tests {
             .get::<EffectiveOrganViability>()
             .expect("debe existir cache")
             .value;
-        assert!(rich > poor, "abundante debe superar escaso: rich={rich}, poor={poor}");
+        assert!(
+            rich > poor,
+            "abundante debe superar escaso: rich={rich}, poor={poor}"
+        );
     }
 
     #[test]

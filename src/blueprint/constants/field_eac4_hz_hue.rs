@@ -13,4 +13,3 @@ pub mod eac4_test_thresholds {
     /// ε L1 RGB: `w_identity = 1` debe coincidir con `def_linear_rgb` (mezcla Hz desactivada).
     pub const MAX_L1_VS_DEF_RGB: f32 = 1e-4;
 }
-

@@ -10,18 +10,18 @@ use crate::layers::organ::MAX_ORGANS_PER_ENTITY;
 #[reflect(Component)]
 #[component(storage = "SparseSet")]
 pub struct BodyPlanLayout {
-    positions:    [Vec3; MAX_ORGANS_PER_ENTITY],
-    directions:   [Vec3; MAX_ORGANS_PER_ENTITY],
-    symmetry:     SymmetryMode,
+    positions: [Vec3; MAX_ORGANS_PER_ENTITY],
+    directions: [Vec3; MAX_ORGANS_PER_ENTITY],
+    symmetry: SymmetryMode,
     active_count: u8,
 }
 
 impl Default for BodyPlanLayout {
     fn default() -> Self {
         Self {
-            positions:    [Vec3::ZERO; MAX_ORGANS_PER_ENTITY],
-            directions:   [Vec3::Y; MAX_ORGANS_PER_ENTITY],
-            symmetry:     SymmetryMode::Bilateral,
+            positions: [Vec3::ZERO; MAX_ORGANS_PER_ENTITY],
+            directions: [Vec3::Y; MAX_ORGANS_PER_ENTITY],
+            symmetry: SymmetryMode::Bilateral,
             active_count: 0,
         }
     }

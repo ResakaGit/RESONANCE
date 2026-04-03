@@ -2,8 +2,8 @@
 //! No Bevy runtime — purely deterministic math tests.
 
 use resonance::blueprint::equations::{
-    all_organs_have_valid_cost, has_valid_energy_cost, hysteresis_threshold_crossed,
-    is_energy_viable, scenario_energy, scenario_max_organs, EnvScenario,
+    EnvScenario, all_organs_have_valid_cost, has_valid_energy_cost, hysteresis_threshold_crossed,
+    is_energy_viable, scenario_energy, scenario_max_organs,
 };
 use resonance::layers::{OrganRole, OrganSpec};
 
@@ -45,8 +45,16 @@ fn scenario_energy_extreme_is_50() {
 fn abundant_scenario_all_organs_viable() {
     // 2000.0 energy / 10.0 per_organ_cost = 200 viable organs
     let count = scenario_max_organs(EnvScenario::Abundant, 10.0);
-    assert!(count > 0, "abundant scenario must support at least one organ, got {count}");
-    assert!(is_energy_viable(scenario_energy(EnvScenario::Abundant), count, 10.0, 1));
+    assert!(
+        count > 0,
+        "abundant scenario must support at least one organ, got {count}"
+    );
+    assert!(is_energy_viable(
+        scenario_energy(EnvScenario::Abundant),
+        count,
+        10.0,
+        1
+    ));
 }
 
 // ─── extreme_scenario_limits_organ_count ─────────────────────────────────────

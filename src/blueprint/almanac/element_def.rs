@@ -6,8 +6,8 @@ use bevy::prelude::ReflectDefault;
 use bevy::reflect::{Reflect, TypePath};
 use serde::{Deserialize, Serialize};
 
+use crate::blueprint::MatterState;
 use crate::blueprint::constants::FIELD_EAC4_HZ_IDENTITY_WEIGHT_RON_ONLY;
-use crate::layers::MatterState;
 
 /// Default EAC4: solo identidad RON (`ElementDef.color`); sin tinte por espectro Hz.
 fn default_hz_identity_weight() -> f32 {

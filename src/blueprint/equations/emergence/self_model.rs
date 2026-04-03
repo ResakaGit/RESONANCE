@@ -5,14 +5,18 @@ pub const CONSCIOUSNESS_HORIZON_THRESHOLD: u32 = 100;
 
 /// Precisión del automodelo: qué tan bien predijo el qe actual.
 pub fn self_model_accuracy(predicted_qe: f32, actual_qe: f32) -> f32 {
-    if actual_qe <= 0.0 { return 0.0; }
+    if actual_qe <= 0.0 {
+        return 0.0;
+    }
     let error = (predicted_qe - actual_qe).abs() / actual_qe;
     (1.0 - error).clamp(0.0, 1.0)
 }
 
 /// Beneficio de planificación a N pasos con descuento temporal (RL discount).
 pub fn planning_benefit(projected_qe: &[f32], discount_factor: f32, planning_cost: f32) -> f32 {
-    let discounted: f32 = projected_qe.iter().enumerate()
+    let discounted: f32 = projected_qe
+        .iter()
+        .enumerate()
         .map(|(t, &qe)| qe * discount_factor.powi(t as i32 + 1))
         .sum();
     (discounted - planning_cost).max(0.0)
@@ -35,7 +39,11 @@ pub fn project_future_qe(current_qe: f32, net_rate_per_tick: f32, horizon_ticks:
 }
 
 /// Valor de la información: cuánto mejora el planning si el modelo es más preciso.
-pub fn information_value(current_accuracy: f32, improved_accuracy: f32, expected_horizon: u32) -> f32 {
+pub fn information_value(
+    current_accuracy: f32,
+    improved_accuracy: f32,
+    expected_horizon: u32,
+) -> f32 {
     (improved_accuracy - current_accuracy) * expected_horizon as f32
 }
 

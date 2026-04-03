@@ -30,13 +30,19 @@ use resonance::use_cases::cli::{find_arg, parse_arg};
 /// Estado de la partida. Solo existe en este binario.
 #[derive(Resource, Debug)]
 struct SurvivalState {
-    score:          u64,
-    alive:          bool,
-    player_entity:  Option<Entity>,
+    score: u64,
+    alive: bool,
+    player_entity: Option<Entity>,
 }
 
 impl SurvivalState {
-    fn new() -> Self { Self { score: 0, alive: true, player_entity: None } }
+    fn new() -> Self {
+        Self {
+            score: 0,
+            alive: true,
+            player_entity: None,
+        }
+    }
 }
 
 /// Genomes cargados para spawn.
@@ -60,12 +66,12 @@ struct GameOverUi;
 
 // ─── Constants (visual calibration, no physics) ────────────────────────────
 
-const VIEWER_QE_MIN: f32     = 20.0;  // minimum qe for stable mesh rendering
-const VIEWER_QE_RANGE: f32   = 80.0;  // growth_bias × RANGE + MIN = visual qe
+const VIEWER_QE_MIN: f32 = 20.0; // minimum qe for stable mesh rendering
+const VIEWER_QE_RANGE: f32 = 80.0; // growth_bias × RANGE + MIN = visual qe
 const ARENA_CREATURE_CAP: usize = 12; // max creatures in arena
-const SPAWN_RING_BASE: f32   = 6.0;   // inner radius of spawn ring
-const SPAWN_RING_STEP: f32   = 0.5;   // radius increment per creature
-const SPAWN_Y_OFFSET: f32    = 0.1;   // lift above ground plane
+const SPAWN_RING_BASE: f32 = 6.0; // inner radius of spawn ring
+const SPAWN_RING_STEP: f32 = 0.5; // radius increment per creature
+const SPAWN_Y_OFFSET: f32 = 0.1; // lift above ground plane
 
 // ─── States (local al binario) ──────────────────────────────────────────────
 
@@ -114,11 +120,12 @@ fn main() {
         .insert_resource(LoadedGenomes(genomes))
         .insert_resource(SurvivalState::new())
         .add_systems(Startup, (setup_scene, spawn_creatures).chain())
-        .add_systems(FixedUpdate, (
-            player_input,
-            score_tick,
-            detect_death,
-        ).chain().run_if(in_state(Phase::Playing)))
+        .add_systems(
+            FixedUpdate,
+            (player_input, score_tick, detect_death)
+                .chain()
+                .run_if(in_state(Phase::Playing)),
+        )
         .add_systems(OnEnter(Phase::Dead), spawn_game_over_ui)
         .add_systems(Update, restart_on_r.run_if(in_state(Phase::Dead)))
         .add_systems(Update, update_hud)
@@ -186,7 +193,10 @@ fn setup_scene(mut commands: Commands) {
     commands.spawn((
         HudText,
         Text::new("Score: 0"),
-        TextFont { font_size: 28.0, ..default() },
+        TextFont {
+            font_size: 28.0,
+            ..default()
+        },
         TextColor(Color::WHITE),
         Node {
             position_type: PositionType::Absolute,
@@ -222,11 +232,13 @@ fn spawn_creatures(
         let z = angle.sin() * radius;
 
         let (mesh_handle, mat_handle) = build_creature_visuals(genome, &mut meshes, &mut materials);
-        let entity = commands.spawn((
-            Mesh3d(mesh_handle),
-            MeshMaterial3d(mat_handle),
-            Transform::from_xyz(x, SPAWN_Y_OFFSET, z),
-        )).id();
+        let entity = commands
+            .spawn((
+                Mesh3d(mesh_handle),
+                MeshMaterial3d(mat_handle),
+                Transform::from_xyz(x, SPAWN_Y_OFFSET, z),
+            ))
+            .id();
 
         // Marcar la primera criatura como player
         if i == 0 {
@@ -248,14 +260,21 @@ fn build_creature_visuals(
 
     use resonance::blueprint::equations::radial_field;
     let field = radial_field::build_viewer_field(
-        genome.growth_bias, genome.resilience, genome.branching_bias, qe,
+        genome.growth_bias,
+        genome.resilience,
+        genome.branching_bias,
+        qe,
     );
     let freq_field = radial_field::build_viewer_freq_field(freq);
 
     let mesh = creature_builder::build_creature_mesh_with_field(
-        genome.growth_bias, genome.mobility_bias,
-        genome.branching_bias, genome.resilience, freq,
-        &field, &freq_field,
+        genome.growth_bias,
+        genome.mobility_bias,
+        genome.branching_bias,
+        genome.resilience,
+        freq,
+        &field,
+        &freq_field,
     );
 
     let tint = equations::frequency_to_tint_rgb(freq);
@@ -286,12 +305,22 @@ fn player_input(
     keys: Res<ButtonInput<KeyCode>>,
     mut query: Query<&mut WillActuator, With<Player>>,
 ) {
-    let Ok(mut will) = query.get_single_mut() else { return };
+    let Ok(mut will) = query.get_single_mut() else {
+        return;
+    };
     let mut dir = Vec2::ZERO;
-    if keys.pressed(KeyCode::KeyW) || keys.pressed(KeyCode::ArrowUp)    { dir.y += 1.0; }
-    if keys.pressed(KeyCode::KeyS) || keys.pressed(KeyCode::ArrowDown)  { dir.y -= 1.0; }
-    if keys.pressed(KeyCode::KeyA) || keys.pressed(KeyCode::ArrowLeft)  { dir.x -= 1.0; }
-    if keys.pressed(KeyCode::KeyD) || keys.pressed(KeyCode::ArrowRight) { dir.x += 1.0; }
+    if keys.pressed(KeyCode::KeyW) || keys.pressed(KeyCode::ArrowUp) {
+        dir.y += 1.0;
+    }
+    if keys.pressed(KeyCode::KeyS) || keys.pressed(KeyCode::ArrowDown) {
+        dir.y -= 1.0;
+    }
+    if keys.pressed(KeyCode::KeyA) || keys.pressed(KeyCode::ArrowLeft) {
+        dir.x -= 1.0;
+    }
+    if keys.pressed(KeyCode::KeyD) || keys.pressed(KeyCode::ArrowRight) {
+        dir.x += 1.0;
+    }
     will.set_movement_intent(dir.normalize_or_zero());
 }
 
@@ -313,8 +342,12 @@ fn detect_death(
     mut state: ResMut<SurvivalState>,
     mut next_phase: ResMut<NextState<Phase>>,
 ) {
-    if !state.alive { return; }
-    let Some(player_entity) = state.player_entity else { return };
+    if !state.alive {
+        return;
+    }
+    let Some(player_entity) = state.player_entity else {
+        return;
+    };
 
     // DeathEvent emitido por EnergyOps
     if events.read().any(|ev| ev.entity == player_entity) {
@@ -338,7 +371,9 @@ fn update_hud(
     player_q: Query<&BaseEnergy, With<Player>>,
     mut text_q: Query<&mut Text, With<HudText>>,
 ) {
-    let Ok(mut text) = text_q.get_single_mut() else { return };
+    let Ok(mut text) = text_q.get_single_mut() else {
+        return;
+    };
     let player_qe = player_q.get_single().map(|e| e.qe()).unwrap_or(0.0);
     let status = if state.alive { "ALIVE" } else { "DEAD" };
     **text = format!(
@@ -350,35 +385,46 @@ fn update_hud(
 // ─── Game Over (Phase::Dead) ────────────────────────────────────────────────
 
 fn spawn_game_over_ui(mut commands: Commands, state: Res<SurvivalState>) {
-    commands.spawn((
-        GameOverUi,
-        StateScoped(Phase::Dead),
-        Node {
-            width: Val::Percent(100.0),
-            height: Val::Percent(100.0),
-            justify_content: JustifyContent::Center,
-            align_items: AlignItems::Center,
-            flex_direction: FlexDirection::Column,
-            ..default()
-        },
-        BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
-    )).with_children(|parent| {
-        parent.spawn((
-            Text::new("GAME OVER"),
-            TextFont { font_size: 72.0, ..default() },
-            TextColor(Color::srgb(0.9, 0.2, 0.2)),
-        ));
-        parent.spawn((
-            Text::new(format!("Score: {}", state.score)),
-            TextFont { font_size: 36.0, ..default() },
-            TextColor(Color::WHITE),
-        ));
-        parent.spawn((
-            Text::new("Press R to restart"),
-            TextFont { font_size: 24.0, ..default() },
-            TextColor(Color::srgb(0.6, 0.6, 0.6)),
-        ));
-    });
+    commands
+        .spawn((
+            GameOverUi,
+            StateScoped(Phase::Dead),
+            Node {
+                width: Val::Percent(100.0),
+                height: Val::Percent(100.0),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                flex_direction: FlexDirection::Column,
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.0, 0.0, 0.0, 0.7)),
+        ))
+        .with_children(|parent| {
+            parent.spawn((
+                Text::new("GAME OVER"),
+                TextFont {
+                    font_size: 72.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.9, 0.2, 0.2)),
+            ));
+            parent.spawn((
+                Text::new(format!("Score: {}", state.score)),
+                TextFont {
+                    font_size: 36.0,
+                    ..default()
+                },
+                TextColor(Color::WHITE),
+            ));
+            parent.spawn((
+                Text::new("Press R to restart"),
+                TextFont {
+                    font_size: 24.0,
+                    ..default()
+                },
+                TextColor(Color::srgb(0.6, 0.6, 0.6)),
+            ));
+        });
 }
 
 fn restart_on_r(

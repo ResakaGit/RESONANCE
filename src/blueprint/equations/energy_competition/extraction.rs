@@ -1,9 +1,9 @@
+use super::pool_equations::{
+    extract_aggressive, extract_competitive, extract_greedy, extract_proportional,
+    extract_regulated,
+};
 use crate::blueprint::constants::*;
 use crate::layers::pool_link::ExtractionType;
-use super::pool_equations::{
-    extract_proportional, extract_greedy, extract_competitive,
-    extract_aggressive, extract_regulated,
-};
 
 // ─── EC-3A: Contexto de Extracción ───────────────────────────────────────────
 
@@ -53,8 +53,7 @@ pub struct ExtractionProfile {
 
 /// Evalúa la extracción completa: función base + modificadores en orden + clamp final.
 pub fn evaluate_extraction(profile: &ExtractionProfile, ctx: &ExtractionContext) -> f32 {
-    fold_modifiers(eval_base(profile, ctx), &profile.modifiers, ctx)
-        .clamp(0.0, ctx.available)
+    fold_modifiers(eval_base(profile, ctx), &profile.modifiers, ctx).clamp(0.0, ctx.available)
 }
 
 /// Evalúa extracción agresiva con su componente de daño al pool.
@@ -64,7 +63,7 @@ pub fn evaluate_aggressive_extraction(
     ctx: &ExtractionContext,
     damage_rate: f32,
 ) -> (f32, f32) {
-    let raw   = extract_aggressive(ctx.available, profile.primary_param, damage_rate).0;
+    let raw = extract_aggressive(ctx.available, profile.primary_param, damage_rate).0;
     let taken = fold_modifiers(raw, &profile.modifiers, ctx).clamp(0.0, ctx.available);
     (taken, taken * damage_rate.clamp(0.0, 1.0))
 }
@@ -72,10 +71,14 @@ pub fn evaluate_aggressive_extraction(
 fn eval_base(profile: &ExtractionProfile, ctx: &ExtractionContext) -> f32 {
     match profile.base {
         ExtractionType::Proportional => extract_proportional(ctx.available, ctx.n_siblings),
-        ExtractionType::Greedy       => extract_greedy(ctx.available, profile.primary_param),
-        ExtractionType::Competitive  => extract_competitive(ctx.available, profile.primary_param, ctx.total_fitness),
-        ExtractionType::Aggressive   => extract_aggressive(ctx.available, profile.primary_param, DAMAGE_RATE_DEFAULT).0,
-        ExtractionType::Regulated    => extract_regulated(
+        ExtractionType::Greedy => extract_greedy(ctx.available, profile.primary_param),
+        ExtractionType::Competitive => {
+            extract_competitive(ctx.available, profile.primary_param, ctx.total_fitness)
+        }
+        ExtractionType::Aggressive => {
+            extract_aggressive(ctx.available, profile.primary_param, DAMAGE_RATE_DEFAULT).0
+        }
+        ExtractionType::Regulated => extract_regulated(
             ctx.available,
             ctx.pool_ratio,
             profile.primary_param,
@@ -91,16 +94,30 @@ fn fold_modifiers(
     modifiers: &[Option<ExtractionModifier>; MAX_EXTRACTION_MODIFIERS],
     ctx: &ExtractionContext,
 ) -> f32 {
-    modifiers.iter().flatten().fold(base, |acc, m| apply_modifier(acc, m, ctx))
+    modifiers
+        .iter()
+        .flatten()
+        .fold(base, |acc, m| apply_modifier(acc, m, ctx))
 }
 
 fn apply_modifier(result: f32, modifier: &ExtractionModifier, ctx: &ExtractionContext) -> f32 {
     match modifier {
-        ExtractionModifier::StressResponse { threshold, multiplier } => {
-            if ctx.pool_ratio < *threshold { result * multiplier } else { result }
+        ExtractionModifier::StressResponse {
+            threshold,
+            multiplier,
+        } => {
+            if ctx.pool_ratio < *threshold {
+                result * multiplier
+            } else {
+                result
+            }
         }
         ExtractionModifier::ThresholdGated { min_viable } => {
-            if ctx.pool_ratio < *min_viable { 0.0 } else { result }
+            if ctx.pool_ratio < *min_viable {
+                0.0
+            } else {
+                result
+            }
         }
         ExtractionModifier::ScaleFactor { factor } => result * factor.max(0.0),
         ExtractionModifier::CapPerTick { max_per_tick } => result.min(max_per_tick.max(0.0)),
@@ -116,8 +133,13 @@ pub fn opportunistic_generalist() -> ExtractionProfile {
         base: ExtractionType::Proportional,
         primary_param: 0.0,
         modifiers: [
-            Some(ExtractionModifier::StressResponse { threshold: OPPORTUNISTIC_STRESS_THRESHOLD, multiplier: REGULATED_AGGRESSIVE_MULT }),
-            None, None, None,
+            Some(ExtractionModifier::StressResponse {
+                threshold: OPPORTUNISTIC_STRESS_THRESHOLD,
+                multiplier: REGULATED_AGGRESSIVE_MULT,
+            }),
+            None,
+            None,
+            None,
         ],
     }
 }
@@ -130,7 +152,9 @@ pub fn conservative_specialist(capacity: f32, min_viable: f32) -> ExtractionProf
         primary_param: capacity,
         modifiers: [
             Some(ExtractionModifier::ThresholdGated { min_viable }),
-            None, None, None,
+            None,
+            None,
+            None,
         ],
     }
 }
@@ -142,8 +166,12 @@ pub fn adaptive_parasite(aggression: f32, max_drain: f32) -> ExtractionProfile {
         base: ExtractionType::Aggressive,
         primary_param: aggression,
         modifiers: [
-            Some(ExtractionModifier::CapPerTick { max_per_tick: max_drain }),
-            None, None, None,
+            Some(ExtractionModifier::CapPerTick {
+                max_per_tick: max_drain,
+            }),
+            None,
+            None,
+            None,
         ],
     }
 }
@@ -155,8 +183,13 @@ pub fn resilient_homeostatic(base_rate: f32) -> ExtractionProfile {
         base: ExtractionType::Regulated,
         primary_param: base_rate,
         modifiers: [
-            Some(ExtractionModifier::StressResponse { threshold: HOMEOSTATIC_STRESS_THRESHOLD, multiplier: HOMEOSTATIC_STRESS_MULT }),
-            None, None, None,
+            Some(ExtractionModifier::StressResponse {
+                threshold: HOMEOSTATIC_STRESS_THRESHOLD,
+                multiplier: HOMEOSTATIC_STRESS_MULT,
+            }),
+            None,
+            None,
+            None,
         ],
     }
 }
@@ -168,8 +201,12 @@ pub fn apex_predator(capacity: f32) -> ExtractionProfile {
         base: ExtractionType::Greedy,
         primary_param: capacity,
         modifiers: [
-            Some(ExtractionModifier::ScaleFactor { factor: APEX_PREDATOR_SCALE_FACTOR }),
-            None, None, None,
+            Some(ExtractionModifier::ScaleFactor {
+                factor: APEX_PREDATOR_SCALE_FACTOR,
+            }),
+            None,
+            None,
+            None,
         ],
     }
 }
@@ -181,12 +218,26 @@ mod tests {
     use super::*;
     use std::mem::size_of;
 
-    fn ctx(available: f32, pool_ratio: f32, n_siblings: u32, total_fitness: f32) -> ExtractionContext {
-        ExtractionContext { available, pool_ratio, n_siblings, total_fitness }
+    fn ctx(
+        available: f32,
+        pool_ratio: f32,
+        n_siblings: u32,
+        total_fitness: f32,
+    ) -> ExtractionContext {
+        ExtractionContext {
+            available,
+            pool_ratio,
+            n_siblings,
+            total_fitness,
+        }
     }
 
     fn no_mod_profile(base: ExtractionType, param: f32) -> ExtractionProfile {
-        ExtractionProfile { base, primary_param: param, modifiers: [None; MAX_EXTRACTION_MODIFIERS] }
+        ExtractionProfile {
+            base,
+            primary_param: param,
+            modifiers: [None; MAX_EXTRACTION_MODIFIERS],
+        }
     }
 
     // EC-3A
@@ -213,12 +264,17 @@ mod tests {
     #[test]
     fn extraction_modifier_variants_distinct() {
         assert_ne!(
-            ExtractionModifier::StressResponse { threshold: 0.3, multiplier: 1.5 },
+            ExtractionModifier::StressResponse {
+                threshold: 0.3,
+                multiplier: 1.5
+            },
             ExtractionModifier::ThresholdGated { min_viable: 0.1 },
         );
         assert_ne!(
             ExtractionModifier::ScaleFactor { factor: 2.0 },
-            ExtractionModifier::CapPerTick { max_per_tick: 100.0 },
+            ExtractionModifier::CapPerTick {
+                max_per_tick: 100.0
+            },
         );
     }
 
@@ -232,7 +288,11 @@ mod tests {
 
     #[test]
     fn extraction_profile_size_under_128_bytes() {
-        assert!(size_of::<ExtractionProfile>() < 128, "size={}", size_of::<ExtractionProfile>());
+        assert!(
+            size_of::<ExtractionProfile>() < 128,
+            "size={}",
+            size_of::<ExtractionProfile>()
+        );
     }
 
     #[test]
@@ -251,8 +311,11 @@ mod tests {
             primary_param: 0.0,
             modifiers: [
                 Some(ExtractionModifier::ScaleFactor { factor: 2.0 }),
-                Some(ExtractionModifier::CapPerTick { max_per_tick: 300.0 }),
-                None, None,
+                Some(ExtractionModifier::CapPerTick {
+                    max_per_tick: 300.0,
+                }),
+                None,
+                None,
             ],
         };
         let c = ctx(1000.0, 0.5, 4, 1.0); // base = 1000/4 = 250; *2 = 500; capped 300
@@ -273,7 +336,14 @@ mod tests {
         let profile = ExtractionProfile {
             base: ExtractionType::Greedy,
             primary_param: 99999.0,
-            modifiers: [Some(ExtractionModifier::CapPerTick { max_per_tick: 200.0 }), None, None, None],
+            modifiers: [
+                Some(ExtractionModifier::CapPerTick {
+                    max_per_tick: 200.0,
+                }),
+                None,
+                None,
+                None,
+            ],
         };
         for avail in [100.0, 500.0, 1000.0, 5000.0] {
             let c = ctx(avail, 0.5, 1, 1.0);
@@ -287,9 +357,17 @@ mod tests {
         let profile = ExtractionProfile {
             base: ExtractionType::Competitive,
             primary_param: 0.5,
-            modifiers: [Some(ExtractionModifier::StressResponse { threshold: 0.3, multiplier: 1.5 }), None, None, None],
+            modifiers: [
+                Some(ExtractionModifier::StressResponse {
+                    threshold: 0.3,
+                    multiplier: 1.5,
+                }),
+                None,
+                None,
+                None,
+            ],
         };
-        let stressed    = ctx(1000.0, 0.2, 2, 1.0); // pool_ratio < 0.3
+        let stressed = ctx(1000.0, 0.2, 2, 1.0); // pool_ratio < 0.3
         let not_stressed = ctx(1000.0, 0.5, 2, 1.0);
         let r_stress = evaluate_extraction(&profile, &stressed);
         let r_normal = evaluate_extraction(&profile, &not_stressed);
@@ -301,7 +379,12 @@ mod tests {
         let profile = ExtractionProfile {
             base: ExtractionType::Regulated,
             primary_param: 100.0,
-            modifiers: [Some(ExtractionModifier::ThresholdGated { min_viable: 0.1 }), None, None, None],
+            modifiers: [
+                Some(ExtractionModifier::ThresholdGated { min_viable: 0.1 }),
+                None,
+                None,
+                None,
+            ],
         };
         let c = ctx(1000.0, 0.05, 2, 1.0); // pool_ratio < 0.1
         assert_eq!(evaluate_extraction(&profile, &c), 0.0);
@@ -319,7 +402,11 @@ mod tests {
         let c = ctx(1000.0, 0.5, 3, 1.5);
         for p in &profiles {
             let r = evaluate_extraction(p, &c);
-            assert!(r >= 0.0 && r <= c.available + 1e-4, "base={:?} r={r}", p.base);
+            assert!(
+                r >= 0.0 && r <= c.available + 1e-4,
+                "base={:?} r={r}",
+                p.base
+            );
         }
     }
 
@@ -339,7 +426,10 @@ mod tests {
         let profile = no_mod_profile(ExtractionType::Aggressive, 0.5);
         let c = ctx(1000.0, 0.6, 2, 1.0);
         let (taken, pool_damage) = evaluate_aggressive_extraction(&profile, &c, 0.1);
-        assert!((pool_damage - taken * 0.1).abs() < 1e-4, "taken={taken} dmg={pool_damage}");
+        assert!(
+            (pool_damage - taken * 0.1).abs() < 1e-4,
+            "taken={taken} dmg={pool_damage}"
+        );
     }
 
     #[test]
@@ -348,7 +438,12 @@ mod tests {
         let scaled_profile = ExtractionProfile {
             base: ExtractionType::Aggressive,
             primary_param: 0.5,
-            modifiers: [Some(ExtractionModifier::ScaleFactor { factor: 0.5 }), None, None, None],
+            modifiers: [
+                Some(ExtractionModifier::ScaleFactor { factor: 0.5 }),
+                None,
+                None,
+                None,
+            ],
         };
         let c = ctx(1000.0, 0.6, 2, 1.0);
         let (t_base, d_base) = evaluate_aggressive_extraction(&base_profile, &c, 0.1);
@@ -356,7 +451,7 @@ mod tests {
         // scaled takes less
         assert!(t_scaled < t_base, "t_scaled={t_scaled} t_base={t_base}");
         // damage rate stays proportional to taken
-        assert!((d_base  - t_base  * 0.1).abs() < 1e-4);
+        assert!((d_base - t_base * 0.1).abs() < 1e-4);
         assert!((d_scaled - t_scaled * 0.1).abs() < 1e-4);
     }
 
@@ -371,7 +466,7 @@ mod tests {
     #[test]
     fn opportunistic_generalist_extracts_more_under_stress() {
         let p = opportunistic_generalist();
-        let stressed     = ctx(1000.0, 0.2, 4, 1.0);
+        let stressed = ctx(1000.0, 0.2, 4, 1.0);
         let not_stressed = ctx(1000.0, 0.6, 4, 1.0);
         assert!(evaluate_extraction(&p, &stressed) > evaluate_extraction(&p, &not_stressed));
     }

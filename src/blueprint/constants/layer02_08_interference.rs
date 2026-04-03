@@ -7,4 +7,3 @@ pub const DESTRUCTIVE_THRESHOLD: f32 = -0.5;
 
 /// |Interferencia| > este valor → golpe crítico (escala con multiplicador_critico).
 pub const CRITICAL_THRESHOLD: f32 = 0.9;
-

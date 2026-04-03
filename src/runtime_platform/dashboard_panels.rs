@@ -15,18 +15,18 @@ use crate::runtime_platform::dashboard_bridge::{
 
 // ─── Layout constants (visual calibration, no physics) ──────────────────────
 
-const SPEED_MIN: f32           = 0.1;
-const SPEED_MAX: f32           = 10.0;
+const SPEED_MIN: f32 = 0.1;
+const SPEED_MAX: f32 = 10.0;
 const CONTROL_PANEL_WIDTH: f32 = 200.0;
-const CHART_HEIGHT_RATIO: f32  = 0.45;
-const CHART_MIN_HEIGHT: f32    = 100.0;
-const CHART_SPACING: f32       = 8.0;
+const CHART_HEIGHT_RATIO: f32 = 0.45;
+const CHART_MIN_HEIGHT: f32 = 100.0;
+const CHART_SPACING: f32 = 8.0;
 
 // ─── Chart colors (visual identity, no physics) ─────────────────────────────
 
 const COLOR_POPULATION: egui::Color32 = egui::Color32::GREEN;
-const COLOR_ENERGY: egui::Color32     = egui::Color32::from_rgb(100, 150, 255);
-const COLOR_SPECIES: egui::Color32    = egui::Color32::from_rgb(255, 180, 50);
+const COLOR_ENERGY: egui::Color32 = egui::Color32::from_rgb(100, 150, 255);
+const COLOR_SPECIES: egui::Color32 = egui::Color32::from_rgb(255, 180, 50);
 const COLOR_CORRELATION: egui::Color32 = egui::Color32::from_rgb(200, 100, 200);
 
 // ─── Tab state ──────────────────────────────────────────────────────────────
@@ -47,10 +47,12 @@ pub enum DashboardTab {
 /// Top bar: tabs + status. Lightweight — only reads summary for status label.
 pub fn dashboard_top_bar_system(
     mut contexts: EguiContexts,
-    mut tab:      ResMut<DashboardTab>,
-    summary:      Res<SimTickSummary>,
+    mut tab: ResMut<DashboardTab>,
+    summary: Res<SimTickSummary>,
 ) {
-    let Some(ctx) = contexts.try_ctx_mut() else { return };
+    let Some(ctx) = contexts.try_ctx_mut() else {
+        return;
+    };
     egui::TopBottomPanel::top("dashboard_tabs").show(ctx, |ui| {
         ui.horizontal(|ui| {
             ui.selectable_value(&mut *tab, DashboardTab::Simulation, "Simulation");
@@ -69,37 +71,39 @@ pub fn dashboard_top_bar_system(
 /// Left panel: controls based on active tab.
 pub fn dashboard_controls_system(
     mut contexts: EguiContexts,
-    tab:          Res<DashboardTab>,
-    summary:      Res<SimTickSummary>,
-    mut speed:    ResMut<SimSpeedConfig>,
-    mut view:     ResMut<ViewConfig>,
+    tab: Res<DashboardTab>,
+    summary: Res<SimTickSummary>,
+    mut speed: ResMut<SimSpeedConfig>,
+    mut view: ResMut<ViewConfig>,
 ) {
-    let Some(ctx) = contexts.try_ctx_mut() else { return };
-    egui::SidePanel::left("controls").default_width(CONTROL_PANEL_WIDTH).show(ctx, |ui| {
-        match *tab {
+    let Some(ctx) = contexts.try_ctx_mut() else {
+        return;
+    };
+    egui::SidePanel::left("controls")
+        .default_width(CONTROL_PANEL_WIDTH)
+        .show(ctx, |ui| match *tab {
             DashboardTab::Simulation => render_simulation_controls(ui, &mut speed),
             DashboardTab::Parameters => render_parameter_controls(ui, &mut view),
-            DashboardTab::Analysis   => render_analysis_controls(ui, &summary),
-        }
-    });
+            DashboardTab::Analysis => render_analysis_controls(ui, &summary),
+        });
 }
 
 /// Central panel: charts/views según tab activo.
 /// Central panel: charts/views based on active tab.
 pub fn dashboard_charts_system(
     mut contexts: EguiContexts,
-    tab:          Res<DashboardTab>,
-    _summary:     Res<SimTickSummary>,
-    series:       Res<SimTimeSeries>,
-    view:         Res<ViewConfig>,
+    tab: Res<DashboardTab>,
+    _summary: Res<SimTickSummary>,
+    series: Res<SimTimeSeries>,
+    view: Res<ViewConfig>,
 ) {
-    let Some(ctx) = contexts.try_ctx_mut() else { return };
-    egui::CentralPanel::default().show(ctx, |ui| {
-        match *tab {
-            DashboardTab::Simulation => render_simulation_charts(ui, &series),
-            DashboardTab::Parameters => render_parameter_view(ui, &view),
-            DashboardTab::Analysis   => render_analysis_charts(ui, &series),
-        }
+    let Some(ctx) = contexts.try_ctx_mut() else {
+        return;
+    };
+    egui::CentralPanel::default().show(ctx, |ui| match *tab {
+        DashboardTab::Simulation => render_simulation_charts(ui, &series),
+        DashboardTab::Parameters => render_parameter_view(ui, &view),
+        DashboardTab::Analysis => render_analysis_charts(ui, &series),
     });
 }
 
@@ -174,7 +178,11 @@ fn render_parameter_controls(ui: &mut egui::Ui, view: &mut ViewConfig) {
         .selected_text(camera_mode_label(view.camera_mode))
         .show_ui(ui, |ui| {
             ui.selectable_value(&mut view.camera_mode, CameraMode::Orbital, "Orbital");
-            ui.selectable_value(&mut view.camera_mode, CameraMode::FollowPlayer, "Follow Player");
+            ui.selectable_value(
+                &mut view.camera_mode,
+                CameraMode::FollowPlayer,
+                "Follow Player",
+            );
             ui.selectable_value(&mut view.camera_mode, CameraMode::TopDown, "Top Down");
         });
 }
@@ -184,10 +192,18 @@ fn render_parameter_view(ui: &mut egui::Ui, view: &ViewConfig) {
     ui.heading("Current View Config");
     ui.separator();
     egui::Grid::new("param_grid").show(ui, |ui| {
-        ui.label("Grid:");      ui.label(if view.show_grid { "ON" } else { "OFF" }); ui.end_row();
-        ui.label("Trajectories:"); ui.label(if view.show_trajectories { "ON" } else { "OFF" }); ui.end_row();
-        ui.label("Color:");     ui.label(color_mode_label(view.color_mode)); ui.end_row();
-        ui.label("Camera:");    ui.label(camera_mode_label(view.camera_mode)); ui.end_row();
+        ui.label("Grid:");
+        ui.label(if view.show_grid { "ON" } else { "OFF" });
+        ui.end_row();
+        ui.label("Trajectories:");
+        ui.label(if view.show_trajectories { "ON" } else { "OFF" });
+        ui.end_row();
+        ui.label("Color:");
+        ui.label(color_mode_label(view.color_mode));
+        ui.end_row();
+        ui.label("Camera:");
+        ui.label(camera_mode_label(view.camera_mode));
+        ui.end_row();
     });
 }
 
@@ -198,10 +214,18 @@ fn render_analysis_controls(ui: &mut egui::Ui, summary: &SimTickSummary) {
     ui.heading("Analysis");
     ui.separator();
     egui::Grid::new("analysis_grid").show(ui, |ui| {
-        ui.label("Tick:");      ui.label(format!("{}", summary.tick));       ui.end_row();
-        ui.label("Population:"); ui.label(format!("{}", summary.alive_count)); ui.end_row();
-        ui.label("Total qe:");  ui.label(format!("{:.1}", summary.total_qe)); ui.end_row();
-        ui.label("Species:");   ui.label(format!("{}", summary.species_count)); ui.end_row();
+        ui.label("Tick:");
+        ui.label(format!("{}", summary.tick));
+        ui.end_row();
+        ui.label("Population:");
+        ui.label(format!("{}", summary.alive_count));
+        ui.end_row();
+        ui.label("Total qe:");
+        ui.label(format!("{:.1}", summary.total_qe));
+        ui.end_row();
+        ui.label("Species:");
+        ui.label(format!("{}", summary.species_count));
+        ui.end_row();
     });
 }
 
@@ -223,7 +247,9 @@ fn render_analysis_charts(ui: &mut egui::Ui, series: &SimTimeSeries) {
 
     // Population vs Energy correlation (zero-alloc: zip iterators)
     ui.label("Population vs Energy");
-    let scatter: PlotPoints = series.pop_history.iter()
+    let scatter: PlotPoints = series
+        .pop_history
+        .iter()
         .zip(series.qe_history.iter())
         .map(|(p, q)| [p as f64, q as f64])
         .collect();
@@ -249,18 +275,18 @@ fn ring_to_plot_points(ring: &RingBuffer) -> PlotPoints {
 fn color_mode_label(mode: ColorMode) -> &'static str {
     match mode {
         ColorMode::Frequency => "Frequency",
-        ColorMode::Energy    => "Energy",
-        ColorMode::Trophic   => "Trophic",
-        ColorMode::Age       => "Age",
+        ColorMode::Energy => "Energy",
+        ColorMode::Trophic => "Trophic",
+        ColorMode::Age => "Age",
     }
 }
 
 /// Label para CameraMode.
 fn camera_mode_label(mode: CameraMode) -> &'static str {
     match mode {
-        CameraMode::Orbital      => "Orbital",
+        CameraMode::Orbital => "Orbital",
         CameraMode::FollowPlayer => "Follow Player",
-        CameraMode::TopDown      => "Top Down",
+        CameraMode::TopDown => "Top Down",
     }
 }
 
@@ -275,11 +301,14 @@ impl Plugin for DashboardPanelsPlugin {
         if !app.is_plugin_added::<EguiPlugin>() {
             app.add_plugins(EguiPlugin);
         }
-        app.init_resource::<DashboardTab>()
-           .add_systems(Update, (
-               dashboard_top_bar_system,
-               dashboard_controls_system,
-               dashboard_charts_system,
-           ).chain());
+        app.init_resource::<DashboardTab>().add_systems(
+            Update,
+            (
+                dashboard_top_bar_system,
+                dashboard_controls_system,
+                dashboard_charts_system,
+            )
+                .chain(),
+        );
     }
 }

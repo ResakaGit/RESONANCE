@@ -39,7 +39,9 @@ fn main() {
         #[cfg(not(feature = "pixel_viewer"))]
         "window" => {
             eprintln!("error: --render window requires --features pixel_viewer");
-            eprintln!("  cargo run --release --features pixel_viewer --bin sim_viewer -- --render window");
+            eprintln!(
+                "  cargo run --release --features pixel_viewer --bin sim_viewer -- --render window"
+            );
             std::process::exit(1);
         }
         other => {
@@ -75,13 +77,23 @@ fn build_app() -> App {
 }
 
 /// Collect entity + behavioral positions from world.
-fn collect_positions(world: &mut bevy::ecs::world::World, grid: &EnergyFieldGrid) -> (Vec<(u32, u32, f32)>, Vec<(u32, u32)>) {
+fn collect_positions(
+    world: &mut bevy::ecs::world::World,
+    grid: &EnergyFieldGrid,
+) -> (Vec<(u32, u32, f32)>, Vec<(u32, u32)>) {
     let mut entities = Vec::new();
     let mut behaviorals = Vec::new();
 
-    let mut eq = world.query::<(&Transform, &BaseEnergy, &OscillatorySignature, Option<&BehavioralAgent>)>();
+    let mut eq = world.query::<(
+        &Transform,
+        &BaseEnergy,
+        &OscillatorySignature,
+        Option<&BehavioralAgent>,
+    )>();
     for (tr, energy, osc, beh) in eq.iter(world) {
-        if energy.is_dead() { continue; }
+        if energy.is_dead() {
+            continue;
+        }
         let pos = bevy::math::Vec2::new(tr.translation.x, tr.translation.z);
         if let Some((cx, cy)) = grid.cell_coords(pos) {
             entities.push((cx, cy, osc.frequency_hz()));
@@ -96,16 +108,22 @@ fn collect_positions(world: &mut bevy::ecs::world::World, grid: &EnergyFieldGrid
 fn snapshot_frame(app: &mut App, circular: bool) -> Option<frame_buffer::FrameBuffer> {
     let world = app.world_mut();
     let grid = world.get_resource::<EnergyFieldGrid>()?.clone();
-    let clock_tick = world.get_resource::<SimulationClock>().map(|c| c.tick_id).unwrap_or(0);
+    let clock_tick = world
+        .get_resource::<SimulationClock>()
+        .map(|c| c.tick_id)
+        .unwrap_or(0);
     let (ents, behs) = collect_positions(world, &grid);
     if circular {
         // Rotation offset synced with day/night meridian (sun stays fixed, surface rotates).
         let day_period = 600.0_f32; // default; overridden if DayNightConfig exists
-        let period = world.get_resource::<resonance::worldgen::systems::day_night::DayNightConfig>()
+        let period = world
+            .get_resource::<resonance::worldgen::systems::day_night::DayNightConfig>()
             .map(|c| c.period_ticks)
             .unwrap_or(day_period);
         let rotation = (clock_tick as f32 / period).fract() * grid.width as f32;
-        Some(frame_buffer::render_frame_circular(&grid, &ents, &behs, rotation))
+        Some(frame_buffer::render_frame_circular(
+            &grid, &ents, &behs, rotation,
+        ))
     } else {
         Some(frame_buffer::render_frame(&grid, &ents, &behs))
     }
@@ -119,7 +137,8 @@ fn run_terminal(app: &mut App, circular: bool) {
         std::thread::sleep(sleep);
         app.update();
 
-        let clk = app.world()
+        let clk = app
+            .world()
             .get_resource::<SimulationClock>()
             .map(|c| c.tick_id)
             .unwrap_or(0);
@@ -173,10 +192,15 @@ fn run_window(app: &mut App, circular: bool) {
 #[allow(dead_code)]
 fn parse_arg(flag: &str) -> Option<u32> {
     let args: Vec<String> = std::env::args().collect();
-    args.iter().position(|a| a == flag).and_then(|i| args.get(i + 1)).and_then(|v| v.parse().ok())
+    args.iter()
+        .position(|a| a == flag)
+        .and_then(|i| args.get(i + 1))
+        .and_then(|v| v.parse().ok())
 }
 
 fn parse_arg_str(flag: &str) -> Option<String> {
     let args: Vec<String> = std::env::args().collect();
-    args.iter().position(|a| a == flag).and_then(|i| args.get(i + 1).cloned())
+    args.iter()
+        .position(|a| a == flag)
+        .and_then(|i| args.get(i + 1).cloned())
 }

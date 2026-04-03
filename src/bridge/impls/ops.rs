@@ -68,8 +68,8 @@ pub struct OsmosisEquationInput {
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CompetitionNormEquationInput {
     pub raw_score: f32,
-    pub midpoint:  f32,
-    pub k:         f32,
+    pub midpoint: f32,
+    pub k: f32,
 }
 
 // --- Frecuencia: Almanac + fallback bandas -----------------------------------
@@ -154,7 +154,13 @@ impl Bridgeable for InterferenceBridge {
         let phase2 = quantize_phase_sector(input.phase2, INTERFERENCE_PHASE_SECTORS);
         let tw = interference_time_window(config);
         let t = quantize_time_window(input.t, tw);
-        Self::Input { f1, phase1, f2, phase2, t }
+        Self::Input {
+            f1,
+            phase1,
+            f2,
+            phase2,
+            t,
+        }
     }
 
     fn cache_key(normalized: Self::Input) -> u64 {
@@ -195,7 +201,11 @@ impl Bridgeable for CatalysisBridge {
         let projected_qe = normalize_scalar(input.projected_qe, &config.bands, h, None).0;
         let interference = quantize_precision(input.interference, 2);
         let critical_multiplier = quantize_precision(input.critical_multiplier, 2);
-        Self::Input { projected_qe, interference, critical_multiplier }
+        Self::Input {
+            projected_qe,
+            interference,
+            critical_multiplier,
+        }
     }
 
     fn cache_key(normalized: Self::Input) -> u64 {
@@ -234,7 +244,13 @@ impl Bridgeable for CollisionTransferBridge {
         let interference = quantize_precision(input.interference, 2);
         let conductivity = quantize_precision(input.conductivity, 3);
         let dt = quantize_precision(input.dt, 4);
-        Self::Input { qe_a, qe_b, interference, conductivity, dt }
+        Self::Input {
+            qe_a,
+            qe_b,
+            interference,
+            conductivity,
+            dt,
+        }
     }
 
     fn cache_key(normalized: Self::Input) -> u64 {
@@ -273,7 +289,11 @@ impl Bridgeable for OsmosisBridge {
         let concentration_a = normalize_scalar(input.concentration_a, &config.bands, h, None).0;
         let concentration_b = normalize_scalar(input.concentration_b, &config.bands, h, None).0;
         let membrane_permeability = quantize_precision(input.membrane_permeability, 4);
-        Self::Input { concentration_a, concentration_b, membrane_permeability }
+        Self::Input {
+            concentration_a,
+            concentration_b,
+            membrane_permeability,
+        }
     }
 
     fn cache_key(normalized: Self::Input) -> u64 {
@@ -306,10 +326,20 @@ impl Bridgeable for CompetitionNormBridge {
         config: &BridgeConfig<Self>,
         _band_hint: Option<usize>,
     ) -> Self::Input {
-        let raw_score = normalize_scalar(input.raw_score, &config.bands, config.hysteresis_margin, None).0;
-        let midpoint  = quantize_precision(input.midpoint, 3);
-        let k         = quantize_precision(input.k, 3);
-        Self::Input { raw_score, midpoint, k }
+        let raw_score = normalize_scalar(
+            input.raw_score,
+            &config.bands,
+            config.hysteresis_margin,
+            None,
+        )
+        .0;
+        let midpoint = quantize_precision(input.midpoint, 3);
+        let k = quantize_precision(input.k, 3);
+        Self::Input {
+            raw_score,
+            midpoint,
+            k,
+        }
     }
 
     fn cache_key(normalized: Self::Input) -> u64 {
@@ -546,7 +576,11 @@ mod tests {
         let cfg = interference_cfg(false);
         let mut cache = BridgeCache::<InterferenceBridge>::new(64, CachePolicy::Lru);
         let input = InterferenceEquationInput {
-            f1: 111.3, phase1: 0.4, f2: 333.7, phase2: 1.9, t: 12.345,
+            f1: 111.3,
+            phase1: 0.4,
+            f2: 333.7,
+            phase2: 1.9,
+            t: 12.345,
         };
         let out = bridge_compute(input, &cfg, &mut cache);
         let direct =
@@ -559,7 +593,11 @@ mod tests {
         let cfg = interference_cfg(true);
         let mut cache = BridgeCache::<InterferenceBridge>::new(512, CachePolicy::Lru);
         let input = InterferenceEquationInput {
-            f1: 450.0, phase1: 0.31, f2: 700.0, phase2: 1.12, t: 3.33,
+            f1: 450.0,
+            phase1: 0.31,
+            f2: 700.0,
+            phase2: 1.12,
+            t: 3.33,
         };
         let bridged = bridge_compute(input, &cfg, &mut cache);
         let n = <InterferenceBridge as Bridgeable>::normalize(input, &cfg, None);
@@ -577,7 +615,11 @@ mod tests {
         let cfg = interference_cfg(true);
         let mut cache = BridgeCache::<InterferenceBridge>::new(1000, CachePolicy::Lru);
         let base = InterferenceEquationInput {
-            f1: 400.0, phase1: 0.5, f2: 500.0, phase2: 1.0, t: 1.0,
+            f1: 400.0,
+            phase1: 0.5,
+            f2: 500.0,
+            phase2: 1.0,
+            t: 1.0,
         };
         for i in 0..200 {
             let mut x = base;
@@ -588,13 +630,23 @@ mod tests {
         let total = s.hits + s.misses;
         assert!(total > 0);
         let rate = s.hits as f32 / total as f32;
-        assert!(rate > 0.5, "hit_rate={} hits={} misses={}", rate, s.hits, s.misses);
+        assert!(
+            rate > 0.5,
+            "hit_rate={} hits={} misses={}",
+            rate,
+            s.hits,
+            s.misses
+        );
     }
 
     #[test]
     fn interference_packed_key_deterministic() {
         let n = InterferenceEquationInput {
-            f1: 100.0, phase1: 0.0, f2: 300.0, phase2: 0.0, t: 1.0,
+            f1: 100.0,
+            phase1: 0.0,
+            f2: 300.0,
+            phase2: 0.0,
+            t: 1.0,
         };
         let a = <InterferenceBridge as Bridgeable>::cache_key(n);
         let b = <InterferenceBridge as Bridgeable>::cache_key(n);
@@ -604,7 +656,9 @@ mod tests {
     #[test]
     fn catalysis_cache_key_deterministic() {
         let n = CatalysisEquationInput {
-            projected_qe: 42.0, interference: 0.5, critical_multiplier: 1.5,
+            projected_qe: 42.0,
+            interference: 0.5,
+            critical_multiplier: 1.5,
         };
         let k1 = <CatalysisBridge as Bridgeable>::cache_key(n);
         let k2 = <CatalysisBridge as Bridgeable>::cache_key(n);
@@ -614,7 +668,11 @@ mod tests {
     #[test]
     fn collision_cache_key_deterministic() {
         let n = CollisionTransferEquationInput {
-            qe_a: 10.0, qe_b: 20.0, interference: 0.25, conductivity: 0.4, dt: 1.0 / 60.0,
+            qe_a: 10.0,
+            qe_b: 20.0,
+            interference: 0.25,
+            conductivity: 0.4,
+            dt: 1.0 / 60.0,
         };
         let k1 = <CollisionTransferBridge as Bridgeable>::cache_key(n);
         let k2 = <CollisionTransferBridge as Bridgeable>::cache_key(n);
@@ -634,7 +692,8 @@ mod tests {
             };
             let b = bridge_compute(input, &cfg, &mut cache);
             let n = <CatalysisBridge as Bridgeable>::normalize(input, &cfg, None);
-            let e = equations::catalysis_result(n.projected_qe, n.interference, n.critical_multiplier);
+            let e =
+                equations::catalysis_result(n.projected_qe, n.interference, n.critical_multiplier);
             assert!((b - e).abs() < 1e-4, "i={} b={} e={}", i, b, e);
         }
     }
@@ -644,7 +703,9 @@ mod tests {
         let cfg = catalysis_cfg(false);
         let mut cache = BridgeCache::<CatalysisBridge>::new(16, CachePolicy::Lru);
         let input = CatalysisEquationInput {
-            projected_qe: 78.3, interference: 0.72, critical_multiplier: 2.0,
+            projected_qe: 78.3,
+            interference: 0.72,
+            critical_multiplier: 2.0,
         };
         let b = bridge_compute(input, &cfg, &mut cache);
         assert_eq!(b, equations::catalysis_result(78.3, 0.72, 2.0));
@@ -664,7 +725,8 @@ mod tests {
             };
             let b = bridge_compute(input, &cfg, &mut cache);
             let n = <CollisionTransferBridge as Bridgeable>::normalize(input, &cfg, None);
-            let e = equations::collision_transfer(n.qe_a, n.qe_b, n.interference, n.conductivity, n.dt);
+            let e =
+                equations::collision_transfer(n.qe_a, n.qe_b, n.interference, n.conductivity, n.dt);
             assert!((b - e).abs() < 1e-3, "b={} e={}", b, e);
         }
     }
@@ -674,13 +736,21 @@ mod tests {
         let cfg = collision_cfg(false);
         let mut cache = BridgeCache::<CollisionTransferBridge>::new(16, CachePolicy::Lru);
         let input = CollisionTransferEquationInput {
-            qe_a: 88.0, qe_b: 77.0, interference: -0.4, conductivity: 0.35, dt: 1.0 / 120.0,
+            qe_a: 88.0,
+            qe_b: 77.0,
+            interference: -0.4,
+            conductivity: 0.35,
+            dt: 1.0 / 120.0,
         };
         let b = bridge_compute(input, &cfg, &mut cache);
         assert_eq!(
             b,
             equations::collision_transfer(
-                input.qe_a, input.qe_b, input.interference, input.conductivity, input.dt,
+                input.qe_a,
+                input.qe_b,
+                input.interference,
+                input.conductivity,
+                input.dt,
             )
         );
     }
@@ -691,7 +761,11 @@ mod tests {
         let mut cache = BridgeCache::<CollisionTransferBridge>::new(128, CachePolicy::Lru);
         let mut scratch = CollisionTransferScratch::default();
         let input = CollisionTransferEquationInput {
-            qe_a: 100.0, qe_b: 90.0, interference: 0.5, conductivity: 0.2, dt: 1.0 / 60.0,
+            qe_a: 100.0,
+            qe_b: 90.0,
+            interference: 0.5,
+            conductivity: 0.2,
+            dt: 1.0 / 60.0,
         };
         let n = <CollisionTransferBridge as Bridgeable>::normalize(input, &cfg, None);
         let packed = <CollisionTransferBridge as Bridgeable>::cache_key(n);
@@ -710,7 +784,13 @@ mod tests {
         let p2 = 1.1_f32;
         let t = 0.5_f32;
         let faction = 0.15_f32;
-        let input = InterferenceEquationInput { f1, phase1: p1, f2, phase2: p2, t };
+        let input = InterferenceEquationInput {
+            f1,
+            phase1: p1,
+            f2,
+            phase2: p2,
+            t,
+        };
         let raw_b = bridge_compute(input, &cfg, &mut cache);
         let n = <InterferenceBridge as Bridgeable>::normalize(input, &cfg, None);
         let total_ref = compose_interference(
@@ -734,7 +814,11 @@ mod tests {
         let mut cfg = CompetitionNormBridge::config_for_preset(RigidityPreset::Moderate);
         cfg.enabled = false;
         let mut cache = BridgeCache::<CompetitionNormBridge>::new(32, CachePolicy::Lru);
-        let input = CompetitionNormEquationInput { raw_score: 3.5, midpoint: 2.0, k: 1.0 };
+        let input = CompetitionNormEquationInput {
+            raw_score: 3.5,
+            midpoint: 2.0,
+            k: 1.0,
+        };
         let b = bridge_compute(input, &cfg, &mut cache);
         assert_eq!(b, equations::normalize_score(3.5, 2.0, 1.0));
         assert_eq!(cache.stats().misses, 0);
@@ -744,7 +828,11 @@ mod tests {
     fn competition_norm_bridge_enabled_matches_normalized_equation() {
         let cfg = CompetitionNormBridge::config_for_preset(RigidityPreset::Moderate);
         let mut cache = BridgeCache::<CompetitionNormBridge>::new(128, CachePolicy::Lru);
-        let input = CompetitionNormEquationInput { raw_score: 3.5, midpoint: 2.0, k: 1.0 };
+        let input = CompetitionNormEquationInput {
+            raw_score: 3.5,
+            midpoint: 2.0,
+            k: 1.0,
+        };
         let b = bridge_compute(input, &cfg, &mut cache);
         let n = <CompetitionNormBridge as Bridgeable>::normalize(input, &cfg, None);
         let expected = equations::normalize_score(n.raw_score, n.midpoint, n.k);
@@ -755,8 +843,16 @@ mod tests {
     fn competition_norm_bridge_cache_hit_same_band() {
         let cfg = CompetitionNormBridge::config_for_preset(RigidityPreset::Moderate);
         let mut cache = BridgeCache::<CompetitionNormBridge>::new(128, CachePolicy::Lru);
-        let a = CompetitionNormEquationInput { raw_score: 3.1, midpoint: 2.0, k: 1.0 };
-        let b = CompetitionNormEquationInput { raw_score: 3.8, midpoint: 2.0, k: 1.0 };
+        let a = CompetitionNormEquationInput {
+            raw_score: 3.1,
+            midpoint: 2.0,
+            k: 1.0,
+        };
+        let b = CompetitionNormEquationInput {
+            raw_score: 3.8,
+            midpoint: 2.0,
+            k: 1.0,
+        };
         let _ = bridge_compute(a, &cfg, &mut cache);
         let _ = bridge_compute(b, &cfg, &mut cache);
         // both raw_scores fall in [2.0, 4.0) band → same canonical → cache hit
@@ -765,7 +861,11 @@ mod tests {
 
     #[test]
     fn competition_norm_bridge_cache_key_deterministic() {
-        let n = CompetitionNormEquationInput { raw_score: 1.5, midpoint: 1.0, k: 2.0 };
+        let n = CompetitionNormEquationInput {
+            raw_score: 1.5,
+            midpoint: 1.0,
+            k: 2.0,
+        };
         let k1 = <CompetitionNormBridge as Bridgeable>::cache_key(n);
         let k2 = <CompetitionNormBridge as Bridgeable>::cache_key(n);
         assert_eq!(k1, k2);
@@ -781,10 +881,15 @@ mod tests {
         icfg.enabled = false;
         world.insert_resource(icfg);
         world.insert_resource(CatalysisBridge::config_for_preset(RigidityPreset::Moderate));
-        world.insert_resource(CollisionTransferBridge::config_for_preset(RigidityPreset::Moderate));
+        world.insert_resource(CollisionTransferBridge::config_for_preset(
+            RigidityPreset::Moderate,
+        ));
         world.insert_resource(BridgeCache::<InterferenceBridge>::new(64, CachePolicy::Lru));
         world.insert_resource(BridgeCache::<CatalysisBridge>::new(64, CachePolicy::Lru));
-        world.insert_resource(BridgeCache::<CollisionTransferBridge>::new(64, CachePolicy::Lru));
+        world.insert_resource(BridgeCache::<CollisionTransferBridge>::new(
+            64,
+            CachePolicy::Lru,
+        ));
         world.insert_resource(crate::bridge::context_fill::BridgePhaseState::active_only());
 
         let a = world.spawn(OscillatorySignature::new(400.0, 0.3)).id();

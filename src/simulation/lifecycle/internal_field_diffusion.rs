@@ -20,7 +20,9 @@ pub fn internal_field_diffusion_system(
     >,
 ) {
     for (mut field, energy, matter) in &mut query {
-        if energy.is_dead() { continue; }
+        if energy.is_dead() {
+            continue;
+        }
 
         let k = dissipation_from_state(matter.state());
         let dt = 1.0;
@@ -72,7 +74,10 @@ mod tests {
             }
         }
         let after_max = field.nodes.iter().copied().fold(0.0f32, f32::max);
-        assert!(after_max < before_max, "diffusion should reduce peak: {after_max} < {before_max}");
+        assert!(
+            after_max < before_max,
+            "diffusion should reduce peak: {after_max} < {before_max}"
+        );
     }
 
     #[test]

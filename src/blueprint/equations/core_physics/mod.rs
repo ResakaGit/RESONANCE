@@ -1,7 +1,7 @@
+use crate::blueprint::MatterState;
+use crate::blueprint::constants::*;
 use crate::math_types::Vec2;
 use std::f32::consts::PI;
-use crate::blueprint::constants::*;
-use crate::layers::MatterState;
 
 // ══════════════════════════════════════════════════════════════
 // Funciones puras que implementan toda la matemática del motor.
@@ -11,6 +11,16 @@ use crate::layers::MatterState;
 // ═══════════════════════════════════════════════
 // Capa 0 × Capa 1: Densidad
 // ═══════════════════════════════════════════════
+
+/// Densidad energética normalizada: qe / radius² (Axiom 1).
+/// Energy density: qe / radius² (Axiom 1).
+#[inline]
+pub fn density_from_qe_radius(qe: f32, radius: f32) -> f32 {
+    if radius <= 0.0 {
+        return 0.0;
+    }
+    qe / (radius * radius)
+}
 
 /// Volumen de una esfera: V = (4/3) * π * r³ (mismas constantes que `SpatialVolume` / blueprint).
 pub fn sphere_volume(radius: f32) -> f32 {
@@ -32,11 +42,7 @@ pub fn sphere_surface_area(radius: f32) -> f32 {
 /// Densidad: ρ = qe / V
 pub fn density(qe: f32, radius: f32) -> f32 {
     let v = sphere_volume(radius);
-    if v > 0.0 {
-        qe / v
-    } else {
-        f32::MAX
-    }
+    if v > 0.0 { qe / v } else { f32::MAX }
 }
 
 // ═══════════════════════════════════════════════
@@ -146,7 +152,11 @@ mod tests {
     #[test]
     fn sphere_volume_unit_radius() {
         let expected = (4.0 / 3.0) * PI;
-        assert!((sphere_volume(1.0) - expected).abs() < EPS, "got {}", sphere_volume(1.0));
+        assert!(
+            (sphere_volume(1.0) - expected).abs() < EPS,
+            "got {}",
+            sphere_volume(1.0)
+        );
     }
     #[test]
     fn sphere_volume_zero_is_zero() {
@@ -270,7 +280,10 @@ mod tests {
     fn drag_opposes_velocity() {
         let v = Vec2::new(3.0, 4.0);
         let d = drag_force(1.0, 10.0, v);
-        assert!(d.dot(v) < 0.0, "drag should oppose velocity: drag={d}, vel={v}");
+        assert!(
+            d.dot(v) < 0.0,
+            "drag should oppose velocity: drag={d}, vel={v}"
+        );
     }
     #[test]
     fn drag_scales_with_viscosity() {

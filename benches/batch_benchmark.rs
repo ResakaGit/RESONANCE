@@ -2,7 +2,7 @@
 //!
 //! Run: `cargo bench --bench batch_benchmark`
 
-use criterion::{criterion_group, criterion_main, BenchmarkId, Criterion};
+use criterion::{BenchmarkId, Criterion, criterion_group, criterion_main};
 
 use resonance::batch::arena::{EntitySlot, SimWorldFlat};
 use resonance::batch::batch::{BatchConfig, WorldBatch};
@@ -34,7 +34,9 @@ fn populate_demo(world: &mut SimWorldFlat, n: u8) {
         ];
         world.spawn(e);
     }
-    for cell in &mut world.nutrient_grid { *cell = 5.0; }
+    for cell in &mut world.nutrient_grid {
+        *cell = 5.0;
+    }
     world.update_total_qe();
 }
 
@@ -57,11 +59,9 @@ fn bench_batch_tick(c: &mut Criterion) {
             ..Default::default()
         };
         let mut batch = WorldBatch::new(config);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(count),
-            &count,
-            |b, _| b.iter(|| batch.tick_all()),
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(count), &count, |b, _| {
+            b.iter(|| batch.tick_all())
+        });
     }
     group.finish();
 }
@@ -76,11 +76,9 @@ fn bench_batch_tick_sequential(c: &mut Criterion) {
             ..Default::default()
         };
         let mut batch = WorldBatch::new(config);
-        group.bench_with_input(
-            BenchmarkId::from_parameter(count),
-            &count,
-            |b, _| b.iter(|| batch.tick_all_sequential()),
-        );
+        group.bench_with_input(BenchmarkId::from_parameter(count), &count, |b, _| {
+            b.iter(|| batch.tick_all_sequential())
+        });
     }
     group.finish();
 }
@@ -94,9 +92,7 @@ fn bench_genetic_step(c: &mut Criterion) {
         ..Default::default()
     };
     let mut harness = GeneticHarness::new(config);
-    c.bench_function("genetic_step_100w_50t", |b| {
-        b.iter(|| harness.step())
-    });
+    c.bench_function("genetic_step_100w_50t", |b| b.iter(|| harness.step()));
 }
 
 criterion_group!(

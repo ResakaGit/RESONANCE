@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use resonance::layers::{
     AmbientPressure, BaseEnergy, FlowVector, MetabolicGraphBuilder, MorphogenesisShapeParams,
     OrganRole, SpatialVolume,
@@ -12,18 +12,18 @@ use resonance::simulation::metabolic::morphogenesis::{
 /// Builds a 12-node DAG for benchmark ceiling.
 fn build_max_graph() -> resonance::layers::MetabolicGraph {
     MetabolicGraphBuilder::new()
-        .add_node(OrganRole::Root,    0.9, 3.0)  // 0
-        .add_node(OrganRole::Core,    0.7, 8.0)  // 1
-        .add_node(OrganRole::Stem,    0.8, 5.0)  // 2
-        .add_node(OrganRole::Leaf,    0.85, 2.0) // 3
-        .add_node(OrganRole::Fin,     0.6, 5.0)  // 4
-        .add_node(OrganRole::Sensory, 0.5, 4.0)  // 5
-        .add_node(OrganRole::Thorn,   0.4, 6.0)  // 6
-        .add_node(OrganRole::Shell,   0.3, 7.0)  // 7
-        .add_node(OrganRole::Fruit,   0.5, 3.0)  // 8
-        .add_node(OrganRole::Bud,     0.6, 2.0)  // 9
-        .add_node(OrganRole::Limb,    0.7, 4.0)  // 10
-        .add_node(OrganRole::Petal,   0.55, 3.0) // 11
+        .add_node(OrganRole::Root, 0.9, 3.0) // 0
+        .add_node(OrganRole::Core, 0.7, 8.0) // 1
+        .add_node(OrganRole::Stem, 0.8, 5.0) // 2
+        .add_node(OrganRole::Leaf, 0.85, 2.0) // 3
+        .add_node(OrganRole::Fin, 0.6, 5.0) // 4
+        .add_node(OrganRole::Sensory, 0.5, 4.0) // 5
+        .add_node(OrganRole::Thorn, 0.4, 6.0) // 6
+        .add_node(OrganRole::Shell, 0.3, 7.0) // 7
+        .add_node(OrganRole::Fruit, 0.5, 3.0) // 8
+        .add_node(OrganRole::Bud, 0.6, 2.0) // 9
+        .add_node(OrganRole::Limb, 0.7, 4.0) // 10
+        .add_node(OrganRole::Petal, 0.55, 3.0) // 11
         .add_edge(0, 1, 50.0)
         .add_edge(0, 2, 50.0)
         .add_edge(0, 3, 50.0)

@@ -9,8 +9,8 @@
 use bevy::prelude::*;
 
 use crate::blueprint::equations::planetary_rotation::{
-    angular_velocity_from_period, night_cooling_fraction, seasonal_irradiance_modifier,
-    solar_irradiance_factor, solar_meridian_x, AMBIENT_IRRADIANCE,
+    AMBIENT_IRRADIANCE, angular_velocity_from_period, night_cooling_fraction,
+    seasonal_irradiance_modifier, solar_irradiance_factor, solar_meridian_x,
 };
 use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::worldgen::EnergyFieldGrid;
@@ -69,9 +69,14 @@ pub fn day_night_modulation_system(
 ) {
     let Some(config) = config else { return };
     let Some(ref mut grid) = grid else { return };
-    if config.omega == 0.0 { return; }
+    if config.omega == 0.0 {
+        return;
+    }
 
-    let dt = fixed.as_ref().map(|f| f.delta_secs()).unwrap_or_else(|| time.delta_secs());
+    let dt = fixed
+        .as_ref()
+        .map(|f| f.delta_secs())
+        .unwrap_or_else(|| time.delta_secs());
     let dt_ratio = dt * REFERENCE_HZ;
 
     let grid_w = config.grid_width_world;
@@ -90,8 +95,11 @@ pub fn day_night_modulation_system(
     for y in 0..grid.height {
         let cell_y_world = y as f32 * grid.cell_size;
         let seasonal = seasonal_irradiance_modifier(
-            cell_y_world, grid_h, clock.tick_id,
-            config.year_period_ticks, config.axial_tilt,
+            cell_y_world,
+            grid_h,
+            clock.tick_id,
+            config.year_period_ticks,
+            config.axial_tilt,
         );
 
         for x in 0..grid.width {
@@ -108,7 +116,9 @@ pub fn day_night_modulation_system(
                     }
                 } else {
                     // Night side: proportional cooling (Newton's law).
-                    if cell.accumulated_qe <= 0.0 { continue; }
+                    if cell.accumulated_qe <= 0.0 {
+                        continue;
+                    }
                     let shadow = 1.0 - solar_factor;
                     let drain = cell.accumulated_qe * cooling * shadow * dt_ratio;
                     if drain > 0.01 {

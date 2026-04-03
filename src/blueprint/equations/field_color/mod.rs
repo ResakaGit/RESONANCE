@@ -1,16 +1,16 @@
 //! Color de campo energético: derivación visual, espectro Hz, modulación por rol.
 
-mod spectrum;
 mod field_derivation;
 mod role_modulation;
+mod spectrum;
 
-pub use spectrum::{
-    game_frequency_to_hue, linear_rgb_from_game_hz_spectrum, linear_rgb_from_hz_with_identity,
-};
 pub use field_derivation::{compound_field_linear_rgba, field_linear_rgb_from_hz_purity};
 pub use role_modulation::{
     BranchRole, branch_child_role_from_branch_index, branch_role_modulated_linear_rgb,
     organ_role_modulated_rgb, organ_role_opacity, organ_role_scale,
+};
+pub use spectrum::{
+    game_frequency_to_hue, linear_rgb_from_game_hz_spectrum, linear_rgb_from_hz_with_identity,
 };
 
 use crate::blueprint::constants::*;
@@ -21,7 +21,11 @@ use crate::blueprint::constants::*;
 
 #[inline]
 pub(super) fn field_visual_clamp01_or_non_finite(value: f32, non_finite: f32) -> f32 {
-    if value.is_finite() { value.clamp(0.0, 1.0) } else { non_finite }
+    if value.is_finite() {
+        value.clamp(0.0, 1.0)
+    } else {
+        non_finite
+    }
 }
 
 /// Factor de mezcla en [0, 1] para interpolación de tintes (NaN/Inf → 0).
@@ -65,7 +69,11 @@ pub(super) fn linear_rgba_lerp_preclamped(a: [f32; 4], b: [f32; 4], t: f32) -> [
 /// sRGB to linear conversion (IEC 61966-2-1). Bevy-free.
 #[inline]
 pub(super) fn srgb_to_linear(c: f32) -> f32 {
-    if c <= 0.04045 { c / 12.92 } else { ((c + 0.055) / 1.055).powf(2.4) }
+    if c <= 0.04045 {
+        c / 12.92
+    } else {
+        ((c + 0.055) / 1.055).powf(2.4)
+    }
 }
 
 /// RGB lineal del gris neutro de campo.
@@ -78,7 +86,11 @@ pub fn neutral_field_visual_linear_rgb() -> [f32; 3] {
 /// Canales RGB lineal: si alguno no es finito → gris neutro.
 #[inline]
 pub fn field_linear_rgb_sanitize_finite(rgb: [f32; 3]) -> [f32; 3] {
-    if rgb.iter().all(|x| x.is_finite()) { rgb } else { neutral_field_visual_linear_rgb() }
+    if rgb.iter().all(|x| x.is_finite()) {
+        rgb
+    } else {
+        neutral_field_visual_linear_rgb()
+    }
 }
 
 /// Color por vértice de flujo en RGBA lineal (vertex color stateless para GF1 / primitivas de órgano).
@@ -87,7 +99,12 @@ pub fn field_linear_rgb_sanitize_finite(rgb: [f32; 3]) -> [f32; 3] {
 /// Inputs: `qe_norm` ∈ [0,1], `tint_rgb` lineal, `s_along` ∈ [0,1] (fracción longitudinal),
 /// `azimuth_along_ring` ∈ [0,1] (fracción angular del anillo).
 #[inline]
-pub fn vertex_flow_color(qe_norm: f32, tint_rgb: [f32; 3], s_along: f32, azimuth_along_ring: f32) -> [f32; 4] {
+pub fn vertex_flow_color(
+    qe_norm: f32,
+    tint_rgb: [f32; 3],
+    s_along: f32,
+    azimuth_along_ring: f32,
+) -> [f32; 4] {
     let q = qe_norm.clamp(0.0, 1.0);
     let edge = (1.0 - azimuth_along_ring.clamp(0.0, 1.0)) * 0.15;
     let g = (0.75 + 0.25 * s_along.clamp(0.0, 1.0)) * (0.7 + 0.3 * q);
@@ -103,7 +120,13 @@ pub fn vertex_flow_color(qe_norm: f32, tint_rgb: [f32; 3], s_along: f32, azimuth
 ///
 /// Aplica sombreado radial y longitudinal antes de delegar a [`vertex_flow_color`].
 #[inline]
-pub fn petal_shaded_flow_color(tint_rgb: [f32; 3], ring_t: f32, u: f32, qe_norm: f32, v: f32) -> [f32; 4] {
+pub fn petal_shaded_flow_color(
+    tint_rgb: [f32; 3],
+    ring_t: f32,
+    u: f32,
+    qe_norm: f32,
+    v: f32,
+) -> [f32; 4] {
     let ring_shade = 0.70 + 0.30 * ring_t.clamp(0.0, 1.0);
     let along_shade = 0.75 + 0.25 * u.clamp(0.0, 1.0);
     let shade = ring_shade * along_shade;

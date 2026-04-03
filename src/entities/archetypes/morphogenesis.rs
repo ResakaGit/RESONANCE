@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::entities::builder::EntityBuilder;
-use crate::entities::constants::{morphogenesis_mg8, MorphogenesisSpawnPreset};
+use crate::entities::constants::{MorphogenesisSpawnPreset, morphogenesis_mg8};
 use crate::layers::{LifecycleStage, OrganManifest, OrganSpec};
 
 fn spawn_morphogenesis_from_preset(
@@ -82,7 +82,11 @@ mod morphogenesis_spawn_tests {
         drop(commands);
         app.update();
         let graph = app.world().entity(entity).get::<MetabolicGraph>().unwrap();
-        assert!(graph.node_count() >= 5, "aquatic graph has {} nodes, expected >= 5", graph.node_count());
+        assert!(
+            graph.node_count() >= 5,
+            "aquatic graph has {} nodes, expected >= 5",
+            graph.node_count()
+        );
     }
 
     #[test]
@@ -93,7 +97,11 @@ mod morphogenesis_spawn_tests {
         drop(commands);
         app.update();
         let graph = app.world().entity(entity).get::<MetabolicGraph>().unwrap();
-        assert!(graph.node_count() >= 5, "desert plant graph has {} nodes, expected >= 5", graph.node_count());
+        assert!(
+            graph.node_count() >= 5,
+            "desert plant graph has {} nodes, expected >= 5",
+            graph.node_count()
+        );
     }
 
     #[test]
@@ -104,7 +112,11 @@ mod morphogenesis_spawn_tests {
         drop(commands);
         app.update();
         let graph = app.world().entity(entity).get::<MetabolicGraph>().unwrap();
-        assert!(graph.node_count() >= 6, "forest plant graph has {} nodes, expected >= 6", graph.node_count());
+        assert!(
+            graph.node_count() >= 6,
+            "forest plant graph has {} nodes, expected >= 6",
+            graph.node_count()
+        );
     }
 
     #[test]
@@ -136,8 +148,14 @@ mod morphogenesis_spawn_tests {
             assert!(e.contains::<FlowVector>(), "missing FlowVector");
             assert!(e.contains::<AmbientPressure>(), "missing AmbientPressure");
             assert!(e.contains::<MetabolicGraph>(), "missing MetabolicGraph");
-            assert!(e.contains::<MorphogenesisShapeParams>(), "missing ShapeParams");
-            assert!(e.contains::<IrradianceReceiver>(), "missing IrradianceReceiver");
+            assert!(
+                e.contains::<MorphogenesisShapeParams>(),
+                "missing ShapeParams"
+            );
+            assert!(
+                e.contains::<IrradianceReceiver>(),
+                "missing IrradianceReceiver"
+            );
         }
     }
 
@@ -392,9 +410,21 @@ mod morphogenesis_phenotype_tests {
             app.update();
         }
         let e = app.world().entity(legacy);
-        assert!(!e.contains::<crate::layers::EntropyLedger>(), "legacy should not gain EntropyLedger");
-        assert!(!e.contains::<InferredAlbedo>(), "legacy should not gain InferredAlbedo");
-        assert!(!e.contains::<MorphogenesisSurface>(), "legacy should not gain MorphogenesisSurface");
-        assert!(!e.contains::<MorphogenesisShapeParams>(), "legacy should not gain ShapeParams");
+        assert!(
+            !e.contains::<crate::layers::EntropyLedger>(),
+            "legacy should not gain EntropyLedger"
+        );
+        assert!(
+            !e.contains::<InferredAlbedo>(),
+            "legacy should not gain InferredAlbedo"
+        );
+        assert!(
+            !e.contains::<MorphogenesisSurface>(),
+            "legacy should not gain MorphogenesisSurface"
+        );
+        assert!(
+            !e.contains::<MorphogenesisShapeParams>(),
+            "legacy should not gain ShapeParams"
+        );
     }
 }

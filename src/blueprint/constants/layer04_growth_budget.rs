@@ -16,4 +16,3 @@ pub const GROWTH_WRITE_EPS: f32 = 1e-4;
 
 /// Biomasa de referencia para modular energía visual por salud de crecimiento.
 pub const MAX_VISUAL_BIOMASS: f32 = 1.0;
-

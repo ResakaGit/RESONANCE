@@ -26,8 +26,10 @@ mod tests {
     #[test]
     fn entropy_ledger_is_copy() {
         let a = EntropyLedger {
-            total_heat_generated: 1.0, total_waste_generated: 2.0,
-            entropy_rate: 0.5, exergy_efficiency: 0.8,
+            total_heat_generated: 1.0,
+            total_waste_generated: 2.0,
+            entropy_rate: 0.5,
+            exergy_efficiency: 0.8,
         };
         let b = a;
         assert_eq!(a, b);
@@ -41,8 +43,10 @@ mod tests {
     #[test]
     fn entropy_ledger_zero_exergy_no_nan() {
         let l = EntropyLedger {
-            total_heat_generated: 0.0, total_waste_generated: 0.0,
-            entropy_rate: 0.0, exergy_efficiency: 0.0,
+            total_heat_generated: 0.0,
+            total_waste_generated: 0.0,
+            entropy_rate: 0.0,
+            exergy_efficiency: 0.0,
         };
         assert!(!l.exergy_efficiency.is_nan());
         assert_eq!(l.exergy_efficiency, 0.0);
@@ -55,8 +59,10 @@ mod tests {
         let t_core = 400.0;
         let expected = entropy_production(q, t_core);
         let l = EntropyLedger {
-            total_heat_generated: q, total_waste_generated: 30.0,
-            entropy_rate: expected, exergy_efficiency: 0.64,
+            total_heat_generated: q,
+            total_waste_generated: 30.0,
+            entropy_rate: expected,
+            exergy_efficiency: 0.64,
         };
         assert!((l.entropy_rate - expected).abs() < 1e-6);
     }

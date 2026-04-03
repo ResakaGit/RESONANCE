@@ -50,7 +50,10 @@ pub fn render_to_string(frame: &FrameBuffer, tick: u64) -> String {
             let intensity = (r as f32 + g as f32 + b as f32) / (3.0 * 255.0);
             let block_idx = (intensity * 4.0).min(4.0) as usize;
             let ansi_color = rgb_to_ansi256(r, g, b);
-            out.push_str(&format!("\x1b[38;5;{ansi_color}m{}\x1b[0m", BLOCK_CHARS[block_idx]));
+            out.push_str(&format!(
+                "\x1b[38;5;{ansi_color}m{}\x1b[0m",
+                BLOCK_CHARS[block_idx]
+            ));
         }
         out.push('\n');
     }
@@ -69,8 +72,12 @@ fn rgb_to_ansi256(r: u8, g: u8, b: u8) -> u8 {
     if r == g && g == b {
         // Grayscale ramp (232-255).
         let gray = r as u16;
-        if gray < 8 { return 16; }
-        if gray > 248 { return 231; }
+        if gray < 8 {
+            return 16;
+        }
+        if gray > 248 {
+            return 231;
+        }
         return (((gray - 8) * 24 / 240) + 232) as u8;
     }
     // 6×6×6 color cube (16-231).

@@ -11,12 +11,12 @@ use crate::blueprint::equations::{batch_fitness, determinism, variable_genome};
 /// Fitness evaluation of a single world after N ticks.
 #[derive(Debug, Clone)]
 pub struct FitnessReport {
-    pub world_index:       usize,
-    pub survivors:         u8,
-    pub total_qe:          f32,
-    pub reproductions:     u16,
+    pub world_index: usize,
+    pub survivors: u8,
+    pub total_qe: f32,
+    pub reproductions: u16,
     pub max_trophic_level: u8,
-    pub species_count:     u8,
+    pub species_count: u8,
     pub composite_fitness: f32,
 }
 
@@ -65,11 +65,18 @@ impl FitnessReport {
                 sum
             };
             (total_genes / bias_count as f32) / 32.0 // normalized [0,1]
-        } else { 0.0 };
+        } else {
+            0.0
+        };
 
         let mut composite = batch_fitness::composite_fitness(
-            survivors, reproductions, species_count,
-            max_trophic, 0, 0, weights,
+            survivors,
+            reproductions,
+            species_count,
+            max_trophic,
+            0,
+            0,
+            weights,
         );
         // Add diversity bonus (scaled by species weight — same axis of importance)
         composite += diversity_norm * weights[2];
@@ -77,9 +84,13 @@ impl FitnessReport {
         composite += complexity_mean * weights[3]; // uses trophic weight as proxy
 
         Self {
-            world_index, survivors, total_qe: world.total_qe,
-            reproductions, max_trophic_level: max_trophic,
-            species_count, composite_fitness: composite,
+            world_index,
+            survivors,
+            total_qe: world.total_qe,
+            reproductions,
+            max_trophic_level: max_trophic,
+            species_count,
+            composite_fitness: composite,
         }
     }
 }
@@ -114,38 +125,42 @@ fn max_trophic_chain(world: &SimWorldFlat) -> u8 {
 /// Statistics for one generation — recorded in `GeneticHarness.history`.
 #[derive(Debug, Clone)]
 pub struct GenerationStats {
-    pub generation:           u32,
-    pub best_fitness:         f32,
-    pub mean_fitness:         f32,
-    pub worst_fitness:        f32,
-    pub diversity:            f32,
-    pub survivors_mean:       f32,
-    pub species_mean:         f32,
+    pub generation: u32,
+    pub best_fitness: f32,
+    pub mean_fitness: f32,
+    pub worst_fitness: f32,
+    pub diversity: f32,
+    pub survivors_mean: f32,
+    pub species_mean: f32,
     /// Mean gene count across all alive entities (VG observability).
-    pub gene_count_mean:       f32,
+    pub gene_count_mean: f32,
     /// Fraction of entities with a functional MetabolicGraph (MGN observability).
-    pub metabolic_graph_rate:  f32,
+    pub metabolic_graph_rate: f32,
     /// Fraction of entities with a functional protein (PF observability).
     pub protein_function_rate: f32,
     /// Mean codon count (PD-5 observability).
-    pub codon_count_mean:      f32,
+    pub codon_count_mean: f32,
     /// Fraction of entities in colonies ≥ 3 (MC-5 observability).
-    pub multicellular_rate:    f32,
+    pub multicellular_rate: f32,
 }
 
 // ─── GeneticHarness ─────────────────────────────────────────────────────────
 
 /// Evolutionary loop: evaluate → select → reproduce → repeat.
 pub struct GeneticHarness {
-    pub batch:   WorldBatch,
-    pub config:  BatchConfig,
+    pub batch: WorldBatch,
+    pub config: BatchConfig,
     pub history: Vec<GenerationStats>,
 }
 
 impl GeneticHarness {
     pub fn new(config: BatchConfig) -> Self {
         let batch = WorldBatch::new(config.clone());
-        Self { batch, config: config.clone(), history: Vec::new() }
+        Self {
+            batch,
+            config: config.clone(),
+            history: Vec::new(),
+        }
     }
 
     /// One generational step: evaluate → select elite → repopulate with mutation.
@@ -154,41 +169,55 @@ impl GeneticHarness {
         self.batch.run_evaluation(self.config.ticks_per_eval);
 
         // 2. Score all worlds
-        let mut reports: Vec<FitnessReport> = self.batch.worlds.iter()
+        let mut reports: Vec<FitnessReport> = self
+            .batch
+            .worlds
+            .iter()
             .enumerate()
             .map(|(i, w)| FitnessReport::compute(w, i, &self.config.fitness_weights))
             .collect();
 
         // 3. Sort by fitness descending
-        reports.sort_unstable_by(|a, b|
-            b.composite_fitness.partial_cmp(&a.composite_fitness).unwrap_or(std::cmp::Ordering::Equal)
-        );
+        reports.sort_unstable_by(|a, b| {
+            b.composite_fitness
+                .partial_cmp(&a.composite_fitness)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         // 4. Stats
         let best = reports.first().map(|r| r.composite_fitness).unwrap_or(0.0);
         let worst = reports.last().map(|r| r.composite_fitness).unwrap_or(0.0);
-        let mean = if reports.is_empty() { 0.0 } else {
+        let mean = if reports.is_empty() {
+            0.0
+        } else {
             reports.iter().map(|r| r.composite_fitness).sum::<f32>() / reports.len() as f32
         };
-        let survivors_mean = if reports.is_empty() { 0.0 } else {
+        let survivors_mean = if reports.is_empty() {
+            0.0
+        } else {
             reports.iter().map(|r| r.survivors as f32).sum::<f32>() / reports.len() as f32
         };
-        let species_mean = if reports.is_empty() { 0.0 } else {
+        let species_mean = if reports.is_empty() {
+            0.0
+        } else {
             reports.iter().map(|r| r.species_count as f32).sum::<f32>() / reports.len() as f32
         };
 
         // 5. Select elite
-        let elite_n = ((self.config.world_count as f32 * self.config.elite_fraction) as usize).max(1);
+        let elite_n =
+            ((self.config.world_count as f32 * self.config.elite_fraction) as usize).max(1);
         let elite_indices: Vec<usize> = reports[..elite_n.min(reports.len())]
             .iter()
             .map(|r| r.world_index)
             .collect();
 
         // 6. Extract genomes from elite worlds (both GenomeBlob + VariableGenome)
-        let elite_genomes: Vec<Vec<GenomeBlob>> = elite_indices.iter()
+        let elite_genomes: Vec<Vec<GenomeBlob>> = elite_indices
+            .iter()
             .map(|&wi| self.extract_genomes(wi))
             .collect();
-        let elite_vgenomes: Vec<Vec<variable_genome::VariableGenome>> = elite_indices.iter()
+        let elite_vgenomes: Vec<Vec<variable_genome::VariableGenome>> = elite_indices
+            .iter()
             .map(|&wi| self.extract_variable_genomes(wi))
             .collect();
 
@@ -204,8 +233,12 @@ impl GeneticHarness {
         self.batch.generation += 1;
         let stats = GenerationStats {
             generation: self.batch.generation,
-            best_fitness: best, mean_fitness: mean, worst_fitness: worst,
-            diversity, survivors_mean, species_mean,
+            best_fitness: best,
+            mean_fitness: mean,
+            worst_fitness: worst,
+            diversity,
+            survivors_mean,
+            species_mean,
             gene_count_mean: cx.gene_count_mean,
             metabolic_graph_rate: cx.metabolic_graph_rate,
             protein_function_rate: cx.protein_function_rate,
@@ -226,14 +259,20 @@ impl GeneticHarness {
 
     /// Extract the best N genomes from the current generation (post-evaluation).
     pub fn top_genomes(&self, n: usize) -> Vec<GenomeBlob> {
-        let mut reports: Vec<FitnessReport> = self.batch.worlds.iter()
+        let mut reports: Vec<FitnessReport> = self
+            .batch
+            .worlds
+            .iter()
             .enumerate()
             .map(|(i, w)| FitnessReport::compute(w, i, &self.config.fitness_weights))
             .collect();
-        reports.sort_unstable_by(|a, b|
-            b.composite_fitness.partial_cmp(&a.composite_fitness).unwrap_or(std::cmp::Ordering::Equal)
-        );
-        reports.iter()
+        reports.sort_unstable_by(|a, b| {
+            b.composite_fitness
+                .partial_cmp(&a.composite_fitness)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
+        reports
+            .iter()
             .take(n)
             .flat_map(|r| self.extract_genomes(r.world_index))
             .take(n)
@@ -269,10 +308,15 @@ impl GeneticHarness {
         elite_genomes: &[Vec<GenomeBlob>],
         elite_vgenomes: &[Vec<variable_genome::VariableGenome>],
     ) {
-        if elite_genomes.is_empty() { return; }
+        if elite_genomes.is_empty() {
+            return;
+        }
         let flat_elite: Vec<GenomeBlob> = elite_genomes.iter().flatten().copied().collect();
-        let flat_vg: Vec<variable_genome::VariableGenome> = elite_vgenomes.iter().flatten().copied().collect();
-        if flat_elite.is_empty() { return; }
+        let flat_vg: Vec<variable_genome::VariableGenome> =
+            elite_vgenomes.iter().flatten().copied().collect();
+        if flat_elite.is_empty() {
+            return;
+        }
 
         let dt = 1.0 / self.config.tick_rate_hz;
         let generation_id = self.batch.generation as u64;
@@ -285,21 +329,36 @@ impl GeneticHarness {
                 let e_seed = determinism::next_u64(world_seed ^ (e as u64));
 
                 // Select parent(s) via tournament
-                let fitnesses: Vec<f32> = flat_elite.iter()
+                let fitnesses: Vec<f32> = flat_elite
+                    .iter()
                     .map(|g| g.growth_bias + g.resilience)
                     .collect();
-                let p1_idx = batch_fitness::tournament_select(&fitnesses, self.config.tournament_k, e_seed);
+                let p1_idx =
+                    batch_fitness::tournament_select(&fitnesses, self.config.tournament_k, e_seed);
                 let parent1 = flat_elite[p1_idx];
 
                 // Variable genome: crossover or clone+mutate (with gene duplication/deletion)
-                let parent_vg = if p1_idx < flat_vg.len() { flat_vg[p1_idx] } else {
-                    variable_genome::from_genome_blob(parent1.growth_bias, parent1.mobility_bias, parent1.branching_bias, parent1.resilience, parent1.sigma)
+                let parent_vg = if p1_idx < flat_vg.len() {
+                    flat_vg[p1_idx]
+                } else {
+                    variable_genome::from_genome_blob(
+                        parent1.growth_bias,
+                        parent1.mobility_bias,
+                        parent1.branching_bias,
+                        parent1.resilience,
+                        parent1.sigma,
+                    )
                 };
                 let child_vg = if determinism::unit_f32(e_seed) < self.config.crossover_rate {
                     let p2_seed = determinism::next_u64(e_seed);
                     let p2_idx = batch_fitness::tournament_select(&fitnesses, 3, p2_seed);
-                    let parent2_vg = if p2_idx < flat_vg.len() { flat_vg[p2_idx] } else { parent_vg };
-                    let crossed = variable_genome::crossover_variable(&parent_vg, &parent2_vg, e_seed);
+                    let parent2_vg = if p2_idx < flat_vg.len() {
+                        flat_vg[p2_idx]
+                    } else {
+                        parent_vg
+                    };
+                    let crossed =
+                        variable_genome::crossover_variable(&parent_vg, &parent2_vg, e_seed);
                     variable_genome::mutate_variable(&crossed, e_seed)
                 } else {
                     variable_genome::mutate_variable(&parent_vg, e_seed)
@@ -308,9 +367,12 @@ impl GeneticHarness {
                 // Derive GenomeBlob from VariableGenome (effective biases for EntitySlot)
                 let (biases, sigma) = variable_genome::to_genome_blob_biases(&child_vg);
                 let genome = GenomeBlob {
-                    growth_bias: biases[0], mobility_bias: biases[1],
-                    branching_bias: biases[2], resilience: biases[3],
-                    sigma, ..parent1
+                    growth_bias: biases[0],
+                    mobility_bias: biases[1],
+                    branching_bias: biases[2],
+                    resilience: biases[3],
+                    sigma,
+                    ..parent1
                 };
 
                 let mut slot = crate::batch::arena::EntitySlot::default();
@@ -332,7 +394,9 @@ impl GeneticHarness {
                     world.genomes[idx] = child_vg;
                 }
             }
-            for cell in &mut world.nutrient_grid { *cell = 5.0; }
+            for cell in &mut world.nutrient_grid {
+                *cell = 5.0;
+            }
             world.update_total_qe();
         }
     }
@@ -340,7 +404,9 @@ impl GeneticHarness {
 
 fn compute_diversity(elite_genomes: &[Vec<GenomeBlob>]) -> f32 {
     let flat: Vec<GenomeBlob> = elite_genomes.iter().flatten().copied().collect();
-    if flat.len() < 2 { return 0.0; }
+    if flat.len() < 2 {
+        return 0.0;
+    }
     let mut sum = 0.0_f32;
     let mut count = 0u32;
     for i in 0..flat.len() {
@@ -379,7 +445,11 @@ fn compute_complexity_stats(worlds: &[SimWorldFlat]) -> ComplexityStats {
             let i = mask.trailing_zeros() as usize;
             mask &= mask - 1;
             // Check pairs by proximity (simplified: radius overlap)
-            let mut mask2 = if i >= 127 { 0 } else { w.alive_mask & !((1u128 << (i + 1)) - 1) };
+            let mut mask2 = if i >= 127 {
+                0
+            } else {
+                w.alive_mask & !((1u128 << (i + 1)) - 1)
+            };
             while mask2 != 0 {
                 let j = mask2.trailing_zeros() as usize;
                 mask2 &= mask2 - 1;
@@ -389,11 +459,15 @@ fn compute_complexity_stats(worlds: &[SimWorldFlat]) -> ComplexityStats {
                 let contact = w.entities[i].radius + w.entities[j].radius;
                 if dist < contact * 2.0 {
                     let aff = multicellular::adhesion_affinity(
-                        w.entities[i].frequency_hz, w.entities[j].frequency_hz,
-                        dist, w.entities[i].radius, w.entities[j].radius,
+                        w.entities[i].frequency_hz,
+                        w.entities[j].frequency_hz,
+                        dist,
+                        w.entities[i].radius,
+                        w.entities[j].radius,
                     );
                     if multicellular::should_bond(aff) {
-                        adjacency[i][j] = true; adjacency[j][i] = true;
+                        adjacency[i][j] = true;
+                        adjacency[j][i] = true;
                     }
                 }
             }
@@ -409,12 +483,18 @@ fn compute_complexity_stats(worlds: &[SimWorldFlat]) -> ComplexityStats {
             total_codons += w.codon_genomes[i].codon_count() as u64;
 
             let expr = w.entities[i].expression_mask;
-            if metabolic_genome::metabolic_graph_from_variable_genome(&w.genomes[i], &expr).is_ok() {
+            if metabolic_genome::metabolic_graph_from_variable_genome(&w.genomes[i], &expr).is_ok()
+            {
                 with_graph += 1;
             }
-            let phenotype = protein_fold::compute_protein_phenotype(&w.genomes[i], w.seed ^ i as u64);
-            if phenotype.function.is_some() { with_protein += 1; }
-            if colonies.colony_id[i] > 0 { in_colony += 1; }
+            let phenotype =
+                protein_fold::compute_protein_phenotype(&w.genomes[i], w.seed ^ i as u64);
+            if phenotype.function.is_some() {
+                with_protein += 1;
+            }
+            if colonies.colony_id[i] > 0 {
+                in_colony += 1;
+            }
         }
     }
 
@@ -456,7 +536,11 @@ mod tests {
 
     #[test]
     fn fitness_more_survivors_higher_score() {
-        let config = BatchConfig { world_count: 2, initial_entities: 2, ..Default::default() };
+        let config = BatchConfig {
+            world_count: 2,
+            initial_entities: 2,
+            ..Default::default()
+        };
         let batch = WorldBatch::new(config);
         let r0 = FitnessReport::compute(&batch.worlds[0], 0, &[1.0; 6]);
         let empty = FitnessReport::compute(&SimWorldFlat::new(0, 0.05), 1, &[1.0; 6]);
@@ -503,7 +587,8 @@ mod tests {
             assert!(
                 stats.best_fitness >= prev_best - 1.0,
                 "best fitness should not regress significantly: {} < {}",
-                stats.best_fitness, prev_best,
+                stats.best_fitness,
+                prev_best,
             );
             prev_best = stats.best_fitness;
         }
@@ -558,10 +643,11 @@ mod tests {
         let mut batch = WorldBatch::new(config);
         batch.run_evaluation(100);
         // At least some worlds should have survivors
-        let total_survivors: u32 = batch.worlds.iter()
-            .map(|w| w.alive_mask.count_ones())
-            .sum();
-        assert!(total_survivors > 0, "some entities should survive 100 ticks");
+        let total_survivors: u32 = batch.worlds.iter().map(|w| w.alive_mask.count_ones()).sum();
+        assert!(
+            total_survivors > 0,
+            "some entities should survive 100 ticks"
+        );
     }
 
     #[test]
@@ -574,7 +660,9 @@ mod tests {
             ..Default::default()
         };
         let mut harness = GeneticHarness::new(config);
-        for _ in 0..3 { harness.step(); }
+        for _ in 0..3 {
+            harness.step();
+        }
         for stats in &harness.history {
             assert!(stats.diversity.is_finite(), "diversity must be finite");
         }

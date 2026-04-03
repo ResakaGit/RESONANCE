@@ -10,7 +10,7 @@ use crate::blueprint::recipes::EffectRecipe;
 use crate::blueprint::{ElementId, IdGenerator};
 use crate::entities::builder::EntityBuilder;
 use crate::entities::composition::{EffectConfig, InjectorConfig, PhysicsConfig};
-use crate::layers::{Homeostasis, MatterState, TensionField};
+use crate::layers::MatterState;
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use crate::runtime_platform::hud::MinimapIcon;
 use crate::simulation::SpellMarker;
@@ -144,61 +144,6 @@ pub fn spawn_resonance_effect(
             r,
         ))
         .id()
-}
-
-/// Ancla estática L11 (pozo de tensión, trampa, vórtice).
-pub fn spawn_tension_entity(
-    commands: &mut Commands,
-    id_gen: &mut IdGenerator,
-    pos: Vec2,
-    qe: f32,
-    radius: f32,
-    element_id: ElementId,
-    field: TensionField,
-    layout: &SimWorldTransformParams,
-    name: &str,
-) -> Entity {
-    let wid = id_gen.next_world();
-    let e = EntityBuilder::new()
-        .named(format!("tension_{name}"))
-        .at(pos)
-        .energy(qe)
-        .volume(radius)
-        .wave(element_id)
-        .flow(Vec2::ZERO, 0.0)
-        .tension_field(field)
-        .sim_world_layout(layout)
-        .spawn(commands);
-    commands.entity(e).insert(wid);
-    e
-}
-
-/// Entidad estática con homeostasis (L12) + materia mínima para labels/debug.
-pub fn spawn_adaptive_entity(
-    commands: &mut Commands,
-    id_gen: &mut IdGenerator,
-    pos: Vec2,
-    qe: f32,
-    radius: f32,
-    element_id: ElementId,
-    homeostasis: Homeostasis,
-    layout: &SimWorldTransformParams,
-    name: &str,
-) -> Entity {
-    let wid = id_gen.next_world();
-    let e = EntityBuilder::new()
-        .named(format!("adaptive_{name}"))
-        .at(pos)
-        .energy(qe)
-        .volume(radius)
-        .wave(element_id)
-        .flow(Vec2::ZERO, 0.5)
-        .matter(MatterState::Solid, 5000.0, 0.2)
-        .homeostasis(homeostasis)
-        .sim_world_layout(layout)
-        .spawn(commands);
-    commands.entity(e).insert(wid);
-    e
 }
 
 pub fn spawn_projectile(
@@ -349,38 +294,4 @@ pub fn spawn_stone(
         .spawn(commands);
     commands.entity(e).insert(wid);
     e
-}
-
-/// Entidad "caballero de lava" (Sprint 01): mismas interacciones emergen por
-/// composición de capas (capas extra habilitan motor, movimiento, ambient y catálisis).
-pub fn spawn_lava_knight(
-    commands: &mut Commands,
-    id_gen: &mut IdGenerator,
-    pos: Vec2,
-    element_id: ElementId,
-    forced_frequency: f32,
-    layout: &SimWorldTransformParams,
-) -> Entity {
-    let wid = id_gen.next_world();
-    // `forced_frequency` se usa para lock de frecuencia en catálisis constructiva.
-    let entity = EntityBuilder::new()
-        .named("lava_knight")
-        .at(pos)
-        .energy(800.0)
-        .volume(1.2)
-        .wave(element_id)
-        .flow(Vec2::ZERO, 3.0)
-        .matter(MatterState::Plasma, 6000.0, 0.9)
-        .motor(600.0, 20.0, 50.0, 300.0)
-        .ambient(-5.0, 2.5)
-        .will_default()
-        .injector(20.0, forced_frequency.max(0.0), 3.0)
-        .sim_world_layout(layout)
-        .spawn(commands);
-
-    // Habilita catálisis_resolution_system.
-    commands
-        .entity(entity)
-        .insert((wid, SpellMarker { caster: None }));
-    entity
 }

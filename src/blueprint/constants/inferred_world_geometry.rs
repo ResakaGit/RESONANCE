@@ -17,9 +17,8 @@ pub const ORGAN_SCALE_MAX: f32 = 4.0;
 
 /// Base scale per OrganRole variant (indexed by `OrganRole as usize`).
 /// Order: Stem, Root, Core, Leaf, Petal, Sensory, Thorn, Shell, Fruit, Bud, Limb, Fin.
-pub const ROLE_BASE_SCALE: [f32; 12] = [
-    1.0, 0.6, 1.2, 0.5, 0.4, 0.3, 0.25, 0.8, 0.35, 0.2, 0.7, 0.5,
-];
+pub const ROLE_BASE_SCALE: [f32; 12] =
+    [1.0, 0.6, 1.2, 0.5, 0.4, 0.3, 0.25, 0.8, 0.35, 0.2, 0.7, 0.5];
 
 // --- Inferred World Geometry: Terrain Visuals ---
 

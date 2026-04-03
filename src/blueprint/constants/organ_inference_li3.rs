@@ -27,4 +27,3 @@ pub const CONSTRUCTAL_VISCOSITY: f32 = 0.1;
 pub const CONSTRUCTAL_LIMB_LENGTH_RATIO: f32 = 0.8;
 /// Default limb radius as fraction of entity radius (per-limb, divided by √N).
 pub const CONSTRUCTAL_LIMB_RADIUS_RATIO: f32 = 0.15;
-

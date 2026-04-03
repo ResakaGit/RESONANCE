@@ -9,9 +9,9 @@
 //! All stateless. Config in → TherapyReport out.
 
 use crate::batch::arena::{EntitySlot, SimWorldFlat};
-use crate::batch::systems;
 use crate::batch::constants::MAX_ENTITIES;
 use crate::batch::scratch::ScratchPad;
+use crate::batch::systems;
 use crate::blueprint::equations::determinism;
 use std::time::Instant;
 
@@ -75,25 +75,38 @@ pub struct TherapyConfig {
 impl Default for TherapyConfig {
     fn default() -> Self {
         Self {
-            normal_count: 30, cancer_count: 15,
-            normal_freq: 250.0, cancer_freq: 400.0,
-            drug_target_freq: 400.0, drug_potency: 2.0,
-            drug_bandwidth: 50.0, treatment_start_gen: 5,
-            treatment_pause_gens: 0, hill_coefficient: 2.0,
-            quiescent_fraction: 0.05, quiescent_drug_sensitivity: 0.1,
+            normal_count: 30,
+            cancer_count: 15,
+            normal_freq: 250.0,
+            cancer_freq: 400.0,
+            drug_target_freq: 400.0,
+            drug_potency: 2.0,
+            drug_bandwidth: 50.0,
+            treatment_start_gen: 5,
+            treatment_pause_gens: 0,
+            hill_coefficient: 2.0,
+            quiescent_fraction: 0.05,
+            quiescent_drug_sensitivity: 0.1,
             stem_reactivation_threshold: 0.2,
-            normal_regen_rate: 0.15, relapse_threshold: 3.0,
+            normal_regen_rate: 0.15,
+            relapse_threshold: 3.0,
             immune_count: 5,
             pk_ramp_gens: 3,
-            normal_qe: 30.0, normal_growth: 0.3,
-            normal_resilience: 0.8, normal_dissipation: 0.01,
-            normal_trophic: 0,  // producer: healthy tissue receives energy from environment
-            cancer_qe: 80.0, cancer_growth: 0.9,
-            cancer_resilience: 0.2, cancer_dissipation: 0.005,
-            cancer_trophic: 4,  // detritivore: Warburg effect, scavenges nutrients passively
+            normal_qe: 30.0,
+            normal_growth: 0.3,
+            normal_resilience: 0.8,
+            normal_dissipation: 0.01,
+            normal_trophic: 0, // producer: healthy tissue receives energy from environment
+            cancer_qe: 80.0,
+            cancer_growth: 0.9,
+            cancer_resilience: 0.2,
+            cancer_dissipation: 0.005,
+            cancer_trophic: 4, // detritivore: Warburg effect, scavenges nutrients passively
             nutrient_level: 50.0, // well-vascularized tumor: must sustain ~50 entities competing
-            worlds: 100, generations: 100,
-            ticks_per_gen: 300, seed: 42,
+            worlds: 100,
+            generations: 100,
+            ticks_per_gen: 300,
+            seed: 42,
         }
     }
 }
@@ -130,7 +143,9 @@ pub struct TherapyReport {
 /// Canonical pure Hill in `pathway_inhibitor::hill_response()`. This variant
 /// folds potency into the response for the cytotoxic drain model.
 fn hill_response(alignment: f32, potency: f32, hill_n: f32) -> f32 {
-    if alignment <= 0.0 || potency <= 0.0 { return 0.0; }
+    if alignment <= 0.0 || potency <= 0.0 {
+        return 0.0;
+    }
     let c_n = alignment.powf(hill_n);
     let ec50_n = 0.5f32.powf(hill_n); // EC50 at 50% alignment
     potency * c_n / (ec50_n + c_n)
@@ -153,30 +168,45 @@ const DRUG_CYTOTOXIC_DRAIN_BASE: f32 = 0.5;
 /// (DNA alkylation, antimetabolite inhibition), not accelerated entropy.
 fn drug_cytotoxic_drain(entity_freq: f32, config: &TherapyConfig, eff_potency: f32) -> f32 {
     let alignment = determinism::gaussian_frequency_alignment(
-        entity_freq, config.drug_target_freq, config.drug_bandwidth);
+        entity_freq,
+        config.drug_target_freq,
+        config.drug_bandwidth,
+    );
     let hill = hill_response(alignment, eff_potency, config.hill_coefficient);
     hill * DRUG_CYTOTOXIC_DRAIN_BASE
 }
 
 /// Pharmacokinetic ramp: potency builds up over pk_ramp_gens. Axiom 4.
 fn effective_potency(generation: u32, config: &TherapyConfig) -> f32 {
-    if !is_drug_active(generation, config) { return 0.0; }
+    if !is_drug_active(generation, config) {
+        return 0.0;
+    }
     let gens_on = gens_since_drug_start(generation, config);
-    if config.pk_ramp_gens == 0 { return config.drug_potency; }
+    if config.pk_ramp_gens == 0 {
+        return config.drug_potency;
+    }
     let ramp = (gens_on as f32 / config.pk_ramp_gens as f32).min(1.0);
     config.drug_potency * ramp
 }
 
 fn is_drug_active(generation: u32, config: &TherapyConfig) -> bool {
-    if generation < config.treatment_start_gen { return false; }
-    if config.treatment_pause_gens == 0 { return true; }
+    if generation < config.treatment_start_gen {
+        return false;
+    }
+    if config.treatment_pause_gens == 0 {
+        return true;
+    }
     let cycle = config.treatment_pause_gens * 2;
     ((generation - config.treatment_start_gen) % cycle) < config.treatment_pause_gens
 }
 
 fn gens_since_drug_start(generation: u32, config: &TherapyConfig) -> u32 {
-    if generation < config.treatment_start_gen { return 0; }
-    if config.treatment_pause_gens == 0 { return generation - config.treatment_start_gen; }
+    if generation < config.treatment_start_gen {
+        return 0;
+    }
+    if config.treatment_pause_gens == 0 {
+        return generation - config.treatment_start_gen;
+    }
     let cycle = config.treatment_pause_gens * 2;
     (generation - config.treatment_start_gen) % cycle
 }
@@ -192,7 +222,9 @@ fn is_cancer_entity(entity: &EntitySlot, config: &TherapyConfig) -> bool {
     freq_closer_to_cancer && !is_producer && !is_immune
 }
 
-fn is_quiescent(entity: &EntitySlot) -> bool { entity.growth_bias < 0.05 }
+fn is_quiescent(entity: &EntitySlot) -> bool {
+    entity.growth_bias < 0.05
+}
 
 // ─── Per-generation world operations ────────────────────────────────────────
 
@@ -214,8 +246,7 @@ fn apply_drug(world: &mut SimWorldFlat, config: &TherapyConfig, eff_potency: f32
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
 
-        let mut drain = drug_cytotoxic_drain(
-            world.entities[i].frequency_hz, config, eff_potency);
+        let mut drain = drug_cytotoxic_drain(world.entities[i].frequency_hz, config, eff_potency);
 
         if is_quiescent(&world.entities[i]) {
             drain *= config.quiescent_drug_sensitivity;
@@ -230,7 +261,11 @@ fn apply_drug(world: &mut SimWorldFlat, config: &TherapyConfig, eff_potency: f32
 
 /// Anchor cancer cell frequencies: only changes via reproduction mutation, not drift.
 /// Fix #1: resistance timescale becomes biologically correct.
-fn anchor_cancer_frequencies(world: &mut SimWorldFlat, config: &TherapyConfig, spawn_freqs: &[f32; MAX_ENTITIES]) {
+fn anchor_cancer_frequencies(
+    world: &mut SimWorldFlat,
+    config: &TherapyConfig,
+    spawn_freqs: &[f32; MAX_ENTITIES],
+) {
     let mut mask = world.alive_mask;
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
@@ -247,7 +282,9 @@ fn reactivate_stem_cells(world: &mut SimWorldFlat, config: &TherapyConfig) {
     let cancer_count = count_type(world, config, true);
     let threshold = (config.cancer_count as f32 * config.stem_reactivation_threshold) as u32;
 
-    if cancer_count > threshold { return; } // bulk tumor still present, no reactivation
+    if cancer_count > threshold {
+        return;
+    } // bulk tumor still present, no reactivation
 
     let mut mask = world.alive_mask;
     while mask != 0 {
@@ -257,7 +294,8 @@ fn reactivate_stem_cells(world: &mut SimWorldFlat, config: &TherapyConfig) {
             // Gradually increase growth (waking up)
             // Stem reactivation rate = normal_regen_rate (same homeostatic speed)
             let reactivation_step = config.normal_regen_rate;
-            world.entities[i].growth_bias = (world.entities[i].growth_bias + reactivation_step).min(config.cancer_growth);
+            world.entities[i].growth_bias =
+                (world.entities[i].growth_bias + reactivation_step).min(config.cancer_growth);
         }
     }
 }
@@ -268,8 +306,12 @@ fn apply_microenvironment(world: &mut SimWorldFlat, config: &TherapyConfig) {
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
-        if !is_cancer_entity(&world.entities[i], config) { continue; }
-        if is_quiescent(&world.entities[i]) { continue; }
+        if !is_cancer_entity(&world.entities[i], config) {
+            continue;
+        }
+        if is_quiescent(&world.entities[i]) {
+            continue;
+        }
 
         let gx = (world.entities[i].position[0] as usize).min(15);
         let gy = (world.entities[i].position[1] as usize).min(15);
@@ -289,8 +331,12 @@ fn regenerate_normals(world: &mut SimWorldFlat, config: &TherapyConfig, seed: u6
     let mut s = seed;
     for _ in 0..deficit {
         s = determinism::next_u64(s);
-        if determinism::unit_f32(s) > config.normal_regen_rate { continue; }
-        if world.first_free_slot().is_none() { break; }
+        if determinism::unit_f32(s) > config.normal_regen_rate {
+            continue;
+        }
+        if world.first_free_slot().is_none() {
+            break;
+        }
         s = determinism::next_u64(s);
         let mut slot = EntitySlot::default();
         // New regenerated cells start at half energy (recovering)
@@ -302,7 +348,10 @@ fn regenerate_normals(world: &mut SimWorldFlat, config: &TherapyConfig, seed: u6
         slot.dissipation = config.normal_dissipation;
         slot.expression_mask = [1.0; 4];
         s = determinism::next_u64(s);
-        slot.position = [determinism::range_f32(s, 1.0, 15.0), determinism::range_f32(determinism::next_u64(s), 1.0, 15.0)];
+        slot.position = [
+            determinism::range_f32(s, 1.0, 15.0),
+            determinism::range_f32(determinism::next_u64(s), 1.0, 15.0),
+        ];
         world.spawn(slot);
     }
 }
@@ -313,16 +362,25 @@ fn count_type(world: &SimWorldFlat, config: &TherapyConfig, cancer: bool) -> u32
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
-        if is_cancer_entity(&world.entities[i], config) == cancer { n += 1; }
+        if is_cancer_entity(&world.entities[i], config) == cancer {
+            n += 1;
+        }
     }
     n
 }
 
 // ─── Snapshot ───────────────────────────────────────────────────────────────
 
-fn compute_snapshot(worlds: &[SimWorldFlat], generation: u32, config: &TherapyConfig, drain: f32, eff_pot: f32) -> TherapySnapshot {
+fn compute_snapshot(
+    worlds: &[SimWorldFlat],
+    generation: u32,
+    config: &TherapyConfig,
+    drain: f32,
+    eff_pot: f32,
+) -> TherapySnapshot {
     let nw = worlds.len().max(1) as f32;
-    let (mut tc, mut tn, mut fsum, mut fsq, mut fcount, mut div) = (0u32, 0u32, 0.0f32, 0.0f32, 0u32, 0.0f32);
+    let (mut tc, mut tn, mut fsum, mut fsq, mut fcount, mut div) =
+        (0u32, 0u32, 0.0f32, 0.0f32, 0u32, 0.0f32);
 
     for w in worlds {
         let mut mask = w.alive_mask;
@@ -333,13 +391,24 @@ fn compute_snapshot(worlds: &[SimWorldFlat], generation: u32, config: &TherapyCo
             mask &= mask - 1;
             let f = w.entities[i].frequency_hz;
             if is_cancer_entity(&w.entities[i], config) {
-                tc += 1; fsum += f; fsq += f * f; fcount += 1;
-                if wc < MAX_ENTITIES { wf[wc] = f; wc += 1; }
-            } else { tn += 1; }
+                tc += 1;
+                fsum += f;
+                fsq += f * f;
+                fcount += 1;
+                if wc < MAX_ENTITIES {
+                    wf[wc] = f;
+                    wc += 1;
+                }
+            } else {
+                tn += 1;
+            }
         }
         if wc >= 2 {
-            let (ps, pc) = (0..wc).flat_map(|a| ((a+1)..wc).map(move |b| (a,b)))
-                .fold((0.0f32, 0u32), |(s,n),(a,b)| (s + (wf[a]-wf[b]).abs(), n+1));
+            let (ps, pc) = (0..wc)
+                .flat_map(|a| ((a + 1)..wc).map(move |b| (a, b)))
+                .fold((0.0f32, 0u32), |(s, n), (a, b)| {
+                    (s + (wf[a] - wf[b]).abs(), n + 1)
+                });
             div += if pc > 0 { ps / pc as f32 } else { 0.0 };
         }
     }
@@ -351,11 +420,16 @@ fn compute_snapshot(worlds: &[SimWorldFlat], generation: u32, config: &TherapyCo
     let has = fcount > 0;
 
     TherapySnapshot {
-        generation, drug_active: is_drug_active(generation, config),
-        cancer_alive_mean: tc as f32 / nw, normal_alive_mean: tn as f32 / nw,
-        cancer_freq_mean: if has { fm } else { 0.0 }, cancer_freq_std: if has { fs } else { 0.0 },
+        generation,
+        drug_active: is_drug_active(generation, config),
+        cancer_alive_mean: tc as f32 / nw,
+        normal_alive_mean: tn as f32 / nw,
+        cancer_freq_mean: if has { fm } else { 0.0 },
+        cancer_freq_std: if has { fs } else { 0.0 },
         resistance_index: if has { ri } else { 0.0 },
-        clonal_diversity: div / nw, total_drug_drain: drain, effective_potency: eff_pot,
+        clonal_diversity: div / nw,
+        total_drug_drain: drain,
+        effective_potency: eff_pot,
     }
 }
 
@@ -368,7 +442,12 @@ fn compute_snapshot(worlds: &[SimWorldFlat], generation: u32, config: &TherapyCo
 /// This is critical: if drug drains before nutrients, nutrient_uptake resurrects the cell
 /// (adds ~0.25 qe) and death_reap never sees qe < QE_MIN_EXISTENCE (0.01).
 /// By draining after intake, the drug overcomes nutrient replenishment → qe reaches 0 → cell dies.
-fn therapy_tick(world: &mut SimWorldFlat, scratch: &mut ScratchPad, config: &TherapyConfig, eff_potency: f32) -> f32 {
+fn therapy_tick(
+    world: &mut SimWorldFlat,
+    scratch: &mut ScratchPad,
+    config: &TherapyConfig,
+    eff_potency: f32,
+) -> f32 {
     scratch.clear();
     world.events.clear();
     world.tick_id += 1;
@@ -402,7 +481,9 @@ fn therapy_tick(world: &mut SimWorldFlat, scratch: &mut ScratchPad, config: &The
     // Cytotoxic drain must overcome nutrient replenishment to be lethal.
     let drug_drain = if eff_potency > 0.0 {
         apply_drug(world, config, eff_potency)
-    } else { 0.0 };
+    } else {
+        0.0
+    };
 
     // Phase::MorphologicalLayer — senescence + death only (NO abiogenesis, NO reproduction)
     systems::senescence(world);
@@ -417,34 +498,39 @@ fn therapy_tick(world: &mut SimWorldFlat, scratch: &mut ScratchPad, config: &The
 pub fn run(config: &TherapyConfig) -> TherapyReport {
     let start = Instant::now();
 
-    let mut worlds: Vec<SimWorldFlat> = (0..config.worlds).map(|wi| {
-        let ws = determinism::next_u64(config.seed ^ (wi as u64));
-        let mut w = SimWorldFlat::new(ws, 0.05);
-        // Set nutrient level for the microenvironment (configurable by researcher)
-        for cell in w.nutrient_grid.iter_mut() {
-            *cell = config.nutrient_level;
-        }
-        // Set irradiance so producers (normal tissue) can photosynthesize and replenish nutrients
-        for cell in w.irradiance_grid.iter_mut() {
-            *cell = config.nutrient_level * 0.2; // irradiance proportional to nutrient level
-        }
-        spawn_population(&mut w, config, ws);
-        w
-    }).collect();
+    let mut worlds: Vec<SimWorldFlat> = (0..config.worlds)
+        .map(|wi| {
+            let ws = determinism::next_u64(config.seed ^ (wi as u64));
+            let mut w = SimWorldFlat::new(ws, 0.05);
+            // Set nutrient level for the microenvironment (configurable by researcher)
+            for cell in w.nutrient_grid.iter_mut() {
+                *cell = config.nutrient_level;
+            }
+            // Set irradiance so producers (normal tissue) can photosynthesize and replenish nutrients
+            for cell in w.irradiance_grid.iter_mut() {
+                *cell = config.nutrient_level * 0.2; // irradiance proportional to nutrient level
+            }
+            spawn_population(&mut w, config, ws);
+            w
+        })
+        .collect();
 
     // Record spawn frequencies for anchoring (Fix #1)
-    let spawn_freqs: Vec<[f32; MAX_ENTITIES]> = worlds.iter().map(|w| {
-        let mut sf = [0.0f32; MAX_ENTITIES];
-        let mut mask = w.alive_mask;
-        while mask != 0 {
-            let i = mask.trailing_zeros() as usize;
-            mask &= mask - 1;
-            if is_cancer_entity(&w.entities[i], config) {
-                sf[i] = w.entities[i].frequency_hz;
+    let spawn_freqs: Vec<[f32; MAX_ENTITIES]> = worlds
+        .iter()
+        .map(|w| {
+            let mut sf = [0.0f32; MAX_ENTITIES];
+            let mut mask = w.alive_mask;
+            while mask != 0 {
+                let i = mask.trailing_zeros() as usize;
+                mask &= mask - 1;
+                if is_cancer_entity(&w.entities[i], config) {
+                    sf[i] = w.entities[i].frequency_hz;
+                }
             }
-        }
-        sf
-    }).collect();
+            sf
+        })
+        .collect();
 
     let mut scratches: Vec<ScratchPad> = (0..config.worlds).map(|_| ScratchPad::new()).collect();
     let mut timeline = Vec::with_capacity(config.generations as usize);
@@ -467,25 +553,39 @@ pub fn run(config: &TherapyConfig) -> TherapyReport {
         timeline.push(compute_snapshot(&worlds, g, config, gen_drain, eff_pot));
     }
 
-    let generations_to_resistance = timeline.iter()
+    let generations_to_resistance = timeline
+        .iter()
         .find(|s| s.resistance_index > 1.0 && s.cancer_alive_mean > 1.0)
         .map(|s| s.generation);
     // Tumor eliminated = cancer cells below 1.0 for at least 3 consecutive generations
     // (avoids false positives from transient dips)
-    let tumor_eliminated = timeline.windows(3).any(|w| {
-        w.iter().all(|s| s.cancer_alive_mean < 1.0)
-    });
+    let tumor_eliminated = timeline
+        .windows(3)
+        .any(|w| w.iter().all(|s| s.cancer_alive_mean < 1.0));
     let relapse_gen = if tumor_eliminated {
-        let min_gen = timeline.iter()
-            .min_by(|a,b| a.cancer_alive_mean.partial_cmp(&b.cancer_alive_mean).unwrap_or(std::cmp::Ordering::Equal))
-            .map(|s| s.generation).unwrap_or(0);
-        timeline.iter().find(|s| s.generation > min_gen + 5 && s.cancer_alive_mean > config.relapse_threshold)
+        let min_gen = timeline
+            .iter()
+            .min_by(|a, b| {
+                a.cancer_alive_mean
+                    .partial_cmp(&b.cancer_alive_mean)
+                    .unwrap_or(std::cmp::Ordering::Equal)
+            })
             .map(|s| s.generation)
-    } else { None };
+            .unwrap_or(0);
+        timeline
+            .iter()
+            .find(|s| s.generation > min_gen + 5 && s.cancer_alive_mean > config.relapse_threshold)
+            .map(|s| s.generation)
+    } else {
+        None
+    };
 
     TherapyReport {
-        config: config.clone(), timeline, generations_to_resistance,
-        tumor_eliminated, relapse_gen,
+        config: config.clone(),
+        timeline,
+        generations_to_resistance,
+        tumor_eliminated,
+        relapse_gen,
         wall_time_ms: start.elapsed().as_millis() as u64,
     }
 }
@@ -495,8 +595,16 @@ pub fn run(config: &TherapyConfig) -> TherapyReport {
 fn spawn_population(world: &mut SimWorldFlat, config: &TherapyConfig, seed: u64) {
     let mut s = seed;
     // Spawn a single cell. Pure factory: config → EntitySlot. No side effects.
-    let spawn_cell = |s: &mut u64, freq: f32, freq_sigma: f32, qe: f32, growth: f32,
-                      resilience: f32, dissipation: f32, trophic: u8, pos_range: (f32, f32)| -> EntitySlot {
+    let spawn_cell = |s: &mut u64,
+                      freq: f32,
+                      freq_sigma: f32,
+                      qe: f32,
+                      growth: f32,
+                      resilience: f32,
+                      dissipation: f32,
+                      trophic: u8,
+                      pos_range: (f32, f32)|
+     -> EntitySlot {
         *s = determinism::next_u64(*s);
         let mut slot = EntitySlot::default();
         slot.qe = qe;
@@ -508,43 +616,75 @@ fn spawn_population(world: &mut SimWorldFlat, config: &TherapyConfig, seed: u64)
         slot.trophic_class = trophic;
         slot.expression_mask = [1.0; 4];
         *s = determinism::next_u64(*s);
-        slot.position = [determinism::range_f32(*s, pos_range.0, pos_range.1),
-                         determinism::range_f32(determinism::next_u64(*s), pos_range.0, pos_range.1)];
+        slot.position = [
+            determinism::range_f32(*s, pos_range.0, pos_range.1),
+            determinism::range_f32(determinism::next_u64(*s), pos_range.0, pos_range.1),
+        ];
         slot
     };
 
     // Healthy cells: trophic from config (default: producer=photosynthesis)
     for _ in 0..config.normal_count {
-        let slot = spawn_cell(&mut s, config.normal_freq, 10.0, config.normal_qe,
-            config.normal_growth, config.normal_resilience, config.normal_dissipation,
-            config.normal_trophic, (1.0, 15.0));
+        let slot = spawn_cell(
+            &mut s,
+            config.normal_freq,
+            10.0,
+            config.normal_qe,
+            config.normal_growth,
+            config.normal_resilience,
+            config.normal_dissipation,
+            config.normal_trophic,
+            (1.0, 15.0),
+        );
         world.spawn(slot);
     }
 
     // Active cancer cells: trophic from config (default: detritivore=Warburg, no photosynthesis)
     let quiescent_n = (config.cancer_count as f32 * config.quiescent_fraction) as u8;
     for _ in 0..(config.cancer_count - quiescent_n) {
-        let slot = spawn_cell(&mut s, config.cancer_freq, 15.0, config.cancer_qe,
-            config.cancer_growth, config.cancer_resilience, config.cancer_dissipation,
-            config.cancer_trophic, (5.0, 11.0));
+        let slot = spawn_cell(
+            &mut s,
+            config.cancer_freq,
+            15.0,
+            config.cancer_qe,
+            config.cancer_growth,
+            config.cancer_resilience,
+            config.cancer_dissipation,
+            config.cancer_trophic,
+            (5.0, 11.0),
+        );
         world.spawn(slot);
     }
 
     // Quiescent stem cells: same trophic as active cancer (Warburg), but dormant.
     for _ in 0..quiescent_n {
-        let slot = spawn_cell(&mut s, config.cancer_freq, 5.0,
+        let slot = spawn_cell(
+            &mut s,
+            config.cancer_freq,
+            5.0,
             config.cancer_qe * config.quiescent_drug_sensitivity,
-            0.01, config.normal_resilience, config.cancer_dissipation * 0.2,
-            config.cancer_trophic, (6.0, 10.0));
+            0.01,
+            config.normal_resilience,
+            config.cancer_dissipation * 0.2,
+            config.cancer_trophic,
+            (6.0, 10.0),
+        );
         world.spawn(slot);
     }
 
     // Immune cells: carnivore (attack by predation). Not photosynthetic.
     for _ in 0..config.immune_count {
-        let mut slot = spawn_cell(&mut s, config.cancer_freq, 20.0,
-            config.normal_qe * 0.8, config.normal_growth * 0.3,
-            config.normal_resilience * 0.9, config.normal_dissipation * 2.0,
-            3, (1.0, 15.0)); // trophic=3=carnivore (immune killer)
+        let mut slot = spawn_cell(
+            &mut s,
+            config.cancer_freq,
+            20.0,
+            config.normal_qe * 0.8,
+            config.normal_growth * 0.3,
+            config.normal_resilience * 0.9,
+            config.normal_dissipation * 2.0,
+            3,
+            (1.0, 15.0),
+        ); // trophic=3=carnivore (immune killer)
         slot.mobility_bias = config.cancer_growth * 0.9;
         world.spawn(slot);
     }
@@ -556,106 +696,227 @@ fn spawn_population(world: &mut SimWorldFlat, config: &TherapyConfig, seed: u64)
 mod tests {
     use super::*;
 
-    #[test] fn hill_response_zero_alignment() { assert_eq!(hill_response(0.0, 2.0, 2.0), 0.0); }
-    #[test] fn hill_response_full_alignment() {
+    #[test]
+    fn hill_response_zero_alignment() {
+        assert_eq!(hill_response(0.0, 2.0, 2.0), 0.0);
+    }
+    #[test]
+    fn hill_response_full_alignment() {
         let h = hill_response(1.0, 2.0, 2.0);
         // Hill: 1^2 / (0.5^2 + 1^2) = 0.8 → potency × 0.8 = 1.6
         assert!(h > 1.5 && h < 2.0, "full alignment near max: {h}");
     }
-    #[test] fn hill_response_half_alignment() {
+    #[test]
+    fn hill_response_half_alignment() {
         let h = hill_response(0.5, 2.0, 1.0);
         assert!(h > 0.5 && h < 1.8, "half alignment → partial effect: {h}");
     }
-    #[test] fn hill_sigmoidal_steeper() {
+    #[test]
+    fn hill_sigmoidal_steeper() {
         let h1 = hill_response(0.3, 2.0, 1.0);
         let h2 = hill_response(0.3, 2.0, 4.0);
         assert!(h2 < h1, "steeper Hill → less effect at low alignment");
     }
 
-    #[test] fn cytotoxic_drain_on_target() {
+    #[test]
+    fn cytotoxic_drain_on_target() {
         let c = TherapyConfig::default();
         let d = drug_cytotoxic_drain(400.0, &c, 2.0);
         assert!(d > 0.5, "on-target drain should be significant: {d}");
     }
-    #[test] fn cytotoxic_drain_off_target() {
+    #[test]
+    fn cytotoxic_drain_off_target() {
         let c = TherapyConfig::default();
         let on = drug_cytotoxic_drain(400.0, &c, 2.0);
         let off = drug_cytotoxic_drain(600.0, &c, 2.0);
         assert!(off < on, "off-target drain ({off}) < on-target ({on})");
     }
-    #[test] fn cytotoxic_drain_nan_safe() {
+    #[test]
+    fn cytotoxic_drain_nan_safe() {
         let c = TherapyConfig::default();
         assert_eq!(drug_cytotoxic_drain(f32::NAN, &c, 2.0), 0.0);
     }
 
-    #[test] fn pk_ramp_gradual() {
-        let c = TherapyConfig { treatment_start_gen: 0, pk_ramp_gens: 10, ..Default::default() };
+    #[test]
+    fn pk_ramp_gradual() {
+        let c = TherapyConfig {
+            treatment_start_gen: 0,
+            pk_ramp_gens: 10,
+            ..Default::default()
+        };
         let p0 = effective_potency(0, &c);
         let p5 = effective_potency(5, &c);
         let p10 = effective_potency(10, &c);
         assert!(p0 < p5, "potency increases: {p0} < {p5}");
         assert!(p5 < p10, "potency increases: {p5} < {p10}");
-        assert!((p10 - c.drug_potency).abs() < 0.01, "full potency at ramp end");
+        assert!(
+            (p10 - c.drug_potency).abs() < 0.01,
+            "full potency at ramp end"
+        );
     }
 
-    #[test] fn drug_before_start() { assert!(!is_drug_active(4, &TherapyConfig { treatment_start_gen: 5, ..Default::default() })); }
-    #[test] fn drug_continuous() { assert!(is_drug_active(50, &TherapyConfig { treatment_start_gen: 0, treatment_pause_gens: 0, ..Default::default() })); }
-    #[test] fn drug_intermittent() {
-        let c = TherapyConfig { treatment_start_gen: 0, treatment_pause_gens: 3, ..Default::default() };
-        assert!(is_drug_active(0, &c)); assert!(!is_drug_active(3, &c)); assert!(is_drug_active(6, &c));
+    #[test]
+    fn drug_before_start() {
+        assert!(!is_drug_active(
+            4,
+            &TherapyConfig {
+                treatment_start_gen: 5,
+                ..Default::default()
+            }
+        ));
+    }
+    #[test]
+    fn drug_continuous() {
+        assert!(is_drug_active(
+            50,
+            &TherapyConfig {
+                treatment_start_gen: 0,
+                treatment_pause_gens: 0,
+                ..Default::default()
+            }
+        ));
+    }
+    #[test]
+    fn drug_intermittent() {
+        let c = TherapyConfig {
+            treatment_start_gen: 0,
+            treatment_pause_gens: 3,
+            ..Default::default()
+        };
+        assert!(is_drug_active(0, &c));
+        assert!(!is_drug_active(3, &c));
+        assert!(is_drug_active(6, &c));
     }
 
-    #[test] fn quiescent_low_growth() { let mut e = EntitySlot::default(); e.growth_bias = 0.01; assert!(is_quiescent(&e)); }
-    #[test] fn active_high_growth() { let mut e = EntitySlot::default(); e.growth_bias = 0.9; assert!(!is_quiescent(&e)); }
+    #[test]
+    fn quiescent_low_growth() {
+        let mut e = EntitySlot::default();
+        e.growth_bias = 0.01;
+        assert!(is_quiescent(&e));
+    }
+    #[test]
+    fn active_high_growth() {
+        let mut e = EntitySlot::default();
+        e.growth_bias = 0.9;
+        assert!(!is_quiescent(&e));
+    }
 
-    #[test] fn run_no_panic() { assert_eq!(run(&TherapyConfig { worlds: 2, generations: 3, ticks_per_gen: 20, ..Default::default() }).timeline.len(), 3); }
-    #[test] fn run_deterministic() {
-        let c = TherapyConfig { worlds: 2, generations: 5, ticks_per_gen: 20, ..Default::default() };
+    #[test]
+    fn run_no_panic() {
+        assert_eq!(
+            run(&TherapyConfig {
+                worlds: 2,
+                generations: 3,
+                ticks_per_gen: 20,
+                ..Default::default()
+            })
+            .timeline
+            .len(),
+            3
+        );
+    }
+    #[test]
+    fn run_deterministic() {
+        let c = TherapyConfig {
+            worlds: 2,
+            generations: 5,
+            ticks_per_gen: 20,
+            ..Default::default()
+        };
         let (a, b) = (run(&c), run(&c));
-        for i in 0..5 { assert_eq!(a.timeline[i].cancer_alive_mean.to_bits(), b.timeline[i].cancer_alive_mean.to_bits()); }
+        for i in 0..5 {
+            assert_eq!(
+                a.timeline[i].cancer_alive_mean.to_bits(),
+                b.timeline[i].cancer_alive_mean.to_bits()
+            );
+        }
     }
 
-    #[test] fn drug_reduces_cancer() {
-        let no = run(&TherapyConfig { worlds: 10, generations: 30, ticks_per_gen: 100, treatment_start_gen: 999, ..Default::default() });
-        let yes = run(&TherapyConfig { worlds: 10, generations: 30, ticks_per_gen: 100, treatment_start_gen: 0, drug_potency: 5.0, ..Default::default() });
+    #[test]
+    fn drug_reduces_cancer() {
+        let no = run(&TherapyConfig {
+            worlds: 10,
+            generations: 30,
+            ticks_per_gen: 100,
+            treatment_start_gen: 999,
+            ..Default::default()
+        });
+        let yes = run(&TherapyConfig {
+            worlds: 10,
+            generations: 30,
+            ticks_per_gen: 100,
+            treatment_start_gen: 0,
+            drug_potency: 5.0,
+            ..Default::default()
+        });
         let with = yes.timeline.last().unwrap().cancer_alive_mean;
         let without = no.timeline.last().unwrap().cancer_alive_mean;
-        assert!(with < without,
-            "drug (potency=5) must STRICTLY reduce cancer: with={with:.1}, without={without:.1}");
+        assert!(
+            with < without,
+            "drug (potency=5) must STRICTLY reduce cancer: with={with:.1}, without={without:.1}"
+        );
     }
 
-    #[test] fn strong_drug_eliminates_tumor() {
+    #[test]
+    fn strong_drug_eliminates_tumor() {
         let r = run(&TherapyConfig {
-            worlds: 10, generations: 30, ticks_per_gen: 300,
-            treatment_start_gen: 0, drug_potency: 5.0,
+            worlds: 10,
+            generations: 30,
+            ticks_per_gen: 300,
+            treatment_start_gen: 0,
+            drug_potency: 5.0,
             ..Default::default()
         });
         let final_cancer = r.timeline.last().unwrap().cancer_alive_mean;
-        assert!(final_cancer < 1.0,
-            "potency=5 over 300 ticks should eliminate tumor: got {final_cancer:.1}");
+        assert!(
+            final_cancer < 1.0,
+            "potency=5 over 300 ticks should eliminate tumor: got {final_cancer:.1}"
+        );
     }
 
-    #[test] fn conservation_tracked() {
-        let r = run(&TherapyConfig { worlds: 3, generations: 10, ticks_per_gen: 50, treatment_start_gen: 0, ..Default::default() });
+    #[test]
+    fn conservation_tracked() {
+        let r = run(&TherapyConfig {
+            worlds: 3,
+            generations: 10,
+            ticks_per_gen: 50,
+            treatment_start_gen: 0,
+            ..Default::default()
+        });
         assert!(r.timeline.iter().any(|s| s.total_drug_drain > 0.0));
     }
 
-    #[test] fn effective_potency_tracked() {
-        let r = run(&TherapyConfig { worlds: 2, generations: 10, ticks_per_gen: 20, pk_ramp_gens: 5, ..Default::default() });
+    #[test]
+    fn effective_potency_tracked() {
+        let r = run(&TherapyConfig {
+            worlds: 2,
+            generations: 10,
+            ticks_per_gen: 20,
+            pk_ramp_gens: 5,
+            ..Default::default()
+        });
         let pot_early = r.timeline[5].effective_potency;
         let pot_late = r.timeline[9].effective_potency;
         assert!(pot_late >= pot_early);
     }
 
-    #[test] fn cancer_trophic_not_producer() {
+    #[test]
+    fn cancer_trophic_not_producer() {
         // Cancer cells must NOT be trophic=0 (producer) to avoid photosynthesis.
         // Warburg effect: tumors consume glucose, they don't photosynthesize.
         let config = TherapyConfig::default();
-        assert_eq!(config.cancer_trophic, 4, "cancer must be detritivore (Warburg: passive nutrient scavenger)");
-        assert_eq!(config.normal_trophic, 0, "normals are producers (healthy tissue)");
+        assert_eq!(
+            config.cancer_trophic, 4,
+            "cancer must be detritivore (Warburg: passive nutrient scavenger)"
+        );
+        assert_eq!(
+            config.normal_trophic, 0,
+            "normals are producers (healthy tissue)"
+        );
     }
 
-    #[test] fn cancer_cells_not_producer() {
+    #[test]
+    fn cancer_cells_not_producer() {
         let config = TherapyConfig::default();
         let mut w = SimWorldFlat::new(42, 0.05);
         spawn_population(&mut w, &config, 42);
@@ -664,27 +925,42 @@ mod tests {
             let i = mask.trailing_zeros() as usize;
             mask &= mask - 1;
             if is_cancer_entity(&w.entities[i], &config) {
-                assert_ne!(w.entities[i].trophic_class, 0,
-                    "cancer-freq cell at slot {i} must not be producer (photosynthesis)");
+                assert_ne!(
+                    w.entities[i].trophic_class, 0,
+                    "cancer-freq cell at slot {i} must not be producer (photosynthesis)"
+                );
             }
         }
     }
 
-    #[test] fn snapshot_empty() {
-        let s = compute_snapshot(&[SimWorldFlat::new(42, 0.05)], 0, &TherapyConfig::default(), 0.0, 0.0);
+    #[test]
+    fn snapshot_empty() {
+        let s = compute_snapshot(
+            &[SimWorldFlat::new(42, 0.05)],
+            0,
+            &TherapyConfig::default(),
+            0.0,
+            0.0,
+        );
         assert_eq!(s.cancer_alive_mean, 0.0);
     }
 
     #[test]
     fn weak_drug_does_not_eliminate_tumor() {
         let r = run(&TherapyConfig {
-            worlds: 10, generations: 30, ticks_per_gen: 50,
-            drug_potency: 0.1, // very weak drug
+            worlds: 10,
+            generations: 30,
+            ticks_per_gen: 50,
+            drug_potency: 0.1,    // very weak drug
             nutrient_level: 10.0, // well-fed tumor
             ..Default::default()
         });
         assert!(
-            !r.tumor_eliminated || r.timeline.last().map(|s| s.cancer_alive_mean > 0.5).unwrap_or(false),
+            !r.tumor_eliminated
+                || r.timeline
+                    .last()
+                    .map(|s| s.cancer_alive_mean > 0.5)
+                    .unwrap_or(false),
             "weak drug (potency=0.1) should not eliminate a well-fed tumor"
         );
     }
@@ -692,13 +968,21 @@ mod tests {
     #[test]
     fn no_drug_tumor_survives() {
         let r = run(&TherapyConfig {
-            worlds: 10, generations: 30, ticks_per_gen: 50,
+            worlds: 10,
+            generations: 30,
+            ticks_per_gen: 50,
             treatment_start_gen: 999, // drug never starts
             nutrient_level: 10.0,
             ..Default::default()
         });
-        let last_cancer = r.timeline.last().map(|s| s.cancer_alive_mean).unwrap_or(0.0);
-        assert!(last_cancer > 1.0,
-            "without drug, cancer should survive: got {last_cancer}");
+        let last_cancer = r
+            .timeline
+            .last()
+            .map(|s| s.cancer_alive_mean)
+            .unwrap_or(0.0);
+        assert!(
+            last_cancer > 1.0,
+            "without drug, cancer should survive: got {last_cancer}"
+        );
     }
 }

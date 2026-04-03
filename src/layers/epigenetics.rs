@@ -6,19 +6,19 @@ use bevy::prelude::*;
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
 pub struct EpigeneticState {
-    pub expression_mask:  [f32; 4],  // [0,1] por dimensión del InferenceProfile
+    pub expression_mask: [f32; 4], // [0,1] por dimensión del InferenceProfile
     pub adaptation_speed: f32,
-    pub silencing_cost:   f32,
-    pub env_sample_rate:  u8,        // cada cuántos ticks re-samplea el entorno
+    pub silencing_cost: f32,
+    pub env_sample_rate: u8, // cada cuántos ticks re-samplea el entorno
 }
 
 impl Default for EpigeneticState {
     fn default() -> Self {
         Self {
-            expression_mask:  [1.0; 4],
+            expression_mask: [1.0; 4],
             adaptation_speed: 0.05,
-            silencing_cost:   0.5,
-            env_sample_rate:  16,
+            silencing_cost: 0.5,
+            env_sample_rate: 16,
         }
     }
 }

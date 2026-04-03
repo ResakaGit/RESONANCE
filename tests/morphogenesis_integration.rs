@@ -8,7 +8,7 @@ use resonance::entities::archetypes::{
     spawn_aquatic_organism, spawn_desert_plant, spawn_forest_plant,
 };
 use resonance::layers::{
-    InferredAlbedo, MetabolicGraph, MorphogenesisSurface, MorphogenesisShapeParams,
+    InferredAlbedo, MetabolicGraph, MorphogenesisShapeParams, MorphogenesisSurface,
 };
 use resonance::simulation::metabolic::morphogenesis::{
     albedo_inference_system, entropy_constraint_system, entropy_ledger_system,
@@ -35,11 +35,17 @@ fn make_app() -> App {
 }
 
 fn run_ticks(app: &mut App, n: u32) {
-    for _ in 0..n { app.update(); }
+    for _ in 0..n {
+        app.update();
+    }
 }
 
 fn first_entity_with<T: Component + Clone>(app: &mut App) -> Option<T> {
-    app.world_mut().query::<&T>().iter(app.world()).next().cloned()
+    app.world_mut()
+        .query::<&T>()
+        .iter(app.world())
+        .next()
+        .cloned()
 }
 
 // ── MG-8G Test 1: Aquatic organism — high fineness (fusiforme) ─────────────
@@ -102,8 +108,7 @@ fn desert_plant_albedo_is_bright() {
     }
     run_ticks(&mut app, 13);
 
-    let albedo = first_entity_with::<InferredAlbedo>(&mut app)
-        .expect("no InferredAlbedo found");
+    let albedo = first_entity_with::<InferredAlbedo>(&mut app).expect("no InferredAlbedo found");
     assert!(
         albedo.albedo() > 0.7,
         "desert plant albedo expected > 0.7, got {}",
@@ -146,8 +151,7 @@ fn forest_plant_albedo_is_neutral() {
     }
     run_ticks(&mut app, 13);
 
-    let albedo = first_entity_with::<InferredAlbedo>(&mut app)
-        .expect("no InferredAlbedo found");
+    let albedo = first_entity_with::<InferredAlbedo>(&mut app).expect("no InferredAlbedo found");
     assert!(
         (0.25..=0.55).contains(&albedo.albedo()),
         "forest plant albedo expected in [0.25, 0.55], got {}",
@@ -169,6 +173,13 @@ fn mg8_archetypes_all_have_metabolic_graph() {
     }
     app.update();
 
-    let count = app.world_mut().query::<&MetabolicGraph>().iter(app.world()).count();
-    assert_eq!(count, 3, "expected 3 entities with MetabolicGraph, found {count}");
+    let count = app
+        .world_mut()
+        .query::<&MetabolicGraph>()
+        .iter(app.world())
+        .count();
+    assert_eq!(
+        count, 3,
+        "expected 3 entities with MetabolicGraph, found {count}"
+    );
 }

@@ -8,14 +8,14 @@ use crate::blueprint::equations::determinism;
 /// Configuration for a batch evolutionary experiment.
 #[derive(Clone, Debug)]
 pub struct BatchConfig {
-    pub world_count:     usize,
-    pub ticks_per_eval:  u32,
-    pub tick_rate_hz:    f32,
-    pub mutation_sigma:  f32,
-    pub elite_fraction:  f32,
-    pub crossover_rate:  f32,
+    pub world_count: usize,
+    pub ticks_per_eval: u32,
+    pub tick_rate_hz: f32,
+    pub mutation_sigma: f32,
+    pub elite_fraction: f32,
+    pub crossover_rate: f32,
     pub max_generations: u32,
-    pub seed:            u64,
+    pub seed: u64,
     pub initial_entities: u8,
     pub fitness_weights: [f32; 6],
     /// Tournament selection size (Blickle 1996). k=2 for diversity.
@@ -25,27 +25,27 @@ pub struct BatchConfig {
 impl Default for BatchConfig {
     fn default() -> Self {
         Self {
-            world_count:      100,
-            ticks_per_eval:   500,
-            tick_rate_hz:     20.0,
-            mutation_sigma:   0.0,  // 0 = self-adaptive (Schwefel 1981)
-            elite_fraction:   0.03, // 3% elite (Eiben & Smith 2015)
-            crossover_rate:   0.30,
-            max_generations:  100,
-            seed:             42,
+            world_count: 100,
+            ticks_per_eval: 500,
+            tick_rate_hz: 20.0,
+            mutation_sigma: 0.0,  // 0 = self-adaptive (Schwefel 1981)
+            elite_fraction: 0.03, // 3% elite (Eiben & Smith 2015)
+            crossover_rate: 0.30,
+            max_generations: 100,
+            seed: 42,
             initial_entities: 8,
             // weights: survivors, reproductions, species, trophic_depth, memes, coalitions
-            fitness_weights:  [1.0, 1.0, 4.0, 3.0, 1.0, 1.0],
-            tournament_k:    2,
+            fitness_weights: [1.0, 1.0, 4.0, 3.0, 1.0, 1.0],
+            tournament_k: 2,
         }
     }
 }
 
 /// Batch of N worlds for evaluation and selection.
 pub struct WorldBatch {
-    pub worlds:     Vec<SimWorldFlat>,
+    pub worlds: Vec<SimWorldFlat>,
     pub generation: u32,
-    pub config:     BatchConfig,
+    pub config: BatchConfig,
 }
 
 impl WorldBatch {
@@ -78,13 +78,19 @@ impl WorldBatch {
                     w.spawn(slot);
                 }
                 // Seed nutrient grid
-                for cell in &mut w.nutrient_grid { *cell = 5.0; }
+                for cell in &mut w.nutrient_grid {
+                    *cell = 5.0;
+                }
                 w.update_total_qe();
                 w
             })
             .collect();
 
-        Self { worlds, generation: 0, config }
+        Self {
+            worlds,
+            generation: 0,
+            config,
+        }
     }
 
     /// Advance all worlds by one tick. Uses rayon for data-parallel execution.
@@ -137,14 +143,21 @@ mod tests {
 
     #[test]
     fn new_batch_creates_n_worlds() {
-        let config = BatchConfig { world_count: 10, ..Default::default() };
+        let config = BatchConfig {
+            world_count: 10,
+            ..Default::default()
+        };
         let batch = WorldBatch::new(config);
         assert_eq!(batch.worlds.len(), 10);
     }
 
     #[test]
     fn each_world_has_initial_entities() {
-        let config = BatchConfig { world_count: 5, initial_entities: 4, ..Default::default() };
+        let config = BatchConfig {
+            world_count: 5,
+            initial_entities: 4,
+            ..Default::default()
+        };
         let batch = WorldBatch::new(config);
         for w in &batch.worlds {
             assert_eq!(w.entity_count, 4);
@@ -153,7 +166,10 @@ mod tests {
 
     #[test]
     fn worlds_have_different_seeds() {
-        let config = BatchConfig { world_count: 3, ..Default::default() };
+        let config = BatchConfig {
+            world_count: 3,
+            ..Default::default()
+        };
         let batch = WorldBatch::new(config);
         assert_ne!(batch.worlds[0].seed, batch.worlds[1].seed);
         assert_ne!(batch.worlds[1].seed, batch.worlds[2].seed);
@@ -161,7 +177,11 @@ mod tests {
 
     #[test]
     fn tick_all_advances_all_worlds() {
-        let config = BatchConfig { world_count: 5, initial_entities: 2, ..Default::default() };
+        let config = BatchConfig {
+            world_count: 5,
+            initial_entities: 2,
+            ..Default::default()
+        };
         let mut batch = WorldBatch::new(config);
         batch.tick_all();
         for w in &batch.worlds {
@@ -171,7 +191,12 @@ mod tests {
 
     #[test]
     fn run_evaluation_advances_n_ticks() {
-        let config = BatchConfig { world_count: 3, initial_entities: 2, ticks_per_eval: 10, ..Default::default() };
+        let config = BatchConfig {
+            world_count: 3,
+            initial_entities: 2,
+            ticks_per_eval: 10,
+            ..Default::default()
+        };
         let mut batch = WorldBatch::new(config);
         batch.run_evaluation(10);
         for w in &batch.worlds {
@@ -183,7 +208,11 @@ mod tests {
 
     #[test]
     fn parallel_matches_sequential_tick_ids() {
-        let config = BatchConfig { world_count: 20, initial_entities: 4, ..Default::default() };
+        let config = BatchConfig {
+            world_count: 20,
+            initial_entities: 4,
+            ..Default::default()
+        };
         let mut par = WorldBatch::new(config.clone());
         let mut seq = WorldBatch::new(config);
         par.tick_all();
@@ -195,7 +224,11 @@ mod tests {
 
     #[test]
     fn parallel_matches_sequential_energy() {
-        let config = BatchConfig { world_count: 20, initial_entities: 4, ..Default::default() };
+        let config = BatchConfig {
+            world_count: 20,
+            initial_entities: 4,
+            ..Default::default()
+        };
         let mut par = WorldBatch::new(config.clone());
         let mut seq = WorldBatch::new(config);
         for _ in 0..10 {
@@ -204,16 +237,22 @@ mod tests {
         }
         for (i, (p, s)) in par.worlds.iter().zip(seq.worlds.iter()).enumerate() {
             assert_eq!(
-                p.total_qe.to_bits(), s.total_qe.to_bits(),
+                p.total_qe.to_bits(),
+                s.total_qe.to_bits(),
                 "world {i}: parallel={} sequential={}",
-                p.total_qe, s.total_qe,
+                p.total_qe,
+                s.total_qe,
             );
         }
     }
 
     #[test]
     fn parallel_matches_sequential_alive_mask() {
-        let config = BatchConfig { world_count: 10, initial_entities: 6, ..Default::default() };
+        let config = BatchConfig {
+            world_count: 10,
+            initial_entities: 6,
+            ..Default::default()
+        };
         let mut par = WorldBatch::new(config.clone());
         let mut seq = WorldBatch::new(config);
         for _ in 0..20 {
@@ -231,7 +270,11 @@ mod tests {
 
     #[test]
     fn parallel_matches_sequential_entity_qe() {
-        let config = BatchConfig { world_count: 10, initial_entities: 4, ..Default::default() };
+        let config = BatchConfig {
+            world_count: 10,
+            initial_entities: 4,
+            ..Default::default()
+        };
         let mut par = WorldBatch::new(config.clone());
         let mut seq = WorldBatch::new(config);
         for _ in 0..10 {
@@ -244,7 +287,8 @@ mod tests {
                     pw.entities[ei].qe.to_bits(),
                     sw.entities[ei].qe.to_bits(),
                     "world {wi} entity {ei}: parallel qe={} sequential qe={}",
-                    pw.entities[ei].qe, sw.entities[ei].qe,
+                    pw.entities[ei].qe,
+                    sw.entities[ei].qe,
                 );
             }
         }
@@ -252,7 +296,11 @@ mod tests {
 
     #[test]
     fn parallel_tick_all_scales_to_1000_worlds() {
-        let config = BatchConfig { world_count: 1000, initial_entities: 4, ..Default::default() };
+        let config = BatchConfig {
+            world_count: 1000,
+            initial_entities: 4,
+            ..Default::default()
+        };
         let mut batch = WorldBatch::new(config);
         batch.tick_all(); // should not panic
         for w in &batch.worlds {

@@ -10,11 +10,11 @@ use bevy::prelude::Entity;
 
 use crate::layers::MatterState;
 
-use super::constants::{
-    GPU_MATERIALIZED_ABSENT, GPU_MATERIALIZED_PRESENT, GPU_MATTER_STATE_GAS, GPU_MATTER_STATE_LIQUID,
-    GPU_MATTER_STATE_PLASMA, GPU_MATTER_STATE_SOLID,
-};
 use super::CellFieldSnapshot;
+use super::constants::{
+    GPU_MATERIALIZED_ABSENT, GPU_MATERIALIZED_PRESENT, GPU_MATTER_STATE_GAS,
+    GPU_MATTER_STATE_LIQUID, GPU_MATTER_STATE_PLASMA, GPU_MATTER_STATE_SOLID,
+};
 
 /// Versión del esquema SSBO; subir en cada breaking change del layout (WGSL + Rust).
 pub const CELL_FIELD_SNAPSHOT_GPU_SCHEMA_VERSION: u32 = 1;
@@ -74,7 +74,9 @@ pub fn initial_gpu_cell_field_snapshot_header() -> GpuCellFieldSnapshotHeader {
 ///
 /// Con cache sincronizada, todas las entradas son `Some`; `None` → fila cero (release) y `debug_assert` en dev.
 #[inline]
-pub fn gpu_packed_rows_from_cache_entries(entries: &[Option<CellFieldSnapshot>]) -> Vec<GpuCellFieldPacked> {
+pub fn gpu_packed_rows_from_cache_entries(
+    entries: &[Option<CellFieldSnapshot>],
+) -> Vec<GpuCellFieldPacked> {
     debug_assert!(
         !entries.iter().any(|s| s.is_none()),
         "EPI1: cache alineada a `grid.generation` debe tener todas las celdas rellenas"
@@ -130,7 +132,8 @@ pub fn gpu_cell_field_snapshot_bytes(
     header: GpuCellFieldSnapshotHeader,
     cells: &[GpuCellFieldPacked],
 ) -> Vec<u8> {
-    let mut out = Vec::with_capacity(GPU_SNAPSHOT_HEADER_BYTES + GPU_CELL_FIELD_ROW_BYTES * cells.len());
+    let mut out =
+        Vec::with_capacity(GPU_SNAPSHOT_HEADER_BYTES + GPU_CELL_FIELD_ROW_BYTES * cells.len());
     out.extend_from_slice(bytemuck::bytes_of(&header));
     out.extend_from_slice(bytemuck::cast_slice(cells));
     out
@@ -145,7 +148,8 @@ unsafe impl bytemuck::Zeroable for GpuCellFieldPacked {}
 #[cfg(test)]
 mod tests {
     use super::super::constants::{
-        GPU_MATTER_STATE_GAS, GPU_MATTER_STATE_LIQUID, GPU_MATTER_STATE_PLASMA, GPU_MATTER_STATE_SOLID,
+        GPU_MATTER_STATE_GAS, GPU_MATTER_STATE_LIQUID, GPU_MATTER_STATE_PLASMA,
+        GPU_MATTER_STATE_SOLID,
     };
     use super::*;
     use bevy::prelude::Entity;
@@ -159,7 +163,10 @@ mod tests {
     #[test]
     fn initial_header_carries_schema_version() {
         let h = initial_gpu_cell_field_snapshot_header();
-        assert_eq!(h.snapshot_schema_version, CELL_FIELD_SNAPSHOT_GPU_SCHEMA_VERSION);
+        assert_eq!(
+            h.snapshot_schema_version,
+            CELL_FIELD_SNAPSHOT_GPU_SCHEMA_VERSION
+        );
         assert_eq!(h.grid_width, 0);
         assert_eq!(h.grid_generation, 0);
     }
@@ -217,10 +224,7 @@ mod tests {
         assert_eq!(p.matter_state, 1);
         assert_eq!(p.materialized_present, 1);
         assert_eq!(p.materialized_index, Entity::from_raw(42).index());
-        assert_eq!(
-            p.materialized_generation,
-            Entity::from_raw(42).generation()
-        );
+        assert_eq!(p.materialized_generation, Entity::from_raw(42).generation());
         assert_eq!(p.contributions_fingerprint, 0xdead_beef);
     }
 
@@ -251,6 +255,9 @@ mod tests {
         };
         let cells = [GpuCellFieldPacked::default(); 4];
         let v = gpu_cell_field_snapshot_bytes(h, &cells);
-        assert_eq!(v.len(), GPU_SNAPSHOT_HEADER_BYTES + 4 * GPU_CELL_FIELD_ROW_BYTES);
+        assert_eq!(
+            v.len(),
+            GPU_SNAPSHOT_HEADER_BYTES + 4 * GPU_CELL_FIELD_ROW_BYTES
+        );
     }
 }

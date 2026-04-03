@@ -13,8 +13,8 @@
 
 use super::derived_thresholds::{COHERENCE_BANDWIDTH, DISSIPATION_SOLID, KLEIBER_EXPONENT};
 use super::determinism;
-use super::variable_genome::{VariableGenome, MIN_GENES, MAX_GENES};
-use crate::layers::OrganRole;
+use super::variable_genome::{MAX_GENES, MIN_GENES, VariableGenome};
+use crate::blueprint::OrganRole;
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -75,7 +75,11 @@ pub fn genome_to_polymer(genome: &VariableGenome) -> ([Monomer; MAX_CHAIN], usiz
     let mut chain = [Monomer::default(); MAX_CHAIN];
     for i in 0..n {
         let h = genome.genes[i].clamp(0.0, 1.0);
-        let prev = if i > 0 { genome.genes[i - 1].clamp(0.0, 1.0) } else { h };
+        let prev = if i > 0 {
+            genome.genes[i - 1].clamp(0.0, 1.0)
+        } else {
+            h
+        };
         chain[i] = Monomer {
             hydrophobicity: h,
             charge: (h - prev) * 0.5,
@@ -102,14 +106,18 @@ pub fn fold_energy(
     let mut energy = 0.0f32;
     for i in 0..len {
         for j in (i + 2)..len {
-            if !lattice_adjacent(positions[i], positions[j]) { continue; }
-            if !chain[i].is_hydrophobic() || !chain[j].is_hydrophobic() { continue; }
+            if !lattice_adjacent(positions[i], positions[j]) {
+                continue;
+            }
+            if !chain[i].is_hydrophobic() || !chain[j].is_hydrophobic() {
+                continue;
+            }
             let freq_align = frequency_alignment(
                 frequencies.get(i).copied().unwrap_or(0.0),
                 frequencies.get(j).copied().unwrap_or(0.0),
             );
-            energy += chain[i].hydrophobicity * chain[j].hydrophobicity
-                * HH_CONTACT_ENERGY * freq_align;
+            energy +=
+                chain[i].hydrophobicity * chain[j].hydrophobicity * HH_CONTACT_ENERGY * freq_align;
         }
     }
     energy
@@ -119,16 +127,13 @@ pub fn fold_energy(
 ///
 /// O(N × 4) per monomer. Not globally optimal, but deterministic and fast.
 /// Axiom 6: fold emerges from energy minimization, not template.
-pub fn fold_greedy(
-    chain: &[Monomer],
-    len: usize,
-    frequencies: &[f32],
-    seed: u64,
-) -> FoldState {
+pub fn fold_greedy(chain: &[Monomer], len: usize, frequencies: &[f32], seed: u64) -> FoldState {
     let mut pos = [(0i8, 0i8); MAX_CHAIN];
     let mut occupied = [[false; LATTICE_SIZE]; LATTICE_SIZE];
     let n = len.min(MAX_CHAIN);
-    if n == 0 { return pos; }
+    if n == 0 {
+        return pos;
+    }
 
     // First monomer at center
     pos[0] = (LATTICE_CENTER, LATTICE_CENTER);
@@ -144,7 +149,9 @@ pub fn fold_greedy(
         for (d, &(dx, dy)) in DIRS.iter().enumerate() {
             let nx = prev.0 + dx;
             let ny = prev.1 + dy;
-            if !in_lattice(nx, ny) || occupied[nx as usize][ny as usize] { continue; }
+            if !in_lattice(nx, ny) || occupied[nx as usize][ny as usize] {
+                continue;
+            }
 
             // Temporarily place and evaluate
             pos[i] = (nx, ny);
@@ -243,7 +250,9 @@ pub fn infer_protein_function(
     len: usize,
 ) -> Option<ProteinFunction> {
     let n = len.min(MAX_CHAIN);
-    if n < MIN_GENES { return None; }
+    if n < MIN_GENES {
+        return None;
+    }
 
     // Find active site: H monomers with density >= threshold
     let mut site_indices = [0usize; MAX_CHAIN];
@@ -255,34 +264,44 @@ pub fn infer_protein_function(
         }
     }
 
-    if site_count == 0 { return None; }
+    if site_count == 0 {
+        return None;
+    }
 
     // Mean frequency of active site → determines catalytic target
-    let mean_freq: f32 = site_indices[..site_count].iter()
+    let mean_freq: f32 = site_indices[..site_count]
+        .iter()
         .map(|&i| frequencies.get(i).copied().unwrap_or(0.0))
-        .sum::<f32>() / site_count as f32;
+        .sum::<f32>()
+        / site_count as f32;
 
     // Map frequency to OrganRole via dimension (same as MGN-1 mapping)
     let target = infer_target_from_frequency(mean_freq);
 
     // Efficiency: mean hydrophobicity × mean density, scaled by Kleiber
-    let mean_hydro: f32 = site_indices[..site_count].iter()
+    let mean_hydro: f32 = site_indices[..site_count]
+        .iter()
         .map(|&i| chain[i].hydrophobicity)
-        .sum::<f32>() / site_count as f32;
-    let mean_density: f32 = site_indices[..site_count].iter()
+        .sum::<f32>()
+        / site_count as f32;
+    let mean_density: f32 = site_indices[..site_count]
+        .iter()
         .map(|&i| density[i] as f32)
-        .sum::<f32>() / site_count as f32;
+        .sum::<f32>()
+        / site_count as f32;
     let efficiency = (mean_hydro * mean_density * DISSIPATION_SOLID * 10.0)
         .powf(KLEIBER_EXPONENT)
         .min(0.5); // Cap: a single protein can't boost more than 50%
 
     // Specificity: how tight is the frequency alignment within active site
-    let freq_variance: f32 = site_indices[..site_count].iter()
+    let freq_variance: f32 = site_indices[..site_count]
+        .iter()
         .map(|&i| {
             let d = frequencies.get(i).copied().unwrap_or(0.0) - mean_freq;
             d * d
         })
-        .sum::<f32>() / site_count.max(1) as f32;
+        .sum::<f32>()
+        / site_count.max(1) as f32;
     let specificity = (-freq_variance / (2.0 * COHERENCE_BANDWIDTH * COHERENCE_BANDWIDTH)).exp();
 
     Some(ProteinFunction {
@@ -299,12 +318,12 @@ fn infer_target_from_frequency(freq: f32) -> OrganRole {
     // 0-150: Stem, 150-250: Thorn, 250-350: Core/Shell,
     // 350-500: Root/Leaf, 500-700: Fin/Limb, 700+: Sensory/Fruit
     match freq as u32 {
-        0..=149     => OrganRole::Stem,
-        150..=249   => OrganRole::Thorn,
-        250..=349   => OrganRole::Core,
-        350..=499   => OrganRole::Root,
-        500..=699   => OrganRole::Fin,
-        _           => OrganRole::Sensory,
+        0..=149 => OrganRole::Stem,
+        150..=249 => OrganRole::Thorn,
+        250..=349 => OrganRole::Core,
+        350..=499 => OrganRole::Root,
+        500..=699 => OrganRole::Fin,
+        _ => OrganRole::Sensory,
     }
 }
 
@@ -324,10 +343,7 @@ pub struct ProteinPhenotype {
 /// Full pipeline. Cache-friendly: one call per genome per change.
 ///
 /// Deterministic: same genome + seed → identical phenotype.
-pub fn compute_protein_phenotype(
-    genome: &VariableGenome,
-    seed: u64,
-) -> ProteinPhenotype {
+pub fn compute_protein_phenotype(genome: &VariableGenome, seed: u64) -> ProteinPhenotype {
     let (chain, len) = genome_to_polymer(genome);
 
     // Derive frequencies from gene positions (same scheme as MetabolicGenome)
@@ -388,7 +404,9 @@ fn hh_contact_contribution(chain: &[Monomer], i: usize, j: usize, freq: &[f32]) 
 /// Energy contribution of placing monomer `idx` given current positions.
 /// Checks all previous monomers except direct chain neighbor (i-1).
 fn partial_energy(chain: &[Monomer], pos: &FoldState, idx: usize, freq: &[f32]) -> f32 {
-    if idx < 2 || !chain[idx].is_hydrophobic() { return 0.0; }
+    if idx < 2 || !chain[idx].is_hydrophobic() {
+        return 0.0;
+    }
     (0..idx.saturating_sub(1))
         .filter(|&j| chain[j].is_hydrophobic() && lattice_adjacent(pos[idx], pos[j]))
         .map(|j| hh_contact_contribution(chain, idx, j, freq))
@@ -397,7 +415,9 @@ fn partial_energy(chain: &[Monomer], pos: &FoldState, idx: usize, freq: &[f32]) 
 
 /// Count H-H contacts for monomer at `idx` (non-consecutive neighbors only).
 fn count_hh_contacts(chain: &[Monomer], pos: &FoldState, idx: usize) -> u8 {
-    if idx < 2 || !chain[idx].is_hydrophobic() { return 0; }
+    if idx < 2 || !chain[idx].is_hydrophobic() {
+        return 0;
+    }
     (0..idx.saturating_sub(1))
         .filter(|&j| chain[j].is_hydrophobic() && lattice_adjacent(pos[idx], pos[j]))
         .count() as u8
@@ -432,7 +452,10 @@ mod tests {
     fn polymer_first_monomer_zero_charge() {
         let g = VariableGenome::default();
         let (chain, _) = genome_to_polymer(&g);
-        assert_eq!(chain[0].charge, 0.0, "first monomer has no previous → zero charge");
+        assert_eq!(
+            chain[0].charge, 0.0,
+            "first monomer has no previous → zero charge"
+        );
     }
 
     #[test]
@@ -461,31 +484,43 @@ mod tests {
         g.len = 2;
         let (chain, len) = genome_to_polymer(&g);
         let fold = fold_greedy(&chain, len, &[400.0, 400.0], 42);
-        assert!(lattice_adjacent(fold[0], fold[1]), "consecutive monomers must be adjacent");
+        assert!(
+            lattice_adjacent(fold[0], fold[1]),
+            "consecutive monomers must be adjacent"
+        );
     }
 
     #[test]
     fn fold_chain_connectivity_maintained() {
         let mut g = VariableGenome::from_biases(0.8, 0.9, 0.1, 0.7);
-        for i in 4..12 { g.genes[i] = 0.5; }
+        for i in 4..12 {
+            g.genes[i] = 0.5;
+        }
         g.len = 12;
         let (chain, len) = genome_to_polymer(&g);
         let fold = fold_greedy(&chain, len, &[400.0; 12], 42);
         for i in 1..len {
-            assert!(lattice_adjacent(fold[i - 1], fold[i]),
-                "chain break at {}: {:?} → {:?}", i, fold[i-1], fold[i]);
+            assert!(
+                lattice_adjacent(fold[i - 1], fold[i]),
+                "chain break at {}: {:?} → {:?}",
+                i,
+                fold[i - 1],
+                fold[i]
+            );
         }
     }
 
     #[test]
     fn fold_no_overlaps() {
         let mut g = VariableGenome::default();
-        for i in 0..16 { g.genes[i] = (i as f32 / 16.0); }
+        for i in 0..16 {
+            g.genes[i] = (i as f32 / 16.0);
+        }
         g.len = 16;
         let (chain, len) = genome_to_polymer(&g);
         let fold = fold_greedy(&chain, len, &[400.0; 16], 42);
         for i in 0..len {
-            for j in (i+1)..len {
+            for j in (i + 1)..len {
                 assert_ne!(fold[i], fold[j], "overlap at {i} and {j}");
             }
         }
@@ -514,13 +549,18 @@ mod tests {
     fn fold_energy_negative_for_hh_contacts() {
         // Create a chain with H monomers that will contact each other
         let mut g = VariableGenome::default();
-        for i in 0..8 { g.genes[i] = 0.9; } // all H
+        for i in 0..8 {
+            g.genes[i] = 0.9;
+        } // all H
         g.len = 8;
         let (chain, len) = genome_to_polymer(&g);
         let freq = [400.0; 8];
         let fold = fold_greedy(&chain, len, &freq, 42);
         let e = fold_energy(&chain, &fold, len, &freq);
-        assert!(e <= 0.0, "H-H contacts should give negative (attractive) energy: {e}");
+        assert!(
+            e <= 0.0,
+            "H-H contacts should give negative (attractive) energy: {e}"
+        );
     }
 
     // ── PF-3: Contact Map ───────────────────────────────────────────────────
@@ -531,10 +571,40 @@ mod tests {
         let mut g2 = g;
         g2.len = 2;
         let (_, len) = genome_to_polymer(&g2);
-        let fold = [(5i8, 5i8), (5, 6), (0,0), (0,0), (0,0), (0,0), (0,0), (0,0),
-            (0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),
-            (0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),
-            (0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0),(0,0)];
+        let fold = [
+            (5i8, 5i8),
+            (5, 6),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+            (0, 0),
+        ];
         let map = contact_map(&fold, len);
         assert!(!map[0][1], "consecutive monomers are NOT contacts (bonded)");
     }
@@ -543,7 +613,10 @@ mod tests {
     fn contact_map_detects_nonadjacent_contact() {
         // Fold: U-shape. positions: (0,0), (1,0), (1,1), (0,1) → 0 and 3 are adjacent
         let mut fold = [(0i8, 0i8); MAX_CHAIN];
-        fold[0] = (5, 5); fold[1] = (6, 5); fold[2] = (6, 6); fold[3] = (5, 6);
+        fold[0] = (5, 5);
+        fold[1] = (6, 5);
+        fold[2] = (6, 6);
+        fold[3] = (5, 6);
         let map = contact_map(&fold, 4);
         assert!(map[0][3], "monomers 0 and 3 should be in contact (U-shape)");
         assert!(map[3][0], "symmetric");
@@ -552,7 +625,10 @@ mod tests {
     #[test]
     fn contact_density_correct() {
         let mut fold = [(0i8, 0i8); MAX_CHAIN];
-        fold[0] = (5, 5); fold[1] = (6, 5); fold[2] = (6, 6); fold[3] = (5, 6);
+        fold[0] = (5, 5);
+        fold[1] = (6, 5);
+        fold[2] = (6, 6);
+        fold[3] = (5, 6);
         let map = contact_map(&fold, 4);
         let dens = contact_density(&map, 4);
         assert_eq!(dens[0], 1, "monomer 0 contacts monomer 3");
@@ -567,7 +643,12 @@ mod tests {
         let mut g3 = g;
         g3.len = 3;
         let density = [0u8; MAX_CHAIN];
-        let func = infer_protein_function(&[Monomer::default(); MAX_CHAIN], &density, &[400.0; MAX_CHAIN], 3);
+        let func = infer_protein_function(
+            &[Monomer::default(); MAX_CHAIN],
+            &density,
+            &[400.0; MAX_CHAIN],
+            3,
+        );
         assert!(func.is_none(), "too short for active site");
     }
 
@@ -583,9 +664,16 @@ mod tests {
     #[test]
     fn function_some_for_hydrophobic_cluster() {
         let mut chain = [Monomer::default(); MAX_CHAIN];
-        for i in 0..8 { chain[i] = Monomer { hydrophobicity: 0.9, charge: 0.0 }; }
+        for i in 0..8 {
+            chain[i] = Monomer {
+                hydrophobicity: 0.9,
+                charge: 0.0,
+            };
+        }
         let mut density = [0u8; MAX_CHAIN];
-        for i in 0..8 { density[i] = 4; } // high density
+        for i in 0..8 {
+            density[i] = 4;
+        } // high density
         let freq = [400.0f32; MAX_CHAIN];
         let func = infer_protein_function(&chain, &density, &freq, 8);
         assert!(func.is_some(), "H cluster with high density → active site");
@@ -596,25 +684,41 @@ mod tests {
 
     #[test]
     fn function_efficiency_bounded() {
-        let mut chain = [Monomer { hydrophobicity: 1.0, charge: 0.0 }; MAX_CHAIN];
+        let mut chain = [Monomer {
+            hydrophobicity: 1.0,
+            charge: 0.0,
+        }; MAX_CHAIN];
         let mut density = [10u8; MAX_CHAIN];
         let func = infer_protein_function(&chain, &density, &[400.0; MAX_CHAIN], 32);
         if let Some(f) = func {
-            assert!(f.efficiency_boost <= 0.5, "capped at 50%: {}", f.efficiency_boost);
+            assert!(
+                f.efficiency_boost <= 0.5,
+                "capped at 50%: {}",
+                f.efficiency_boost
+            );
         }
     }
 
     #[test]
     fn function_specificity_high_for_uniform_freq() {
-        let mut chain = [Monomer { hydrophobicity: 0.9, charge: 0.0 }; MAX_CHAIN];
+        let mut chain = [Monomer {
+            hydrophobicity: 0.9,
+            charge: 0.0,
+        }; MAX_CHAIN];
         let mut density = [4u8; MAX_CHAIN];
         let func_uniform = infer_protein_function(&chain, &density, &[400.0; MAX_CHAIN], 8);
         let mut mixed_freq = [0.0f32; MAX_CHAIN];
-        for i in 0..8 { mixed_freq[i] = 100.0 + i as f32 * 200.0; }
+        for i in 0..8 {
+            mixed_freq[i] = 100.0 + i as f32 * 200.0;
+        }
         let func_mixed = infer_protein_function(&chain, &density, &mixed_freq, 8);
         if let (Some(u), Some(m)) = (func_uniform, func_mixed) {
-            assert!(u.specificity > m.specificity,
-                "uniform freq → higher specificity: {} > {}", u.specificity, m.specificity);
+            assert!(
+                u.specificity > m.specificity,
+                "uniform freq → higher specificity: {} > {}",
+                u.specificity,
+                m.specificity
+            );
         }
     }
 
@@ -641,19 +745,27 @@ mod tests {
     fn phenotype_longer_chain_more_contacts() {
         let g4 = VariableGenome::from_biases(0.8, 0.8, 0.8, 0.8);
         let mut g12 = g4;
-        for i in 4..12 { g12.genes[i] = 0.8; }
+        for i in 4..12 {
+            g12.genes[i] = 0.8;
+        }
         g12.len = 12;
         let p4 = compute_protein_phenotype(&g4, 42);
         let p12 = compute_protein_phenotype(&g12, 42);
-        assert!(p12.total_contacts >= p4.total_contacts,
-            "longer chain should have ≥ contacts: {} vs {}", p12.total_contacts, p4.total_contacts);
+        assert!(
+            p12.total_contacts >= p4.total_contacts,
+            "longer chain should have ≥ contacts: {} vs {}",
+            p12.total_contacts,
+            p4.total_contacts
+        );
     }
 
     #[test]
     fn phenotype_mutation_changes_fold() {
         use super::super::variable_genome::mutate_variable;
         let mut g = VariableGenome::from_biases(0.8, 0.3, 0.9, 0.6);
-        for i in 4..12 { g.genes[i] = 0.7; }
+        for i in 4..12 {
+            g.genes[i] = 0.7;
+        }
         g.len = 12; // longer chain = more sensitive to mutation
         // Try multiple seeds — at least one should produce a different fold
         let p_original = compute_protein_phenotype(&g, 42);
@@ -663,21 +775,31 @@ mod tests {
             let p_mutated = compute_protein_phenotype(&m, 42);
             if p_original.fold_energy != p_mutated.fold_energy
                 || p_original.total_contacts != p_mutated.total_contacts
-                || p_original.h_count != p_mutated.h_count {
+                || p_original.h_count != p_mutated.h_count
+            {
                 found_diff = true;
                 break;
             }
         }
-        assert!(found_diff, "at least one mutation should change protein phenotype");
+        assert!(
+            found_diff,
+            "at least one mutation should change protein phenotype"
+        );
     }
 
     #[test]
     fn phenotype_fold_energy_conservation() {
         let mut g = VariableGenome::default();
-        for i in 0..MAX_GENES { g.genes[i] = 0.9; }
+        for i in 0..MAX_GENES {
+            g.genes[i] = 0.9;
+        }
         g.len = MAX_GENES as u8;
         let p = compute_protein_phenotype(&g, 42);
-        assert!(p.fold_energy <= 0.0, "fold energy should be ≤ 0 (attractive): {}", p.fold_energy);
+        assert!(
+            p.fold_energy <= 0.0,
+            "fold energy should be ≤ 0 (attractive): {}",
+            p.fold_energy
+        );
     }
 
     // ── Helpers ─────────────────────────────────────────────────────────────

@@ -49,7 +49,8 @@ pub fn allometric_growth_system(
             continue;
         }
         let base_radius = anchor_opt.map(|a| a.base_radius).unwrap_or(volume.radius);
-        let max_radius = equations::allometric_max_radius(base_radius, constants::ALLOMETRIC_MAX_RADIUS_FACTOR);
+        let max_radius =
+            equations::allometric_max_radius(base_radius, constants::ALLOMETRIC_MAX_RADIUS_FACTOR);
         let Some(intent) = intent_opt else {
             continue;
         };
@@ -91,9 +92,19 @@ mod tests {
                 SpatialVolume::new(0.5),
             ))
             .id();
-        let before = app.world().entity(e).get::<SpatialVolume>().expect("volume").radius;
+        let before = app
+            .world()
+            .entity(e)
+            .get::<SpatialVolume>()
+            .expect("volume")
+            .radius;
         app.update();
-        let after = app.world().entity(e).get::<SpatialVolume>().expect("volume").radius;
+        let after = app
+            .world()
+            .entity(e)
+            .get::<SpatialVolume>()
+            .expect("volume")
+            .radius;
         assert!(after > before, "before={before} after={after}");
     }
 
@@ -115,7 +126,12 @@ mod tests {
         for _ in 0..2_000 {
             app.update();
         }
-        let radius = app.world().entity(e).get::<SpatialVolume>().expect("volume").radius;
+        let radius = app
+            .world()
+            .entity(e)
+            .get::<SpatialVolume>()
+            .expect("volume")
+            .radius;
         assert!(radius <= 1.5 + 1e-3, "radius={radius}");
     }
 }

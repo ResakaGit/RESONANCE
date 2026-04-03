@@ -6,9 +6,9 @@
 
 use bevy::prelude::*;
 
-use crate::worldgen::EnergyFieldGrid;
-use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::blueprint::equations::emergence::tectonics as tectonic_eq;
+use crate::runtime_platform::simulation_tick::SimulationClock;
+use crate::worldgen::EnergyFieldGrid;
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -20,26 +20,32 @@ pub const TECTONIC_STRESS_THRESHOLD: f32 = 50.0;
 
 #[derive(Debug, Clone, Copy)]
 pub struct TectonicPlate {
-    pub id:             u32,
+    pub id: u32,
     pub drift_velocity: f32,
     pub contact_length: f32,
     pub accumulated_stress: f32,
-    pub center_cell:    u32,
+    pub center_cell: u32,
 }
 
 #[derive(Resource, Debug)]
 pub struct TectonicGrid {
-    pub plates:      [TectonicPlate; MAX_PLATES],
+    pub plates: [TectonicPlate; MAX_PLATES],
     pub plate_count: u8,
-    pub friction_coeff:     f32,
-    pub depth_factor:       f32,
+    pub friction_coeff: f32,
+    pub depth_factor: f32,
     pub eruption_efficiency: f32,
 }
 
 impl Default for TectonicGrid {
     fn default() -> Self {
         Self {
-            plates: [TectonicPlate { id: 0, drift_velocity: 0.0, contact_length: 0.0, accumulated_stress: 0.0, center_cell: 0 }; MAX_PLATES],
+            plates: [TectonicPlate {
+                id: 0,
+                drift_velocity: 0.0,
+                contact_length: 0.0,
+                accumulated_stress: 0.0,
+                center_cell: 0,
+            }; MAX_PLATES],
             plate_count: 0,
             friction_coeff: 0.1,
             depth_factor: 1.0,
@@ -53,9 +59,9 @@ impl Default for TectonicGrid {
 #[derive(Event, Debug, Clone)]
 pub struct TectonicEvent {
     pub epicenter_cell: u32,
-    pub amplitude:      f32,
+    pub amplitude: f32,
     pub is_constructive: bool,
-    pub tick_id:        u64,
+    pub tick_id: u64,
 }
 
 // ─── System ─────────────────────────────────────────────────────────────────
@@ -68,7 +74,9 @@ pub fn tectonic_drift_system(
     mut events: EventWriter<TectonicEvent>,
     clock: Res<SimulationClock>,
 ) {
-    if clock.tick_id % TECTONIC_EVAL_INTERVAL != 0 { return; }
+    if clock.tick_id % TECTONIC_EVAL_INTERVAL != 0 {
+        return;
+    }
 
     let friction = tectonic.friction_coeff;
     let depth = tectonic.depth_factor;
@@ -77,9 +85,8 @@ pub fn tectonic_drift_system(
 
     for i in 0..n {
         let plate = &mut tectonic.plates[i];
-        let stress_delta = tectonic_eq::boundary_stress(
-            plate.drift_velocity, plate.contact_length, friction,
-        );
+        let stress_delta =
+            tectonic_eq::boundary_stress(plate.drift_velocity, plate.contact_length, friction);
         plate.accumulated_stress += stress_delta;
 
         if plate.accumulated_stress > TECTONIC_STRESS_THRESHOLD {
@@ -102,7 +109,9 @@ pub fn tectonic_drift_system(
             // Apply delta to nearby cells
             for dist_sq in 0..9u32 {
                 let cell_idx = epicenter.saturating_add(dist_sq);
-                if cell_idx >= field.width * field.height { break; }
+                if cell_idx >= field.width * field.height {
+                    break;
+                }
                 let dist = (dist_sq as f32).sqrt();
                 let delta = tectonic_eq::seismic_qe_delta(amplitude, dist, is_constructive);
                 if delta.abs() > 0.01 {
@@ -115,7 +124,8 @@ pub fn tectonic_drift_system(
                         field.drain_cell(cell_idx, -delta.abs() * efficiency);
                     } else {
                         let erosion = tectonic_eq::tectonic_erosion(
-                            field.cell_qe(cell_idx as usize), delta.abs(),
+                            field.cell_qe(cell_idx as usize),
+                            delta.abs(),
                         );
                         field.drain_cell(cell_idx, erosion);
                     }

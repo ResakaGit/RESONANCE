@@ -5,44 +5,69 @@
 //!   cargo run --release --bin cancer_therapy -- --potency 5 --bandwidth 30 --gens 200
 //!   cargo run --release --bin cancer_therapy -- --intermittent 10 --worlds 500
 
-use resonance::use_cases::cli::{parse_arg, parse_arg_f32, find_arg};
+use resonance::use_cases::cli::{find_arg, parse_arg, parse_arg_f32};
 use resonance::use_cases::experiments::cancer_therapy::{self, TherapyConfig, TherapySnapshot};
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
     let config = TherapyConfig {
-        normal_count:        parse_arg(&args, "--normals", 30) as u8,
-        cancer_count:        parse_arg(&args, "--cancers", 15) as u8,
-        normal_freq:         parse_arg_f32(&args, "--normal-freq", 250.0),
-        cancer_freq:         parse_arg_f32(&args, "--cancer-freq", 400.0),
-        drug_target_freq:    parse_arg_f32(&args, "--target-freq", 400.0),
-        drug_potency:        parse_arg_f32(&args, "--potency", 2.0),
-        drug_bandwidth:      parse_arg_f32(&args, "--bandwidth", 50.0),
+        normal_count: parse_arg(&args, "--normals", 30) as u8,
+        cancer_count: parse_arg(&args, "--cancers", 15) as u8,
+        normal_freq: parse_arg_f32(&args, "--normal-freq", 250.0),
+        cancer_freq: parse_arg_f32(&args, "--cancer-freq", 400.0),
+        drug_target_freq: parse_arg_f32(&args, "--target-freq", 400.0),
+        drug_potency: parse_arg_f32(&args, "--potency", 2.0),
+        drug_bandwidth: parse_arg_f32(&args, "--bandwidth", 50.0),
         treatment_start_gen: parse_arg(&args, "--start", 5) as u32,
         treatment_pause_gens: parse_arg(&args, "--intermittent", 0) as u32,
-        worlds:              parse_arg(&args, "--worlds", 100) as usize,
-        generations:         parse_arg(&args, "--gens", 100) as u32,
-        ticks_per_gen:       parse_arg(&args, "--ticks", 300) as u32,
-        seed:                parse_arg(&args, "--seed", 42) as u64,
+        worlds: parse_arg(&args, "--worlds", 100) as usize,
+        generations: parse_arg(&args, "--gens", 100) as u32,
+        ticks_per_gen: parse_arg(&args, "--ticks", 300) as u32,
+        seed: parse_arg(&args, "--seed", 42) as u64,
         ..Default::default()
     };
 
     println!("╔══════════════════════════════════════════════════╗");
     println!("║  RESONANCE — Cancer Therapy Simulation            ║");
     println!("╠══════════════════════════════════════════════════╣");
-    println!("║  Normal cells: {:<6} freq: {:<6.0} Hz            ║", config.normal_count, config.normal_freq);
-    println!("║  Cancer cells: {:<6} freq: {:<6.0} Hz            ║", config.cancer_count, config.cancer_freq);
-    println!("║  Drug target:  {:<6.0} Hz  potency: {:<4.1} qe/tick ║", config.drug_target_freq, config.drug_potency);
-    println!("║  Bandwidth:    {:<6.0} Hz  ({})      ║",
+    println!(
+        "║  Normal cells: {:<6} freq: {:<6.0} Hz            ║",
+        config.normal_count, config.normal_freq
+    );
+    println!(
+        "║  Cancer cells: {:<6} freq: {:<6.0} Hz            ║",
+        config.cancer_count, config.cancer_freq
+    );
+    println!(
+        "║  Drug target:  {:<6.0} Hz  potency: {:<4.1} qe/tick ║",
+        config.drug_target_freq, config.drug_potency
+    );
+    println!(
+        "║  Bandwidth:    {:<6.0} Hz  ({})      ║",
         config.drug_bandwidth,
-        if config.drug_bandwidth < 30.0 { "targeted" } else { "cytotoxic" });
-    println!("║  Treatment:    gen {:<4} {}           ║",
+        if config.drug_bandwidth < 30.0 {
+            "targeted"
+        } else {
+            "cytotoxic"
+        }
+    );
+    println!(
+        "║  Treatment:    gen {:<4} {}           ║",
         config.treatment_start_gen,
-        if config.treatment_pause_gens == 0 { "continuous".to_string() }
-        else { format!("{} on / {} off", config.treatment_pause_gens, config.treatment_pause_gens) });
-    println!("║  Worlds: {:<6} Gens: {:<6} Ticks: {:<6}       ║",
-        config.worlds, config.generations, config.ticks_per_gen);
+        if config.treatment_pause_gens == 0 {
+            "continuous".to_string()
+        } else {
+            format!(
+                "{} on / {} off",
+                config.treatment_pause_gens, config.treatment_pause_gens
+            )
+        }
+    );
+    println!(
+        "║  Worlds: {:<6} Gens: {:<6} Ticks: {:<6}       ║",
+        config.worlds, config.generations, config.ticks_per_gen
+    );
     println!("╚══════════════════════════════════════════════════╝\n");
 
     let report = cancer_therapy::run(&config);
@@ -82,7 +107,10 @@ fn main() {
         println!("  RESISTANCE EMERGED at generation {g}");
         println!("  (frequency drifted beyond drug bandwidth)");
     } else {
-        println!("  No full resistance detected in {} generations", config.generations);
+        println!(
+            "  No full resistance detected in {} generations",
+            config.generations
+        );
     }
 
     if let Some(g) = report.relapse_gen {
@@ -117,9 +145,16 @@ fn therapy_timeline_to_csv(timeline: &[TherapySnapshot]) -> String {
     for s in timeline {
         out.push_str(&format!(
             "{},{:.2},{:.2},{:.2},{:.2},{:.4},{:.2},{},{:.4},{:.4}\n",
-            s.generation, s.cancer_alive_mean, s.normal_alive_mean,
-            s.cancer_freq_mean, s.cancer_freq_std, s.resistance_index,
-            s.clonal_diversity, s.drug_active as u8, s.total_drug_drain, s.effective_potency,
+            s.generation,
+            s.cancer_alive_mean,
+            s.normal_alive_mean,
+            s.cancer_freq_mean,
+            s.cancer_freq_std,
+            s.resistance_index,
+            s.clonal_diversity,
+            s.drug_active as u8,
+            s.total_drug_drain,
+            s.effective_potency,
         ));
     }
     out

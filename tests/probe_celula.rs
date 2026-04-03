@@ -55,7 +55,10 @@ fn satiation_decays_over_200_ticks() {
     let entity = spawn_celula_in(&mut app);
 
     let initial = app.world().get::<TrophicState>(entity).unwrap().satiation;
-    assert!((initial - 0.5).abs() < 0.01, "initial satiation should be ~0.5, got {initial}");
+    assert!(
+        (initial - 0.5).abs() < 0.01,
+        "initial satiation should be ~0.5, got {initial}"
+    );
 
     run_ticks(&mut app, 200);
 
@@ -77,7 +80,10 @@ fn survives_200_ticks_qe_positive() {
     run_ticks(&mut app, 200);
 
     let energy = app.world().get::<BaseEnergy>(entity);
-    assert!(energy.is_some(), "célula entity must still exist after 200 ticks");
+    assert!(
+        energy.is_some(),
+        "célula entity must still exist after 200 ticks"
+    );
     let qe = energy.unwrap().qe();
     assert!(qe >= 0.0, "qe must be non-negative: {qe}");
 }
@@ -146,7 +152,11 @@ fn three_celulas_all_survive_200_ticks() {
         let Some(energy) = app.world().get::<BaseEnergy>(entity) else {
             panic!("célula {i} disappeared after 200 ticks");
         };
-        assert!(energy.qe() >= 0.0, "célula {i} has negative qe: {}", energy.qe());
+        assert!(
+            energy.qe() >= 0.0,
+            "célula {i} has negative qe: {}",
+            energy.qe()
+        );
         assert!(!energy.qe().is_nan(), "célula {i} has NaN qe");
     }
 }

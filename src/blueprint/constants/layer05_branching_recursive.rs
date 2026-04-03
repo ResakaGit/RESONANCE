@@ -21,4 +21,3 @@ pub const BRANCH_CHILD_BUDGET_DECAY: f32 = 0.5;
 pub const MAX_GROWTH_MORPH_PER_FRAME: u32 = 256;
 /// Epsilon geométrico para direcciones degeneradas en branching.
 pub const BRANCH_DIR_EPSILON: f32 = 1e-12;
-

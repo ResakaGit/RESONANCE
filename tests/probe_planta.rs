@@ -8,8 +8,7 @@ use resonance::blueprint::IdGenerator;
 use resonance::entities::archetypes::spawn_planta_demo;
 use resonance::events::DeathEvent;
 use resonance::layers::{
-    BaseEnergy, GrowthBudget, GrowthIntent, IrradianceReceiver,
-    SpatialVolume,
+    BaseEnergy, GrowthBudget, GrowthIntent, IrradianceReceiver, SpatialVolume,
 };
 use resonance::runtime_platform::compat_2d3d::SimWorldTransformParams;
 use resonance::simulation::lifecycle::allometric_growth::allometric_growth_system;
@@ -214,6 +213,10 @@ fn two_plantas_survive_300_ticks() {
         let Some(energy) = app.world().get::<BaseEnergy>(entity) else {
             panic!("planta {i} disappeared after 300 ticks");
         };
-        assert!(energy.qe() >= 0.0, "planta {i}: negative qe={}", energy.qe());
+        assert!(
+            energy.qe() >= 0.0,
+            "planta {i}: negative qe={}",
+            energy.qe()
+        );
     }
 }

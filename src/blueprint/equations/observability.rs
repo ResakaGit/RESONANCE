@@ -1,8 +1,8 @@
 //! R6 / SF-1: Observability — pure math for simulation health and field metrics.
 //! No side effects. All functions are deterministic.
 
+use crate::blueprint::MatterState;
 use crate::blueprint::constants::units::CONSERVATION_ERROR_TOLERANCE;
-use crate::layers::MatterState;
 use crate::worldgen::EnergyCell;
 
 // ─── Existing health metrics ─────────────────────────────────────────────────
@@ -12,7 +12,9 @@ use crate::worldgen::EnergyCell;
 /// Equation: (current - prev) / prev.
 #[inline]
 pub fn drift_rate(energy_prev: f32, energy_current: f32) -> f32 {
-    if energy_prev == 0.0 { return 0.0; }
+    if energy_prev == 0.0 {
+        return 0.0;
+    }
     (energy_current - energy_prev) / energy_prev
 }
 
@@ -20,7 +22,9 @@ pub fn drift_rate(energy_prev: f32, energy_current: f32) -> f32 {
 /// Clamped to [0, 1]. Returns 0.0 when `maximum` is zero.
 #[inline]
 pub fn saturation_index(current: f32, maximum: f32) -> f32 {
-    if maximum == 0.0 { return 0.0; }
+    if maximum == 0.0 {
+        return 0.0;
+    }
     (current / maximum).clamp(0.0, 1.0)
 }
 
@@ -28,7 +32,9 @@ pub fn saturation_index(current: f32, maximum: f32) -> f32 {
 /// Returns 0.0 when `total_budget` is zero.
 #[inline]
 pub fn system_cost_ratio(ticks_spent: u32, total_budget: u32) -> f32 {
-    if total_budget == 0 { return 0.0; }
+    if total_budget == 0 {
+        return 0.0;
+    }
     (ticks_spent as f32 / total_budget as f32).clamp(0.0, 1.0)
 }
 
@@ -57,21 +63,28 @@ pub fn field_total_qe(cells: &[EnergyCell]) -> f32 {
 /// Returns 0.0 for an empty slice.
 #[inline]
 pub fn field_occupancy(cells: &[EnergyCell], threshold: f32) -> f32 {
-    if cells.is_empty() { return 0.0; }
-    let active = cells.iter().filter(|c| c.accumulated_qe > threshold).count();
+    if cells.is_empty() {
+        return 0.0;
+    }
+    let active = cells
+        .iter()
+        .filter(|c| c.accumulated_qe > threshold)
+        .count();
     active as f32 / cells.len() as f32
 }
 
 /// Fraction of cells per MatterState: [Solid, Liquid, Gas, Plasma], normalized to sum 1.0.
 /// Returns [0.0; 4] for an empty slice.
 pub fn field_matter_distribution(cells: &[EnergyCell]) -> [f32; 4] {
-    if cells.is_empty() { return [0.0; 4]; }
+    if cells.is_empty() {
+        return [0.0; 4];
+    }
     let mut counts = [0u32; 4];
     for cell in cells {
         let idx = match cell.matter_state {
-            MatterState::Solid  => 0,
+            MatterState::Solid => 0,
             MatterState::Liquid => 1,
-            MatterState::Gas    => 2,
+            MatterState::Gas => 2,
             MatterState::Plasma => 3,
         };
         counts[idx] += 1;
@@ -98,11 +111,15 @@ pub fn population_growth_rate(current: u32, previous: u32) -> f32 {
 /// Returns 0.0 when total is zero or only one band has entries.
 pub fn frequency_diversity_index(band_counts: &[u32]) -> f32 {
     let total: u32 = band_counts.iter().sum();
-    if total == 0 { return 0.0; }
+    if total == 0 {
+        return 0.0;
+    }
     let total_f = total as f32;
     let mut h: f32 = 0.0;
     for &count in band_counts {
-        if count == 0 { continue; }
+        if count == 0 {
+            continue;
+        }
         let p = count as f32 / total_f;
         h -= p * p.ln();
     }
@@ -115,15 +132,21 @@ pub fn frequency_diversity_index(band_counts: &[u32]) -> f32 {
 /// Returns a Vec of length `num_bands` (stack-friendly for small band counts).
 pub fn frequency_band_histogram(cells: &[EnergyCell], num_bands: usize) -> Vec<u32> {
     let mut counts = vec![0u32; num_bands.max(1)];
-    if cells.is_empty() || num_bands == 0 { return counts; }
+    if cells.is_empty() || num_bands == 0 {
+        return counts;
+    }
     let max_freq = cells
         .iter()
         .map(|c| c.dominant_frequency_hz)
         .fold(0.0f32, f32::max);
-    if max_freq <= 0.0 { return counts; }
+    if max_freq <= 0.0 {
+        return counts;
+    }
     let band_width = max_freq / num_bands as f32;
     for cell in cells {
-        if cell.dominant_frequency_hz <= 0.0 { continue; }
+        if cell.dominant_frequency_hz <= 0.0 {
+            continue;
+        }
         let band = ((cell.dominant_frequency_hz / band_width) as usize).min(num_bands - 1);
         counts[band] += 1;
     }
@@ -217,7 +240,9 @@ mod tests {
 
     #[test]
     fn is_conservation_violation_above_tolerance_returns_true() {
-        assert!(is_conservation_violation(CONSERVATION_ERROR_TOLERANCE + 0.001));
+        assert!(is_conservation_violation(
+            CONSERVATION_ERROR_TOLERANCE + 0.001
+        ));
     }
 
     #[test]
@@ -260,7 +285,10 @@ mod tests {
             .collect();
         let total = field_total_qe(&cells);
         let expected: f32 = (0..16).map(|i| i as f32 * 2.0).sum();
-        assert!((total - expected).abs() < 1e-4, "expected {expected}, got {total}");
+        assert!(
+            (total - expected).abs() < 1e-4,
+            "expected {expected}, got {total}"
+        );
     }
 
     // ─── field_occupancy ─────────────────────────────────────────────────────
@@ -345,8 +373,16 @@ mod tests {
             make_cell(1.0, MatterState::Plasma, 0.0),
         ];
         let dist = field_matter_distribution(&cells);
-        assert!((dist[0] - 0.75).abs() < 1e-6, "solid expected 0.75, got {}", dist[0]);
-        assert!((dist[3] - 0.25).abs() < 1e-6, "plasma expected 0.25, got {}", dist[3]);
+        assert!(
+            (dist[0] - 0.75).abs() < 1e-6,
+            "solid expected 0.75, got {}",
+            dist[0]
+        );
+        assert!(
+            (dist[3] - 0.25).abs() < 1e-6,
+            "plasma expected 0.25, got {}",
+            dist[3]
+        );
     }
 
     // ─── population_growth_rate ──────────────────────────────────────────────

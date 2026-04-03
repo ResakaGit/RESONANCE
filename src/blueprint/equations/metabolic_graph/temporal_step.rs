@@ -27,7 +27,10 @@ pub fn propagate_edge_flows(
         return (result, 0);
     }
 
-    let total_capacity: f32 = edge_capacities[..n].iter().map(|(_, cap)| san_nonneg(*cap)).sum();
+    let total_capacity: f32 = edge_capacities[..n]
+        .iter()
+        .map(|(_, cap)| san_nonneg(*cap))
+        .sum();
 
     if total_capacity <= DIVISION_GUARD_EPSILON {
         let share = available_exergy / n as f32;
@@ -59,7 +62,11 @@ fn san_nonneg(x: f32) -> f32 {
 /// f32 finito clampeado a [0, 1]; NaN/Inf → 0.
 #[inline]
 fn san_efficiency(x: f32) -> f32 {
-    if x.is_finite() { x.clamp(0.0, 1.0) } else { 0.0 }
+    if x.is_finite() {
+        x.clamp(0.0, 1.0)
+    } else {
+        0.0
+    }
 }
 
 /// Redistribuye violación de eficiencia tras constraint de Carnot.
@@ -98,7 +105,11 @@ pub fn redistribute_node_violation(
 /// Bioma plain (viscosity=1) → T_base. Agua (viscosity≫1) → más cálido.
 #[inline]
 pub fn ambient_equivalent_temperature(terrain_viscosity: f32) -> f32 {
-    let v = if terrain_viscosity.is_finite() { terrain_viscosity.max(0.0) } else { 1.0 };
+    let v = if terrain_viscosity.is_finite() {
+        terrain_viscosity.max(0.0)
+    } else {
+        1.0
+    };
     (AMBIENT_BASE_TEMPERATURE + (v - 1.0) * AMBIENT_TEMP_VISCOSITY_SCALE).max(1.0)
 }
 
@@ -172,7 +183,10 @@ mod tests {
         // NaN cap → 0; only edge 1 has valid capacity → gets all available.
         assert!(flows[0].1.is_finite());
         assert!(flows[1].1.is_finite());
-        assert!(flows[1].1 > flows[0].1, "valid cap edge should get more flow");
+        assert!(
+            flows[1].1 > flows[0].1,
+            "valid cap edge should get more flow"
+        );
     }
 
     // ── redistribute_node_violation ──

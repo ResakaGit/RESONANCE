@@ -15,12 +15,21 @@ pub fn engine_processing(world: &mut SimWorldFlat) {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
         let e = &mut world.entities[i];
-        if e.engine_max <= 0.0 { continue; }
+        if e.engine_max <= 0.0 {
+            continue;
+        }
         let intake = equations::engine_intake_allometric(
-            e.input_valve, dt, e.qe, e.engine_buffer, e.engine_max, e.radius,
+            e.input_valve,
+            dt,
+            e.qe,
+            e.engine_buffer,
+            e.engine_max,
+            e.radius,
         );
         let clamped = intake.min(e.qe).min(e.engine_max - e.engine_buffer);
-        if clamped <= 0.0 { continue; }
+        if clamped <= 0.0 {
+            continue;
+        }
         e.qe -= clamped;
         e.engine_buffer += clamped;
     }
@@ -42,8 +51,9 @@ pub fn irradiance_update(world: &mut SimWorldFlat) {
     let seasonal_flux = SOLAR_FLUX_BASE * season.max(0.1);
 
     for cell in 0..GRID_CELLS {
-        let variation = ((cell as f32 * IRRADIANCE_VARIATION_FREQ).sin()
-            * IRRADIANCE_VARIATION_AMP + 1.0).max(IRRADIANCE_VARIATION_MIN);
+        let variation =
+            ((cell as f32 * IRRADIANCE_VARIATION_FREQ).sin() * IRRADIANCE_VARIATION_AMP + 1.0)
+                .max(IRRADIANCE_VARIATION_MIN);
         world.irradiance_grid[cell] = seasonal_flux * variation;
     }
 }
@@ -78,10 +88,16 @@ mod tests {
         let idx = spawn(&mut w, 100.0, 50.0);
         let qe_before = w.entities[idx].qe;
         engine_processing(&mut w);
-        assert!(w.entities[idx].engine_buffer > 0.0, "buffer should receive energy");
+        assert!(
+            w.entities[idx].engine_buffer > 0.0,
+            "buffer should receive energy"
+        );
         assert!(w.entities[idx].qe < qe_before, "qe should decrease");
         let total = w.entities[idx].qe + w.entities[idx].engine_buffer;
-        assert!((total - qe_before).abs() < 1e-4, "energy conserved: {total} vs {qe_before}");
+        assert!(
+            (total - qe_before).abs() < 1e-4,
+            "energy conserved: {total} vs {qe_before}"
+        );
     }
 
     #[test]
@@ -125,12 +141,18 @@ mod tests {
         irradiance_update(&mut w1);
         irradiance_update(&mut w2);
         // Grid should be identical — entities don't affect it (Axiom 5)
-        assert_eq!(w1.irradiance_grid[0].to_bits(), w2.irradiance_grid[0].to_bits());
+        assert_eq!(
+            w1.irradiance_grid[0].to_bits(),
+            w2.irradiance_grid[0].to_bits()
+        );
     }
 
     #[test]
     fn grid_cell_clamps_to_bounds() {
         assert_eq!(grid_cell([-5.0, -5.0]), 0);
-        assert_eq!(grid_cell([100.0, 100.0]), (GRID_SIDE - 1) * GRID_SIDE + (GRID_SIDE - 1));
+        assert_eq!(
+            grid_cell([100.0, 100.0]),
+            (GRID_SIDE - 1) * GRID_SIDE + (GRID_SIDE - 1)
+        );
     }
 }

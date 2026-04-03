@@ -1,6 +1,7 @@
 use super::finite_helpers::{finite_non_negative, finite_unit};
 use crate::blueprint::constants::*;
-use crate::layers::{LifecycleStage, OrganManifest, OrganRole, OrganSpec};
+use crate::blueprint::{LifecycleStage, OrganRole};
+use crate::layers::{OrganManifest, OrganSpec};
 
 #[inline]
 fn count_to_u8_floor(value: f32) -> u8 {
@@ -117,7 +118,12 @@ fn push_vegetative_roles(
         push_if_nonzero(manifest, OrganRole::Leaf, leaf_count, 0.5 * ctx.growth);
     }
     if has_capability(ctx.caps, crate::layers::CapabilitySet::ROOT) {
-        push_if_nonzero(manifest, OrganRole::Root, infer_root_count(ctx.bio, ctx.growth), 0.4);
+        push_if_nonzero(
+            manifest,
+            OrganRole::Root,
+            infer_root_count(ctx.bio, ctx.growth),
+            0.4,
+        );
     }
     if has_capability(ctx.caps, crate::layers::CapabilitySet::BRANCH) {
         push_if_nonzero(manifest, OrganRole::Thorn, thorn_count, 0.2 * ctx.robust);
@@ -230,29 +236,53 @@ pub fn infer_organ_manifest(
             }
         }
         LifecycleStage::Declining => {
-            let decline =
-                ((ctx.viability / LIFECYCLE_DECLINING_VIABILITY) * DECLINING_ORGAN_FALLOFF).clamp(0.0, 1.0);
-            push_if_nonzero(&mut manifest, OrganRole::Stem, 1, (0.7 + ctx.progress * 0.3) * decline);
+            let decline = ((ctx.viability / LIFECYCLE_DECLINING_VIABILITY)
+                * DECLINING_ORGAN_FALLOFF)
+                .clamp(0.0, 1.0);
+            push_if_nonzero(
+                &mut manifest,
+                OrganRole::Stem,
+                1,
+                (0.7 + ctx.progress * 0.3) * decline,
+            );
             if has_capability(ctx.caps, crate::layers::CapabilitySet::PHOTOSYNTH) {
                 let leaf_count =
-                    count_to_u8_floor(infer_leaf_count(ctx.bio, ctx.growth) as f32 * decline).min(MAX_ORGAN_INSTANCE_COUNT);
-                push_if_nonzero(&mut manifest, OrganRole::Leaf, leaf_count, 0.5 * ctx.growth * decline);
+                    count_to_u8_floor(infer_leaf_count(ctx.bio, ctx.growth) as f32 * decline)
+                        .min(MAX_ORGAN_INSTANCE_COUNT);
+                push_if_nonzero(
+                    &mut manifest,
+                    OrganRole::Leaf,
+                    leaf_count,
+                    0.5 * ctx.growth * decline,
+                );
             }
             if has_capability(ctx.caps, crate::layers::CapabilitySet::ROOT) {
                 let root_count =
-                    count_to_u8_floor(infer_root_count(ctx.bio, ctx.growth) as f32 * decline).max(1);
+                    count_to_u8_floor(infer_root_count(ctx.bio, ctx.growth) as f32 * decline)
+                        .max(1);
                 push_if_nonzero(&mut manifest, OrganRole::Root, root_count, 0.4 * decline);
             }
             if has_capability(ctx.caps, crate::layers::CapabilitySet::BRANCH) {
-                let thorn_count =
-                    count_to_u8_floor(infer_thorn_count(ctx.bio, ctx.robust) as f32 * ctx.robust * decline);
-                push_if_nonzero(&mut manifest, OrganRole::Thorn, thorn_count, 0.2 * ctx.robust * decline);
+                let thorn_count = count_to_u8_floor(
+                    infer_thorn_count(ctx.bio, ctx.robust) as f32 * ctx.robust * decline,
+                );
+                push_if_nonzero(
+                    &mut manifest,
+                    OrganRole::Thorn,
+                    thorn_count,
+                    0.2 * ctx.robust * decline,
+                );
             }
             if has_capability(ctx.caps, crate::layers::CapabilitySet::SENSE) {
                 push_if_nonzero(&mut manifest, OrganRole::Sensory, 1, 0.15 * decline);
             }
             if has_capability(ctx.caps, crate::layers::CapabilitySet::ARMOR) {
-                push_if_nonzero(&mut manifest, OrganRole::Shell, 1, 0.3 * ctx.robust * decline);
+                push_if_nonzero(
+                    &mut manifest,
+                    OrganRole::Shell,
+                    1,
+                    0.3 * ctx.robust * decline,
+                );
             }
         }
     }
@@ -262,9 +292,17 @@ pub fn infer_organ_manifest(
 
 /// Deriva inputs normalizados para `infer_organ_manifest` desde estado agregado.
 #[inline]
-pub fn organ_manifest_inputs_from_state(qe_norm: f32, growth_efficiency: f32, biomass: f32) -> (f32, f32) {
-    let growth_progress = finite_unit(finite_non_negative(biomass) / ORGAN_MANIFEST_BIOMASS_NORM_DIVISOR);
-    let viability = finite_unit(finite_unit(qe_norm) * ORGAN_BASE_VIABILITY_QE_WEIGHT + finite_unit(growth_efficiency) * ORGAN_BASE_VIABILITY_EFFICIENCY_WEIGHT);
+pub fn organ_manifest_inputs_from_state(
+    qe_norm: f32,
+    growth_efficiency: f32,
+    biomass: f32,
+) -> (f32, f32) {
+    let growth_progress =
+        finite_unit(finite_non_negative(biomass) / ORGAN_MANIFEST_BIOMASS_NORM_DIVISOR);
+    let viability = finite_unit(
+        finite_unit(qe_norm) * ORGAN_BASE_VIABILITY_QE_WEIGHT
+            + finite_unit(growth_efficiency) * ORGAN_BASE_VIABILITY_EFFICIENCY_WEIGHT,
+    );
     (growth_progress, viability)
 }
 
@@ -277,7 +315,9 @@ pub fn organ_inferred_scale(biomass: f32, qe_norm: f32, role_base_scale: f32) ->
     let bio = finite_non_negative(biomass);
     let qe = finite_unit(qe_norm);
     let base = finite_non_negative(role_base_scale);
-    let bio_factor = (bio * ORGAN_ENERGY_BIOMASS_SCALE).sqrt().min(ORGAN_ENERGY_SCALE_MAX);
+    let bio_factor = (bio * ORGAN_ENERGY_BIOMASS_SCALE)
+        .sqrt()
+        .min(ORGAN_ENERGY_SCALE_MAX);
     let energy_blend = ORGAN_ENERGY_QE_FLOOR + qe * (1.0 - ORGAN_ENERGY_QE_FLOOR);
     (base * bio_factor * energy_blend).max(ORGAN_ENERGY_SCALE_MIN)
 }

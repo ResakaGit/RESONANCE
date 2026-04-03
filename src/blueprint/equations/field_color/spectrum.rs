@@ -3,8 +3,8 @@
 use crate::blueprint::constants::*;
 
 use super::{
-    field_linear_rgb_sanitize_finite, field_visual_sanitize_unit,
-    linear_rgb_lerp_preclamped, neutral_field_visual_linear_rgb,
+    field_linear_rgb_sanitize_finite, field_visual_sanitize_unit, linear_rgb_lerp_preclamped,
+    neutral_field_visual_linear_rgb,
 };
 
 #[inline]
@@ -54,7 +54,11 @@ fn hsv01_to_linear_rgb(h: f32, s: f32, v: f32) -> [f32; 3] {
         4 => (t, p, v),
         _ => (v, p, q),
     };
-    [super::srgb_to_linear(rp), super::srgb_to_linear(gp), super::srgb_to_linear(bp)]
+    [
+        super::srgb_to_linear(rp),
+        super::srgb_to_linear(gp),
+        super::srgb_to_linear(bp),
+    ]
 }
 
 /// Arco iris de juego: Hz normalizado al span + pureza como saturación HSV.

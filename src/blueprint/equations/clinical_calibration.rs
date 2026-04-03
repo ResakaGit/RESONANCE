@@ -134,10 +134,10 @@ pub struct RosieCasePrediction {
 /// Datos publicados del caso Rosie. Fuente: press reports marzo 2026.
 /// Published Rosie case data. Source: press reports March 2026.
 pub const ROSIE_OBSERVED: RosieCasePrediction = RosieCasePrediction {
-    responsive_fraction: 0.70,   // ~70% KIT+ (London & Seguin 2003)
-    resistant_fraction: 0.30,    // ~30% KIT- (heterogeneous)
+    responsive_fraction: 0.70,      // ~70% KIT+ (London & Seguin 2003)
+    resistant_fraction: 0.30,       // ~30% KIT- (heterogeneous)
     days_to_partial_response: 42.0, // ~6 weeks (reported)
-    observed_reduction: 0.75,    // 75% tumor reduction (reported)
+    observed_reduction: 0.75,       // 75% tumor reduction (reported)
 };
 
 /// Estima generaciones para respuesta parcial dado un perfil.
@@ -150,10 +150,7 @@ pub fn days_to_generations(days: f32, profile: &CalibrationProfile) -> u32 {
 /// Predice fracción responsiva/resistente como entity counts.
 /// Predict responsive/resistant fraction as entity counts.
 #[inline]
-pub fn fraction_to_entity_counts(
-    total_entities: u8,
-    responsive_fraction: f32,
-) -> (u8, u8) {
+pub fn fraction_to_entity_counts(total_entities: u8, responsive_fraction: f32) -> (u8, u8) {
     let responsive = (total_entities as f32 * responsive_fraction).round() as u8;
     let resistant = total_entities.saturating_sub(responsive);
     (responsive, resistant)
@@ -215,14 +212,15 @@ pub fn calibrate_protocol(
     generation: u32,
     profile: &CalibrationProfile,
 ) -> Vec<CalibratedDrug> {
-    decision_drugs.iter().map(|&(freq, conc)| {
-        CalibratedDrug {
+    decision_drugs
+        .iter()
+        .map(|&(freq, conc)| CalibratedDrug {
             target_frequency: freq,
             dose_nm: concentration_to_nm(conc, profile),
             start_day: generation_to_days(generation, profile),
             concentration_normalized: conc,
-        }
-    }).collect()
+        })
+        .collect()
 }
 
 /// Fármaco calibrado con unidades clínicas.
@@ -329,9 +327,17 @@ mod tests {
         let drugs = calibrate_protocol(&[(399.0, 0.40)], 3, &CML_IMATINIB);
         assert_eq!(drugs.len(), 1);
         // 0.40 × 260 nM = 104 nM
-        assert!((drugs[0].dose_nm - 104.0).abs() < 1e-2, "dose={}", drugs[0].dose_nm);
+        assert!(
+            (drugs[0].dose_nm - 104.0).abs() < 1e-2,
+            "dose={}",
+            drugs[0].dose_nm
+        );
         // gen 3 × 4 days = day 12
-        assert!((drugs[0].start_day - 12.0).abs() < 1e-5, "day={}", drugs[0].start_day);
+        assert!(
+            (drugs[0].start_day - 12.0).abs() < 1e-5,
+            "day={}",
+            drugs[0].start_day
+        );
     }
 
     #[test]
@@ -356,8 +362,11 @@ mod tests {
         // ~10^9 cells
         assert!(snap.estimated_cells > 9e8);
         // Doubling time extended: 4 / 0.536 ≈ 7.5 days (slower growth)
-        assert!(snap.doubling_time_days > 7.0 && snap.doubling_time_days < 8.0,
-            "dt={}", snap.doubling_time_days);
+        assert!(
+            snap.doubling_time_days > 7.0 && snap.doubling_time_days < 8.0,
+            "dt={}",
+            snap.doubling_time_days
+        );
     }
 
     #[test]
@@ -366,8 +375,11 @@ mod tests {
         // Day 300
         assert!((snap.day - 300.0).abs() < 1e-3);
         // Doubling time: 30 / 0.536 ≈ 56 days
-        assert!(snap.doubling_time_days > 50.0 && snap.doubling_time_days < 60.0,
-            "dt={}", snap.doubling_time_days);
+        assert!(
+            snap.doubling_time_days > 50.0 && snap.doubling_time_days < 60.0,
+            "dt={}",
+            snap.doubling_time_days
+        );
     }
 
     #[test]
@@ -409,7 +421,10 @@ mod tests {
     fn rosie_6_weeks_is_2_generations() {
         // 42 days / 21 days per gen = 2 generations
         let gens = days_to_generations(ROSIE_OBSERVED.days_to_partial_response, &CANINE_MAST_CELL);
-        assert_eq!(gens, 2, "6 weeks should be 2 generations at 21-day doubling");
+        assert_eq!(
+            gens, 2,
+            "6 weeks should be 2 generations at 21-day doubling"
+        );
     }
 
     #[test]
@@ -425,7 +440,11 @@ mod tests {
         // Adaptive result "399 Hz @ 0.40" calibrated to mast cell
         let drugs = calibrate_protocol(&[(399.0, 0.40)], 1, &CANINE_MAST_CELL);
         // 0.40 × 40 nM = 16 nM
-        assert!((drugs[0].dose_nm - 16.0).abs() < 1e-2, "dose={}", drugs[0].dose_nm);
+        assert!(
+            (drugs[0].dose_nm - 16.0).abs() < 1e-2,
+            "dose={}",
+            drugs[0].dose_nm
+        );
         // gen 1 × 21 days = day 21
         assert!((drugs[0].start_day - 21.0).abs() < 1e-5);
     }
@@ -444,6 +463,10 @@ mod tests {
         let snap = calibrate_snapshot(128.0, 0.25, 2, &CANINE_MAST_CELL);
         assert!((snap.day - 42.0).abs() < 1e-3, "day={}", snap.day);
         // Doubling time: 21 / 0.25 = 84 days (tumor barely growing)
-        assert!(snap.doubling_time_days > 80.0, "dt={}", snap.doubling_time_days);
+        assert!(
+            snap.doubling_time_days > 80.0,
+            "dt={}",
+            snap.doubling_time_days
+        );
     }
 }

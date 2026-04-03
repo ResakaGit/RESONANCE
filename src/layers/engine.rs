@@ -67,12 +67,18 @@ impl AlchemicalEngine {
     }
 
     #[inline]
-    pub fn intake(&self) -> f32 { self.input_valve }
+    pub fn intake(&self) -> f32 {
+        self.input_valve
+    }
 
     #[inline]
-    pub fn base_intake(&self) -> f32 { self.input_valve }
+    pub fn base_intake(&self) -> f32 {
+        self.input_valve
+    }
 
-    pub fn set_intake(&mut self, rate: f32) { self.input_valve = rate.max(0.0); }
+    pub fn set_intake(&mut self, rate: f32) {
+        self.input_valve = rate.max(0.0);
+    }
 
     #[inline]
     pub fn valve_out_rate(&self) -> f32 {

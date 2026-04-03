@@ -391,9 +391,17 @@ mod tests {
         assert_eq!(cfg.nuclei.len(), 2);
         assert_eq!(cfg.width_cells, 32);
         assert!((cfg.cell_size - 0.5).abs() < 0.01);
-        let terra = cfg.nuclei.iter().find(|n| n.name == "terra_soil").expect("terra nucleus");
+        let terra = cfg
+            .nuclei
+            .iter()
+            .find(|n| n.name == "terra_soil")
+            .expect("terra nucleus");
         assert!((terra.frequency_hz - 75.0).abs() < 0.01);
-        let lux = cfg.nuclei.iter().find(|n| n.name == "lux_sun").expect("lux nucleus");
+        let lux = cfg
+            .nuclei
+            .iter()
+            .find(|n| n.name == "lux_sun")
+            .expect("lux nucleus");
         assert!((lux.frequency_hz - 1000.0).abs() < 0.01);
     }
 
@@ -409,16 +417,37 @@ mod tests {
         assert_eq!(cfg.width_cells, 32);
         assert!(!cfg.fog_of_war);
 
-        let ocean = cfg.nuclei.iter().find(|n| n.name == "ocean_deep").expect("ocean nucleus");
-        let ap = ocean.ambient_pressure.as_ref().expect("ocean ambient_pressure");
+        let ocean = cfg
+            .nuclei
+            .iter()
+            .find(|n| n.name == "ocean_deep")
+            .expect("ocean nucleus");
+        let ap = ocean
+            .ambient_pressure
+            .as_ref()
+            .expect("ocean ambient_pressure");
         assert!((ap.viscosity - 2.5).abs() < 0.01);
 
-        let desert = cfg.nuclei.iter().find(|n| n.name == "scorched_desert").expect("desert nucleus");
-        let dap = desert.ambient_pressure.as_ref().expect("desert ambient_pressure");
+        let desert = cfg
+            .nuclei
+            .iter()
+            .find(|n| n.name == "scorched_desert")
+            .expect("desert nucleus");
+        let dap = desert
+            .ambient_pressure
+            .as_ref()
+            .expect("desert ambient_pressure");
         assert!((dap.delta_qe - (-2.0)).abs() < 0.01);
 
-        let forest = cfg.nuclei.iter().find(|n| n.name == "temperate_forest").expect("forest nucleus");
-        let fap = forest.ambient_pressure.as_ref().expect("forest ambient_pressure");
+        let forest = cfg
+            .nuclei
+            .iter()
+            .find(|n| n.name == "temperate_forest")
+            .expect("forest nucleus");
+        let fap = forest
+            .ambient_pressure
+            .as_ref()
+            .expect("forest ambient_pressure");
         assert!((fap.delta_qe - 1.0).abs() < 0.01);
     }
 

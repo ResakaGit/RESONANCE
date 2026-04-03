@@ -1,8 +1,8 @@
 use bevy::prelude::*;
+use bevy::time::common_conditions::on_timer;
 #[cfg(feature = "bridge_optimizer")]
 use bevy::ui::{BackgroundColor, Node, PositionType, Val};
 use std::time::Duration;
-use bevy::time::common_conditions::on_timer;
 
 #[cfg(feature = "bridge_optimizer")]
 use crate::bridge::context_fill::BridgePhaseState;
@@ -17,23 +17,22 @@ use crate::simulation::Phase;
 use crate::simulation::states::{GameState, PlayState};
 use crate::worldgen::shape_color_inference_system;
 
+use crate::simulation::lifecycle::transition_to_active_system;
 use crate::world::{
     COMPETITION_ARENA_SLUG, DEMO_ANIMAL_SLUG, DEMO_CELULA_SLUG, DEMO_PLANTA_SLUG, DEMO_VIRUS_SLUG,
-    DemoCloudSpawnerState, INFERRED_WORLD_SLUG, Scoreboard,
-    ROUND_WORLD_ROSA_SLUG, SIGNAL_DEMO_SLUG,
-    demo_cloud_context_spawn_system, demo_cloud_motion_system, spawn_demo_clouds_startup_system,
+    DemoCloudSpawnerState, INFERRED_WORLD_SLUG, ROUND_WORLD_ROSA_SLUG, SIGNAL_DEMO_SLUG,
+    Scoreboard, demo_cloud_context_spawn_system, demo_cloud_motion_system,
     enforce_rosa_focus_system, enforce_round_world_rosa_focus_system,
-    pin_rosa_lod_focus_system, round_world_rosa_pin_lod_focus_for_inference_system,
-    ensure_demo_metrics_hud_system, spawn_competition_demo_startup_system,
+    ensure_demo_metrics_hud_system, pin_rosa_lod_focus_system,
+    round_world_rosa_pin_lod_focus_for_inference_system, spawn_competition_demo_startup_system,
     spawn_demo_animal_startup_system, spawn_demo_celula_startup_system,
-    spawn_demo_level_startup_system, spawn_demo_planta_startup_system,
-    spawn_demo_virus_startup_system, spawn_inferred_world_startup_system,
-    spawn_round_world_rosa_startup_system, spawn_signal_demo_startup_system,
-    stabilize_rosa_growth_system, stabilize_round_world_rosa_energy_system,
-    sync_demo_metrics_hud_system,
+    spawn_demo_clouds_startup_system, spawn_demo_level_startup_system,
+    spawn_demo_planta_startup_system, spawn_demo_virus_startup_system,
+    spawn_inferred_world_startup_system, spawn_round_world_rosa_startup_system,
+    spawn_signal_demo_startup_system, stabilize_rosa_growth_system,
+    stabilize_round_world_rosa_energy_system, sync_demo_metrics_hud_system,
 };
 use crate::worldgen::ActiveMapName;
-use crate::worldgen::systems::startup::mark_play_state_active_system;
 
 const SEED_DEBUG_RING_RADIUS_MULT: f32 = 1.4;
 const SEED_DEBUG_RING_COLOR: Color = Color::srgb(1.0, 0.2, 0.9);
@@ -111,34 +110,34 @@ impl Plugin for DebugPlugin {
             Startup,
             (
                 spawn_round_world_rosa_startup_system
-                    .after(mark_play_state_active_system)
+                    .after(transition_to_active_system)
                     .run_if(active_map_is_round_world_rosa),
                 spawn_demo_level_startup_system
-                    .after(mark_play_state_active_system)
+                    .after(transition_to_active_system)
                     .run_if(active_map_is_default_flora_demo),
                 spawn_demo_clouds_startup_system
                     .after(spawn_demo_level_startup_system)
                     .run_if(active_map_is_default_flora_demo),
                 spawn_competition_demo_startup_system
-                    .after(mark_play_state_active_system)
+                    .after(transition_to_active_system)
                     .run_if(active_map_is_competition_arena),
                 spawn_inferred_world_startup_system
-                    .after(mark_play_state_active_system)
+                    .after(transition_to_active_system)
                     .run_if(active_map_is_inferred_world),
                 spawn_signal_demo_startup_system
-                    .after(mark_play_state_active_system)
+                    .after(transition_to_active_system)
                     .run_if(active_map_is_signal_demo),
                 spawn_demo_celula_startup_system
-                    .after(mark_play_state_active_system)
+                    .after(transition_to_active_system)
                     .run_if(active_map_is_demo_celula),
                 spawn_demo_virus_startup_system
-                    .after(mark_play_state_active_system)
+                    .after(transition_to_active_system)
                     .run_if(active_map_is_demo_virus),
                 spawn_demo_planta_startup_system
-                    .after(mark_play_state_active_system)
+                    .after(transition_to_active_system)
                     .run_if(active_map_is_demo_planta),
                 spawn_demo_animal_startup_system
-                    .after(mark_play_state_active_system)
+                    .after(transition_to_active_system)
                     .run_if(active_map_is_demo_animal),
             ),
         );
@@ -196,7 +195,11 @@ impl Plugin for DebugPlugin {
         #[cfg(feature = "bridge_optimizer")]
         app.add_systems(
             Update,
-            (ensure_bridge_optimizer_debug_hud_system, sync_bridge_optimizer_debug_hud_system).chain(),
+            (
+                ensure_bridge_optimizer_debug_hud_system,
+                sync_bridge_optimizer_debug_hud_system,
+            )
+                .chain(),
         );
     }
 }
@@ -208,16 +211,26 @@ fn debug_seed_ring_round_world_system(
     query: Query<(&Name, &Transform, &SpatialVolume), Without<V6RuntimeEntity>>,
 ) {
     for (name, transform, volume) in &query {
-        if !name.as_str().starts_with("flora_") { continue; }
+        if !name.as_str().starts_with("flora_") {
+            continue;
+        }
         let iso = Isometry3d::from_translation(transform.translation);
-        gizmos.sphere(iso, volume.radius * SEED_DEBUG_RING_RADIUS_MULT, SEED_DEBUG_RING_COLOR)
+        gizmos
+            .sphere(
+                iso,
+                volume.radius * SEED_DEBUG_RING_RADIUS_MULT,
+                SEED_DEBUG_RING_COLOR,
+            )
             .resolution(DEBUG_GIZMO_SPHERE_RESOLUTION.saturating_add(10));
     }
 }
 
 fn debug_scoreboard_system(scoreboard: Res<Scoreboard>, mut last: Local<(u32, u32)>) {
     if scoreboard.red_points != last.0 || scoreboard.blue_points != last.1 {
-        info!("SCOREBOARD — Red: {} | Blue: {}", scoreboard.red_points, scoreboard.blue_points);
+        info!(
+            "SCOREBOARD — Red: {} | Blue: {}",
+            scoreboard.red_points, scoreboard.blue_points
+        );
         *last = (scoreboard.red_points, scoreboard.blue_points);
     }
 }
@@ -234,14 +247,26 @@ fn ensure_bridge_optimizer_debug_hud_system(
     asset_server: Res<AssetServer>,
     hud_query: Query<Entity, With<BridgeOptimizerDebugHud>>,
 ) {
-    if hud_query.iter().next().is_some() { return; }
+    if hud_query.iter().next().is_some() {
+        return;
+    }
     commands.spawn((
         BridgeOptimizerDebugHud,
-        Node { position_type: PositionType::Absolute, right: Val::Px(8.0), top: Val::Px(8.0),
-               padding: UiRect::all(Val::Px(8.0)), max_width: Val::Px(320.0), ..default() },
+        Node {
+            position_type: PositionType::Absolute,
+            right: Val::Px(8.0),
+            top: Val::Px(8.0),
+            padding: UiRect::all(Val::Px(8.0)),
+            max_width: Val::Px(320.0),
+            ..default()
+        },
         BackgroundColor(Color::srgba(0.02, 0.06, 0.04, 0.78)),
         Text::new("Bridge Optimizer"),
-        TextFont { font: asset_server.load("fonts/FiraSans-Bold.ttf"), font_size: 12.0, ..default() },
+        TextFont {
+            font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+            font_size: 12.0,
+            ..default()
+        },
         TextColor(Color::srgba(0.85, 0.98, 0.88, 1.0)),
     ));
 }
@@ -255,26 +280,41 @@ fn sync_bridge_optimizer_debug_hud_system(
 ) {
     let phase_now = phase_state.as_ref().map(|p| p.phase);
     let phase_moved = phase_now != *last_phase;
-    if phase_moved { *last_phase = phase_now; }
+    if phase_moved {
+        *last_phase = phase_now;
+    }
     let Some(summary) = summary else {
         for mut text in &mut hud_query {
             let out = "BRIDGE OPT\n(no metrics)\n";
-            if text.0 != out { text.0 = out.into(); }
+            if text.0 != out {
+                text.0 = out.into();
+            }
         }
         return;
     };
-    if !summary.is_changed() && !phase_moved { return; }
-    let phase_str = phase_now.map(|p| match p {
-        crate::bridge::context_fill::BridgePhase::Warmup => "Warmup",
-        crate::bridge::context_fill::BridgePhase::Filling => "Filling",
-        crate::bridge::context_fill::BridgePhase::Active => "Active",
-    }).unwrap_or("n/a");
+    if !summary.is_changed() && !phase_moved {
+        return;
+    }
+    let phase_str = phase_now
+        .map(|p| match p {
+            crate::bridge::context_fill::BridgePhase::Warmup => "Warmup",
+            crate::bridge::context_fill::BridgePhase::Filling => "Filling",
+            crate::bridge::context_fill::BridgePhase::Active => "Active",
+        })
+        .unwrap_or("n/a");
     let mut out = format!("BRIDGE OPT\nphase: {phase_str}\n");
     for row in &summary.layers {
         let pfx = hit_rate_quality_prefix(row.hit_rate);
-        out.push_str(&format!("{pfx}{}: hit {:.0}% fill {:.0}%\n", row.name, row.hit_rate * 100.0, row.fill_level * 100.0));
+        out.push_str(&format!(
+            "{pfx}{}: hit {:.0}% fill {:.0}%\n",
+            row.name,
+            row.hit_rate * 100.0,
+            row.fill_level * 100.0
+        ));
     }
     for mut text in &mut hud_query {
-        if text.0 != out { text.0 = out.clone(); }
+        if text.0 != out {
+            text.0 = out.clone();
+        }
     }
 }

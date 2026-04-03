@@ -19,7 +19,11 @@ pub struct PackMembership {
 
 impl PackMembership {
     pub fn new(pack_id: u32, role: PackRole, joined_tick: u32) -> Self {
-        Self { pack_id, role, joined_tick }
+        Self {
+            pack_id,
+            role,
+            joined_tick,
+        }
     }
 }
 

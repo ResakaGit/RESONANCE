@@ -1,5 +1,5 @@
-use bevy::prelude::*;
 use super::*;
+use bevy::prelude::*;
 
 #[test]
 fn id_generator_same_order_yields_same_sequence() {

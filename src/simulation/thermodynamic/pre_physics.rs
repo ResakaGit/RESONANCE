@@ -7,13 +7,13 @@ use crate::blueprint::AlchemicalAlmanac;
 use crate::blueprint::ElementId;
 use crate::blueprint::constants::{DETECTION_THRESHOLD, MAX_VISION_RADIUS, OVERLOAD_FACTOR};
 use crate::blueprint::equations;
+use crate::blueprint::equations::terrain_blocks_vision;
 use crate::events::DeathCause;
 use crate::layers::{
     AlchemicalEngine, AlchemicalInjector, BaseEnergy, EnergyOps, MobaIdentity, ModifiedField,
     OscillatorySignature, ProjectedQeFromEnergy, ResonanceFlowOverlay, ResonanceLink,
     ResonanceMotorOverlay, ResonanceThermalOverlay, SpatialVolume,
 };
-use crate::simulation::physics::terrain_blocks_vision;
 use crate::simulation::time_compat::simulation_delta_secs;
 use crate::topology::TerrainField;
 use crate::world::{PerceptionCache, SpatialIndex};
@@ -315,7 +315,8 @@ pub fn perception_system(
                 .unwrap_or(0.25);
 
             let distance_sq = origin.distance_squared(entry.position);
-            let signal = equations::perception_signal_weighted(energy.qe(), visibility, purity, distance_sq);
+            let signal =
+                equations::perception_signal_weighted(energy.qe(), visibility, purity, distance_sq);
 
             if signal >= DETECTION_THRESHOLD {
                 cache.mark_visible(identity.faction(), entry.entity);
@@ -486,7 +487,10 @@ mod tests {
             .id();
         let e_legacy = app
             .world_mut()
-            .spawn((BaseEnergy::new(500.0), AlchemicalEngine::new(1_000.0, 10.0, 50.0, 0.0)))
+            .spawn((
+                BaseEnergy::new(500.0),
+                AlchemicalEngine::new(1_000.0, 10.0, 50.0, 0.0),
+            ))
             .id();
 
         app.update();

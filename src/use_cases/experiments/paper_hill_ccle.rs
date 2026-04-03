@@ -31,31 +31,31 @@ pub const CCLE_REFERENCE_IQR: (f32, f32) = (1.1, 2.6);
 /// Descriptive statistics for Hill slope distribution.
 #[derive(Debug, Clone)]
 pub struct HillStats {
-    pub count:  usize,
+    pub count: usize,
     pub median: f32,
-    pub mean:   f32,
-    pub std:    f32,
-    pub p25:    f32,
-    pub p75:    f32,
-    pub min:    f32,
-    pub max:    f32,
+    pub mean: f32,
+    pub std: f32,
+    pub p25: f32,
+    pub p75: f32,
+    pub min: f32,
+    pub max: f32,
 }
 
 /// Reporte de calibración: ¿n=2 es defensible frente a datos empíricos?
 /// Calibration report: is n=2 defensible against empirical data?
 #[derive(Debug, Clone)]
 pub struct HillCalibrationReport {
-    pub gdsc_stats:                HillStats,
-    pub ccle_stats:                Option<HillStats>,
+    pub gdsc_stats: HillStats,
+    pub ccle_stats: Option<HillStats>,
     /// n=2 cae dentro del IQR (p25–p75) de la distribución.
     /// n=2 falls within the IQR (p25–p75) of the distribution.
-    pub n2_within_iqr:             bool,
+    pub n2_within_iqr: bool,
     /// n=2 cae dentro de 1 desviación estándar de la media.
     /// n=2 falls within 1 standard deviation of the mean.
-    pub n2_within_1_std:           bool,
+    pub n2_within_1_std: bool,
     /// Fracción de pendientes empíricas en [1.0, 3.0].
     /// Fraction of empirical slopes in [1.0, 3.0].
-    pub fraction_between_1_and_3:  f32,
+    pub fraction_between_1_and_3: f32,
     /// Conclusión: la asunción n=2 de RESONANCE es válida.
     /// Conclusion: RESONANCE's n=2 assumption is valid.
     pub resonance_assumption_valid: bool,
@@ -71,8 +71,14 @@ pub struct HillCalibrationReport {
 pub fn analyze_hill_slopes(slopes: &[f32]) -> HillStats {
     if slopes.is_empty() {
         return HillStats {
-            count: 0, median: 0.0, mean: 0.0, std: 0.0,
-            p25: 0.0, p75: 0.0, min: 0.0, max: 0.0,
+            count: 0,
+            median: 0.0,
+            mean: 0.0,
+            std: 0.0,
+            p25: 0.0,
+            p75: 0.0,
+            min: 0.0,
+            max: 0.0,
         };
     }
 
@@ -103,8 +109,12 @@ pub fn analyze_hill_slopes(slopes: &[f32]) -> HillStats {
 /// Percentil por interpolación lineal sobre slice ya ordenado.
 /// Percentile via linear interpolation on pre-sorted slice.
 fn percentile_sorted(sorted: &[f32], p: f32) -> f32 {
-    if sorted.is_empty() { return 0.0; }
-    if sorted.len() == 1 { return sorted[0]; }
+    if sorted.is_empty() {
+        return 0.0;
+    }
+    if sorted.len() == 1 {
+        return sorted[0];
+    }
 
     let rank = p * (sorted.len() - 1) as f32;
     let lo = rank.floor() as usize;
@@ -137,10 +147,14 @@ pub fn validate_hill_assumption(slopes: &[f32]) -> HillCalibrationReport {
 
     // Asunción válida: IQR + ≥60% en rango razonable.
     // Assumption valid: IQR + ≥60% in reasonable range.
-    let criteria_met = [n2_within_iqr, n2_within_1_std, fraction_between_1_and_3 >= 0.60]
-        .iter()
-        .filter(|&&c| c)
-        .count();
+    let criteria_met = [
+        n2_within_iqr,
+        n2_within_1_std,
+        fraction_between_1_and_3 >= 0.60,
+    ]
+    .iter()
+    .filter(|&&c| c)
+    .count();
     let resonance_assumption_valid = criteria_met >= 2;
 
     HillCalibrationReport {
@@ -160,25 +174,25 @@ pub fn validate_hill_assumption(slopes: &[f32]) -> HillCalibrationReport {
 /// Uses published GDSC/CCLE constants to verify n=2 is defensible.
 pub fn validate_against_published() -> HillCalibrationReport {
     let gdsc_stats = HillStats {
-        count:  GDSC_REFERENCE_COUNT,
+        count: GDSC_REFERENCE_COUNT,
         median: GDSC_REFERENCE_MEDIAN,
-        mean:   GDSC_REFERENCE_MEDIAN, // approximate: median ≈ mean for log-normal Hill slopes
-        std:    0.8, // typical std for Hill slope distributions (Yang et al. 2007)
-        p25:    GDSC_REFERENCE_IQR.0,
-        p75:    GDSC_REFERENCE_IQR.1,
-        min:    0.3,
-        max:    8.0,
+        mean: GDSC_REFERENCE_MEDIAN, // approximate: median ≈ mean for log-normal Hill slopes
+        std: 0.8,                    // typical std for Hill slope distributions (Yang et al. 2007)
+        p25: GDSC_REFERENCE_IQR.0,
+        p75: GDSC_REFERENCE_IQR.1,
+        min: 0.3,
+        max: 8.0,
     };
 
     let ccle_stats = HillStats {
-        count:  12_096, // 24 drugs × 504 cell lines
+        count: 12_096, // 24 drugs × 504 cell lines
         median: CCLE_REFERENCE_MEDIAN,
-        mean:   CCLE_REFERENCE_MEDIAN,
-        std:    0.7,
-        p25:    CCLE_REFERENCE_IQR.0,
-        p75:    CCLE_REFERENCE_IQR.1,
-        min:    0.3,
-        max:    7.0,
+        mean: CCLE_REFERENCE_MEDIAN,
+        std: 0.7,
+        p25: CCLE_REFERENCE_IQR.0,
+        p75: CCLE_REFERENCE_IQR.1,
+        min: 0.3,
+        max: 7.0,
     };
 
     let n2 = 2.0f32;
@@ -189,10 +203,14 @@ pub fn validate_against_published() -> HillCalibrationReport {
     // Fraction between 1 and 3: estimated as ~70% for typical distributions.
     let fraction_between_1_and_3 = 0.72;
 
-    let criteria_met = [n2_within_iqr, n2_within_1_std, fraction_between_1_and_3 >= 0.60]
-        .iter()
-        .filter(|&&c| c)
-        .count();
+    let criteria_met = [
+        n2_within_iqr,
+        n2_within_1_std,
+        fraction_between_1_and_3 >= 0.60,
+    ]
+    .iter()
+    .filter(|&&c| c)
+    .count();
 
     HillCalibrationReport {
         gdsc_stats,
@@ -253,17 +271,29 @@ mod tests {
         // IQR [1.5, 2.5] → n=2 is within IQR
         let slopes: Vec<f32> = (0..100).map(|i| 1.0 + 0.02 * i as f32).collect();
         let report = validate_hill_assumption(&slopes);
-        assert!(report.n2_within_iqr, "n=2 should be within IQR [p25={}, p75={}]",
-            report.gdsc_stats.p25, report.gdsc_stats.p75);
+        assert!(
+            report.n2_within_iqr,
+            "n=2 should be within IQR [p25={}, p75={}]",
+            report.gdsc_stats.p25, report.gdsc_stats.p75
+        );
     }
 
     #[test]
     fn given_reference_values_when_validated_then_assumption_valid() {
         let report = validate_against_published();
-        assert!(report.n2_within_iqr, "n=2 should be within GDSC IQR [{}, {}]",
-            GDSC_REFERENCE_IQR.0, GDSC_REFERENCE_IQR.1);
-        assert!(report.n2_within_1_std, "n=2 should be within 1 std of GDSC mean");
-        assert!(report.resonance_assumption_valid, "RESONANCE n=2 assumption should be valid");
+        assert!(
+            report.n2_within_iqr,
+            "n=2 should be within GDSC IQR [{}, {}]",
+            GDSC_REFERENCE_IQR.0, GDSC_REFERENCE_IQR.1
+        );
+        assert!(
+            report.n2_within_1_std,
+            "n=2 should be within 1 std of GDSC mean"
+        );
+        assert!(
+            report.resonance_assumption_valid,
+            "RESONANCE n=2 assumption should be valid"
+        );
     }
 
     #[test]
@@ -278,9 +308,11 @@ mod tests {
     fn given_slopes_all_below_1_when_validated_then_fraction_low() {
         let slopes: Vec<f32> = (0..50).map(|i| 0.2 + 0.01 * i as f32).collect();
         let report = validate_hill_assumption(&slopes);
-        assert!(report.fraction_between_1_and_3 < 0.5,
+        assert!(
+            report.fraction_between_1_and_3 < 0.5,
             "most slopes below 1.0, fraction in [1,3] should be low: {}",
-            report.fraction_between_1_and_3);
+            report.fraction_between_1_and_3
+        );
     }
 
     #[test]
@@ -289,7 +321,10 @@ mod tests {
         let p25 = percentile_sorted(&sorted, 0.25);
         let p50 = percentile_sorted(&sorted, 0.50);
         let p75 = percentile_sorted(&sorted, 0.75);
-        assert!((p50 - 5.5).abs() < 0.01, "median of 1..10 should be 5.5: {p50}");
+        assert!(
+            (p50 - 5.5).abs() < 0.01,
+            "median of 1..10 should be 5.5: {p50}"
+        );
         assert!(p25 < p50, "p25={p25} < p50={p50}");
         assert!(p50 < p75, "p50={p50} < p75={p75}");
     }

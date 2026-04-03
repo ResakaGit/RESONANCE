@@ -21,7 +21,12 @@ pub struct PoolConservationLedger {
 
 impl PoolConservationLedger {
     /// Construye un ledger con los valores del tick.
-    pub fn new(total_extracted: f32, total_dissipated: f32, net_delta: f32, active_children: u16) -> Self {
+    pub fn new(
+        total_extracted: f32,
+        total_dissipated: f32,
+        net_delta: f32,
+        active_children: u16,
+    ) -> Self {
         Self {
             total_extracted: total_extracted.max(0.0),
             total_dissipated: total_dissipated.max(0.0),
@@ -30,10 +35,18 @@ impl PoolConservationLedger {
         }
     }
 
-    pub fn total_extracted(&self) -> f32 { self.total_extracted }
-    pub fn total_dissipated(&self) -> f32 { self.total_dissipated }
-    pub fn net_delta(&self) -> f32 { self.net_delta }
-    pub fn active_children(&self) -> u16 { self.active_children }
+    pub fn total_extracted(&self) -> f32 {
+        self.total_extracted
+    }
+    pub fn total_dissipated(&self) -> f32 {
+        self.total_dissipated
+    }
+    pub fn net_delta(&self) -> f32 {
+        self.net_delta
+    }
+    pub fn active_children(&self) -> u16 {
+        self.active_children
+    }
 }
 
 #[cfg(test)]
@@ -64,7 +77,10 @@ mod tests {
         let intake = 50.0_f32;
         let extracted = 200.0;
         let dissipated = 10.0;
-        let l = PoolConservationLedger::new(extracted, dissipated, intake - extracted - dissipated, 3);
-        assert!((l.net_delta() - (intake - l.total_extracted() - l.total_dissipated())).abs() < 1e-6);
+        let l =
+            PoolConservationLedger::new(extracted, dissipated, intake - extracted - dissipated, 3);
+        assert!(
+            (l.net_delta() - (intake - l.total_extracted() - l.total_dissipated())).abs() < 1e-6
+        );
     }
 }

@@ -40,9 +40,20 @@ impl Default for OscillatorySignature {
 
 impl OscillatorySignature {
     pub fn new(frequency_hz: f32, phase: f32) -> Self {
-        let f = if frequency_hz.is_finite() { frequency_hz.max(0.0) } else { 0.0 };
-        let p = if phase.is_finite() { phase.rem_euclid(2.0 * PI) } else { 0.0 };
-        Self { frequency_hz: f, phase: p }
+        let f = if frequency_hz.is_finite() {
+            frequency_hz.max(0.0)
+        } else {
+            0.0
+        };
+        let p = if phase.is_finite() {
+            phase.rem_euclid(2.0 * PI)
+        } else {
+            0.0
+        };
+        Self {
+            frequency_hz: f,
+            phase: p,
+        }
     }
 
     #[inline]

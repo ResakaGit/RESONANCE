@@ -92,63 +92,7 @@ pub fn slope_friction(slope: f32, movement_direction: Vec2, aspect: f32) -> f32 
     -alignment * slope01
 }
 
-/// Raycast discreto sobre celdas entre dos puntos para decidir bloqueo de visión por relieve.
-pub fn terrain_blocks_vision(from: Vec2, to: Vec2, terrain: &TerrainField) -> bool {
-    let Some((fx, fy)) = terrain.world_to_cell(from) else {
-        return true;
-    };
-    let Some((tx, ty)) = terrain.world_to_cell(to) else {
-        return true;
-    };
-    if fx == tx && fy == ty {
-        return false;
-    }
-
-    let from_alt = terrain.sample_at(fx, fy).altitude;
-    let to_alt = terrain.sample_at(tx, ty).altitude;
-    let line = raycast_cells_exclusive((fx, fy), (tx, ty));
-    if line.is_empty() {
-        return false;
-    }
-    let total_steps = (line.len() + 1) as f32;
-
-    for (step, (x, y)) in line.iter().enumerate() {
-        let t = (step as f32 + 1.0) / total_steps;
-        let expected_alt = from_alt + (to_alt - from_alt) * t;
-        if terrain.sample_at(*x, *y).altitude > expected_alt {
-            return true;
-        }
-    }
-
-    false
-}
-
-fn raycast_cells_exclusive(from: (u32, u32), to: (u32, u32)) -> Vec<(u32, u32)> {
-    let from_v = Vec2::new(from.0 as f32 + 0.5, from.1 as f32 + 0.5);
-    let to_v = Vec2::new(to.0 as f32 + 0.5, to.1 as f32 + 0.5);
-    let delta = to_v - from_v;
-    let span = delta.x.abs().max(delta.y.abs());
-    if span <= f32::EPSILON {
-        return Vec::new();
-    }
-
-    // Supercover aproximado: 2x muestras por celda para no saltear diagonales de borde.
-    let steps = (span.ceil() as usize).saturating_mul(2);
-    let mut out = Vec::new();
-
-    for i in 1..steps {
-        let t = i as f32 / steps as f32;
-        let p = from_v + delta * t;
-        let cx = p.x.floor().max(0.0) as u32;
-        let cy = p.y.floor().max(0.0) as u32;
-        let cell = (cx, cy);
-        if cell != from && cell != to && out.last().copied() != Some(cell) {
-            out.push(cell);
-        }
-    }
-
-    out
-}
+// terrain_blocks_vision moved to blueprint/equations/vision.rs (DC-4)
 
 /// Sistema: Disipación entrópica (Segunda Ley del juego).
 /// Fase: Phase::AtomicLayer
@@ -637,6 +581,7 @@ pub fn register_physics_phase_systems<S: ScheduleLabel + Clone>(app: &mut App, s
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::blueprint::equations::terrain_blocks_vision;
     use crate::layers::{FlowVector, MatterCoherence, MatterState};
     use crate::worldgen::EnergyFieldGrid;
     use bevy::math::Vec2;

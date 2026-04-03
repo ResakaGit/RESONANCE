@@ -132,17 +132,40 @@ pub fn fauna_abiogenesis_potential(
     min_qe: f32,
     water_floor: f32,
 ) -> f32 {
-    let qe = if cell_qe.is_finite() { cell_qe.max(0.0) } else { return 0.0 };
-    let w = if water.is_finite() { water.max(0.0) } else { return 0.0 };
-    let nd = if nutrient_density.is_finite() { nutrient_density.clamp(0.0, 1.0) } else { return 0.0 };
-    let min_q = if min_qe.is_finite() { min_qe.max(0.0) } else { return 0.0 };
-    if qe < min_q { return 0.0; }
-    if w < water_floor.max(0.0) { return 0.0; }
-    if flora_neighbour_count < min_flora { return 0.0; }
+    let qe = if cell_qe.is_finite() {
+        cell_qe.max(0.0)
+    } else {
+        return 0.0;
+    };
+    let w = if water.is_finite() {
+        water.max(0.0)
+    } else {
+        return 0.0;
+    };
+    let nd = if nutrient_density.is_finite() {
+        nutrient_density.clamp(0.0, 1.0)
+    } else {
+        return 0.0;
+    };
+    let min_q = if min_qe.is_finite() {
+        min_qe.max(0.0)
+    } else {
+        return 0.0;
+    };
+    if qe < min_q {
+        return 0.0;
+    }
+    if w < water_floor.max(0.0) {
+        return 0.0;
+    }
+    if flora_neighbour_count < min_flora {
+        return 0.0;
+    }
 
     let energy_factor = (qe / min_q.max(f32::EPSILON)).clamp(0.0, 2.0) * 0.5;
     let nutrient_factor = nd;
-    let flora_density = (flora_neighbour_count as f32 / min_flora.max(1) as f32).clamp(0.0, 2.0) * 0.5;
+    let flora_density =
+        (flora_neighbour_count as f32 / min_flora.max(1) as f32).clamp(0.0, 2.0) * 0.5;
     (energy_factor * nutrient_factor * flora_density).clamp(0.0, 1.0)
 }
 
@@ -160,16 +183,26 @@ pub fn fauna_infer_is_carnivore(
 /// qe for newly spawned fauna (fraction of cell energy).
 #[inline]
 pub fn fauna_spawn_entity_qe(cell_qe: f32) -> f32 {
-    let q = if cell_qe.is_finite() { cell_qe.max(0.0) } else { 0.0 };
+    let q = if cell_qe.is_finite() {
+        cell_qe.max(0.0)
+    } else {
+        0.0
+    };
     q * ABIOGENESIS_FAUNA_SPAWN_QE_FRACTION
 }
 
 /// Bond energy for fauna spawn, clamped to [BOND_MIN, BOND_MAX].
 #[inline]
 pub fn fauna_spawn_matter_bond(cell_qe: f32) -> f32 {
-    let q = if cell_qe.is_finite() { cell_qe.max(0.0) } else { 0.0 };
-    (q * ABIOGENESIS_FAUNA_CELL_QE_TO_BOND_SCALE)
-        .clamp(ABIOGENESIS_FAUNA_SPAWN_BOND_MIN, ABIOGENESIS_FAUNA_SPAWN_BOND_MAX)
+    let q = if cell_qe.is_finite() {
+        cell_qe.max(0.0)
+    } else {
+        0.0
+    };
+    (q * ABIOGENESIS_FAUNA_CELL_QE_TO_BOND_SCALE).clamp(
+        ABIOGENESIS_FAUNA_SPAWN_BOND_MIN,
+        ABIOGENESIS_FAUNA_SPAWN_BOND_MAX,
+    )
 }
 
 /// Determina el perfil de inferencia del organismo que emerge según condiciones locales.
@@ -300,13 +333,19 @@ mod tests {
     #[test]
     fn fauna_bond_clamped_to_min() {
         let b = fauna_spawn_matter_bond(10.0); // 10 × 8 = 80 → clamp to 500
-        assert!((b - ABIOGENESIS_FAUNA_SPAWN_BOND_MIN).abs() < EPS, "got {b}");
+        assert!(
+            (b - ABIOGENESIS_FAUNA_SPAWN_BOND_MIN).abs() < EPS,
+            "got {b}"
+        );
     }
 
     #[test]
     fn fauna_bond_clamped_to_max() {
         let b = fauna_spawn_matter_bond(1000.0); // 1000 × 8 = 8000 → clamp to 2500
-        assert!((b - ABIOGENESIS_FAUNA_SPAWN_BOND_MAX).abs() < EPS, "got {b}");
+        assert!(
+            (b - ABIOGENESIS_FAUNA_SPAWN_BOND_MAX).abs() < EPS,
+            "got {b}"
+        );
     }
 
     #[test]

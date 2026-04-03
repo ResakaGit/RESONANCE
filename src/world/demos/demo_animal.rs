@@ -19,9 +19,9 @@ pub fn spawn_demo_animal_startup_system(
 ) {
     // Plantas como fuente trófica
     let plant_positions = [
-        Vec2::new(-5.0,  2.0),
-        Vec2::new( 3.0, -3.0),
-        Vec2::new( 0.0,  5.0),
+        Vec2::new(-5.0, 2.0),
+        Vec2::new(3.0, -3.0),
+        Vec2::new(0.0, 5.0),
     ];
     for pos in plant_positions {
         spawn_planta_demo(&mut commands, &mut id_gen, pos, &layout);

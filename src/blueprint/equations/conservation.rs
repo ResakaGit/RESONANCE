@@ -71,12 +71,18 @@ mod tests {
     #[test]
     fn global_conservation_error_no_overshoot_returns_zero() {
         // total=300 ≤ available=1000 → error=0
-        assert_eq!(global_conservation_error(1000.0, &[100.0, 100.0, 100.0]), 0.0);
+        assert_eq!(
+            global_conservation_error(1000.0, &[100.0, 100.0, 100.0]),
+            0.0
+        );
     }
 
     #[test]
     fn global_conservation_error_exact_boundary_returns_zero() {
-        assert_eq!(global_conservation_error(300.0, &[100.0, 100.0, 100.0]), 0.0);
+        assert_eq!(
+            global_conservation_error(300.0, &[100.0, 100.0, 100.0]),
+            0.0
+        );
     }
 
     #[test]

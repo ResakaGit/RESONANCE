@@ -4,8 +4,8 @@
 //! `visual_derivation::derive_color` delega a ese núcleo. Proyección mundo→celda:
 //! [`EnergyFieldGrid::world_pos`] / coords XZ (EA3).
 
-use bevy::color::Color;
 use crate::math_types::{Vec2, Vec3};
+use bevy::color::Color;
 
 use crate::blueprint::almanac::AlchemicalAlmanac;
 use crate::blueprint::constants::FIELD_VISUAL_OPAQUE_ALPHA;
@@ -235,14 +235,16 @@ mod tests {
             fb,
             0.25,
         );
-        let d = (rgb_a[0] - rgb_b[0]).abs()
-            + (rgb_a[1] - rgb_b[1]).abs()
-            + (rgb_a[2] - rgb_b[2]).abs();
+        let d =
+            (rgb_a[0] - rgb_b[0]).abs() + (rgb_a[1] - rgb_b[1]).abs() + (rgb_a[2] - rgb_b[2]).abs();
         assert!(
             d > thr::MIN_BAND_L1,
             "expected distinct RGB per cell: a={rgb_a:?} b={rgb_b:?}"
         );
-        assert!(q_a > q_b, "qe_norm debe seguir qe acumulado: {q_a} vs {q_b}");
+        assert!(
+            q_a > q_b,
+            "qe_norm debe seguir qe acumulado: {q_a} vs {q_b}"
+        );
     }
 
     #[test]
@@ -271,15 +273,18 @@ mod tests {
         let mut cell = EnergyCell::default();
         cell.purity = 0.5;
         cell.dominant_frequency_hz = 450.0;
-        cell.frequency_contributions.push(FrequencyContribution::new(e1, 450.0, 2.0));
-        cell.frequency_contributions.push(FrequencyContribution::new(e2, 250.0, 1.8));
+        cell.frequency_contributions
+            .push(FrequencyContribution::new(e1, 450.0, 2.0));
+        cell.frequency_contributions
+            .push(FrequencyContribution::new(e2, 250.0, 1.8));
 
         let compound_rgb = field_linear_rgb_from_cell(&cell, cell.purity, 0.0, &almanac);
 
         let mut pure = EnergyCell::default();
         pure.purity = 0.5;
         pure.dominant_frequency_hz = 450.0;
-        pure.frequency_contributions.push(FrequencyContribution::new(e1, 450.0, 2.0));
+        pure.frequency_contributions
+            .push(FrequencyContribution::new(e1, 450.0, 2.0));
         let simple_rgb = field_linear_rgb_from_cell(&pure, pure.purity, 0.0, &almanac);
 
         let d = (compound_rgb[0] - simple_rgb[0]).abs()
@@ -313,8 +318,9 @@ mod tests {
             [ml.red, ml.green, ml.blue],
             phase,
         );
-        let from_color = crate::worldgen::visual_derivation::derive_color_phenology(young, mature, phase)
-            .to_linear();
+        let from_color =
+            crate::worldgen::visual_derivation::derive_color_phenology(young, mature, phase)
+                .to_linear();
         approx3(
             from_lerp,
             [from_color.red, from_color.green, from_color.blue],
@@ -327,7 +333,8 @@ mod tests {
         let e1 = Entity::from_raw(1);
         let one = [FrequencyContribution::new(e1, 450.0, 2.0)];
         let fb = super::field_linear_rgb_from_cell_inputs(450.0, 0.6, &one, true, 0.0, &almanac);
-        let simple = super::field_linear_rgb_from_cell_inputs(450.0, 0.6, &one, false, 0.0, &almanac);
+        let simple =
+            super::field_linear_rgb_from_cell_inputs(450.0, 0.6, &one, false, 0.0, &almanac);
         approx3(fb, simple);
     }
 
@@ -360,7 +367,8 @@ mod tests {
             FrequencyContribution::new(e1, 450.0, 2.0),
             FrequencyContribution::new(e2, 250.0, 1.8),
         ];
-        let a = super::field_linear_rgb_from_cell_inputs(450.0, 0.5, &contribs, true, 0.0, &almanac);
+        let a =
+            super::field_linear_rgb_from_cell_inputs(450.0, 0.5, &contribs, true, 0.0, &almanac);
         let b = super::field_linear_rgb_from_cell_inputs(
             450.0,
             0.5,

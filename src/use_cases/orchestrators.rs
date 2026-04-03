@@ -40,11 +40,11 @@ where
 /// Aggregated statistics from an ensemble of experiments.
 #[derive(Debug, Clone)]
 pub struct EnsembleReport {
-    pub reports:        Vec<ExperimentReport>,
-    pub mean_fitness:   f32,
-    pub std_fitness:    f32,
+    pub reports: Vec<ExperimentReport>,
+    pub mean_fitness: f32,
+    pub std_fitness: f32,
     pub mean_diversity: f32,
-    pub mean_species:   f32,
+    pub mean_species: f32,
 }
 
 /// Ensemble: corre el mismo experimento con N seeds distintas.
@@ -69,23 +69,25 @@ pub fn ensemble(
 /// Aggregates reports into EnsembleReport. Pure function (testable without running simulation).
 pub fn aggregate_ensemble(reports: Vec<ExperimentReport>) -> EnsembleReport {
     // Solo reports con history no-vacía contribuyen a las estadísticas.
-    let last_stats: Vec<_> = reports.iter()
-        .filter_map(|r| r.history.last())
-        .collect();
+    let last_stats: Vec<_> = reports.iter().filter_map(|r| r.history.last()).collect();
     let n = last_stats.len() as f32;
 
     if n < 1.0 {
         return EnsembleReport {
             reports,
-            mean_fitness: 0.0, std_fitness: 0.0,
-            mean_diversity: 0.0, mean_species: 0.0,
+            mean_fitness: 0.0,
+            std_fitness: 0.0,
+            mean_diversity: 0.0,
+            mean_species: 0.0,
         };
     }
 
     let mean_fitness = last_stats.iter().map(|s| s.best_fitness).sum::<f32>() / n;
-    let var = last_stats.iter()
+    let var = last_stats
+        .iter()
         .map(|s| (s.best_fitness - mean_fitness).powi(2))
-        .sum::<f32>() / n;
+        .sum::<f32>()
+        / n;
     let mean_diversity = last_stats.iter().map(|s| s.diversity).sum::<f32>() / n;
     let mean_species = last_stats.iter().map(|s| s.species_mean).sum::<f32>() / n;
 

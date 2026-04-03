@@ -1,17 +1,16 @@
 //! R4 Empirical Calibration — golden snapshot integration tests.
 //! Pure-function tests; no Bevy App required.
 
-use resonance::blueprint::{
-    constants::calibration as cal,
-    equations::calibration as eq_cal,
-};
+use resonance::blueprint::{constants::calibration as cal, equations::calibration as eq_cal};
 
 #[test]
 fn intake_rate_nominal_is_plausible() {
     assert!(
         eq_cal::is_intake_rate_plausible(cal::INTAKE_RATE_NOMINAL),
         "INTAKE_RATE_NOMINAL {} is outside plausible range [{}, {}]",
-        cal::INTAKE_RATE_NOMINAL, cal::INTAKE_RATE_MIN, cal::INTAKE_RATE_MAX,
+        cal::INTAKE_RATE_NOMINAL,
+        cal::INTAKE_RATE_MIN,
+        cal::INTAKE_RATE_MAX,
     );
 }
 
@@ -20,7 +19,9 @@ fn maintenance_rate_nominal_is_plausible() {
     assert!(
         eq_cal::is_maintenance_rate_plausible(cal::MAINTENANCE_RATE_NOMINAL),
         "MAINTENANCE_RATE_NOMINAL {} is outside plausible range [{}, {}]",
-        cal::MAINTENANCE_RATE_NOMINAL, cal::MAINTENANCE_RATE_MIN, cal::MAINTENANCE_RATE_MAX,
+        cal::MAINTENANCE_RATE_NOMINAL,
+        cal::MAINTENANCE_RATE_MIN,
+        cal::MAINTENANCE_RATE_MAX,
     );
 }
 
@@ -29,7 +30,9 @@ fn growth_rate_nominal_is_plausible() {
     assert!(
         eq_cal::is_growth_rate_plausible(cal::GROWTH_RATE_NOMINAL),
         "GROWTH_RATE_NOMINAL {} is outside plausible range [{}, {}]",
-        cal::GROWTH_RATE_NOMINAL, cal::GROWTH_RATE_MIN, cal::GROWTH_RATE_MAX,
+        cal::GROWTH_RATE_NOMINAL,
+        cal::GROWTH_RATE_MIN,
+        cal::GROWTH_RATE_MAX,
     );
 }
 
@@ -38,7 +41,9 @@ fn decay_rate_nominal_is_plausible() {
     assert!(
         eq_cal::is_decay_rate_plausible(cal::DECAY_RATE_NOMINAL),
         "DECAY_RATE_NOMINAL {} is outside plausible range [{}, {}]",
-        cal::DECAY_RATE_NOMINAL, cal::DECAY_RATE_MIN, cal::DECAY_RATE_MAX,
+        cal::DECAY_RATE_NOMINAL,
+        cal::DECAY_RATE_MIN,
+        cal::DECAY_RATE_MAX,
     );
 }
 
@@ -59,5 +64,8 @@ fn golden_energy_100_ticks_within_tolerance() {
 #[test]
 fn calibration_error_zero_when_exact() {
     let err = eq_cal::calibration_error(42.0, 42.0);
-    assert_eq!(err, 0.0, "identical values must yield zero calibration error");
+    assert_eq!(
+        err, 0.0,
+        "identical values must yield zero calibration error"
+    );
 }

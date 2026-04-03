@@ -10,9 +10,7 @@ use crate::blueprint::constants::POOL_CONSERVATION_EPSILON;
 use crate::layers::{EnergyPool, PoolConservationLedger};
 
 /// Verifica invariantes de conservación post-distribución.
-pub fn pool_conservation_system(
-    query: Query<(Entity, &PoolConservationLedger, &EnergyPool)>,
-) {
+pub fn pool_conservation_system(query: Query<(Entity, &PoolConservationLedger, &EnergyPool)>) {
     for (entity, ledger, pool) in &query {
         debug_assert!(
             pool.pool() >= 0.0,
@@ -30,7 +28,8 @@ pub fn pool_conservation_system(
             ledger.total_dissipated(),
         );
 
-        let expected_net = pool.intake_rate() - ledger.total_extracted() - ledger.total_dissipated();
+        let expected_net =
+            pool.intake_rate() - ledger.total_extracted() - ledger.total_dissipated();
         debug_assert!(
             (ledger.net_delta() - expected_net).abs() < POOL_CONSERVATION_EPSILON,
             "EC-6: net_delta mismatch on {entity:?}: got={} expected={expected_net}",
@@ -56,19 +55,25 @@ mod tests {
         app.register_type::<PoolParentLink>();
         app.register_type::<BaseEnergy>();
         app.register_type::<PoolConservationLedger>();
-        app.add_systems(Update, (
-            pool_intake_system,
-            pool_distribution_system.after(pool_intake_system),
-            pool_dissipation_system.after(pool_distribution_system),
-            pool_conservation_system.after(pool_dissipation_system),
-        ));
+        app.add_systems(
+            Update,
+            (
+                pool_intake_system,
+                pool_distribution_system.after(pool_intake_system),
+                pool_dissipation_system.after(pool_distribution_system),
+                pool_conservation_system.after(pool_dissipation_system),
+            ),
+        );
         app
     }
 
     #[test]
     fn ledger_inserted_after_distribution() {
         let mut app = make_app();
-        let parent = app.world_mut().spawn(EnergyPool::new(1000.0, 2000.0, 50.0, 0.01)).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(1000.0, 2000.0, 50.0, 0.01))
+            .id();
         app.world_mut().spawn((
             BaseEnergy::new(0.0),
             PoolParentLink::new(parent, ExtractionType::Proportional, 0.0),
@@ -84,14 +89,21 @@ mod tests {
         let ledger = app.world().get::<PoolConservationLedger>(parent);
         assert!(ledger.is_some(), "ledger should exist after distribution");
         let ledger = ledger.unwrap();
-        assert!(ledger.total_extracted() > 0.0, "children extracted: {}", ledger.total_extracted());
+        assert!(
+            ledger.total_extracted() > 0.0,
+            "children extracted: {}",
+            ledger.total_extracted()
+        );
         assert_eq!(ledger.active_children(), 2);
     }
 
     #[test]
     fn ledger_net_delta_correct() {
         let mut app = make_app();
-        let parent = app.world_mut().spawn(EnergyPool::new(1000.0, 2000.0, 50.0, 0.01)).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(1000.0, 2000.0, 50.0, 0.01))
+            .id();
         app.world_mut().spawn((
             BaseEnergy::new(0.0),
             PoolParentLink::new(parent, ExtractionType::Proportional, 0.0),
@@ -102,7 +114,8 @@ mod tests {
 
         let pool = app.world().get::<EnergyPool>(parent).unwrap();
         let ledger = app.world().get::<PoolConservationLedger>(parent).unwrap();
-        let expected_net = pool.intake_rate() - ledger.total_extracted() - ledger.total_dissipated();
+        let expected_net =
+            pool.intake_rate() - ledger.total_extracted() - ledger.total_dissipated();
         assert!(
             (ledger.net_delta() - expected_net).abs() < 1e-6,
             "net_delta={} expected={expected_net}",
@@ -113,7 +126,10 @@ mod tests {
     #[test]
     fn ledger_idempotent_structure() {
         let mut app = make_app();
-        let parent = app.world_mut().spawn(EnergyPool::new(1000.0, 2000.0, 0.0, 0.01)).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(1000.0, 2000.0, 0.0, 0.01))
+            .id();
         app.world_mut().spawn((
             BaseEnergy::new(0.0),
             PoolParentLink::new(parent, ExtractionType::Proportional, 0.0),
@@ -132,7 +148,10 @@ mod tests {
     #[test]
     fn ledger_active_children_count() {
         let mut app = make_app();
-        let parent = app.world_mut().spawn(EnergyPool::new(1000.0, 2000.0, 50.0, 0.01)).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(1000.0, 2000.0, 50.0, 0.01))
+            .id();
         for _ in 0..4 {
             app.world_mut().spawn((
                 BaseEnergy::new(0.0),
@@ -150,7 +169,10 @@ mod tests {
     #[test]
     fn conservation_100_ticks_below_epsilon() {
         let mut app = make_app();
-        let parent = app.world_mut().spawn(EnergyPool::new(1000.0, 2000.0, 50.0, 0.01)).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(1000.0, 2000.0, 50.0, 0.01))
+            .id();
         for _ in 0..4 {
             app.world_mut().spawn((
                 BaseEnergy::new(0.0),
@@ -164,7 +186,7 @@ mod tests {
             let pool_snap = *app.world().get::<EnergyPool>(parent).unwrap();
             let pool_before = pool_snap.pool();
             let intake_rate = pool_snap.intake_rate();
-            let capacity    = pool_snap.capacity();
+            let capacity = pool_snap.capacity();
 
             app.update();
 
@@ -175,8 +197,11 @@ mod tests {
 
             let actual_intake = (pool_before + intake_rate).min(capacity) - pool_before;
             let err = conservation_error(
-                pool_before, pool_after, actual_intake,
-                ledger.total_extracted(), ledger.total_dissipated(),
+                pool_before,
+                pool_after,
+                actual_intake,
+                ledger.total_extracted(),
+                ledger.total_dissipated(),
             );
             if pool_before > POOL_CONSERVATION_EPSILON {
                 assert!(
@@ -190,7 +215,10 @@ mod tests {
     #[test]
     fn conservation_aggressive_type_iv_does_not_violate() {
         let mut app = make_app();
-        let parent = app.world_mut().spawn(EnergyPool::new(1000.0, 5000.0, 200.0, 0.01)).id();
+        let parent = app
+            .world_mut()
+            .spawn(EnergyPool::new(1000.0, 5000.0, 200.0, 0.01))
+            .id();
         app.world_mut().spawn((
             BaseEnergy::new(0.0),
             PoolParentLink::new(parent, ExtractionType::Aggressive, 0.5),
@@ -202,7 +230,7 @@ mod tests {
             let pool_snap = *app.world().get::<EnergyPool>(parent).unwrap();
             let pool_before = pool_snap.pool();
             let intake_rate = pool_snap.intake_rate();
-            let capacity    = pool_snap.capacity();
+            let capacity = pool_snap.capacity();
 
             app.update();
 
@@ -213,8 +241,11 @@ mod tests {
 
             let actual_intake = (pool_before + intake_rate).min(capacity) - pool_before;
             let err = conservation_error(
-                pool_before, pool_after, actual_intake,
-                ledger.total_extracted(), ledger.total_dissipated(),
+                pool_before,
+                pool_after,
+                actual_intake,
+                ledger.total_extracted(),
+                ledger.total_dissipated(),
             );
             if pool_before > POOL_CONSERVATION_EPSILON {
                 assert!(
@@ -230,9 +261,10 @@ mod tests {
         let mut app = make_app();
         let mut parents = Vec::new();
         for _ in 0..10 {
-            let parent = app.world_mut().spawn(
-                EnergyPool::new(1000.0, 5000.0, 100.0, 0.01)
-            ).id();
+            let parent = app
+                .world_mut()
+                .spawn(EnergyPool::new(1000.0, 5000.0, 100.0, 0.01))
+                .id();
             for _ in 0..5 {
                 app.world_mut().spawn((
                     BaseEnergy::new(0.0),

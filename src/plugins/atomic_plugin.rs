@@ -6,9 +6,9 @@
 
 use bevy::prelude::*;
 
-use crate::simulation::{emergence, physics};
 use crate::simulation::Phase;
 use crate::simulation::states::{GameState, PlayState};
+use crate::simulation::{emergence, physics};
 use crate::world::space::update_spatial_index_after_move_system;
 
 /// Registers all Phase::AtomicLayer systems (physics chain).

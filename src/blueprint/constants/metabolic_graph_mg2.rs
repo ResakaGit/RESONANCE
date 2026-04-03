@@ -31,4 +31,3 @@ pub const ROLE_ACTIVATION_ENERGY: [f32; 12] = [
 ];
 /// Escala base (qe/s) para `ExergyEdge::max_capacity` en inferencia desde `scale_factor`.
 pub const METABOLIC_EDGE_CAPACITY_BASE: f32 = 50.0;
-

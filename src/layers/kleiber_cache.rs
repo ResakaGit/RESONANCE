@@ -13,14 +13,17 @@ use bevy::prelude::*;
 #[reflect(Component, PartialEq)]
 #[component(storage = "SparseSet")]
 pub struct KleiberCache {
-    vol_factor:  f32,
+    vol_factor: f32,
     last_radius: f32,
 }
 
 impl Default for KleiberCache {
     fn default() -> Self {
         // NaN guarantees first update() triggers recompute (NaN != any f32).
-        Self { vol_factor: 0.0, last_radius: f32::NAN }
+        Self {
+            vol_factor: 0.0,
+            last_radius: f32::NAN,
+        }
     }
 }
 
@@ -28,19 +31,26 @@ impl KleiberCache {
     /// Factor de volumen cacheado (`radius^0.75`).
     /// Cached volume factor (`radius^0.75`).
     #[inline]
-    pub fn vol_factor(&self) -> f32 { self.vol_factor }
+    pub fn vol_factor(&self) -> f32 {
+        self.vol_factor
+    }
 
     /// Radius que generó el factor cacheado.
     /// Radius that generated the cached factor.
     #[inline]
-    pub fn last_radius(&self) -> f32 { self.last_radius }
+    pub fn last_radius(&self) -> f32 {
+        self.last_radius
+    }
 
     /// Actualiza el cache si el radius cambió. Retorna `true` si se recomputó.
     /// Updates cache if radius changed. Returns `true` if recomputed.
     #[inline]
     pub fn update(&mut self, current_radius: f32) -> bool {
-        if self.last_radius == current_radius { return false; }
-        self.vol_factor = crate::blueprint::equations::exact_cache::kleiber_volume_factor(current_radius);
+        if self.last_radius == current_radius {
+            return false;
+        }
+        self.vol_factor =
+            crate::blueprint::equations::exact_cache::kleiber_volume_factor(current_radius);
         self.last_radius = current_radius;
         true
     }
@@ -53,7 +63,10 @@ mod tests {
     #[test]
     fn default_triggers_update_on_any_radius() {
         let mut c = KleiberCache::default();
-        assert!(c.update(1.0), "default last_radius=NaN should trigger update");
+        assert!(
+            c.update(1.0),
+            "default last_radius=NaN should trigger update"
+        );
     }
 
     #[test]

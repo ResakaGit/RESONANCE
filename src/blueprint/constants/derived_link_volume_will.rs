@@ -15,4 +15,3 @@ pub const SPHERE_VOLUME_DENOMINATOR: f32 = 3.0;
 
 /// Intención de movimiento considerada “cero” (evita jitter).
 pub const WILL_MOVEMENT_INTENT_SQ_EPSILON: f32 = 0.001;
-

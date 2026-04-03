@@ -30,12 +30,11 @@ pub fn scale_composition_system(
         );
 
         // Propaga solo si este pool es también hijo de otro pool.
-        let Ok(mut link) = parent_links.get_mut(pool_entity) else { continue; };
-        let new_param = propagate_fitness_to_link(
-            fitness,
-            link.primary_param(),
-            FITNESS_BLEND_RATE,
-        );
+        let Ok(mut link) = parent_links.get_mut(pool_entity) else {
+            continue;
+        };
+        let new_param =
+            propagate_fitness_to_link(fitness, link.primary_param(), FITNESS_BLEND_RATE);
         if link.primary_param() != new_param {
             link.set_primary_param(new_param);
         }
@@ -48,10 +47,10 @@ pub fn scale_composition_system(
 mod tests {
     use super::*;
     use crate::layers::{BaseEnergy, ExtractionType};
+    use crate::simulation::metabolic::pool_conservation::pool_conservation_system;
     use crate::simulation::metabolic::pool_distribution::{
         pool_dissipation_system, pool_distribution_system, pool_intake_system,
     };
-    use crate::simulation::metabolic::pool_conservation::pool_conservation_system;
 
     fn make_app() -> App {
         let mut app = App::new();
@@ -61,13 +60,16 @@ mod tests {
         app.register_type::<BaseEnergy>();
         app.register_type::<PoolConservationLedger>();
         // Full EC-4 + EC-6 + EC-7 pipeline
-        app.add_systems(Update, (
-            pool_intake_system,
-            pool_distribution_system.after(pool_intake_system),
-            pool_dissipation_system.after(pool_distribution_system),
-            pool_conservation_system.after(pool_dissipation_system),
-            scale_composition_system.after(pool_conservation_system),
-        ));
+        app.add_systems(
+            Update,
+            (
+                pool_intake_system,
+                pool_distribution_system.after(pool_intake_system),
+                pool_dissipation_system.after(pool_distribution_system),
+                pool_conservation_system.after(pool_dissipation_system),
+                scale_composition_system.after(pool_conservation_system),
+            ),
+        );
         app
     }
 
@@ -75,10 +77,12 @@ mod tests {
     //   root_pool ← intermediate_pool (has PoolParentLink) ← leaf × n
     // Returns (root_pool, intermediate_pool).
     fn spawn_two_level(app: &mut App, n_leaves: usize) -> (Entity, Entity) {
-        let root_pool = app.world_mut()
+        let root_pool = app
+            .world_mut()
             .spawn(EnergyPool::new(5000.0, 10000.0, 200.0, 0.001))
             .id();
-        let intermediate_pool = app.world_mut()
+        let intermediate_pool = app
+            .world_mut()
             .spawn((
                 EnergyPool::new(1000.0, 2000.0, 50.0, 0.01),
                 PoolParentLink::new(root_pool, ExtractionType::Competitive, 0.5),
@@ -127,14 +131,21 @@ mod tests {
 
         let param_before = {
             app.update();
-            app.world().get::<PoolParentLink>(intermediate).unwrap().primary_param()
+            app.world()
+                .get::<PoolParentLink>(intermediate)
+                .unwrap()
+                .primary_param()
         };
 
         for _ in 0..10 {
             app.update();
         }
 
-        let param_after = app.world().get::<PoolParentLink>(intermediate).unwrap().primary_param();
+        let param_after = app
+            .world()
+            .get::<PoolParentLink>(intermediate)
+            .unwrap()
+            .primary_param();
 
         // After 10 additional ticks, param must have moved from its initial value.
         // Convergence direction: toward inferred fitness (blend rate = FITNESS_BLEND_RATE per tick).
@@ -151,9 +162,17 @@ mod tests {
             app.update();
         }
 
-        let p1 = app.world().get::<PoolParentLink>(intermediate).unwrap().primary_param();
+        let p1 = app
+            .world()
+            .get::<PoolParentLink>(intermediate)
+            .unwrap()
+            .primary_param();
         app.update();
-        let p2 = app.world().get::<PoolParentLink>(intermediate).unwrap().primary_param();
+        let p2 = app
+            .world()
+            .get::<PoolParentLink>(intermediate)
+            .unwrap()
+            .primary_param();
 
         // Guard: when pool is stable, param changes by at most FITNESS_BLEND_RATE * delta.
         // We just verify both are finite and non-negative.
@@ -172,8 +191,14 @@ mod tests {
         }
 
         let link = app.world().get::<PoolParentLink>(intermediate).unwrap();
-        assert!(link.primary_param().is_finite(), "primary_param must be finite");
-        assert!(link.primary_param() >= 0.0,      "primary_param must be non-negative");
+        assert!(
+            link.primary_param().is_finite(),
+            "primary_param must be finite"
+        );
+        assert!(
+            link.primary_param() >= 0.0,
+            "primary_param must be non-negative"
+        );
     }
 
     #[test]
@@ -184,7 +209,10 @@ mod tests {
             for _ in 0..20 {
                 app.update();
             }
-            app.world().get::<PoolParentLink>(intermediate).unwrap().primary_param()
+            app.world()
+                .get::<PoolParentLink>(intermediate)
+                .unwrap()
+                .primary_param()
         };
 
         let r1 = run();
@@ -196,7 +224,8 @@ mod tests {
     fn scale_composition_pool_without_ledger_no_panic() {
         // Pool has no children → no PoolConservationLedger → system skips it.
         let mut app = make_app();
-        let root = app.world_mut()
+        let root = app
+            .world_mut()
             .spawn(EnergyPool::new(1000.0, 2000.0, 50.0, 0.01))
             .id();
         app.update();

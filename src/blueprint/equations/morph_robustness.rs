@@ -1,7 +1,8 @@
 //! Morph Robustness (R7) — pure validation functions for morphological inference.
 //! Guarantees that inferred organs are energy-viable and that transitions are hysteresis-guarded.
 
-use crate::layers::{OrganRole, OrganSpec};
+use crate::blueprint::OrganRole;
+use crate::layers::OrganSpec;
 
 // Epsilon below which an organ's scale_factor is considered "free" (no structural investment).
 const SCALE_COST_EPSILON: f32 = 1e-6;

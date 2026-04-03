@@ -21,4 +21,3 @@ pub const DISSIPATION_MULT_GAS: f32 = 1.5;
 
 /// Multiplicador de disipación en plasma.
 pub const DISSIPATION_MULT_PLASMA: f32 = 3.0;
-

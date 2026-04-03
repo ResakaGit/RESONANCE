@@ -19,8 +19,8 @@ pub struct MorphogenesisShapeParams {
 impl Default for MorphogenesisShapeParams {
     fn default() -> Self {
         Self {
-            fineness_ratio:     mg::FINENESS_DEFAULT,
-            length_scale:       0.0,
+            fineness_ratio: mg::FINENESS_DEFAULT,
+            length_scale: 0.0,
             current_shape_cost: 0.0,
         }
     }
@@ -30,14 +30,23 @@ impl MorphogenesisShapeParams {
     pub fn new(fineness_ratio: f32) -> Self {
         Self {
             fineness_ratio: fineness_ratio.clamp(mg::FINENESS_MIN, mg::FINENESS_MAX),
-            length_scale:       0.0,
+            length_scale: 0.0,
             current_shape_cost: 0.0,
         }
     }
 
-    #[inline] pub fn fineness_ratio(&self) -> f32     { self.fineness_ratio }
-    #[inline] pub fn length_scale(&self) -> f32        { self.length_scale }
-    #[inline] pub fn current_shape_cost(&self) -> f32  { self.current_shape_cost }
+    #[inline]
+    pub fn fineness_ratio(&self) -> f32 {
+        self.fineness_ratio
+    }
+    #[inline]
+    pub fn length_scale(&self) -> f32 {
+        self.length_scale
+    }
+    #[inline]
+    pub fn current_shape_cost(&self) -> f32 {
+        self.current_shape_cost
+    }
 
     /// Actualiza los tres campos con guard change detection.
     pub fn update(&mut self, fineness: f32, length_scale: f32, cost: f32) {
@@ -45,8 +54,8 @@ impl MorphogenesisShapeParams {
         if (self.fineness_ratio - f).abs() > mg::SHAPE_OPTIMIZER_EPSILON
             || (self.length_scale - length_scale).abs() > mg::SHAPE_OPTIMIZER_EPSILON
         {
-            self.fineness_ratio     = f;
-            self.length_scale       = length_scale;
+            self.fineness_ratio = f;
+            self.length_scale = length_scale;
             self.current_shape_cost = cost;
         }
     }
@@ -77,7 +86,10 @@ mod tests {
         // Primero establecer baseline con length_scale=1.0 para aislar el guard de fineness.
         p.update(3.0, 1.0, 10.0);
         p.update(3.0 + mg::SHAPE_OPTIMIZER_EPSILON * 0.5, 1.0, 10.0);
-        assert!((p.fineness_ratio() - 3.0).abs() < 1e-6, "tiny change should be guarded");
+        assert!(
+            (p.fineness_ratio() - 3.0).abs() < 1e-6,
+            "tiny change should be guarded"
+        );
     }
 
     #[test]
@@ -97,6 +109,11 @@ mod tests {
         let length_budget = (r * 2.0) * f;
         let radius_base = (r * 2.0) / f;
         let ratio = length_budget / radius_base;
-        assert!((ratio - f * f).abs() < 1e-4, "ratio {} ≈ fineness² {}", ratio, f * f);
+        assert!(
+            (ratio - f * f).abs() < 1e-4,
+            "ratio {} ≈ fineness² {}",
+            ratio,
+            f * f
+        );
     }
 }

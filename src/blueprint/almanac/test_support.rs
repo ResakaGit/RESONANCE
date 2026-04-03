@@ -6,7 +6,9 @@ use super::catalog::AlchemicalAlmanac;
 use super::element_def::ElementDef;
 use super::paths::{load_element_defs_with_paths, scan_element_ron_paths};
 
-fn build_almanac_from_manifest_ron_files(relative_to_manifest: &str) -> Result<AlchemicalAlmanac, String> {
+fn build_almanac_from_manifest_ron_files(
+    relative_to_manifest: &str,
+) -> Result<AlchemicalAlmanac, String> {
     let dir = Path::new(env!("CARGO_MANIFEST_DIR")).join(relative_to_manifest);
     let paths = scan_element_ron_paths(&dir);
     if paths.is_empty() {

@@ -1,10 +1,10 @@
 //! IWG-3 — Terrain mesh visual equations: cell color from energy field + terrain slope.
 
+use crate::blueprint::MatterState;
 use crate::blueprint::constants::inferred_world_geometry::{
     QE_BRIGHTNESS_MAX, QE_BRIGHTNESS_MIN, SLOPE_SHADOW_FACTOR, SLOPE_SHADOW_THRESHOLD,
     STATE_SATURATION, TERRAIN_BAND_COLOR,
 };
-use crate::layers::MatterState;
 use crate::topology::{TerrainField, TerrainVisuals};
 use crate::worldgen::EnergyFieldGrid;
 
@@ -24,9 +24,9 @@ pub fn terrain_cell_color(
     let brightness = QE_BRIGHTNESS_MIN + (QE_BRIGHTNESS_MAX - QE_BRIGHTNESS_MIN) * qe_t;
 
     let sat_idx = match matter_state {
-        MatterState::Solid  => 0,
+        MatterState::Solid => 0,
         MatterState::Liquid => 1,
-        MatterState::Gas    => 2,
+        MatterState::Gas => 2,
         MatterState::Plasma => 3,
     };
     let saturation = STATE_SATURATION[sat_idx];
@@ -78,7 +78,12 @@ pub fn build_terrain_visuals(grid: &EnergyFieldGrid, terrain: &TerrainField) -> 
         let element_band = ((cell.dominant_frequency_hz / 100.0) as u8).min(7);
         let slope = terrain.slope.get(idx).copied().unwrap_or(0.0);
 
-        vertex_colors.push(terrain_cell_color(element_band, qe_norm, cell.matter_state, slope));
+        vertex_colors.push(terrain_cell_color(
+            element_band,
+            qe_norm,
+            cell.matter_state,
+            slope,
+        ));
     }
 
     TerrainVisuals { vertex_colors }
@@ -113,15 +118,15 @@ mod tests {
     #[test]
     fn high_qe_brighter_than_low() {
         let bright = terrain_cell_color(7, 1.0, MatterState::Solid, 0.0);
-        let dim    = terrain_cell_color(7, 0.0, MatterState::Solid, 0.0);
+        let dim = terrain_cell_color(7, 0.0, MatterState::Solid, 0.0);
         let lum_bright = 0.2126 * bright[0] + 0.7152 * bright[1] + 0.0722 * bright[2];
-        let lum_dim    = 0.2126 * dim[0]    + 0.7152 * dim[1]    + 0.0722 * dim[2];
+        let lum_dim = 0.2126 * dim[0] + 0.7152 * dim[1] + 0.0722 * dim[2];
         assert!(lum_bright > lum_dim, "high qe should be brighter");
     }
 
     #[test]
     fn slope_shadow_darkens() {
-        let flat  = terrain_cell_color(3, 0.5, MatterState::Solid, 0.0);
+        let flat = terrain_cell_color(3, 0.5, MatterState::Solid, 0.0);
         let steep = terrain_cell_color(3, 0.5, MatterState::Solid, 0.5);
         assert!(steep[0] < flat[0], "slope shadow should darken r");
         assert!(steep[1] < flat[1], "slope shadow should darken g");
@@ -131,7 +136,12 @@ mod tests {
     #[test]
     fn channels_clamped_alpha_one() {
         for band in 0..8u8 {
-            for &state in &[MatterState::Solid, MatterState::Liquid, MatterState::Gas, MatterState::Plasma] {
+            for &state in &[
+                MatterState::Solid,
+                MatterState::Liquid,
+                MatterState::Gas,
+                MatterState::Plasma,
+            ] {
                 let c = terrain_cell_color(band, 1.5, state, 10.0);
                 assert!(c[0] >= 0.0 && c[0] <= 1.0);
                 assert!(c[1] >= 0.0 && c[1] <= 1.0);

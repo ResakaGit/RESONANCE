@@ -7,7 +7,10 @@
 use bevy::prelude::*;
 
 use crate::blueprint::equations::bilateral_quadruped_attachments;
-use crate::layers::{AmbientPressure, BodyPlanLayout, CapabilitySet, HasInferredShape, InferenceProfile, SpatialVolume};
+use crate::layers::{
+    AmbientPressure, BodyPlanLayout, CapabilitySet, HasInferredShape, InferenceProfile,
+    SpatialVolume,
+};
 
 /// Fallback: populates `BodyPlanLayout` for MOVE entities WITHOUT AmbientPressure (L6).
 ///
@@ -21,14 +24,22 @@ pub fn body_plan_layout_inference_system(
             With<HasInferredShape>,
             With<CapabilitySet>,
             Without<AmbientPressure>,
-            Or<(Changed<SpatialVolume>, Changed<InferenceProfile>, Without<BodyPlanLayout>)>,
+            Or<(
+                Changed<SpatialVolume>,
+                Changed<InferenceProfile>,
+                Without<BodyPlanLayout>,
+            )>,
         ),
     >,
     cap_query: Query<&CapabilitySet>,
 ) {
     for (entity, volume, profile_opt) in &query {
-        let Ok(caps) = cap_query.get(entity) else { continue; };
-        if !caps.has(CapabilitySet::MOVE) { continue; }
+        let Ok(caps) = cap_query.get(entity) else {
+            continue;
+        };
+        if !caps.has(CapabilitySet::MOVE) {
+            continue;
+        }
 
         let mobility = profile_opt.map(|p| p.mobility_bias).unwrap_or(0.5);
         let (positions, directions, symmetry, count) =
@@ -44,7 +55,9 @@ mod tests {
     use bevy::prelude::*;
 
     use super::body_plan_layout_inference_system;
-    use crate::layers::{BodyPlanLayout, CapabilitySet, HasInferredShape, InferenceProfile, SpatialVolume};
+    use crate::layers::{
+        BodyPlanLayout, CapabilitySet, HasInferredShape, InferenceProfile, SpatialVolume,
+    };
 
     fn test_app() -> App {
         let mut app = App::new();
@@ -57,12 +70,15 @@ mod tests {
         let mut app = test_app();
         app.add_systems(Update, body_plan_layout_inference_system);
 
-        let entity = app.world_mut().spawn((
-            SpatialVolume::new(0.5),
-            InferenceProfile::new(0.8, 0.8, 0.3, 0.6),
-            CapabilitySet::new(CapabilitySet::MOVE | CapabilitySet::GROW),
-            HasInferredShape,
-        )).id();
+        let entity = app
+            .world_mut()
+            .spawn((
+                SpatialVolume::new(0.5),
+                InferenceProfile::new(0.8, 0.8, 0.3, 0.6),
+                CapabilitySet::new(CapabilitySet::MOVE | CapabilitySet::GROW),
+                HasInferredShape,
+            ))
+            .id();
         app.update();
 
         assert!(
@@ -76,11 +92,14 @@ mod tests {
         let mut app = test_app();
         app.add_systems(Update, body_plan_layout_inference_system);
 
-        let entity = app.world_mut().spawn((
-            SpatialVolume::new(0.5),
-            CapabilitySet::new(CapabilitySet::GROW | CapabilitySet::BRANCH),
-            HasInferredShape,
-        )).id();
+        let entity = app
+            .world_mut()
+            .spawn((
+                SpatialVolume::new(0.5),
+                CapabilitySet::new(CapabilitySet::GROW | CapabilitySet::BRANCH),
+                HasInferredShape,
+            ))
+            .id();
         app.update();
 
         assert!(
@@ -96,11 +115,14 @@ mod tests {
         let mut app = test_app();
         app.add_systems(Update, body_plan_layout_inference_system);
 
-        let entity = app.world_mut().spawn((
-            SpatialVolume::new(1.0),
-            CapabilitySet::new(CapabilitySet::MOVE),
-            HasInferredShape,
-        )).id();
+        let entity = app
+            .world_mut()
+            .spawn((
+                SpatialVolume::new(1.0),
+                CapabilitySet::new(CapabilitySet::MOVE),
+                HasInferredShape,
+            ))
+            .id();
         app.update();
 
         let layout = app.world().entity(entity).get::<BodyPlanLayout>().unwrap();

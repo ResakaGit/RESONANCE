@@ -8,113 +8,113 @@ use crate::blueprint::equations::derived_thresholds::{
 };
 use crate::blueprint::{ElementId, IdGenerator};
 use crate::entities::builder::EntityBuilder;
+use crate::layers::organ::LifecycleStageCache;
 use crate::layers::{
     BehaviorCooldown, BehaviorIntent, BehavioralAgent, CacheScope, CapabilitySet, Faction,
     GrowthBudget, HasInferredShape, Homeostasis, InferenceProfile, MatterState,
-    MorphogenesisShapeParams, NutrientProfile, PerformanceCachePolicy, RelationalTag,
-    TrophicClass, TrophicConsumer, TrophicState,
+    MorphogenesisShapeParams, NutrientProfile, PerformanceCachePolicy, RelationalTag, TrophicClass,
+    TrophicConsumer, TrophicState,
 };
-use crate::layers::organ::LifecycleStageCache;
 use crate::layers::{LifecycleStage, OrganManifest, OrganRole, OrganSpec};
 use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 
 // ── Element symbols ──────────────────────────────────────────────────────────
-const AQUA_ELEMENT:   &str = "Aqua";
-const IGNIS_ELEMENT:  &str = "Ignis";
-const TERRA_ELEMENT:  &str = "Terra";
+const AQUA_ELEMENT: &str = "Aqua";
+const IGNIS_ELEMENT: &str = "Ignis";
+const TERRA_ELEMENT: &str = "Terra";
 
 // ── Célula ───────────────────────────────────────────────────────────────────
-const CELULA_QE:            f32 = 150.0;
-const CELULA_RADIUS:        f32 = 0.12;
+const CELULA_QE: f32 = 150.0;
+const CELULA_RADIUS: f32 = 0.12;
 /// Disipación celular = metabolismo fase gaseosa (Axiom 4).
 /// Cell dissipation = gas-phase metabolism (Axiom 4).
-const CELULA_DISSIPATION:   f32 = DISSIPATION_GAS; // 0.08
-const CELULA_BOND:          f32 = 600.0;
-const CELULA_CONDUCTIVITY:  f32 = 2.5;
-const CELULA_BUF_MAX:       f32 = 180.0;
-const CELULA_IN_VALVE:      f32 = 0.8;
-const CELULA_OUT_VALVE:     f32 = 0.4;
-const CELULA_BUF_INIT:      f32 = 60.0;
-const CELULA_NUTRIENT_C:    f32 = 65.0;
-const CELULA_NUTRIENT_N:    f32 = 55.0;
-const CELULA_NUTRIENT_P:    f32 = 25.0;
-const CELULA_NUTRIENT_W:    f32 = 95.0;
-const CELULA_BIOMASS:       f32 = 12.0;
-const CELULA_LIMITER:       u8  = 1;
-const CELULA_EFFICIENCY:    f32 = 0.75;
-const CELULA_ADAPT_RATE:    f32 = 5.0;
-const CELULA_QE_COST_HZ:    f32 = 0.2;
-const CELULA_STAB_BAND:     f32 = 8.0;
-const CELULA_INTAKE_RATE:   f32 = 5.0;
-const CELULA_SATIATION:     f32 = 0.5;  // detritivore starts mid-hungry
+const CELULA_DISSIPATION: f32 = DISSIPATION_GAS; // 0.08
+const CELULA_BOND: f32 = 600.0;
+const CELULA_CONDUCTIVITY: f32 = 2.5;
+const CELULA_BUF_MAX: f32 = 180.0;
+const CELULA_IN_VALVE: f32 = 0.8;
+const CELULA_OUT_VALVE: f32 = 0.4;
+const CELULA_BUF_INIT: f32 = 60.0;
+const CELULA_NUTRIENT_C: f32 = 65.0;
+const CELULA_NUTRIENT_N: f32 = 55.0;
+const CELULA_NUTRIENT_P: f32 = 25.0;
+const CELULA_NUTRIENT_W: f32 = 95.0;
+const CELULA_BIOMASS: f32 = 12.0;
+const CELULA_LIMITER: u8 = 1;
+const CELULA_EFFICIENCY: f32 = 0.75;
+const CELULA_ADAPT_RATE: f32 = 5.0;
+const CELULA_QE_COST_HZ: f32 = 0.2;
+const CELULA_STAB_BAND: f32 = 8.0;
+const CELULA_INTAKE_RATE: f32 = 5.0;
+const CELULA_SATIATION: f32 = 0.5; // detritivore starts mid-hungry
 const CELULA_CAPS: u8 = CapabilitySet::GROW | CapabilitySet::REPRODUCE;
 
 // ── Virus ────────────────────────────────────────────────────────────────────
-const VIRUS_QE:             f32 = 25.0;
-const VIRUS_RADIUS:         f32 = 0.04;
+const VIRUS_QE: f32 = 25.0;
+const VIRUS_RADIUS: f32 = 0.04;
 /// Disipación viral = 6× plasma: inestabilidad extrema sin estado estacionario.
 /// Viral dissipation = 6× plasma: extreme instability with no steady state.
 // DEBT: extreme dissipation models viral instability (no steady state)
-const VIRUS_DISSIPATION:    f32 = DISSIPATION_PLASMA * 6.0; // 1.5
-const VIRUS_BOND:           f32 = 3000.0;
-const VIRUS_CONDUCTIVITY:   f32 = 0.1;
-const VIRUS_INJECTOR_QE:    f32 = 30.0;
-const VIRUS_INJECTOR_FREQ:  f32 = 450.0;
-const VIRUS_INJECTOR_R:     f32 = 0.2;
-const VIRUS_INTAKE_RATE:    f32 = 8.0;
-const VIRUS_SATIATION:      f32 = 0.2;  // carnivore/parasite starts very hungry
+const VIRUS_DISSIPATION: f32 = DISSIPATION_PLASMA * 6.0; // 1.5
+const VIRUS_BOND: f32 = 3000.0;
+const VIRUS_CONDUCTIVITY: f32 = 0.1;
+const VIRUS_INJECTOR_QE: f32 = 30.0;
+const VIRUS_INJECTOR_FREQ: f32 = 450.0;
+const VIRUS_INJECTOR_R: f32 = 0.2;
+const VIRUS_INTAKE_RATE: f32 = 8.0;
+const VIRUS_SATIATION: f32 = 0.2; // carnivore/parasite starts very hungry
 const VIRUS_CAPS: u8 = CapabilitySet::REPRODUCE;
 
 // ── Planta ───────────────────────────────────────────────────────────────────
-const PLANTA_QE:            f32 = 200.0;
-const PLANTA_RADIUS:        f32 = 0.25;
+const PLANTA_QE: f32 = 200.0;
+const PLANTA_RADIUS: f32 = 0.25;
 /// Disipación vegetal = 2.5× líquido: metabolismo entre sólido y gaseoso.
 /// Plant dissipation = 2.5× liquid: metabolism between solid and gas phases.
-const PLANTA_DISSIPATION:   f32 = DISSIPATION_LIQUID * 2.5; // 0.05
-const PLANTA_BOND:          f32 = 2000.0;
-const PLANTA_CONDUCTIVITY:  f32 = 1.2;
-const PLANTA_BUF_MAX:       f32 = 350.0;
-const PLANTA_IN_VALVE:      f32 = 0.6;
-const PLANTA_OUT_VALVE:     f32 = 0.3;
-const PLANTA_BUF_INIT:      f32 = 80.0;
-const PLANTA_NUTRIENT_C:    f32 = 80.0;
-const PLANTA_NUTRIENT_N:    f32 = 60.0;
-const PLANTA_NUTRIENT_P:    f32 = 40.0;
-const PLANTA_NUTRIENT_W:    f32 = 70.0;
-const PLANTA_BIOMASS:       f32 = 30.0;
-const PLANTA_LIMITER:       u8  = 0;
-const PLANTA_EFFICIENCY:    f32 = 0.85;
+const PLANTA_DISSIPATION: f32 = DISSIPATION_LIQUID * 2.5; // 0.05
+const PLANTA_BOND: f32 = 2000.0;
+const PLANTA_CONDUCTIVITY: f32 = 1.2;
+const PLANTA_BUF_MAX: f32 = 350.0;
+const PLANTA_IN_VALVE: f32 = 0.6;
+const PLANTA_OUT_VALVE: f32 = 0.3;
+const PLANTA_BUF_INIT: f32 = 80.0;
+const PLANTA_NUTRIENT_C: f32 = 80.0;
+const PLANTA_NUTRIENT_N: f32 = 60.0;
+const PLANTA_NUTRIENT_P: f32 = 40.0;
+const PLANTA_NUTRIENT_W: f32 = 70.0;
+const PLANTA_BIOMASS: f32 = 30.0;
+const PLANTA_LIMITER: u8 = 0;
+const PLANTA_EFFICIENCY: f32 = 0.85;
 const PLANTA_CAPS: u8 =
     CapabilitySet::GROW | CapabilitySet::BRANCH | CapabilitySet::ROOT | CapabilitySet::PHOTOSYNTH;
-const PLANTA_DELTA_QE:  f32 = 1.5;   // ambient pressure from terrain/soil
-const PLANTA_VISCOSITY: f32 = 1.2;   // rooted — high ground resistance
-const PLANTA_T_CORE:    f32 = 573.0; // internal metabolic temperature (K)
-const PLANTA_T_ENV:     f32 = 284.0; // ambient environment temperature (K)
+const PLANTA_DELTA_QE: f32 = 1.5; // ambient pressure from terrain/soil
+const PLANTA_VISCOSITY: f32 = 1.2; // rooted — high ground resistance
+const PLANTA_T_CORE: f32 = 573.0; // internal metabolic temperature (K)
+const PLANTA_T_ENV: f32 = 284.0; // ambient environment temperature (K)
 
 // ── Animal ───────────────────────────────────────────────────────────────────
-const ANIMAL_QE:            f32 = 450.0;
-const ANIMAL_RADIUS:        f32 = 0.55;
+const ANIMAL_QE: f32 = 450.0;
+const ANIMAL_RADIUS: f32 = 0.55;
 /// Disipación animal = 1.5× gas: metabolismo más intenso que una célula.
 /// Animal dissipation = 1.5× gas: hotter metabolism than a cell.
-const ANIMAL_DISSIPATION:   f32 = DISSIPATION_GAS * 1.5; // 0.12
-const ANIMAL_BOND:          f32 = 1200.0;
-const ANIMAL_CONDUCTIVITY:  f32 = 1.8;
-const ANIMAL_BUF_MAX:       f32 = 500.0;
-const ANIMAL_IN_VALVE:      f32 = 0.7;
-const ANIMAL_OUT_VALVE:     f32 = 0.6;
-const ANIMAL_BUF_INIT:      f32 = 150.0;
-const ANIMAL_ADAPT_RATE:    f32 = 3.0;
-const ANIMAL_QE_COST_HZ:    f32 = 0.1;
-const ANIMAL_STAB_BAND:     f32 = 5.0;
-const ANIMAL_INTAKE_RATE:   f32 = 15.0;
-const ANIMAL_SATIATION:     f32 = 0.3;
-const ANIMAL_NUTRIENT_C:    f32 = 50.0;
-const ANIMAL_NUTRIENT_N:    f32 = 70.0;
-const ANIMAL_NUTRIENT_P:    f32 = 30.0;
-const ANIMAL_NUTRIENT_W:    f32 = 80.0;
-const ANIMAL_BIOMASS:       f32 = 45.0;
-const ANIMAL_LIMITER:       u8  = 0;
-const ANIMAL_EFFICIENCY:    f32 = 0.70;
+const ANIMAL_DISSIPATION: f32 = DISSIPATION_GAS * 1.5; // 0.12
+const ANIMAL_BOND: f32 = 1200.0;
+const ANIMAL_CONDUCTIVITY: f32 = 1.8;
+const ANIMAL_BUF_MAX: f32 = 500.0;
+const ANIMAL_IN_VALVE: f32 = 0.7;
+const ANIMAL_OUT_VALVE: f32 = 0.6;
+const ANIMAL_BUF_INIT: f32 = 150.0;
+const ANIMAL_ADAPT_RATE: f32 = 3.0;
+const ANIMAL_QE_COST_HZ: f32 = 0.1;
+const ANIMAL_STAB_BAND: f32 = 5.0;
+const ANIMAL_INTAKE_RATE: f32 = 15.0;
+const ANIMAL_SATIATION: f32 = 0.3;
+const ANIMAL_NUTRIENT_C: f32 = 50.0;
+const ANIMAL_NUTRIENT_N: f32 = 70.0;
+const ANIMAL_NUTRIENT_P: f32 = 30.0;
+const ANIMAL_NUTRIENT_W: f32 = 80.0;
+const ANIMAL_BIOMASS: f32 = 45.0;
+const ANIMAL_LIMITER: u8 = 0;
+const ANIMAL_EFFICIENCY: f32 = 0.70;
 const ANIMAL_CAPS: u8 =
     CapabilitySet::GROW | CapabilitySet::MOVE | CapabilitySet::SENSE | CapabilitySet::REPRODUCE;
 
@@ -137,9 +137,24 @@ pub fn spawn_celula(
         .wave(ElementId::from_name(AQUA_ELEMENT))
         .flow(Vec2::ZERO, CELULA_DISSIPATION)
         .matter(MatterState::Liquid, CELULA_BOND, CELULA_CONDUCTIVITY)
-        .motor(CELULA_BUF_MAX, CELULA_IN_VALVE, CELULA_OUT_VALVE, CELULA_BUF_INIT)
-        .homeostasis(Homeostasis::new(CELULA_ADAPT_RATE, CELULA_QE_COST_HZ, CELULA_STAB_BAND, true))
-        .nutrient(CELULA_NUTRIENT_C, CELULA_NUTRIENT_N, CELULA_NUTRIENT_P, CELULA_NUTRIENT_W)
+        .motor(
+            CELULA_BUF_MAX,
+            CELULA_IN_VALVE,
+            CELULA_OUT_VALVE,
+            CELULA_BUF_INIT,
+        )
+        .homeostasis(Homeostasis::new(
+            CELULA_ADAPT_RATE,
+            CELULA_QE_COST_HZ,
+            CELULA_STAB_BAND,
+            true,
+        ))
+        .nutrient(
+            CELULA_NUTRIENT_C,
+            CELULA_NUTRIENT_N,
+            CELULA_NUTRIENT_P,
+            CELULA_NUTRIENT_W,
+        )
         .growth_budget(CELULA_BIOMASS, CELULA_LIMITER, CELULA_EFFICIENCY)
         .sim_world_layout(layout)
         .spawn(commands);
@@ -152,7 +167,12 @@ pub fn spawn_celula(
         HasInferredShape,
         LifecycleStageCache::default(),
         MorphogenesisShapeParams::default(),
-        PerformanceCachePolicy { enabled: true, scope: CacheScope::StableWindow, version_tag: 1, dependency_signature: 0 },
+        PerformanceCachePolicy {
+            enabled: true,
+            scope: CacheScope::StableWindow,
+            version_tag: 1,
+            dependency_signature: 0,
+        },
     ));
     entity
 }
@@ -186,7 +206,12 @@ pub fn spawn_virus(
         HasInferredShape,
         LifecycleStageCache::default(),
         MorphogenesisShapeParams::default(),
-        PerformanceCachePolicy { enabled: true, scope: CacheScope::StableWindow, version_tag: 1, dependency_signature: 0 },
+        PerformanceCachePolicy {
+            enabled: true,
+            scope: CacheScope::StableWindow,
+            version_tag: 1,
+            dependency_signature: 0,
+        },
     ));
     entity
 }
@@ -201,7 +226,12 @@ pub fn spawn_planta_demo(
 ) -> Entity {
     let wid = id_gen.next_world();
     let mut manifest = OrganManifest::new(LifecycleStage::Growing);
-    for role in [OrganRole::Root, OrganRole::Stem, OrganRole::Leaf, OrganRole::Leaf] {
+    for role in [
+        OrganRole::Root,
+        OrganRole::Stem,
+        OrganRole::Leaf,
+        OrganRole::Leaf,
+    ] {
         manifest.push(OrganSpec::new(role, 1, 1.0));
     }
     let entity = EntityBuilder::new()
@@ -212,8 +242,18 @@ pub fn spawn_planta_demo(
         .wave(ElementId::from_name(TERRA_ELEMENT))
         .flow(Vec2::ZERO, PLANTA_DISSIPATION)
         .matter(MatterState::Solid, PLANTA_BOND, PLANTA_CONDUCTIVITY)
-        .motor(PLANTA_BUF_MAX, PLANTA_IN_VALVE, PLANTA_OUT_VALVE, PLANTA_BUF_INIT)
-        .nutrient(PLANTA_NUTRIENT_C, PLANTA_NUTRIENT_N, PLANTA_NUTRIENT_P, PLANTA_NUTRIENT_W)
+        .motor(
+            PLANTA_BUF_MAX,
+            PLANTA_IN_VALVE,
+            PLANTA_OUT_VALVE,
+            PLANTA_BUF_INIT,
+        )
+        .nutrient(
+            PLANTA_NUTRIENT_C,
+            PLANTA_NUTRIENT_N,
+            PLANTA_NUTRIENT_P,
+            PLANTA_NUTRIENT_W,
+        )
         .growth_budget(PLANTA_BIOMASS, PLANTA_LIMITER, PLANTA_EFFICIENCY)
         .ambient(PLANTA_DELTA_QE, PLANTA_VISCOSITY)
         .with_organ_manifest(manifest)
@@ -229,7 +269,12 @@ pub fn spawn_planta_demo(
         HasInferredShape,
         LifecycleStageCache::default(),
         MorphogenesisShapeParams::default(),
-        PerformanceCachePolicy { enabled: true, scope: CacheScope::StableWindow, version_tag: 1, dependency_signature: 0 },
+        PerformanceCachePolicy {
+            enabled: true,
+            scope: CacheScope::StableWindow,
+            version_tag: 1,
+            dependency_signature: 0,
+        },
     ));
     entity
 }
@@ -251,10 +296,20 @@ pub fn spawn_animal_demo(
         .wave(ElementId::from_name(TERRA_ELEMENT))
         .flow(Vec2::ZERO, ANIMAL_DISSIPATION)
         .matter(MatterState::Solid, ANIMAL_BOND, ANIMAL_CONDUCTIVITY)
-        .motor(ANIMAL_BUF_MAX, ANIMAL_IN_VALVE, ANIMAL_OUT_VALVE, ANIMAL_BUF_INIT)
+        .motor(
+            ANIMAL_BUF_MAX,
+            ANIMAL_IN_VALVE,
+            ANIMAL_OUT_VALVE,
+            ANIMAL_BUF_INIT,
+        )
         .will_default()
         .identity(Faction::Neutral, RelationalTag::Jungle.bit(), 1.0)
-        .homeostasis(Homeostasis::new(ANIMAL_ADAPT_RATE, ANIMAL_QE_COST_HZ, ANIMAL_STAB_BAND, true))
+        .homeostasis(Homeostasis::new(
+            ANIMAL_ADAPT_RATE,
+            ANIMAL_QE_COST_HZ,
+            ANIMAL_STAB_BAND,
+            true,
+        ))
         .ambient(0.0, 1.0) // L6: neutral biome — enables constructal body plan inference
         .sim_world_layout(layout)
         .spawn(commands);
@@ -266,14 +321,24 @@ pub fn spawn_animal_demo(
         BehaviorCooldown::default(),
         TrophicConsumer::new(TrophicClass::Herbivore, ANIMAL_INTAKE_RATE),
         TrophicState::new(ANIMAL_SATIATION),
-        NutrientProfile::new(ANIMAL_NUTRIENT_C, ANIMAL_NUTRIENT_N, ANIMAL_NUTRIENT_P, ANIMAL_NUTRIENT_W),
+        NutrientProfile::new(
+            ANIMAL_NUTRIENT_C,
+            ANIMAL_NUTRIENT_N,
+            ANIMAL_NUTRIENT_P,
+            ANIMAL_NUTRIENT_W,
+        ),
         GrowthBudget::new(ANIMAL_BIOMASS, ANIMAL_LIMITER, ANIMAL_EFFICIENCY),
         CapabilitySet::new(ANIMAL_CAPS),
         HasInferredShape,
         LifecycleStageCache::default(),
         MorphogenesisShapeParams::default(),
         InferenceProfile::new(0.5, 0.8, 0.2, 0.6), // high mobility → primate-like proportions
-        PerformanceCachePolicy { enabled: true, scope: CacheScope::StableWindow, version_tag: 1, dependency_signature: 0 },
+        PerformanceCachePolicy {
+            enabled: true,
+            scope: CacheScope::StableWindow,
+            version_tag: 1,
+            dependency_signature: 0,
+        },
     ));
     entity
 }
@@ -347,7 +412,11 @@ pub fn spawn_planet(
         .volume(stellar::PLANET_DEFAULT_RADIUS)
         .wave_from_hz(frequency_hz)
         .flow(orbital_velocity, 0.001) // near-zero dissipation in vacuum (Axiom 4)
-        .matter(MatterState::Solid, stellar::PLANET_DEFAULT_BOND, stellar::PLANET_DEFAULT_CONDUCTIVITY)
+        .matter(
+            MatterState::Solid,
+            stellar::PLANET_DEFAULT_BOND,
+            stellar::PLANET_DEFAULT_CONDUCTIVITY,
+        )
         .ambient(surface_delta_qe, 1.0) // surface: moderate viscosity, energy injection from star
         .sim_world_layout(layout)
         .spawn(commands);
@@ -372,9 +441,9 @@ mod catalog_spawn_tests {
     use crate::blueprint::{IdGenerator, WorldEntityId};
     use crate::layers::{
         AlchemicalEngine, AlchemicalInjector, BaseEnergy, BehavioralAgent, CapabilitySet,
-        FlowVector, GrowthBudget, Homeostasis, IrradianceReceiver, MatterCoherence,
-        MobaIdentity, NutrientProfile, OscillatorySignature, SpatialVolume, TrophicConsumer,
-        TrophicState, WillActuator,
+        FlowVector, GrowthBudget, Homeostasis, IrradianceReceiver, MatterCoherence, MobaIdentity,
+        NutrientProfile, OscillatorySignature, SpatialVolume, TrophicConsumer, TrophicState,
+        WillActuator,
     };
     use crate::runtime_platform::compat_2d3d::SimWorldTransformParams;
 
@@ -454,7 +523,10 @@ mod catalog_spawn_tests {
         app.update();
         let ent = app.world().entity(e);
         assert!(ent.contains::<AlchemicalInjector>(), "virus tiene inyector");
-        assert!(!ent.contains::<AlchemicalEngine>(), "virus no tiene motor propio");
+        assert!(
+            !ent.contains::<AlchemicalEngine>(),
+            "virus no tiene motor propio"
+        );
         assert!(!ent.contains::<Homeostasis>(), "virus no se adapta");
     }
 
@@ -534,6 +606,9 @@ mod catalog_spawn_tests {
         let cap = app.world().entity(e).get::<CapabilitySet>().unwrap();
         assert!(cap.flags & CapabilitySet::MOVE != 0);
         assert!(cap.flags & CapabilitySet::SENSE != 0);
-        assert!(cap.flags & CapabilitySet::PHOTOSYNTH == 0, "animal no fotosintiza");
+        assert!(
+            cap.flags & CapabilitySet::PHOTOSYNTH == 0,
+            "animal no fotosintiza"
+        );
     }
 }

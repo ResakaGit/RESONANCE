@@ -5,7 +5,11 @@ use crate::blueprint::constants::{
 
 /// Computes (hunger_fraction, energy_ratio) from engine buffer state.
 pub fn assess_energy(buffer_level: f32, buffer_cap: f32) -> (f32, f32) {
-    let ratio = if buffer_cap > 0.0 { buffer_level / buffer_cap } else { 0.0 };
+    let ratio = if buffer_cap > 0.0 {
+        buffer_level / buffer_cap
+    } else {
+        0.0
+    };
     let energy_ratio = ratio.clamp(0.0, 1.0);
     (1.0 - energy_ratio, energy_ratio)
 }
@@ -29,7 +33,12 @@ pub fn utility_forage(hunger: f32, distance: f32, urgency_bias: f32) -> f32 {
 
 /// E2: Utility score for fleeing.
 /// `threat_level` ∈ [0,1], `distance` ≥ 0, `detection_range` > 0, `resilience` ∈ [0,1].
-pub fn utility_flee(threat_level: f32, distance: f32, detection_range: f32, resilience: f32) -> f32 {
+pub fn utility_flee(
+    threat_level: f32,
+    distance: f32,
+    detection_range: f32,
+    resilience: f32,
+) -> f32 {
     if detection_range <= 0.0 {
         return 0.0;
     }

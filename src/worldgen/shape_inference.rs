@@ -16,7 +16,8 @@ use crate::blueprint::constants::{
 };
 use crate::blueprint::equations::{
     BranchRole, energy_gradient_2d, infer_organ_manifest, organ_manifest_inputs_from_state,
-    quantized_palette_index, shape_inferred_direction, shape_inferred_length, shape_inferred_resistance,
+    quantized_palette_index, shape_inferred_direction, shape_inferred_length,
+    shape_inferred_resistance,
 };
 use crate::geometry_flow::branching::{
     build_branched_tree_dyn, estimate_branch_cost, flatten_tree_to_mesh,
@@ -24,18 +25,20 @@ use crate::geometry_flow::branching::{
 use crate::geometry_flow::{
     GeometryInfluence, build_flow_mesh, build_flow_spine_painted, spine_paint_vertex_from_raw_field,
 };
-use crate::worldgen::field_visual_sample::gf1_field_linear_rgb_qe_at_position;
-use crate::layers::{BaseEnergy, CapabilitySet, GrowthBudget, InferenceProfile, LifecycleStageCache, MatterCoherence};
-use crate::worldgen::organ_inference::build_organ_mesh;
+use crate::layers::{
+    BaseEnergy, CapabilitySet, GrowthBudget, InferenceProfile, LifecycleStageCache, MatterCoherence,
+};
 use crate::rendering::quantized_color::element_id_for_world_archetype;
 use crate::rendering::quantized_color::{PaletteRegistry, QuantizedPrecision};
 use crate::runtime_platform::compat_2d3d::RenderCompatProfile;
 use crate::simulation::env_scenario::EffectiveOrganViability;
 use crate::worldgen::contracts::Materialized;
-use crate::worldgen::{EnergyFieldGrid, EnergyVisual};
+use crate::worldgen::field_visual_sample::gf1_field_linear_rgb_qe_at_position;
 use crate::worldgen::lod::{
     distance_sq_cell_to_focus, lod_band_from_distance_sq, materialization_tick_active_for_band,
 };
+use crate::worldgen::organ_inference::build_organ_mesh;
+use crate::worldgen::{EnergyFieldGrid, EnergyVisual};
 use crate::worldgen::{WorldgenLodContext, WorldgenPerfSettings};
 
 /// Marker: entity already has an inferred GF1 mesh (SparseSet, no archetype thrash).
@@ -229,8 +232,11 @@ fn resolve_organ_inference_context(
 
 #[inline]
 fn infer_manifest_from_context(ctx: OrganInferenceContext) -> crate::layers::OrganManifest {
-    let (growth_progress, fallback_viability) =
-        organ_manifest_inputs_from_state(ctx.qe_norm, ctx.growth.efficiency, ctx.growth.biomass_available);
+    let (growth_progress, fallback_viability) = organ_manifest_inputs_from_state(
+        ctx.qe_norm,
+        ctx.growth.efficiency,
+        ctx.growth.biomass_available,
+    );
     let viability = ctx.effective_viability.unwrap_or(fallback_viability);
     infer_organ_manifest(
         ctx.stage.stage,
@@ -344,7 +350,14 @@ fn build_shape_or_organ_mesh(
     fallback_qe_norm: f32,
 ) -> Mesh {
     let Some((manifest, manifest_growth)) = organ_manifest else {
-        return build_shape_mesh(influence, growth, grid, almanac, fallback_rgb, fallback_qe_norm);
+        return build_shape_mesh(
+            influence,
+            growth,
+            grid,
+            almanac,
+            fallback_rgb,
+            fallback_qe_norm,
+        );
     };
     let spine = build_flow_spine_painted(influence, |pos, inf| {
         spine_paint_vertex_from_raw_field(pos, inf, &|p| {
@@ -389,7 +402,10 @@ fn estimate_organ_cost(
                 crate::layers::GeometryPrimitive::PetalFan => 4u32,
                 crate::layers::GeometryPrimitive::Bulb => 5u32,
             };
-            (spec.count() as u32).max(1).saturating_mul(prim_w).saturating_mul(segments)
+            (spec.count() as u32)
+                .max(1)
+                .saturating_mul(prim_w)
+                .saturating_mul(segments)
         })
         .sum::<u32>()
 }
@@ -424,7 +440,10 @@ fn shape_rebuild_tick_active(
     perf: &WorldgenPerfSettings,
 ) -> bool {
     let center = grid
-        .world_pos(materialized.cell_x.max(0) as u32, materialized.cell_y.max(0) as u32)
+        .world_pos(
+            materialized.cell_x.max(0) as u32,
+            materialized.cell_y.max(0) as u32,
+        )
         .unwrap_or(bevy::math::Vec2::new(
             transform.translation.x,
             transform.translation.z,
@@ -551,8 +570,21 @@ pub fn shape_color_inference_system(mut p: ShapeInferenceParams) {
     let mut entities: Vec<Entity> = p.query.iter().map(|(entity, ..)| entity).collect();
     entities.sort_by_key(|entity| entity.to_bits());
     for entity in entities {
-        let Ok((entity, materialized, energy, visual, transform, coherence, precision, growth, stage_cache, profile, capabilities, effective_viability, inferred_albedo)) =
-            p.query.get(entity)
+        let Ok((
+            entity,
+            materialized,
+            energy,
+            visual,
+            transform,
+            coherence,
+            precision,
+            growth,
+            stage_cache,
+            profile,
+            capabilities,
+            effective_viability,
+            inferred_albedo,
+        )) = p.query.get(entity)
         else {
             continue;
         };
@@ -578,7 +610,11 @@ pub fn shape_color_inference_system(mut p: ShapeInferenceParams) {
             effective_viability,
             r.qe_norm,
         );
-        let cost = shape_mesh_cost(&r.influence, growth.copied(), organ_manifest.as_ref().map(|(m, _)| m));
+        let cost = shape_mesh_cost(
+            &r.influence,
+            growth.copied(),
+            organ_manifest.as_ref().map(|(m, _)| m),
+        );
         if p.frame.processed_this_frame.saturating_add(cost) > SHAPE_INF_MAX_PER_FRAME
             && p.frame.processed_this_frame > 0
         {
@@ -589,7 +625,11 @@ pub fn shape_color_inference_system(mut p: ShapeInferenceParams) {
         // MG-5E: modular tint por albedo inferido (luminosidad). Sin InferredAlbedo → sin cambio.
         let tint = if let Some(albedo) = inferred_albedo {
             let factor = crate::blueprint::equations::albedo_luminosity_blend(1.0, albedo.albedo());
-            [r.tint_linear[0] * factor, r.tint_linear[1] * factor, r.tint_linear[2] * factor]
+            [
+                r.tint_linear[0] * factor,
+                r.tint_linear[1] * factor,
+                r.tint_linear[2] * factor,
+            ]
         } else {
             r.tint_linear
         };
@@ -634,8 +674,20 @@ pub fn growth_morphology_system(mut p: GrowthMorphParams) {
     let mut entities: Vec<Entity> = p.query.iter().map(|(entity, ..)| entity).collect();
     entities.sort_by_key(|entity| entity.to_bits());
     for entity in entities {
-        let Ok((entity, materialized, energy, visual, transform, coherence, precision, growth, stage_cache, profile, capabilities, effective_viability)) =
-            p.query.get(entity)
+        let Ok((
+            entity,
+            materialized,
+            energy,
+            visual,
+            transform,
+            coherence,
+            precision,
+            growth,
+            stage_cache,
+            profile,
+            capabilities,
+            effective_viability,
+        )) = p.query.get(entity)
         else {
             continue;
         };
@@ -662,7 +714,11 @@ pub fn growth_morphology_system(mut p: GrowthMorphParams) {
             effective_viability,
             r.qe_norm,
         );
-        let cost = shape_mesh_cost(&r.influence, Some(*growth), organ_manifest.as_ref().map(|(m, _)| m));
+        let cost = shape_mesh_cost(
+            &r.influence,
+            Some(*growth),
+            organ_manifest.as_ref().map(|(m, _)| m),
+        );
         let used = p.frame.growth_morph_processed_this_frame;
         if used.saturating_add(cost) > MAX_GROWTH_MORPH_PER_FRAME && used > 0 {
             p.commands.entity(entity).insert(PendingGrowthMorphRebuild);
@@ -772,22 +828,8 @@ mod tests {
             rho: 1.0,
         };
         let inf = derive_geometry_influence(&input, &grid);
-        let m1 = super::build_shape_mesh(
-            &inf,
-            None,
-            &grid,
-            &almanac,
-            input.tint_rgb,
-            inf.qe_norm,
-        );
-        let m2 = super::build_shape_mesh(
-            &inf,
-            None,
-            &grid,
-            &almanac,
-            input.tint_rgb,
-            inf.qe_norm,
-        );
+        let m1 = super::build_shape_mesh(&inf, None, &grid, &almanac, input.tint_rgb, inf.qe_norm);
+        let m2 = super::build_shape_mesh(&inf, None, &grid, &almanac, input.tint_rgb, inf.qe_norm);
         assert_eq!(flow_mesh_triangle_count(&m1), flow_mesh_triangle_count(&m2));
     }
 
@@ -804,13 +846,7 @@ mod tests {
             rho: 1.0,
         };
         let inf_hi = derive_geometry_influence(&base, &grid);
-        let inf_lo = derive_geometry_influence(
-            &GeometryInferenceInput {
-                rho: 0.0,
-                ..base
-            },
-            &grid,
-        );
+        let inf_lo = derive_geometry_influence(&GeometryInferenceInput { rho: 0.0, ..base }, &grid);
         let c_hi = super::shape_mesh_cost(&inf_hi, None, None);
         let c_lo = super::shape_mesh_cost(&inf_lo, None, None);
         assert!(
@@ -840,7 +876,8 @@ mod tests {
             rho: 1.0,
         };
         let inf = derive_geometry_influence(&input, &grid);
-        let base = super::build_shape_mesh(&inf, None, &grid, &almanac, input.tint_rgb, inf.qe_norm);
+        let base =
+            super::build_shape_mesh(&inf, None, &grid, &almanac, input.tint_rgb, inf.qe_norm);
         let fallback = super::build_shape_or_organ_mesh(
             &inf,
             None,

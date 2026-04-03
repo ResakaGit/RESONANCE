@@ -70,7 +70,10 @@ fn animal_satiation_decays() {
     let (animal, _) = spawn_scene(&mut app);
 
     let initial = app.world().get::<TrophicState>(animal).unwrap().satiation;
-    assert!((initial - 0.3).abs() < 0.05, "initial satiation ~0.3, got {initial}");
+    assert!(
+        (initial - 0.3).abs() < 0.05,
+        "initial satiation ~0.3, got {initial}"
+    );
 
     run_ticks(&mut app, 200);
 
@@ -142,5 +145,8 @@ fn animal_has_behavior_intent() {
     let (animal, _) = spawn_scene(&mut app);
 
     let intent = app.world().get::<BehaviorIntent>(animal);
-    assert!(intent.is_some(), "animal must have BehaviorIntent component");
+    assert!(
+        intent.is_some(),
+        "animal must have BehaviorIntent component"
+    );
 }

@@ -8,26 +8,34 @@ pub fn aggregate_signal(local: f32, regional: f32, global: f32, weights: [f32; 3
 /// Relevancia de una escala para un horizonte de planificación dado.
 /// Gaussiana: más relevante cuando horizon ≈ tau.
 pub fn scale_relevance(horizon_ticks: u32, scale_tau: u32) -> f32 {
-    if scale_tau == 0 { return 1.0; }
+    if scale_tau == 0 {
+        return 1.0;
+    }
     let ratio = horizon_ticks as f32 / scale_tau as f32;
-    (-(ratio - 1.0).powi(2)).exp()  // peaked at horizon == tau
+    (-(ratio - 1.0).powi(2)).exp() // peaked at horizon == tau
 }
 
 /// Gradiente de señal entre escalas: dirección de movimiento óptimo.
 pub fn information_gradient(local: f32, regional: f32, scale_distance: f32) -> f32 {
-    if scale_distance <= 0.0 { return 0.0; }
+    if scale_distance <= 0.0 {
+        return 0.0;
+    }
     (regional - local) / scale_distance
 }
 
 /// Atenuación de señal con la distancia (ley de potencias).
 pub fn signal_attenuation(base_signal: f32, distance: f32, attenuation_exp: f32) -> f32 {
-    if distance <= 0.0 { return base_signal; }
+    if distance <= 0.0 {
+        return base_signal;
+    }
     base_signal / (1.0 + distance.powf(attenuation_exp))
 }
 
 /// Ruido de información: incertidumbre al agregar señales heterogéneas.
 pub fn aggregation_noise(n_sources: u32, source_variance: f32) -> f32 {
-    if n_sources == 0 { return source_variance; }
+    if n_sources == 0 {
+        return source_variance;
+    }
     source_variance / (n_sources as f32).sqrt()
 }
 
@@ -37,7 +45,7 @@ mod tests {
 
     #[test]
     fn aggregate_signal_uniform_weights() {
-        let s = aggregate_signal(3.0, 6.0, 9.0, [1.0/3.0, 1.0/3.0, 1.0/3.0]);
+        let s = aggregate_signal(3.0, 6.0, 9.0, [1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0]);
         assert!((s - 6.0).abs() < 1e-4);
     }
 

@@ -25,7 +25,11 @@ pub fn composite_fitness(
         memes as f32 / 16.0,
         coalitions as f32 / 8.0,
     ];
-    normalized.iter().zip(weights.iter()).map(|(v, w)| v * w).sum()
+    normalized
+        .iter()
+        .zip(weights.iter())
+        .map(|(v, w)| v * w)
+        .sum()
 }
 
 /// Intra-world genome diversity: mean pairwise distance among biases.
@@ -34,7 +38,9 @@ pub fn composite_fitness(
 /// does not prescribe what they should be.
 /// Returns [0, 2] — 0 = monoculture, 2 = max diversity.
 pub fn genome_diversity(biases: &[[f32; 4]]) -> f32 {
-    if biases.len() < 2 { return 0.0; }
+    if biases.len() < 2 {
+        return 0.0;
+    }
     let mut sum = 0.0_f32;
     let mut count = 0u32;
     for i in 0..biases.len() {
@@ -50,13 +56,18 @@ pub fn genome_diversity(biases: &[[f32; 4]]) -> f32 {
 /// Euclidean distance in 4D bias space.
 fn euclidean_4d(a: &[f32; 4], b: &[f32; 4]) -> f32 {
     let mut sq = 0.0;
-    for k in 0..4 { let d = a[k] - b[k]; sq += d * d; }
+    for k in 0..4 {
+        let d = a[k] - b[k];
+        sq += d * d;
+    }
     sq.sqrt()
 }
 
 /// Tournament selection: sample `k` random indices, return the one with best fitness.
 pub fn tournament_select(fitnesses: &[f32], k: usize, rng_state: u64) -> usize {
-    if fitnesses.is_empty() { return 0; }
+    if fitnesses.is_empty() {
+        return 0;
+    }
     let k = k.max(1).min(fitnesses.len());
     let mut best_idx = 0;
     let mut best_val = f32::NEG_INFINITY;
@@ -79,7 +90,11 @@ pub fn crossover_uniform(a: &[f32; 4], b: &[f32; 4], rng_state: u64) -> [f32; 4]
     let mut s = rng_state;
     for i in 0..4 {
         s = determinism::next_u64(s);
-        result[i] = if determinism::unit_f32(s) < 0.5 { a[i] } else { b[i] };
+        result[i] = if determinism::unit_f32(s) < 0.5 {
+            a[i]
+        } else {
+            b[i]
+        };
     }
     result
 }
@@ -126,12 +141,12 @@ pub fn self_adaptive_mutate(
 /// `branch_radius_fraction`: fraction of trunk radius per branch.
 #[derive(Debug, Clone)]
 pub struct BranchPlan {
-    pub count:           usize,
+    pub count: usize,
     pub attach_fractions: [f32; 8],
-    pub angles:          [f32; 8],
+    pub angles: [f32; 8],
     pub length_fraction: f32,
     pub radius_fraction: f32,
-    pub flexibility:     f32,
+    pub flexibility: f32,
 }
 
 /// Derive trunk geometry parameters from genome biases.
@@ -144,12 +159,12 @@ pub fn trunk_params_from_genome(
     branching_bias: f32,
     resilience: f32,
 ) -> (f32, f32, f32, f32, f32, u32) {
-    let length    = 0.5 + growth_bias * 3.5;
-    let radius    = 0.15 + (1.0 - growth_bias) * 0.6;
-    let tilt      = mobility_bias * 1.2;
+    let length = 0.5 + growth_bias * 3.5;
+    let radius = 0.15 + (1.0 - growth_bias) * 0.6;
+    let tilt = mobility_bias * 1.2;
     let resistance = 0.1 + resilience * 0.9;
-    let detail    = 0.4 + branching_bias * 0.6;
-    let segments  = 6 + (branching_bias * 18.0) as u32;
+    let detail = 0.4 + branching_bias * 0.6;
+    let segments = 6 + (branching_bias * 18.0) as u32;
     (length, radius, tilt, resistance, detail, segments)
 }
 
@@ -191,7 +206,10 @@ mod tests {
     #[test]
     fn composite_fitness_max_inputs() {
         let f = composite_fitness(64, 100, 16, 5, 16, 8, &[1.0; 6]);
-        assert!((f - 6.0).abs() < 1e-3, "max fitness should be ~6.0, got {f}");
+        assert!(
+            (f - 6.0).abs() < 1e-3,
+            "max fitness should be ~6.0, got {f}"
+        );
     }
 
     #[test]
@@ -211,7 +229,10 @@ mod tests {
     #[test]
     fn tournament_select_deterministic() {
         let fitnesses = [0.1, 0.5, 0.9, 0.3, 0.7];
-        assert_eq!(tournament_select(&fitnesses, 3, 42), tournament_select(&fitnesses, 3, 42));
+        assert_eq!(
+            tournament_select(&fitnesses, 3, 42),
+            tournament_select(&fitnesses, 3, 42)
+        );
     }
 
     #[test]
@@ -219,9 +240,14 @@ mod tests {
         let fitnesses = [0.0, 0.0, 0.0, 0.0, 1.0];
         let mut best_count = 0;
         for seed in 0..100 {
-            if tournament_select(&fitnesses, 3, seed * 7 + 13) == 4 { best_count += 1; }
+            if tournament_select(&fitnesses, 3, seed * 7 + 13) == 4 {
+                best_count += 1;
+            }
         }
-        assert!(best_count > 20, "should frequently select best: {best_count}/100");
+        assert!(
+            best_count > 20,
+            "should frequently select best: {best_count}/100"
+        );
     }
 
     #[test]

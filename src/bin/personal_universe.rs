@@ -4,7 +4,11 @@
 
 fn main() {
     let input: String = std::env::args().skip(1).collect::<Vec<_>>().join(" ");
-    let input = if input.is_empty() { "resonance".to_string() } else { input };
+    let input = if input.is_empty() {
+        "resonance".to_string()
+    } else {
+        input
+    };
 
     println!("\n  Generating universe for: \"{input}\"\n");
 

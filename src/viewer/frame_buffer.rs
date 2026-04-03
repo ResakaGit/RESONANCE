@@ -87,16 +87,16 @@ fn thermal_ramp(t: f32, freq_hue: f32) -> (u8, u8, u8) {
     // Base thermal: black → blue → cyan → green → yellow → white.
     let (r, g, b) = if t < 0.2 {
         let s = t / 0.2;
-        (0.0, 0.0, s * 0.5)              // black → dark blue
+        (0.0, 0.0, s * 0.5) // black → dark blue
     } else if t < 0.4 {
         let s = (t - 0.2) / 0.2;
-        (0.0, s * 0.5, 0.5)              // dark blue → cyan
+        (0.0, s * 0.5, 0.5) // dark blue → cyan
     } else if t < 0.6 {
         let s = (t - 0.4) / 0.2;
         (0.0, 0.5 + s * 0.5, 0.5 - s * 0.3) // cyan → green
     } else if t < 0.8 {
         let s = (t - 0.6) / 0.2;
-        (s * 0.8, 1.0, 0.2 - s * 0.2)   // green → yellow
+        (s * 0.8, 1.0, 0.2 - s * 0.2) // green → yellow
     } else {
         let s = (t - 0.8) / 0.2;
         (0.8 + s * 0.2, 1.0 - s * 0.3, s * 0.5) // yellow → warm white
@@ -142,10 +142,10 @@ pub fn render_frame_circular(
     let r = cx - 1.0;
 
     // Pre-compute entity/behavioral positions as a lookup set.
-    let ent_set: std::collections::HashSet<(u32, u32)> = entity_positions.iter()
-        .map(|&(x, y, _)| (x, y)).collect();
-    let beh_set: std::collections::HashSet<(u32, u32)> = behavioral_positions.iter()
-        .copied().collect();
+    let ent_set: std::collections::HashSet<(u32, u32)> =
+        entity_positions.iter().map(|&(x, y, _)| (x, y)).collect();
+    let beh_set: std::collections::HashSet<(u32, u32)> =
+        behavioral_positions.iter().copied().collect();
 
     for py in 0..out_size {
         for px in 0..out_size {
@@ -172,7 +172,8 @@ pub fn render_frame_circular(
             let gy = (gy_f as u32).min(grid.height.saturating_sub(1));
 
             // Read grid cell.
-            let (qe, freq) = grid.cell_xy(gx, gy)
+            let (qe, freq) = grid
+                .cell_xy(gx, gy)
                 .map(|c| (c.accumulated_qe, c.dominant_frequency_hz))
                 .unwrap_or((0.0, 0.0));
 

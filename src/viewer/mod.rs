@@ -7,6 +7,6 @@
 //! Both share `frame_buffer` for grid → pixel conversion.
 
 pub mod frame_buffer;
-pub mod terminal;
 #[cfg(feature = "pixel_viewer")]
 pub mod pixel_window;
+pub mod terminal;

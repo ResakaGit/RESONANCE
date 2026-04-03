@@ -53,10 +53,14 @@ pub fn kuramoto_entrainment_step(
         return freq_i;
     }
     let n = neighbours.len().min(ENTRAINMENT_MAX_NEIGHBOURS) as f32;
-    let sum: f32 = neighbours.iter().take(ENTRAINMENT_MAX_NEIGHBOURS).map(|&(fj, d)| {
-        let k = entrainment_coupling_at_distance(base_coupling, d, lambda_coherence);
-        kuramoto_pair_delta(freq_i, fj, k)
-    }).sum();
+    let sum: f32 = neighbours
+        .iter()
+        .take(ENTRAINMENT_MAX_NEIGHBOURS)
+        .map(|&(fj, d)| {
+            let k = entrainment_coupling_at_distance(base_coupling, d, lambda_coherence);
+            kuramoto_pair_delta(freq_i, fj, k)
+        })
+        .sum();
     freq_i + (sum / n) * dt
 }
 
@@ -110,7 +114,10 @@ mod tests {
     fn pair_delta_proportional_to_gap() {
         let d_small = kuramoto_pair_delta(75.0, 76.0, 1.0);
         let d_large = kuramoto_pair_delta(75.0, 85.0, 1.0);
-        assert!(d_large > d_small, "larger gap → larger delta: small={d_small} large={d_large}");
+        assert!(
+            d_large > d_small,
+            "larger gap → larger delta: small={d_small} large={d_large}"
+        );
     }
 
     // ── kuramoto_entrainment_step ────────────────────────────────────────────
@@ -136,8 +143,8 @@ mod tests {
 
     #[test]
     fn step_far_neighbour_has_less_effect() {
-        let near = kuramoto_entrainment_step(70.0, &[(80.0,  1.0)], 1.0, 12.0, 1.0);
-        let far  = kuramoto_entrainment_step(70.0, &[(80.0, 50.0)], 1.0, 12.0, 1.0);
+        let near = kuramoto_entrainment_step(70.0, &[(80.0, 1.0)], 1.0, 12.0, 1.0);
+        let far = kuramoto_entrainment_step(70.0, &[(80.0, 50.0)], 1.0, 12.0, 1.0);
         assert!(near > far, "near={near} should move more than far={far}");
     }
 
@@ -152,9 +159,12 @@ mod tests {
     #[test]
     fn step_normalised_by_n_density_independent() {
         // 1 neighbour at d=0 vs 4 identical neighbours at d=0 → same update per entity
-        let one  = kuramoto_entrainment_step(70.0, &[(80.0, 0.0)],    1.0, 12.0, 1.0);
+        let one = kuramoto_entrainment_step(70.0, &[(80.0, 0.0)], 1.0, 12.0, 1.0);
         let four = kuramoto_entrainment_step(70.0, &[(80.0, 0.0); 4], 1.0, 12.0, 1.0);
-        assert!((one - four).abs() < EPS, "density-independent: one={one} four={four}");
+        assert!(
+            (one - four).abs() < EPS,
+            "density-independent: one={one} four={four}"
+        );
     }
 
     // ── entrainment_lock_achieved ────────────────────────────────────────────

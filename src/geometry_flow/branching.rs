@@ -63,7 +63,13 @@ pub fn build_branched_tree_dyn(
     branch_field: Option<&dyn Fn(Vec3) -> ([f32; 3], f32)>,
 ) -> BranchNode {
     let mut total_branches = 1u32;
-    build_branched_tree_recursive(influence, growth_budget, 0, &mut total_branches, branch_field)
+    build_branched_tree_recursive(
+        influence,
+        growth_budget,
+        0,
+        &mut total_branches,
+        branch_field,
+    )
 }
 
 fn build_branched_tree_recursive(
@@ -289,10 +295,12 @@ mod tests {
         let inf = sample_influence();
         let a = flatten_tree_to_mesh(&build_branched_tree(&inf, 4.0));
         let b = flatten_tree_to_mesh(&build_branched_tree(&inf, 4.0));
-        let Some(VertexAttributeValues::Float32x3(ap)) = a.attribute(Mesh::ATTRIBUTE_POSITION) else {
+        let Some(VertexAttributeValues::Float32x3(ap)) = a.attribute(Mesh::ATTRIBUTE_POSITION)
+        else {
             panic!("missing positions a");
         };
-        let Some(VertexAttributeValues::Float32x3(bp)) = b.attribute(Mesh::ATTRIBUTE_POSITION) else {
+        let Some(VertexAttributeValues::Float32x3(bp)) = b.attribute(Mesh::ATTRIBUTE_POSITION)
+        else {
             panic!("missing positions b");
         };
         assert_eq!(ap, bp);
@@ -322,16 +330,20 @@ mod tests {
     #[test]
     fn flatten_tree_mesh_attributes_are_synchronized() {
         let mesh = flatten_tree_to_mesh(&build_branched_tree(&sample_influence(), 4.0));
-        let Some(VertexAttributeValues::Float32x3(pos)) = mesh.attribute(Mesh::ATTRIBUTE_POSITION) else {
+        let Some(VertexAttributeValues::Float32x3(pos)) = mesh.attribute(Mesh::ATTRIBUTE_POSITION)
+        else {
             panic!("missing positions");
         };
-        let Some(VertexAttributeValues::Float32x3(nrm)) = mesh.attribute(Mesh::ATTRIBUTE_NORMAL) else {
+        let Some(VertexAttributeValues::Float32x3(nrm)) = mesh.attribute(Mesh::ATTRIBUTE_NORMAL)
+        else {
             panic!("missing normals");
         };
-        let Some(VertexAttributeValues::Float32x2(uv)) = mesh.attribute(Mesh::ATTRIBUTE_UV_0) else {
+        let Some(VertexAttributeValues::Float32x2(uv)) = mesh.attribute(Mesh::ATTRIBUTE_UV_0)
+        else {
             panic!("missing uv");
         };
-        let Some(VertexAttributeValues::Float32x4(col)) = mesh.attribute(Mesh::ATTRIBUTE_COLOR) else {
+        let Some(VertexAttributeValues::Float32x4(col)) = mesh.attribute(Mesh::ATTRIBUTE_COLOR)
+        else {
             panic!("missing color");
         };
         assert_eq!(pos.len(), nrm.len());

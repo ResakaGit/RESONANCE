@@ -7,13 +7,13 @@ use bevy::prelude::World;
 use criterion::{BenchmarkId, Criterion, black_box, criterion_group, criterion_main};
 use fxhash::FxHashMap;
 
+use resonance::bridge::InterferenceEquationInput;
 use resonance::bridge::benchmark_harness::{
     BLUEPRINT_HIT_RATE_CATALYSIS, BLUEPRINT_HIT_RATE_DENSITY, BLUEPRINT_HIT_RATE_INTERFERENCE,
     BLUEPRINT_HIT_RATE_PHASE, BLUEPRINT_HIT_RATE_TEMPERATURE, bootstrap_interference_bridge_world,
     collect_benchmark_report, generate_benchmark_scenario, run_derived_chain_bridged,
     run_derived_chain_direct, set_bridge_phase, warm_derived_chain_bridged,
 };
-use resonance::bridge::InterferenceEquationInput;
 use resonance::bridge::cache::BridgeCache;
 use resonance::bridge::clear_all_bridge_caches;
 use resonance::bridge::config::{

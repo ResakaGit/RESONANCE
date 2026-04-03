@@ -22,9 +22,9 @@ use resonance::geometry_flow::creature_builder;
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let worlds = parse_arg(&args, "--worlds", 300);
-    let gens   = parse_arg(&args, "--gens", 100);
-    let ticks  = parse_arg(&args, "--ticks", 800);
-    let seed   = parse_arg(&args, "--seed", 42);
+    let gens = parse_arg(&args, "--gens", 100);
+    let ticks = parse_arg(&args, "--ticks", 800);
+    let seed = parse_arg(&args, "--seed", 42);
 
     println!("╔══════════════════════════════════════════╗");
     println!("║  RESONANCE — Evolve & View (GF1)        ║");
@@ -34,11 +34,11 @@ fn main() {
     // ── Phase 1: Evolve ─────────────────────────────────────────────────────
     println!("Phase 1: Evolving...");
     let config = BatchConfig {
-        world_count:      worlds as usize,
-        ticks_per_eval:   ticks as u32,
+        world_count: worlds as usize,
+        ticks_per_eval: ticks as u32,
         initial_entities: 16,
-        max_generations:  gens as u32,
-        seed:             seed as u64,
+        max_generations: gens as u32,
+        seed: seed as u64,
         ..Default::default()
     };
     let mut harness = GeneticHarness::new(config);
@@ -47,14 +47,22 @@ fn main() {
     println!("  {} genomes evolved.\n", genomes.len());
     for (i, g) in genomes.iter().enumerate() {
         let arch = match g.archetype {
-            1 => "flora", 2 => "fauna", 3 => "cell", 4 => "virus", _ => "inert",
+            1 => "flora",
+            2 => "fauna",
+            3 => "cell",
+            4 => "virus",
+            _ => "inert",
         };
-        println!("  #{i:>2}: {arch:<5} g={:.2} m={:.2} b={:.2} r={:.2}",
-            g.growth_bias, g.mobility_bias, g.branching_bias, g.resilience);
+        println!(
+            "  #{i:>2}: {arch:<5} g={:.2} m={:.2} b={:.2} r={:.2}",
+            g.growth_bias, g.mobility_bias, g.branching_bias, g.resilience
+        );
     }
     if let Some(last) = harness.history.last() {
-        println!("\n  Final: fitness={:.3} diversity={:.3} species={:.1}",
-            last.best_fitness, last.diversity, last.species_mean);
+        println!(
+            "\n  Final: fitness={:.3} diversity={:.3} species={:.1}",
+            last.best_fitness, last.diversity, last.species_mean
+        );
     }
 
     // ── Phase 2: Visualize ──────────────────────────────────────────────────
@@ -124,15 +132,22 @@ fn spawn_creatures(
         // Viewer normalization: growth ∈ [0,1] → qe ∈ [20, 100] for stable mesh rendering
         let qe = 20.0 + genome.growth_bias * 80.0;
         let field = radial_field::build_viewer_field(
-            genome.growth_bias, genome.resilience, genome.branching_bias, qe,
+            genome.growth_bias,
+            genome.resilience,
+            genome.branching_bias,
+            qe,
         );
         let freq_field = radial_field::build_viewer_freq_field(freq);
 
         // Geometry: genome + field → creature_builder (desacoplado)
         let mesh = creature_builder::build_creature_mesh_with_field(
-            genome.growth_bias, genome.mobility_bias,
-            genome.branching_bias, genome.resilience, freq,
-            &field, &freq_field,
+            genome.growth_bias,
+            genome.mobility_bias,
+            genome.branching_bias,
+            genome.resilience,
+            freq,
+            &field,
+            &freq_field,
         );
         let mesh_handle = meshes.add(mesh);
 
@@ -153,7 +168,11 @@ fn spawn_creatures(
             ..default()
         });
 
-        commands.spawn((Mesh3d(mesh_handle), MeshMaterial3d(mat), Transform::from_xyz(x, 0.05, z)));
+        commands.spawn((
+            Mesh3d(mesh_handle),
+            MeshMaterial3d(mat),
+            Transform::from_xyz(x, 0.05, z),
+        ));
     }
 }
 

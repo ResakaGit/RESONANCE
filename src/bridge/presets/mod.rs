@@ -216,18 +216,35 @@ fn split_bands_narrow(bands: &[BandDef]) -> Vec<BandDef> {
         let mid = (b.min + b.max) * 0.5;
         let c1 = (b.min + mid) * 0.5;
         let c2 = (mid + b.max) * 0.5;
-        out.push(BandDef { min: b.min, max: mid, canonical: c1, stable: b.stable });
-        out.push(BandDef { min: mid,   max: b.max, canonical: c2, stable: b.stable });
+        out.push(BandDef {
+            min: b.min,
+            max: mid,
+            canonical: c1,
+            stable: b.stable,
+        });
+        out.push(BandDef {
+            min: mid,
+            max: b.max,
+            canonical: c2,
+            stable: b.stable,
+        });
     }
     out
 }
 
-pub(super) fn bands_for_equation_preset(moderate: &[BandDef], preset: RigidityPreset) -> Vec<BandDef> {
+pub(super) fn bands_for_equation_preset(
+    moderate: &[BandDef],
+    preset: RigidityPreset,
+) -> Vec<BandDef> {
     match preset {
         RigidityPreset::Moderate => moderate.to_vec(),
         RigidityPreset::Rigid => {
             let once = merge_pairs_wide(moderate);
-            if once.len() > 3 { merge_pairs_wide(&once) } else { once }
+            if once.len() > 3 {
+                merge_pairs_wide(&once)
+            } else {
+                once
+            }
         }
         RigidityPreset::Flexible => split_bands_narrow(moderate),
         RigidityPreset::Transparent => vec![BandDef {
@@ -263,16 +280,23 @@ macro_rules! impl_bridge_defaults {
         impl $crate::bridge::presets::BridgeDefaults for $ty {
             const FILE_KEY: &'static str = $key;
 
-            fn config_for_preset(preset: $crate::bridge::presets::RigidityPreset) -> $crate::bridge::config::BridgeConfig<Self> {
-                let bands = $crate::bridge::presets::bands_for_equation_preset(&$moderate_bands, preset);
+            fn config_for_preset(
+                preset: $crate::bridge::presets::RigidityPreset,
+            ) -> $crate::bridge::config::BridgeConfig<Self> {
+                let bands =
+                    $crate::bridge::presets::bands_for_equation_preset(&$moderate_bands, preset);
                 let h = $crate::bridge::presets::hysteresis_for(preset, $h_base);
                 let cap = $crate::bridge::presets::cache_cap_for(preset, $cap_base);
                 let policy = $crate::bridge::presets::policy_for(preset);
                 let (enabled, rigidity) = match preset {
-                    $crate::bridge::presets::RigidityPreset::Transparent => (false, $crate::bridge::config::Rigidity::Transparent),
+                    $crate::bridge::presets::RigidityPreset::Transparent => {
+                        (false, $crate::bridge::config::Rigidity::Transparent)
+                    }
                     _ => (true, $crate::bridge::config::Rigidity::from(preset)),
                 };
-                $crate::bridge::presets::finish_config::<Self>(bands, h, cap, policy, enabled, rigidity)
+                $crate::bridge::presets::finish_config::<Self>(
+                    bands, h, cap, policy, enabled, rigidity,
+                )
             }
         }
     };
@@ -474,7 +498,9 @@ pub fn bridge_config_hot_reload_system(world: &mut World) {
     // bandas/capacidad cambiaron → fill ratio y hit rate ya no son representativos.
     // Resetear a Warmup re-calibra el ciclo con la nueva configuración.
     if clear_caches {
-        if let Some(phase_state) = world.get_resource::<crate::bridge::context_fill::BridgePhaseState>() {
+        if let Some(phase_state) =
+            world.get_resource::<crate::bridge::context_fill::BridgePhaseState>()
+        {
             if phase_state.phase != crate::bridge::context_fill::BridgePhase::Active {
                 crate::bridge::context_fill::bridge_phase_reset(world);
             }
@@ -489,71 +515,131 @@ pub fn bridge_config_hot_reload_system(world: &mut World) {
 
 fn insert_default_bridge_resources(app: &mut App) {
     app.insert_resource(DensityBridge::config_for_preset(RigidityPreset::Moderate))
-        .insert_resource(TemperatureBridge::config_for_preset(RigidityPreset::Moderate))
-        .insert_resource(PhaseTransitionBridge::config_for_preset(RigidityPreset::Moderate))
-        .insert_resource(InterferenceBridge::config_for_preset(RigidityPreset::Moderate))
-        .insert_resource(DissipationBridge::config_for_preset(RigidityPreset::Moderate))
+        .insert_resource(TemperatureBridge::config_for_preset(
+            RigidityPreset::Moderate,
+        ))
+        .insert_resource(PhaseTransitionBridge::config_for_preset(
+            RigidityPreset::Moderate,
+        ))
+        .insert_resource(InterferenceBridge::config_for_preset(
+            RigidityPreset::Moderate,
+        ))
+        .insert_resource(DissipationBridge::config_for_preset(
+            RigidityPreset::Moderate,
+        ))
         .insert_resource(DragBridge::config_for_preset(RigidityPreset::Moderate))
         .insert_resource(EngineBridge::config_for_preset(RigidityPreset::Moderate))
         .insert_resource(WillBridge::config_for_preset(RigidityPreset::Moderate))
         .insert_resource(CatalysisBridge::config_for_preset(RigidityPreset::Moderate))
-        .insert_resource(CollisionTransferBridge::config_for_preset(RigidityPreset::Moderate))
+        .insert_resource(CollisionTransferBridge::config_for_preset(
+            RigidityPreset::Moderate,
+        ))
         .insert_resource(OsmosisBridge::config_for_preset(RigidityPreset::Moderate))
-        .insert_resource(CompetitionNormBridge::config_for_preset(RigidityPreset::Moderate));
+        .insert_resource(CompetitionNormBridge::config_for_preset(
+            RigidityPreset::Moderate,
+        ));
 }
 
 fn register_all_bridge_caches(app: &mut App) {
     register_bridge_cache::<DensityBridge>(
-        app, DensityBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity, CachePolicy::ContextFill,
+        app,
+        DensityBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity,
+        CachePolicy::ContextFill,
     );
     register_bridge_cache::<TemperatureBridge>(
-        app, TemperatureBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity, CachePolicy::ContextFill,
+        app,
+        TemperatureBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity,
+        CachePolicy::ContextFill,
     );
     register_bridge_cache::<PhaseTransitionBridge>(
-        app, PhaseTransitionBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity, CachePolicy::ContextFill,
+        app,
+        PhaseTransitionBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity,
+        CachePolicy::ContextFill,
     );
     register_bridge_cache::<InterferenceBridge>(
-        app, InterferenceBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity, CachePolicy::ContextFill,
+        app,
+        InterferenceBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity,
+        CachePolicy::ContextFill,
     );
     register_bridge_cache::<DissipationBridge>(
-        app, DissipationBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity, CachePolicy::ContextFill,
+        app,
+        DissipationBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity,
+        CachePolicy::ContextFill,
     );
     register_bridge_cache::<DragBridge>(
-        app, DragBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity, CachePolicy::ContextFill,
+        app,
+        DragBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity,
+        CachePolicy::ContextFill,
     );
     register_bridge_cache::<EngineBridge>(
-        app, EngineBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity, CachePolicy::ContextFill,
+        app,
+        EngineBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity,
+        CachePolicy::ContextFill,
     );
     register_bridge_cache::<WillBridge>(
-        app, WillBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity, CachePolicy::ContextFill,
+        app,
+        WillBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity,
+        CachePolicy::ContextFill,
     );
     register_bridge_cache::<CatalysisBridge>(
-        app, CatalysisBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity, CachePolicy::ContextFill,
+        app,
+        CatalysisBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity,
+        CachePolicy::ContextFill,
     );
     register_bridge_cache::<CollisionTransferBridge>(
-        app, CollisionTransferBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity, CachePolicy::ContextFill,
+        app,
+        CollisionTransferBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity,
+        CachePolicy::ContextFill,
     );
     register_bridge_cache::<OsmosisBridge>(
-        app, OsmosisBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity, CachePolicy::ContextFill,
+        app,
+        OsmosisBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity,
+        CachePolicy::ContextFill,
     );
     register_bridge_cache::<CompetitionNormBridge>(
-        app, CompetitionNormBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity, CachePolicy::ContextFill,
+        app,
+        CompetitionNormBridge::config_for_preset(RigidityPreset::Moderate).cache_capacity,
+        CachePolicy::ContextFill,
     );
 }
 
 fn register_all_bridge_metrics(app: &mut App) {
-    app.insert_resource(BridgeMetrics::<DensityBridge>::new(bridge_layer_name::<DensityBridge>()))
-        .insert_resource(BridgeMetrics::<TemperatureBridge>::new(bridge_layer_name::<TemperatureBridge>()))
-        .insert_resource(BridgeMetrics::<PhaseTransitionBridge>::new(bridge_layer_name::<PhaseTransitionBridge>()))
-        .insert_resource(BridgeMetrics::<InterferenceBridge>::new(bridge_layer_name::<InterferenceBridge>()))
-        .insert_resource(BridgeMetrics::<DissipationBridge>::new(bridge_layer_name::<DissipationBridge>()))
-        .insert_resource(BridgeMetrics::<DragBridge>::new(bridge_layer_name::<DragBridge>()))
-        .insert_resource(BridgeMetrics::<EngineBridge>::new(bridge_layer_name::<EngineBridge>()))
-        .insert_resource(BridgeMetrics::<WillBridge>::new(bridge_layer_name::<WillBridge>()))
-        .insert_resource(BridgeMetrics::<CatalysisBridge>::new(bridge_layer_name::<CatalysisBridge>()))
-        .insert_resource(BridgeMetrics::<CollisionTransferBridge>::new(bridge_layer_name::<CollisionTransferBridge>()))
-        .insert_resource(BridgeMetrics::<OsmosisBridge>::new(bridge_layer_name::<OsmosisBridge>()))
-        .insert_resource(BridgeMetrics::<CompetitionNormBridge>::new(bridge_layer_name::<CompetitionNormBridge>()));
+    app.insert_resource(BridgeMetrics::<DensityBridge>::new(bridge_layer_name::<
+        DensityBridge,
+    >()))
+    .insert_resource(BridgeMetrics::<TemperatureBridge>::new(
+        bridge_layer_name::<TemperatureBridge>(),
+    ))
+    .insert_resource(BridgeMetrics::<PhaseTransitionBridge>::new(
+        bridge_layer_name::<PhaseTransitionBridge>(),
+    ))
+    .insert_resource(BridgeMetrics::<InterferenceBridge>::new(
+        bridge_layer_name::<InterferenceBridge>(),
+    ))
+    .insert_resource(BridgeMetrics::<DissipationBridge>::new(
+        bridge_layer_name::<DissipationBridge>(),
+    ))
+    .insert_resource(BridgeMetrics::<DragBridge>::new(bridge_layer_name::<
+        DragBridge,
+    >()))
+    .insert_resource(BridgeMetrics::<EngineBridge>::new(bridge_layer_name::<
+        EngineBridge,
+    >()))
+    .insert_resource(BridgeMetrics::<WillBridge>::new(bridge_layer_name::<
+        WillBridge,
+    >()))
+    .insert_resource(BridgeMetrics::<CatalysisBridge>::new(bridge_layer_name::<
+        CatalysisBridge,
+    >()))
+    .insert_resource(BridgeMetrics::<CollisionTransferBridge>::new(
+        bridge_layer_name::<CollisionTransferBridge>(),
+    ))
+    .insert_resource(BridgeMetrics::<OsmosisBridge>::new(bridge_layer_name::<
+        OsmosisBridge,
+    >()))
+    .insert_resource(BridgeMetrics::<CompetitionNormBridge>::new(
+        bridge_layer_name::<CompetitionNormBridge>(),
+    ));
 }
 
 /// Plugin: asset RON + Resources `BridgeConfig<B>` + `BridgeCache<B>` por puente.
@@ -610,17 +696,49 @@ mod tests {
         let s = std::fs::read_to_string(path).unwrap();
         let asset: BridgeConfigAsset = ron::de::from_str(&s).unwrap();
         apply_bridge_config_asset(&mut world, &asset, false);
-        assert!(world.get_resource::<BridgeConfig<DensityBridge>>().is_some());
-        assert!(world.get_resource::<BridgeConfig<TemperatureBridge>>().is_some());
-        assert!(world.get_resource::<BridgeConfig<PhaseTransitionBridge>>().is_some());
-        assert!(world.get_resource::<BridgeConfig<InterferenceBridge>>().is_some());
-        assert!(world.get_resource::<BridgeConfig<DissipationBridge>>().is_some());
+        assert!(
+            world
+                .get_resource::<BridgeConfig<DensityBridge>>()
+                .is_some()
+        );
+        assert!(
+            world
+                .get_resource::<BridgeConfig<TemperatureBridge>>()
+                .is_some()
+        );
+        assert!(
+            world
+                .get_resource::<BridgeConfig<PhaseTransitionBridge>>()
+                .is_some()
+        );
+        assert!(
+            world
+                .get_resource::<BridgeConfig<InterferenceBridge>>()
+                .is_some()
+        );
+        assert!(
+            world
+                .get_resource::<BridgeConfig<DissipationBridge>>()
+                .is_some()
+        );
         assert!(world.get_resource::<BridgeConfig<DragBridge>>().is_some());
         assert!(world.get_resource::<BridgeConfig<EngineBridge>>().is_some());
         assert!(world.get_resource::<BridgeConfig<WillBridge>>().is_some());
-        assert!(world.get_resource::<BridgeConfig<CatalysisBridge>>().is_some());
-        assert!(world.get_resource::<BridgeConfig<CollisionTransferBridge>>().is_some());
-        assert!(world.get_resource::<BridgeConfig<OsmosisBridge>>().is_some());
+        assert!(
+            world
+                .get_resource::<BridgeConfig<CatalysisBridge>>()
+                .is_some()
+        );
+        assert!(
+            world
+                .get_resource::<BridgeConfig<CollisionTransferBridge>>()
+                .is_some()
+        );
+        assert!(
+            world
+                .get_resource::<BridgeConfig<OsmosisBridge>>()
+                .is_some()
+        );
     }
 
     #[test]
@@ -676,8 +794,18 @@ mod tests {
     #[test]
     fn gap_bands_fallback_to_moderate() {
         let bad_bands = vec![
-            BandDef { min: 0.0, max: 1.0, canonical: 0.5, stable: true },
-            BandDef { min: 2.0, max: 3.0, canonical: 2.5, stable: true },
+            BandDef {
+                min: 0.0,
+                max: 1.0,
+                canonical: 0.5,
+                stable: true,
+            },
+            BandDef {
+                min: 2.0,
+                max: 3.0,
+                canonical: 2.5,
+                stable: true,
+            },
         ];
         let partial = BridgeConfigPartialRon {
             preset: Some(RigidityPreset::Moderate),
@@ -692,8 +820,18 @@ mod tests {
     #[test]
     fn overlap_bands_fallback_to_moderate() {
         let bad_bands = vec![
-            BandDef { min: 0.0, max: 2.0, canonical: 1.0, stable: true },
-            BandDef { min: 1.0, max: 3.0, canonical: 2.0, stable: true },
+            BandDef {
+                min: 0.0,
+                max: 2.0,
+                canonical: 1.0,
+                stable: true,
+            },
+            BandDef {
+                min: 1.0,
+                max: 3.0,
+                canonical: 2.0,
+                stable: true,
+            },
         ];
         let partial = BridgeConfigPartialRon {
             bands: Some(bad_bands),
@@ -708,7 +846,9 @@ mod tests {
 
     #[test]
     fn missing_bridge_key_uses_moderate_default() {
-        let asset = BridgeConfigAsset { bridges: HashMap::new() };
+        let asset = BridgeConfigAsset {
+            bridges: HashMap::new(),
+        };
         let mut world = World::new();
         apply_bridge_config_for::<DensityBridge>(&mut world, &asset, false);
         assert_eq!(

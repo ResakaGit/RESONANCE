@@ -69,6 +69,9 @@ mod tests {
 
     #[test]
     fn nucleus_viability_threshold_constant_used() {
-        assert!(!is_nucleus_viable(QE_NUCLEUS_VIABILITY_THRESHOLD - 1.0, QE_NUCLEUS_VIABILITY_THRESHOLD));
+        assert!(!is_nucleus_viable(
+            QE_NUCLEUS_VIABILITY_THRESHOLD - 1.0,
+            QE_NUCLEUS_VIABILITY_THRESHOLD
+        ));
     }
 }

@@ -7,11 +7,11 @@
 //! (asignación solo vía [`IdGenerator`]). Si se viola, el forward map conserva la última entidad y
 //! se limpia el índice inverso de la reemplazada.
 
-mod types;
 mod lookup;
+mod types;
 
-pub use types::*;
 pub use lookup::*;
+pub use types::*;
 
 #[cfg(test)]
 mod tests;

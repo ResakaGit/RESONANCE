@@ -29,19 +29,35 @@ pub struct PoolParentLink {
 
 impl PoolParentLink {
     pub fn new(parent: Entity, extraction_type: ExtractionType, primary_param: f32) -> Self {
-        Self { parent, extraction_type, primary_param }
+        Self {
+            parent,
+            extraction_type,
+            primary_param,
+        }
     }
 
     #[inline]
-    pub fn parent(&self) -> Entity { self.parent }
+    pub fn parent(&self) -> Entity {
+        self.parent
+    }
     #[inline]
-    pub fn extraction_type(&self) -> ExtractionType { self.extraction_type }
+    pub fn extraction_type(&self) -> ExtractionType {
+        self.extraction_type
+    }
     #[inline]
-    pub fn primary_param(&self) -> f32 { self.primary_param }
+    pub fn primary_param(&self) -> f32 {
+        self.primary_param
+    }
 
-    pub fn set_parent(&mut self, parent: Entity) { self.parent = parent; }
-    pub fn set_extraction_type(&mut self, et: ExtractionType) { self.extraction_type = et; }
-    pub fn set_primary_param(&mut self, val: f32) { self.primary_param = val; }
+    pub fn set_parent(&mut self, parent: Entity) {
+        self.parent = parent;
+    }
+    pub fn set_extraction_type(&mut self, et: ExtractionType) {
+        self.extraction_type = et;
+    }
+    pub fn set_primary_param(&mut self, val: f32) {
+        self.primary_param = val;
+    }
 }
 
 #[cfg(test)]
@@ -50,11 +66,7 @@ mod tests {
 
     #[test]
     fn pool_parent_link_is_copy() {
-        let a = PoolParentLink::new(
-            Entity::from_raw(1),
-            ExtractionType::Competitive,
-            0.6,
-        );
+        let a = PoolParentLink::new(Entity::from_raw(1), ExtractionType::Competitive, 0.6);
         let b = a;
         assert_eq!(a, b);
     }
@@ -70,11 +82,7 @@ mod tests {
 
     #[test]
     fn setters_update_values() {
-        let mut link = PoolParentLink::new(
-            Entity::from_raw(1),
-            ExtractionType::Proportional,
-            0.0,
-        );
+        let mut link = PoolParentLink::new(Entity::from_raw(1), ExtractionType::Proportional, 0.0);
         let new_parent = Entity::from_raw(99);
         link.set_parent(new_parent);
         link.set_extraction_type(ExtractionType::Regulated);
@@ -111,10 +119,10 @@ mod tests {
         let check = |et: ExtractionType| -> &str {
             match et {
                 ExtractionType::Proportional => "I",
-                ExtractionType::Greedy       => "II",
-                ExtractionType::Competitive  => "III",
-                ExtractionType::Aggressive   => "IV",
-                ExtractionType::Regulated    => "V",
+                ExtractionType::Greedy => "II",
+                ExtractionType::Competitive => "III",
+                ExtractionType::Aggressive => "IV",
+                ExtractionType::Regulated => "V",
             }
         };
         assert_eq!(check(ExtractionType::Proportional), "I");

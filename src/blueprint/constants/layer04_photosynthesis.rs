@@ -35,4 +35,3 @@ pub const PHOTO_MAX_PHOTON_DENSITY: f32 = 1_000_000.0;
 /// Banda frecuencial Lux [Hz] usada para fuentes de luz fotosintética.
 pub const LUX_BAND_MIN_HZ: f32 = 900.0;
 pub const LUX_BAND_MAX_HZ: f32 = 1100.0;
-

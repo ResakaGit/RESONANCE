@@ -11,10 +11,10 @@
 //! Integration: output feeds directly into `competitive_flow_distribution` and
 //! `catalytic_activation_reduction` in metabolic_genome.rs.
 
+use crate::blueprint::OrganRole;
 use crate::blueprint::constants::pathway_inhibitor as pi;
 use crate::blueprint::equations::determinism::gaussian_frequency_alignment;
-use crate::layers::metabolic_graph::{MetabolicGraph, METABOLIC_GRAPH_MAX_NODES};
-use crate::layers::OrganRole;
+use crate::layers::metabolic_graph::{METABOLIC_GRAPH_MAX_NODES, MetabolicGraph};
 
 // ─── Data Structures ────────────────────────────────────────────────────────
 
@@ -112,7 +112,9 @@ pub fn binding_affinity(drug_freq: f32, protein_freq: f32) -> f32 {
 /// call this function. Previously private in cancer_therapy.rs.
 #[inline]
 pub fn hill_response(effective_concentration: f32, ec50: f32, hill_n: f32) -> f32 {
-    if effective_concentration <= 0.0 || ec50 <= 0.0 { return 0.0; }
+    if effective_concentration <= 0.0 || ec50 <= 0.0 {
+        return 0.0;
+    }
     let c_n = effective_concentration.powf(hill_n);
     let ec_n = ec50.powf(hill_n);
     c_n / (ec_n + c_n)
@@ -156,7 +158,10 @@ pub fn inhibit_node(
         InhibitionMode::Competitive => {
             let ea_mult = 1.0 + occ * pi::COMPETITIVE_EA_MULTIPLIER;
             let eff_factor = 1.0 / ea_mult;
-            (node_efficiency * eff_factor, node_activation_energy * ea_mult)
+            (
+                node_efficiency * eff_factor,
+                node_activation_energy * ea_mult,
+            )
         }
         InhibitionMode::Noncompetitive => {
             let reduction = occ * pi::MAX_INHIBITION_FRACTION;
@@ -212,7 +217,13 @@ pub fn inhibit_pathway(
         let is_primary = node.role == target_role;
 
         let occ = inhibitor_occupancy(inhibitor, freq);
-        let effect = inhibit_node(node.efficiency, node.activation_energy, occ, inhibitor.mode, is_primary);
+        let effect = inhibit_node(
+            node.efficiency,
+            node.activation_energy,
+            occ,
+            inhibitor.mode,
+            is_primary,
+        );
 
         let eff_loss = (node.efficiency - effect.effective_efficiency).max(0.0);
         result.total_efficiency_loss += eff_loss;
@@ -240,7 +251,8 @@ pub fn inhibit_pathway(
 /// Standard pharmacological model for non-interacting drugs.
 #[inline]
 pub fn combined_occupancy(occupancies: &[f32]) -> f32 {
-    let product: f32 = occupancies.iter()
+    let product: f32 = occupancies
+        .iter()
         .map(|&o| 1.0 - o.clamp(0.0, 1.0))
         .product();
     1.0 - product
@@ -254,7 +266,9 @@ pub fn combined_occupancy(occupancies: &[f32]) -> f32 {
 /// Higher = more selective drug. SI >> 1 means targeted therapy.
 /// SI ≈ 1 means non-selective (hits everything equally).
 pub fn selectivity_index(result: &PathwayInhibitionResult, node_count: usize) -> f32 {
-    if node_count == 0 { return 0.0; }
+    if node_count == 0 {
+        return 0.0;
+    }
 
     let (mut on_sum, mut on_count, mut off_sum, mut off_count) = (0.0f32, 0u32, 0.0f32, 0u32);
     for i in 0..node_count {
@@ -268,8 +282,16 @@ pub fn selectivity_index(result: &PathwayInhibitionResult, node_count: usize) ->
         }
     }
 
-    let on_mean = if on_count > 0 { on_sum / on_count as f32 } else { 0.0 };
-    let off_mean = if off_count > 0 { off_sum / off_count as f32 } else { 0.0 };
+    let on_mean = if on_count > 0 {
+        on_sum / on_count as f32
+    } else {
+        0.0
+    };
+    let off_mean = if off_count > 0 {
+        off_sum / off_count as f32
+    } else {
+        0.0
+    };
     on_mean / (off_mean + f32::EPSILON)
 }
 
@@ -283,7 +305,10 @@ pub fn selectivity_index(result: &PathwayInhibitionResult, node_count: usize) ->
 pub fn effective_node_params(
     graph: &MetabolicGraph,
     inhibition: &PathwayInhibitionResult,
-) -> ([f32; METABOLIC_GRAPH_MAX_NODES], [f32; METABOLIC_GRAPH_MAX_NODES]) {
+) -> (
+    [f32; METABOLIC_GRAPH_MAX_NODES],
+    [f32; METABOLIC_GRAPH_MAX_NODES],
+) {
     let mut efficiencies = [0.0f32; METABOLIC_GRAPH_MAX_NODES];
     let mut activations = [0.0f32; METABOLIC_GRAPH_MAX_NODES];
     let nodes = graph.nodes();
@@ -323,7 +348,8 @@ pub fn coherence_disruption(
     tick: u64,
 ) -> f32 {
     let t = tick as f32 * pi::INHIBITION_DISSIPATION_COST; // Time scale from derived constant
-    let interf = crate::blueprint::equations::interference(drug_freq, 0.0, cell_freq, cell_phase, t);
+    let interf =
+        crate::blueprint::equations::interference(drug_freq, 0.0, cell_freq, cell_phase, t);
     // Only destructive interference disrupts (negative values)
     let raw_disruption = (-interf).max(0.0);
     (raw_disruption * concentration.clamp(0.0, 1.0)).clamp(0.0, 1.0)
@@ -378,7 +404,9 @@ pub fn find_escape_frequency(
 
     for s in 0..=steps {
         let candidate = f_min + s as f32 * step_size;
-        let total: f32 = drug_freqs.iter().zip(drug_concentrations.iter())
+        let total: f32 = drug_freqs
+            .iter()
+            .zip(drug_concentrations.iter())
             .map(|(&df, &dc)| coherence_disruption(df, candidate, 0.0, dc, tick))
             .sum();
         if total < min_disruption {
@@ -395,19 +423,19 @@ pub fn find_escape_frequency(
 /// Tumor snapshot for controller decisions. Pure data, no ECS.
 #[derive(Clone, Copy, Debug)]
 pub struct TumorSnapshot {
-    pub alive_count:    f32,
-    pub mean_freq:      f32,
-    pub freq_spread:    f32,
+    pub alive_count: f32,
+    pub mean_freq: f32,
+    pub freq_spread: f32,
     pub mean_efficiency: f32,
-    pub growth_rate:    f32, // delta alive vs previous gen
+    pub growth_rate: f32, // delta alive vs previous gen
 }
 
 /// Decisión del controlador adaptativo. Puro valor, sin side effects.
 /// Adaptive controller decision. Pure value, no side effects.
 #[derive(Clone, Debug, PartialEq)]
 pub struct TherapyDecision {
-    pub inhibitors:    Vec<(f32, f32)>, // (frequency, concentration) per drug
-    pub rationale:     &'static str,
+    pub inhibitors: Vec<(f32, f32)>, // (frequency, concentration) per drug
+    pub rationale: &'static str,
 }
 
 /// Controlador adaptativo: snapshot del tumor → decisión terapéutica.
@@ -426,30 +454,37 @@ pub fn adaptive_decision(
     baseline_efficiency: f32,
     tick: u64,
 ) -> TherapyDecision {
-    let growth_threshold = pi::OFF_TARGET_THRESHOLD;   // 0.2: growth is significant
-    let stability_band  = pi::INHIBITION_DISSIPATION_COST; // 0.02: growth ≈ 0
-    let recovery_ratio  = 1.0 - pi::OFF_TARGET_THRESHOLD;  // 0.8: efficiency recovered 80%
+    let growth_threshold = pi::OFF_TARGET_THRESHOLD; // 0.2: growth is significant
+    let stability_band = pi::INHIBITION_DISSIPATION_COST; // 0.02: growth ≈ 0
+    let recovery_ratio = 1.0 - pi::OFF_TARGET_THRESHOLD; // 0.8: efficiency recovered 80%
 
     // No tumor → no therapy
     if snapshot.alive_count < 1.0 {
-        return TherapyDecision { inhibitors: vec![], rationale: "no_tumor" };
+        return TherapyDecision {
+            inhibitors: vec![],
+            rationale: "no_tumor",
+        };
     }
 
     // Tumor efficiency recovering → escaping → add drug at predicted escape frequency
-    if snapshot.mean_efficiency > baseline_efficiency * recovery_ratio && !current_drugs.is_empty() {
+    if snapshot.mean_efficiency > baseline_efficiency * recovery_ratio && !current_drugs.is_empty()
+    {
         let drug_freqs: Vec<f32> = current_drugs.iter().map(|&(f, _)| f).collect();
         let drug_concs: Vec<f32> = current_drugs.iter().map(|&(_, c)| c).collect();
-        let (escape_freq, _) = find_escape_frequency(
-            &drug_freqs, &drug_concs, 100.0, 900.0, 200, tick,
-        );
+        let (escape_freq, _) =
+            find_escape_frequency(&drug_freqs, &drug_concs, 100.0, 900.0, 200, tick);
         let mut new_drugs: Vec<(f32, f32)> = current_drugs.to_vec();
         new_drugs.push((escape_freq, pi::OFF_TARGET_THRESHOLD)); // Low dose at escape
-        return TherapyDecision { inhibitors: new_drugs, rationale: "escape_detected_add_drug" };
+        return TherapyDecision {
+            inhibitors: new_drugs,
+            rationale: "escape_detected_add_drug",
+        };
     }
 
     // Tumor growing → increase dose
     if snapshot.growth_rate > growth_threshold {
-        let boosted: Vec<(f32, f32)> = current_drugs.iter()
+        let boosted: Vec<(f32, f32)> = current_drugs
+            .iter()
             .map(|&(f, c)| (f, (c * 1.5).min(1.0))) // 50% dose increase, cap at 1.0
             .collect();
         if boosted.is_empty() {
@@ -459,7 +494,10 @@ pub fn adaptive_decision(
                 rationale: "tumor_growing_start_therapy",
             };
         }
-        return TherapyDecision { inhibitors: boosted, rationale: "tumor_growing_increase_dose" };
+        return TherapyDecision {
+            inhibitors: boosted,
+            rationale: "tumor_growing_increase_dose",
+        };
     }
 
     // Tumor stable (growth ≈ 0) → maintain if treating, start if not
@@ -471,21 +509,30 @@ pub fn adaptive_decision(
                 rationale: "stable_untreated_start_therapy",
             };
         }
-        return TherapyDecision { inhibitors: current_drugs.to_vec(), rationale: "stable_maintain" };
+        return TherapyDecision {
+            inhibitors: current_drugs.to_vec(),
+            rationale: "stable_maintain",
+        };
     }
 
     // Tumor shrinking → reduce dose (keep sensitive population alive for competition)
-    let reduced: Vec<(f32, f32)> = current_drugs.iter()
+    let reduced: Vec<(f32, f32)> = current_drugs
+        .iter()
         .map(|&(f, c)| (f, (c * 0.7).max(pi::MIN_RESIDUAL_EFFICIENCY))) // 30% reduction
         .collect();
-    TherapyDecision { inhibitors: reduced, rationale: "shrinking_reduce_dose" }
+    TherapyDecision {
+        inhibitors: reduced,
+        rationale: "shrinking_reduce_dose",
+    }
 }
 
 /// Computa growth_rate desde dos snapshots consecutivos.
 /// Compute growth_rate from two consecutive snapshots.
 #[inline]
 pub fn compute_growth_rate(prev_alive: f32, curr_alive: f32) -> f32 {
-    if prev_alive < 1.0 { return 0.0; }
+    if prev_alive < 1.0 {
+        return 0.0;
+    }
     (curr_alive - prev_alive) / prev_alive
 }
 
@@ -493,9 +540,15 @@ pub fn compute_growth_rate(prev_alive: f32, curr_alive: f32) -> f32 {
 /// Compute frequency spread (std dev) from a frequency slice.
 pub fn frequency_spread(frequencies: &[f32]) -> f32 {
     let n = frequencies.len();
-    if n < 2 { return 0.0; }
+    if n < 2 {
+        return 0.0;
+    }
     let mean: f32 = frequencies.iter().sum::<f32>() / n as f32;
-    let variance: f32 = frequencies.iter().map(|&f| (f - mean) * (f - mean)).sum::<f32>() / n as f32;
+    let variance: f32 = frequencies
+        .iter()
+        .map(|&f| (f - mean) * (f - mean))
+        .sum::<f32>()
+        / n as f32;
     variance.sqrt()
 }
 
@@ -506,7 +559,12 @@ mod tests {
     use super::*;
 
     fn drug(freq: f32, conc: f32, ki: f32, mode: InhibitionMode) -> Inhibitor {
-        Inhibitor { target_frequency: freq, concentration: conc, ki, mode }
+        Inhibitor {
+            target_frequency: freq,
+            concentration: conc,
+            ki,
+            mode,
+        }
     }
 
     // ── PI-1: Binding Affinity ──────────────────────────────────────────────
@@ -593,7 +651,10 @@ mod tests {
         let good = inhibitor_occupancy(&d, 400.0);
         let poor = inhibitor_occupancy(&d, 600.0);
         assert!(good > poor, "good={good}, poor={poor}");
-        assert!(poor < 0.5, "poor affinity should yield low occupancy: {poor}");
+        assert!(
+            poor < 0.5,
+            "poor affinity should yield low occupancy: {poor}"
+        );
     }
 
     // ── PI-4: Single Node Inhibition ────────────────────────────────────────
@@ -612,8 +673,16 @@ mod tests {
         // GIVEN Competitive + occupancy == 1.0
         // THEN E_a increases, η decreases
         let e = inhibit_node(0.8, 1.0, 1.0, InhibitionMode::Competitive, true);
-        assert!(e.effective_activation_energy > 1.0, "E_a should rise: {}", e.effective_activation_energy);
-        assert!(e.effective_efficiency < 0.8, "η should drop: {}", e.effective_efficiency);
+        assert!(
+            e.effective_activation_energy > 1.0,
+            "E_a should rise: {}",
+            e.effective_activation_energy
+        );
+        assert!(
+            e.effective_efficiency < 0.8,
+            "η should drop: {}",
+            e.effective_efficiency
+        );
     }
 
     #[test]
@@ -621,10 +690,16 @@ mod tests {
         // GIVEN Noncompetitive + occupancy == 1.0
         // THEN η → MIN_RESIDUAL, E_a unchanged
         let e = inhibit_node(0.8, 1.0, 1.0, InhibitionMode::Noncompetitive, true);
-        assert!((e.effective_efficiency - pi::MIN_RESIDUAL_EFFICIENCY).abs() < 0.01,
-            "η should be near floor: {}", e.effective_efficiency);
-        assert!((e.effective_activation_energy - 1.0).abs() < 1e-5,
-            "E_a should be unchanged: {}", e.effective_activation_energy);
+        assert!(
+            (e.effective_efficiency - pi::MIN_RESIDUAL_EFFICIENCY).abs() < 0.01,
+            "η should be near floor: {}",
+            e.effective_efficiency
+        );
+        assert!(
+            (e.effective_activation_energy - 1.0).abs() < 1e-5,
+            "E_a should be unchanged: {}",
+            e.effective_activation_energy
+        );
     }
 
     #[test]
@@ -640,10 +715,17 @@ mod tests {
     fn inhibition_respects_axiom4_floor() {
         // GIVEN any mode, any occupancy
         // THEN η ≥ MIN_RESIDUAL_EFFICIENCY (Axiom 4: no process reaches zero)
-        for mode in [InhibitionMode::Competitive, InhibitionMode::Noncompetitive, InhibitionMode::Uncompetitive] {
+        for mode in [
+            InhibitionMode::Competitive,
+            InhibitionMode::Noncompetitive,
+            InhibitionMode::Uncompetitive,
+        ] {
             let e = inhibit_node(0.01, 1.0, 1.0, mode, true);
-            assert!(e.effective_efficiency >= pi::MIN_RESIDUAL_EFFICIENCY,
-                "mode={mode:?}: η={} below floor", e.effective_efficiency);
+            assert!(
+                e.effective_efficiency >= pi::MIN_RESIDUAL_EFFICIENCY,
+                "mode={mode:?}: η={} below floor",
+                e.effective_efficiency
+            );
         }
     }
 
@@ -651,11 +733,18 @@ mod tests {
     fn inhibition_never_creates_efficiency() {
         // GIVEN any mode, any occupancy
         // THEN η_eff ≤ η_original (Axiom 5: conservation)
-        for mode in [InhibitionMode::Competitive, InhibitionMode::Noncompetitive, InhibitionMode::Uncompetitive] {
+        for mode in [
+            InhibitionMode::Competitive,
+            InhibitionMode::Noncompetitive,
+            InhibitionMode::Uncompetitive,
+        ] {
             for occ in [0.0, 0.3, 0.7, 1.0] {
                 let e = inhibit_node(0.5, 1.0, occ, mode, true);
-                assert!(e.effective_efficiency <= 0.5 + 1e-5,
-                    "mode={mode:?}, occ={occ}: η_eff={} > original", e.effective_efficiency);
+                assert!(
+                    e.effective_efficiency <= 0.5 + 1e-5,
+                    "mode={mode:?}, occ={occ}: η_eff={} > original",
+                    e.effective_efficiency
+                );
             }
         }
     }
@@ -694,11 +783,15 @@ mod tests {
     fn selectivity_all_on_target_is_high() {
         let result = PathwayInhibitionResult {
             effects: [InhibitionEffect {
-                effective_efficiency: 0.1, effective_activation_energy: 1.0,
-                occupancy: 0.9, is_off_target: false,
+                effective_efficiency: 0.1,
+                effective_activation_energy: 1.0,
+                occupancy: 0.9,
+                is_off_target: false,
             }; METABOLIC_GRAPH_MAX_NODES],
-            affected_count: 1, total_efficiency_loss: 0.7,
-            off_target_burden: 0.0, maintenance_cost: 0.01,
+            affected_count: 1,
+            total_efficiency_loss: 0.7,
+            off_target_burden: 0.0,
+            maintenance_cost: 0.01,
         };
         let si = selectivity_index(&result, 1);
         assert!(si > 100.0, "SI={si}");
@@ -707,17 +800,23 @@ mod tests {
     #[test]
     fn selectivity_equal_hits_is_one() {
         let on = InhibitionEffect {
-            effective_efficiency: 0.1, effective_activation_energy: 1.0,
-            occupancy: 0.5, is_off_target: false,
+            effective_efficiency: 0.1,
+            effective_activation_energy: 1.0,
+            occupancy: 0.5,
+            is_off_target: false,
         };
         let off = InhibitionEffect {
-            effective_efficiency: 0.1, effective_activation_energy: 1.0,
-            occupancy: 0.5, is_off_target: true,
+            effective_efficiency: 0.1,
+            effective_activation_energy: 1.0,
+            occupancy: 0.5,
+            is_off_target: true,
         };
         let mut result = PathwayInhibitionResult {
             effects: [off; METABOLIC_GRAPH_MAX_NODES],
-            affected_count: 2, total_efficiency_loss: 0.0,
-            off_target_burden: 0.0, maintenance_cost: 0.0,
+            affected_count: 2,
+            total_efficiency_loss: 0.0,
+            off_target_burden: 0.0,
+            maintenance_cost: 0.0,
         };
         result.effects[0] = on;
         let si = selectivity_index(&result, 2);
@@ -734,8 +833,10 @@ mod tests {
         for occ in [0.1, 0.3, 0.5, 0.7, 1.0] {
             let e = inhibit_node(0.5, 1.0, occ, InhibitionMode::Competitive, true);
             let inhibited_product = e.effective_efficiency * e.effective_activation_energy;
-            assert!(inhibited_product <= original_product + 1e-4,
-                "occ={occ}: product {inhibited_product} > original {original_product}");
+            assert!(
+                inhibited_product <= original_product + 1e-4,
+                "occ={occ}: product {inhibited_product} > original {original_product}"
+            );
         }
     }
 
@@ -776,8 +877,11 @@ mod tests {
         let expr = [1.0; 4];
         let (result, cost) = apply_disruption_to_expression(&expr, 1.0, 0.005);
         for dim in 0..4 {
-            assert!(result[dim] >= pi::MIN_RESIDUAL_EFFICIENCY,
-                "dim={dim}: {}", result[dim]);
+            assert!(
+                result[dim] >= pi::MIN_RESIDUAL_EFFICIENCY,
+                "dim={dim}: {}",
+                result[dim]
+            );
         }
         assert!(cost > 0.0, "disruption should cost energy");
     }
@@ -799,7 +903,10 @@ mod tests {
         // THEN optimal freq should be far from 400
         let (best, _) = find_escape_frequency(&[400.0], &[1.0], 200.0, 600.0, 100, 50);
         let dist_from_drug = (best - 400.0).abs();
-        assert!(dist_from_drug > 50.0, "escape should be far from drug: best={best}");
+        assert!(
+            dist_from_drug > 50.0,
+            "escape should be far from drug: best={best}"
+        );
     }
 
     #[test]
@@ -817,7 +924,13 @@ mod tests {
     // ── PI-10: Adaptive Controller ──────────────────────────────────────
 
     fn snapshot(alive: f32, freq: f32, eff: f32, growth: f32) -> TumorSnapshot {
-        TumorSnapshot { alive_count: alive, mean_freq: freq, freq_spread: 50.0, mean_efficiency: eff, growth_rate: growth }
+        TumorSnapshot {
+            alive_count: alive,
+            mean_freq: freq,
+            freq_spread: 50.0,
+            mean_efficiency: eff,
+            growth_rate: growth,
+        }
     }
 
     #[test]
@@ -832,7 +945,10 @@ mod tests {
         let d = adaptive_decision(&snapshot(50.0, 400.0, 1.0, 0.5), &[], 1.0, 0);
         assert_eq!(d.rationale, "tumor_growing_start_therapy");
         assert!(!d.inhibitors.is_empty());
-        assert!((d.inhibitors[0].0 - 400.0).abs() < 1e-3, "should target tumor freq");
+        assert!(
+            (d.inhibitors[0].0 - 400.0).abs() < 1e-3,
+            "should target tumor freq"
+        );
     }
 
     #[test]

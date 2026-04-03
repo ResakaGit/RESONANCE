@@ -2,7 +2,7 @@
 //! Calibración de potencial / perfiles / banda Hz → [`crate::blueprint::constants`].
 //! Fixtures compartidos de tests (`qe` celda, `water_norm`) → `ABIOGENESIS_TEST_*` en blueprint.
 
-use crate::blueprint::equations::derived_thresholds::{DISSIPATION_GAS, DISSIPATION_SOLID};
+use crate::blueprint::equations::derived_thresholds::DISSIPATION_GAS;
 
 /// Presupuesto máximo de spawns por tick de simulación.
 pub const MAX_ABIOGENESIS_PER_FRAME: usize = 2;
@@ -11,14 +11,6 @@ pub const MAX_ABIOGENESIS_PER_FRAME: usize = 2;
 pub const SCAN_BUDGET_CELLS: usize = 64;
 
 // ── Valores iniciales del `EntityBuilder` (alineado a EA5 / demo flora) ──
-#[allow(dead_code)]
-pub const EMERGENT_INITIAL_RADIUS: f32 = 0.05;
-/// Disipación flora emergente = fase sólida (Axiom 4).
-/// Emergent flora dissipation = solid-phase (Axiom 4).
-#[allow(dead_code)]
-pub const EMERGENT_FLOW_DISSIPATION: f32 = DISSIPATION_SOLID; // 0.005
-#[allow(dead_code)]
-pub const EMERGENT_MATTER_THERMAL_CONDUCTIVITY: f32 = 0.05;
 pub const EMERGENT_GROWTH_BIOMASS: f32 = 0.05;
 pub const EMERGENT_GROWTH_LIMITER: u8 = 0;
 pub const EMERGENT_GROWTH_EFFICIENCY: f32 = 0.8;

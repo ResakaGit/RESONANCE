@@ -16,7 +16,8 @@ pub fn predation_success_probability(
     let terrain = finite_unit(terrain_factor);
     let speed_ratio = (pred_spd / prey_spd - 1.0).max(0.0);
     let speed_bonus = speed_ratio * PREDATION_SPEED_ADVANTAGE_SCALE;
-    let distance_penalty = (dist * PREDATION_DISTANCE_PENALTY_SCALE).min(PREDATION_DISTANCE_PENALTY_MAX);
+    let distance_penalty =
+        (dist * PREDATION_DISTANCE_PENALTY_SCALE).min(PREDATION_DISTANCE_PENALTY_MAX);
     let raw = (PREDATION_BASE_SUCCESS + speed_bonus - distance_penalty) * terrain;
     raw.clamp(0.0, 1.0)
 }
@@ -161,7 +162,10 @@ mod tests {
     fn prey_qe_transfer_high_bond_reduces_transfer() {
         let low_bond = prey_qe_transfer(100.0, 0.0, 0.2);
         let high_bond = prey_qe_transfer(100.0, 200.0, 0.2);
-        assert!(low_bond > high_bond, "low_bond={low_bond} > high_bond={high_bond}");
+        assert!(
+            low_bond > high_bond,
+            "low_bond={low_bond} > high_bond={high_bond}"
+        );
     }
 
     #[test]

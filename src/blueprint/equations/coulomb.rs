@@ -8,20 +8,19 @@
 //! Axiom 7: Coulomb F ∝ 1/r². Strict distance attenuation.
 //! Axiom 8: bond strength modulated by frequency alignment.
 
-use crate::blueprint::constants::{
-    BOND_ENERGY_THRESHOLD, COULOMB_SCALE, FORCE_SOFTENING, LJ_EPSILON,
-    LJ_SIGMA, MAX_FORCE,
-};
 use super::determinism::gaussian_frequency_alignment;
+use crate::blueprint::constants::{
+    BOND_ENERGY_THRESHOLD, COULOMB_SCALE, FORCE_SOFTENING, LJ_EPSILON, LJ_SIGMA, MAX_FORCE,
+};
 
 // ─── PC-3: Charge types ────────────────────────────────────────────────────
 
 /// Particle with charge properties. Pure data, no behavior.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ChargedParticle {
-    pub charge: f32,       // +/- polarity (Axiom 1: charge = energy polarity)
-    pub mass: f32,         // inertial mass (resistance to acceleration)
-    pub frequency: f32,    // oscillatory identity (Axiom 8)
+    pub charge: f32,    // +/- polarity (Axiom 1: charge = energy polarity)
+    pub mass: f32,      // inertial mass (resistance to acceleration)
+    pub frequency: f32, // oscillatory identity (Axiom 8)
     pub position: [f32; 2],
     pub velocity: [f32; 2],
 }
@@ -34,7 +33,9 @@ pub struct ChargedParticle {
 /// Softened at close range to prevent singularity.
 /// Returns scalar force (caller applies direction).
 pub fn coulomb_force(q1: f32, q2: f32, distance: f32) -> f32 {
-    if !q1.is_finite() || !q2.is_finite() || !distance.is_finite() { return 0.0; }
+    if !q1.is_finite() || !q2.is_finite() || !distance.is_finite() {
+        return 0.0;
+    }
     let r2 = distance * distance + FORCE_SOFTENING * FORCE_SOFTENING; // softened
     let f = COULOMB_SCALE * q1 * q2 / r2;
     f.clamp(-MAX_FORCE, MAX_FORCE)
@@ -46,7 +47,9 @@ pub fn coulomb_force(q1: f32, q2: f32, distance: f32) -> f32 {
 /// V(r) = 4ε × [(σ/r)¹² - (σ/r)⁶]
 /// Force = -dV/dr (returned as scalar, caller applies direction).
 pub fn lennard_jones_force(distance: f32) -> f32 {
-    if !distance.is_finite() || distance <= 0.0 { return MAX_FORCE; } // repel overlap
+    if !distance.is_finite() || distance <= 0.0 {
+        return MAX_FORCE;
+    } // repel overlap
     let r = distance.max(FORCE_SOFTENING);
     let sr = LJ_SIGMA / r;
     let sr6 = sr * sr * sr * sr * sr * sr;
@@ -63,7 +66,9 @@ pub fn net_force(a: &ChargedParticle, b: &ChargedParticle) -> [f32; 2] {
     let dx = b.position[0] - a.position[0];
     let dy = b.position[1] - a.position[1];
     let dist = (dx * dx + dy * dy).sqrt();
-    if dist < 1e-10 { return [0.0, 0.0]; } // coincident
+    if dist < 1e-10 {
+        return [0.0, 0.0];
+    } // coincident
 
     // Coulomb: q1×q2 > 0 → repulsion (push away). q1×q2 < 0 → attraction (pull toward).
     // Negate because coulomb_force returns potential sign, we need force direction.
@@ -87,7 +92,9 @@ pub fn bond_energy(a: &ChargedParticle, b: &ChargedParticle) -> f32 {
     let dx = b.position[0] - a.position[0];
     let dy = b.position[1] - a.position[1];
     let dist = (dx * dx + dy * dy).sqrt();
-    if dist < 1e-10 { return 0.0; }
+    if dist < 1e-10 {
+        return 0.0;
+    }
 
     // Coulomb potential: V = k × q1 × q2 / r
     let v_coulomb = COULOMB_SCALE * a.charge * b.charge / dist.max(FORCE_SOFTENING);
@@ -113,17 +120,16 @@ pub fn is_bound(bond_e: f32) -> bool {
 ///
 /// Returns array of (index_a, index_b, bond_energy) for stable pairs.
 /// O(N²) — acceptable for N≤128. For N>128, use spatial acceleration.
-pub fn detect_bonds(
-    particles: &[ChargedParticle],
-    count: usize,
-) -> ([(u8, u8, f32); 256], usize) {
+pub fn detect_bonds(particles: &[ChargedParticle], count: usize) -> ([(u8, u8, f32); 256], usize) {
     let mut bonds = [(0u8, 0u8, 0.0f32); 256];
     let mut bond_count = 0usize;
     let n = count.min(particles.len());
 
     for i in 0..n {
         for j in (i + 1)..n {
-            if bond_count >= 256 { return (bonds, bond_count); }
+            if bond_count >= 256 {
+                return (bonds, bond_count);
+            }
             let be = bond_energy(&particles[i], &particles[j]);
             if is_bound(be) {
                 bonds[bond_count] = (i as u8, j as u8, be);
@@ -156,14 +162,20 @@ pub fn classify_molecule(
 ) -> MoleculeSignature {
     let n = member_count.min(member_indices.len());
     if n == 0 {
-        return MoleculeSignature { total_charge: 0.0, mean_frequency: 0.0, particle_count: 0, bond_count: 0 };
+        return MoleculeSignature {
+            total_charge: 0.0,
+            mean_frequency: 0.0,
+            particle_count: 0,
+            bond_count: 0,
+        };
     }
     let total_charge: f32 = (0..n)
         .map(|k| particles[member_indices[k] as usize].charge)
         .sum();
     let mean_frequency: f32 = (0..n)
         .map(|k| particles[member_indices[k] as usize].frequency)
-        .sum::<f32>() / n as f32;
+        .sum::<f32>()
+        / n as f32;
 
     MoleculeSignature {
         total_charge,
@@ -179,22 +191,32 @@ pub fn classify_molecule(
 /// and frequency is within bandwidth (Axiom 8).
 pub fn count_element_types(signatures: &[MoleculeSignature], count: usize) -> u8 {
     let n = count.min(signatures.len());
-    if n == 0 { return 0; }
+    if n == 0 {
+        return 0;
+    }
     let mut types = 0u8;
     let mut seen = [false; 256];
 
     for i in 0..n {
-        if seen[i] { continue; }
+        if seen[i] {
+            continue;
+        }
         types += 1;
         seen[i] = true;
         for j in (i + 1)..n {
-            if seen[j] { continue; }
+            if seen[j] {
+                continue;
+            }
             let same_structure = signatures[i].particle_count == signatures[j].particle_count
                 && (signatures[i].total_charge - signatures[j].total_charge).abs() < 0.1;
             let freq_match = gaussian_frequency_alignment(
-                signatures[i].mean_frequency, signatures[j].mean_frequency, 50.0,
+                signatures[i].mean_frequency,
+                signatures[j].mean_frequency,
+                50.0,
             ) > 0.8;
-            if same_structure && freq_match { seen[j] = true; }
+            if same_structure && freq_match {
+                seen[j] = true;
+            }
         }
     }
     types
@@ -214,8 +236,10 @@ pub fn accumulate_forces(particles: &[ChargedParticle], count: usize) -> [[f32; 
         for j in (i + 1)..n {
             let f = net_force(&particles[i], &particles[j]);
             // Newton 3: equal and opposite
-            forces[i][0] += f[0]; forces[i][1] += f[1];
-            forces[j][0] -= f[0]; forces[j][1] -= f[1];
+            forces[i][0] += f[0];
+            forces[i][1] += f[1];
+            forces[j][0] -= f[0];
+            forces[j][1] -= f[1];
         }
     }
     forces
@@ -228,7 +252,13 @@ mod tests {
     use super::*;
 
     fn particle(charge: f32, freq: f32, x: f32, y: f32) -> ChargedParticle {
-        ChargedParticle { charge, mass: 1.0, frequency: freq, position: [x, y], velocity: [0.0, 0.0] }
+        ChargedParticle {
+            charge,
+            mass: 1.0,
+            frequency: freq,
+            position: [x, y],
+            velocity: [0.0, 0.0],
+        }
     }
 
     // ── GIVEN isolated particle THEN no force ───────────────────────────
@@ -262,7 +292,10 @@ mod tests {
         let f2 = coulomb_force(1.0, -1.0, 2.0).abs();
         let ratio = f1 / f2;
         // Should be ~4 (2²) but softening modifies slightly
-        assert!(ratio > 3.0 && ratio < 5.0, "Axiom 7: ~4× at 2× distance: {ratio}");
+        assert!(
+            ratio > 3.0 && ratio < 5.0,
+            "Axiom 7: ~4× at 2× distance: {ratio}"
+        );
     }
 
     #[test]
@@ -319,7 +352,12 @@ mod tests {
         let b = particle(-1.0, 400.0, 2.0, 0.0);
         let f_on_a = net_force(&a, &b);
         let f_on_b = net_force(&b, &a);
-        assert!((f_on_a[0] + f_on_b[0]).abs() < 1e-5, "Newton 3 x: {} + {}", f_on_a[0], f_on_b[0]);
+        assert!(
+            (f_on_a[0] + f_on_b[0]).abs() < 1e-5,
+            "Newton 3 x: {} + {}",
+            f_on_a[0],
+            f_on_b[0]
+        );
         assert!((f_on_a[1] + f_on_b[1]).abs() < 1e-5, "Newton 3 y");
     }
 
@@ -344,7 +382,10 @@ mod tests {
         let a = particle(1.0, 400.0, 0.0, 0.0);
         let b = particle(-1.0, 400.0, 0.5, 0.0);
         let be = bond_energy(&a, &b);
-        assert!(be < 0.0, "opposite charges at equilibrium → negative bond energy: {be}");
+        assert!(
+            be < 0.0,
+            "opposite charges at equilibrium → negative bond energy: {be}"
+        );
     }
 
     #[test]
@@ -354,7 +395,10 @@ mod tests {
         let b_same = particle(1.0, 400.0, LJ_SIGMA, 0.0);
         let be_opp = bond_energy(&a, &b_opp);
         let be_same = bond_energy(&a, &b_same);
-        assert!(be_opp < be_same, "opposite binds stronger: {be_opp} < {be_same}");
+        assert!(
+            be_opp < be_same,
+            "opposite binds stronger: {be_opp} < {be_same}"
+        );
     }
 
     // ── GIVEN frequency alignment THEN stronger bond (Axiom 8) ──────────
@@ -366,7 +410,10 @@ mod tests {
         let b_diff = particle(-1.0, 800.0, 0.5, 0.0);
         let be_same = bond_energy(&a, &b_same);
         let be_diff = bond_energy(&a, &b_diff);
-        assert!(be_same < be_diff, "same freq → stronger bond (more negative): {be_same} < {be_diff}");
+        assert!(
+            be_same < be_diff,
+            "same freq → stronger bond (more negative): {be_same} < {be_diff}"
+        );
     }
 
     // ── GIVEN stable pair THEN is_bound = true ──────────────────────────
@@ -376,7 +423,10 @@ mod tests {
         let a = particle(1.0, 400.0, 0.0, 0.0);
         let b = particle(-1.0, 400.0, 0.5, 0.0);
         let be = bond_energy(&a, &b);
-        assert!(is_bound(be), "opposite charges at equilibrium should be bound: be={be}");
+        assert!(
+            is_bound(be),
+            "opposite charges at equilibrium should be bound: be={be}"
+        );
     }
 
     #[test]
@@ -441,7 +491,10 @@ mod tests {
         ];
         let sig = classify_molecule(&particles, &[0, 1, 2], 3, 2);
         assert_eq!(sig.particle_count, 3);
-        assert!((sig.total_charge - 0.0).abs() < 1e-5, "CO2-like: +1 -2 +1 = 0");
+        assert!(
+            (sig.total_charge - 0.0).abs() < 1e-5,
+            "CO2-like: +1 -2 +1 = 0"
+        );
     }
 
     // ── GIVEN element types THEN count correct ──────────────────────────
@@ -449,9 +502,24 @@ mod tests {
     #[test]
     fn count_distinct_types() {
         let sigs = [
-            MoleculeSignature { total_charge: 0.0, mean_frequency: 400.0, particle_count: 2, bond_count: 1 },
-            MoleculeSignature { total_charge: 0.0, mean_frequency: 400.0, particle_count: 2, bond_count: 1 }, // same type
-            MoleculeSignature { total_charge: 1.0, mean_frequency: 600.0, particle_count: 3, bond_count: 2 }, // different
+            MoleculeSignature {
+                total_charge: 0.0,
+                mean_frequency: 400.0,
+                particle_count: 2,
+                bond_count: 1,
+            },
+            MoleculeSignature {
+                total_charge: 0.0,
+                mean_frequency: 400.0,
+                particle_count: 2,
+                bond_count: 1,
+            }, // same type
+            MoleculeSignature {
+                total_charge: 1.0,
+                mean_frequency: 600.0,
+                particle_count: 3,
+                bond_count: 2,
+            }, // different
         ];
         assert_eq!(count_element_types(&sigs, 3), 2);
     }
@@ -480,7 +548,10 @@ mod tests {
 
     #[test]
     fn forces_deterministic() {
-        let p = [particle(1.0, 400.0, 0.0, 0.0), particle(-1.0, 300.0, 1.0, 0.0)];
+        let p = [
+            particle(1.0, 400.0, 0.0, 0.0),
+            particle(-1.0, 300.0, 1.0, 0.0),
+        ];
         let a = accumulate_forces(&p, 2);
         let b = accumulate_forces(&p, 2);
         assert_eq!(a[0][0].to_bits(), b[0][0].to_bits());

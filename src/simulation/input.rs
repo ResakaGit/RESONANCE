@@ -93,13 +93,21 @@ pub fn grimoire_slot_selection_system(
                 break;
             }
         }
-        let Some(idx) = picked else { continue; };
+        let Some(idx) = picked else {
+            continue;
+        };
 
         if will.active_slot() != Some(idx) {
             will.set_active_slot(Some(idx));
         }
-        select_ev.send(AbilitySelectionEvent { caster, slot_index: idx });
-        slot_ev.send(SlotActivatedEvent { caster, slot_index: idx });
+        select_ev.send(AbilitySelectionEvent {
+            caster,
+            slot_index: idx,
+        });
+        slot_ev.send(SlotActivatedEvent {
+            caster,
+            slot_index: idx,
+        });
     }
 }
 
@@ -111,8 +119,12 @@ pub fn grimoire_targeting_system(
     mut targeting: ResMut<TargetingState>,
 ) {
     for ev in slot_ev.read() {
-        let Ok(grim) = grimoire_q.get(ev.caster) else { continue; };
-        let Some(slot) = grim.get(ev.slot_index) else { continue; };
+        let Ok(grim) = grimoire_q.get(ev.caster) else {
+            continue;
+        };
+        let Some(slot) = grim.get(ev.slot_index) else {
+            continue;
+        };
         let mode = slot.targeting().clone();
         match mode {
             TargetingMode::PointTarget { .. }
@@ -136,7 +148,13 @@ pub fn grimoire_channeling_start_system(
     mut slot_ev: EventReader<SlotActivatedEvent>,
     mut commands: Commands,
     query: Query<
-        (&Transform, &SpatialVolume, &Grimoire, &AlchemicalEngine, &WillActuator),
+        (
+            &Transform,
+            &SpatialVolume,
+            &Grimoire,
+            &AlchemicalEngine,
+            &WillActuator,
+        ),
         With<PlayerControlled>,
     >,
     layout: Res<SimWorldTransformParams>,
@@ -146,8 +164,12 @@ pub fn grimoire_channeling_start_system(
     mut pending_self: EventWriter<GrimoireSelfBuffCastPending>,
 ) {
     for ev in slot_ev.read() {
-        let Ok((tf, vol, grim, eng, will)) = query.get(ev.caster) else { continue; };
-        let Some(slot) = grim.get(ev.slot_index) else { continue; };
+        let Ok((tf, vol, grim, eng, will)) = query.get(ev.caster) else {
+            continue;
+        };
+        let Some(slot) = grim.get(ev.slot_index) else {
+            continue;
+        };
         match slot.targeting().clone() {
             TargetingMode::NoTarget => {
                 if slot.min_channeling_secs() > 0.0 {

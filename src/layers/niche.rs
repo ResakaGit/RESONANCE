@@ -7,19 +7,19 @@ use bevy::prelude::*;
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
 pub struct NicheProfile {
-    pub center:           [f32; 4],
-    pub width:            [f32; 4],
+    pub center: [f32; 4],
+    pub width: [f32; 4],
     pub displacement_rate: f32,
-    pub specialization:   f32,   // [0,1] — 0=generalista, 1=especialista
+    pub specialization: f32, // [0,1] — 0=generalista, 1=especialista
 }
 
 impl Default for NicheProfile {
     fn default() -> Self {
         Self {
-            center:           [0.0; 4],
-            width:            [1.0; 4],
+            center: [0.0; 4],
+            width: [1.0; 4],
             displacement_rate: 0.01,
-            specialization:   0.5,
+            specialization: 0.5,
         }
     }
 }

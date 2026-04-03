@@ -4,8 +4,8 @@
 use crate::batch::arena::SimWorldFlat;
 use crate::batch::constants::*;
 use crate::batch::scratch::ScratchPad;
-use crate::blueprint::{constants, equations};
 use crate::blueprint::equations::emergence::culture as culture_eq;
+use crate::blueprint::{constants, equations};
 
 /// L5 engine buffer → L0 qe: distribute buffered energy back to entity.
 ///
@@ -17,11 +17,15 @@ pub fn pool_distribution(world: &mut SimWorldFlat) {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
         let e = &mut world.entities[i];
-        if e.engine_buffer <= 0.0 || e.output_valve <= 0.0 { continue; }
+        if e.engine_buffer <= 0.0 || e.output_valve <= 0.0 {
+            continue;
+        }
         let available = e.engine_buffer * e.output_valve;
         let release = equations::extract_proportional(available, 1);
         let clamped = release.min(e.engine_buffer);
-        if clamped <= 0.0 { continue; }
+        if clamped <= 0.0 {
+            continue;
+        }
         e.engine_buffer -= clamped;
         e.qe += clamped;
     }
@@ -38,11 +42,17 @@ pub fn trophic_forage(world: &mut SimWorldFlat) {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
         let spd_sq = world.entities[i].velocity[0].powi(2) + world.entities[i].velocity[1].powi(2);
-        if spd_sq > FORAGE_MAX_SPEED_SQ { continue; }
+        if spd_sq > FORAGE_MAX_SPEED_SQ {
+            continue;
+        }
         let cell = grid_cell(world.entities[i].position);
-        if cell >= GRID_CELLS { continue; }
+        if cell >= GRID_CELLS {
+            continue;
+        }
         let available = world.nutrient_grid[cell];
-        if available <= 0.0 { continue; }
+        if available <= 0.0 {
+            continue;
+        }
         let intake = (world.entities[i].radius * NUTRIENT_UPTAKE_RATE).min(available);
         world.nutrient_grid[cell] -= intake;
         world.entities[i].qe += intake;
@@ -62,15 +72,21 @@ pub fn trophic_predation(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
     while mi != 0 {
         let i = mi.trailing_zeros() as usize;
         mi &= mi - 1;
-        if world.entities[i].satiation > SATIATION_WELL_FED { continue; }
+        if world.entities[i].satiation > SATIATION_WELL_FED {
+            continue;
+        }
         let pred_qe = world.entities[i].qe;
 
         let mut mj = world.alive_mask;
         while mj != 0 {
             let j = mj.trailing_zeros() as usize;
             mj &= mj - 1;
-            if i == j { continue; }
-            if world.entities[j].qe >= pred_qe * PREDATION_DOMINANCE_RATIO { continue; }
+            if i == j {
+                continue;
+            }
+            if world.entities[j].qe >= pred_qe * PREDATION_DOMINANCE_RATIO {
+                continue;
+            }
 
             let dx = world.entities[i].position[0] - world.entities[j].position[0];
             let dy = world.entities[i].position[1] - world.entities[j].position[1];
@@ -92,10 +108,13 @@ pub fn trophic_predation(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
             world.entities[qi].frequency_hz,
             world.entities[qi].phase,
             0.0,
-        ).abs();
+        )
+        .abs();
         let drain = world.entities[qi].qe * PREDATION_DRAIN_FRACTION * interference;
         let safe_drain = drain.min(world.entities[qi].qe);
-        if safe_drain <= 0.0 { continue; }
+        if safe_drain <= 0.0 {
+            continue;
+        }
         let assimilated = safe_drain * CARNIVORE_ASSIMILATION;
         world.entities[qi].qe -= safe_drain;
         world.entities[pi].qe += assimilated;
@@ -125,10 +144,14 @@ pub fn social_pack(world: &mut SimWorldFlat, _scratch: &mut ScratchPad) {
         while mj != 0 {
             let j = mj.trailing_zeros() as usize;
             mj &= mj - 1;
-            if i == j { continue; }
+            if i == j {
+                continue;
+            }
             let dx = world.entities[i].position[0] - world.entities[j].position[0];
             let dy = world.entities[i].position[1] - world.entities[j].position[1];
-            if dx * dx + dy * dy >= range_sq { continue; }
+            if dx * dx + dy * dy >= range_sq {
+                continue;
+            }
 
             // Axiom 8: affinity from oscillatory interference
             let affinity = equations::interference(
@@ -138,14 +161,18 @@ pub fn social_pack(world: &mut SimWorldFlat, _scratch: &mut ScratchPad) {
                 world.entities[j].phase,
                 0.0,
             );
-            if affinity <= 0.3 { continue; } // only constructive → cohesion
+            if affinity <= 0.3 {
+                continue;
+            } // only constructive → cohesion
 
             cx += world.entities[j].position[0] * affinity;
             cy += world.entities[j].position[1] * affinity;
             weight_sum += affinity;
         }
 
-        if weight_sum < GUARD_EPSILON { continue; }
+        if weight_sum < GUARD_EPSILON {
+            continue;
+        }
         cx /= weight_sum;
         cy /= weight_sum;
 
@@ -176,7 +203,9 @@ pub fn cooperation_eval(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
 
             let dx = world.entities[i].position[0] - world.entities[j].position[0];
             let dy = world.entities[i].position[1] - world.entities[j].position[1];
-            if dx * dx + dy * dy >= range_sq { continue; }
+            if dx * dx + dy * dy >= range_sq {
+                continue;
+            }
 
             // Oscillatory affinity determines cooperation benefit
             let affinity = equations::interference(
@@ -191,8 +220,10 @@ pub fn cooperation_eval(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
             // Axiom 3: magnitude modulated by interference factor.
             if affinity > 0.0 && scratch.pairs_len < scratch.pairs.len() {
                 let reduction = affinity * constants::COOPERATION_GROUP_BONUS * 0.001;
-                world.entities[i].dissipation = (world.entities[i].dissipation - reduction).max(DISSIPATION_FLOOR);
-                world.entities[j].dissipation = (world.entities[j].dissipation - reduction).max(DISSIPATION_FLOOR);
+                world.entities[i].dissipation =
+                    (world.entities[i].dissipation - reduction).max(DISSIPATION_FLOOR);
+                world.entities[j].dissipation =
+                    (world.entities[j].dissipation - reduction).max(DISSIPATION_FLOOR);
                 scratch.pairs[scratch.pairs_len] = (i as u8, j as u8);
                 scratch.pairs_len += 1;
             }
@@ -218,7 +249,9 @@ pub fn culture_transmission(world: &mut SimWorldFlat, _scratch: &mut ScratchPad)
 
             let dx = world.entities[i].position[0] - world.entities[j].position[0];
             let dy = world.entities[i].position[1] - world.entities[j].position[1];
-            if dx * dx + dy * dy >= range_sq { continue; }
+            if dx * dx + dy * dy >= range_sq {
+                continue;
+            }
 
             let affinity = culture_eq::frequency_imitation_affinity(
                 world.entities[i].frequency_hz,
@@ -228,13 +261,15 @@ pub fn culture_transmission(world: &mut SimWorldFlat, _scratch: &mut ScratchPad)
                 0.0,
             );
 
-            if affinity <= CULTURE_AFFINITY_MIN { continue; }
+            if affinity <= CULTURE_AFFINITY_MIN {
+                continue;
+            }
 
             // Blend expression masks toward each other (small step)
             let blend = affinity * CULTURE_BLEND_RATE;
             for d in 0..4 {
-                let delta = world.entities[j].expression_mask[d]
-                          - world.entities[i].expression_mask[d];
+                let delta =
+                    world.entities[j].expression_mask[d] - world.entities[i].expression_mask[d];
                 world.entities[i].expression_mask[d] += delta * blend;
             }
         }
@@ -275,9 +310,15 @@ mod tests {
         let total_before = w.entities[idx].qe + w.entities[idx].engine_buffer;
         pool_distribution(&mut w);
         let total_after = w.entities[idx].qe + w.entities[idx].engine_buffer;
-        assert!(w.entities[idx].engine_buffer < 20.0, "buffer should decrease");
+        assert!(
+            w.entities[idx].engine_buffer < 20.0,
+            "buffer should decrease"
+        );
         assert!(w.entities[idx].qe > 50.0, "qe should increase");
-        assert!((total_after - total_before).abs() < 1e-5, "energy conserved");
+        assert!(
+            (total_after - total_before).abs() < 1e-5,
+            "energy conserved"
+        );
     }
 
     #[test]
@@ -395,7 +436,10 @@ mod tests {
         w.spawn(e2);
         let mut scratch = ScratchPad::new();
         social_pack(&mut w, &mut scratch);
-        assert!(w.entities[i1].velocity[0] > 0.0, "aligned freq → pull toward");
+        assert!(
+            w.entities[i1].velocity[0] > 0.0,
+            "aligned freq → pull toward"
+        );
     }
 
     #[test]
@@ -439,8 +483,14 @@ mod tests {
         let mut scratch = ScratchPad::new();
         cooperation_eval(&mut w, &mut scratch);
         // Axiom 5: cooperation reduces dissipation, never creates energy
-        assert!(w.entities[i1].dissipation < d_before_1, "dissipation should decrease");
-        assert!(w.entities[i2].dissipation < d_before_2, "both should benefit");
+        assert!(
+            w.entities[i1].dissipation < d_before_1,
+            "dissipation should decrease"
+        );
+        assert!(
+            w.entities[i2].dissipation < d_before_2,
+            "both should benefit"
+        );
         assert_eq!(w.entities[i1].qe, 100.0, "qe must not change — Axiom 5");
     }
 
@@ -463,7 +513,10 @@ mod tests {
         let mut scratch = ScratchPad::new();
         culture_transmission(&mut w, &mut scratch);
         // e1's mask should have moved slightly toward e2's
-        assert!(w.entities[i1].expression_mask[0] > 0.0, "should blend toward neighbor");
+        assert!(
+            w.entities[i1].expression_mask[0] > 0.0,
+            "should blend toward neighbor"
+        );
     }
 
     // ── ecology_census ──────────────────────────────────────────────────────

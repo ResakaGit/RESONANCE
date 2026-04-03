@@ -106,18 +106,18 @@ pub const ORGAN_ROLE_ACCENT_LIN: [[f32; 3]; 12] = [
 
 /// Peso de mezcla hacia el acento por `OrganRole` en [0,1].
 pub const ORGAN_ROLE_BLEND: [f32; 12] = [
-    GF1_BRANCH_ROLE_BLEND_STEM, // Stem
-    0.15,                       // Root
-    0.05,                       // Core
-    GF1_BRANCH_ROLE_BLEND_LEAF, // Leaf
-    0.80,                       // Petal
-    0.50,                       // Sensory
+    GF1_BRANCH_ROLE_BLEND_STEM,  // Stem
+    0.15,                        // Root
+    0.05,                        // Core
+    GF1_BRANCH_ROLE_BLEND_LEAF,  // Leaf
+    0.80,                        // Petal
+    0.50,                        // Sensory
     GF1_BRANCH_ROLE_BLEND_THORN, // Thorn
-    0.18,                       // Shell
-    0.35,                       // Fruit
-    0.25,                       // Bud
-    0.12,                       // Limb
-    0.20,                       // Fin
+    0.18,                        // Shell
+    0.35,                        // Fruit
+    0.25,                        // Bud
+    0.12,                        // Limb
+    0.20,                        // Fin
 ];
 
 /// Escala relativa del radio base por `OrganRole` (> 0).
@@ -151,4 +151,3 @@ pub const ORGAN_ROLE_OPACITY: [f32; 12] = [
     1.0,  // Limb
     0.80, // Fin
 ];
-

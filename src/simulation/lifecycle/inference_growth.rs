@@ -2,8 +2,8 @@ use bevy::prelude::*;
 
 use crate::blueprint::{constants, equations};
 use crate::layers::{
-    AllometricRadiusAnchor, BaseEnergy, CapabilitySet, GrowthBudget, GrowthIntent, InferenceProfile,
-    SpatialVolume,
+    AllometricRadiusAnchor, BaseEnergy, CapabilitySet, GrowthBudget, GrowthIntent,
+    InferenceProfile, SpatialVolume,
 };
 
 // NOTE: 8 component types justified — lifecycle reads full entity state for growth intent inference.
@@ -11,20 +11,28 @@ use crate::layers::{
 /// Infiere intención de crecimiento a partir de estímulos/rasgos (stateless).
 pub fn growth_intent_inference_system(
     mut commands: Commands,
-    query: Query<
-        (
-            Entity,
-            &GrowthBudget,
-            &BaseEnergy,
-            &SpatialVolume,
-            &CapabilitySet,
-            Option<&AllometricRadiusAnchor>,
-            Option<&InferenceProfile>,
-            Option<&GrowthIntent>,
-        ),
-    >,
+    query: Query<(
+        Entity,
+        &GrowthBudget,
+        &BaseEnergy,
+        &SpatialVolume,
+        &CapabilitySet,
+        Option<&AllometricRadiusAnchor>,
+        Option<&InferenceProfile>,
+        Option<&GrowthIntent>,
+    )>,
 ) {
-    for (entity, budget, energy, volume, capabilities, anchor_opt, profile_opt, current_intent_opt) in &query {
+    for (
+        entity,
+        budget,
+        energy,
+        volume,
+        capabilities,
+        anchor_opt,
+        profile_opt,
+        current_intent_opt,
+    ) in &query
+    {
         if !capabilities.can_grow() {
             if current_intent_opt.is_some() {
                 commands.entity(entity).remove::<GrowthIntent>();
@@ -40,8 +48,10 @@ pub fn growth_intent_inference_system(
 
         let profile = profile_opt.copied().unwrap_or_default();
         let base_radius = anchor_opt.map(|a| a.base_radius).unwrap_or(volume.radius);
-        let max_radius = equations::allometric_max_radius(base_radius, constants::ALLOMETRIC_MAX_RADIUS_FACTOR);
-        let base_delta = equations::growth_size_feedback(budget.biomass_available, volume.radius, max_radius);
+        let max_radius =
+            equations::allometric_max_radius(base_radius, constants::ALLOMETRIC_MAX_RADIUS_FACTOR);
+        let base_delta =
+            equations::growth_size_feedback(budget.biomass_available, volume.radius, max_radius);
         let qe_norm = equations::normalized_qe(energy.qe(), constants::VISUAL_QE_REFERENCE);
         let delta_radius = equations::inferred_growth_delta(
             base_delta,
@@ -61,8 +71,10 @@ pub fn growth_intent_inference_system(
         let must_write = current_intent_opt
             .map(|curr| {
                 (curr.delta_radius - intent.delta_radius).abs() > constants::VOLUME_WRITE_EPS
-                    || (curr.confidence - intent.confidence).abs() > constants::GROWTH_INTENT_FIELD_EPS
-                    || (curr.structural_stability - intent.structural_stability).abs() > constants::GROWTH_INTENT_FIELD_EPS
+                    || (curr.confidence - intent.confidence).abs()
+                        > constants::GROWTH_INTENT_FIELD_EPS
+                    || (curr.structural_stability - intent.structural_stability).abs()
+                        > constants::GROWTH_INTENT_FIELD_EPS
             })
             .unwrap_or(true);
         if must_write {
@@ -83,11 +95,11 @@ pub fn cleanup_orphan_growth_intent_system(
 
 #[cfg(test)]
 mod tests {
-    use crate::simulation::allometric_growth::allometric_growth_system;
     use super::{cleanup_orphan_growth_intent_system, growth_intent_inference_system};
     use crate::layers::{
         BaseEnergy, CapabilitySet, GrowthBudget, GrowthIntent, InferenceProfile, SpatialVolume,
     };
+    use crate::simulation::allometric_growth::allometric_growth_system;
     use bevy::prelude::*;
 
     #[test]
@@ -158,9 +170,22 @@ mod tests {
                 CapabilitySet::new(CapabilitySet::MOVE),
             ))
             .id();
-        let before = app.world().entity(entity).get::<SpatialVolume>().unwrap().radius;
+        let before = app
+            .world()
+            .entity(entity)
+            .get::<SpatialVolume>()
+            .unwrap()
+            .radius;
         app.update();
-        let after = app.world().entity(entity).get::<SpatialVolume>().unwrap().radius;
-        assert!((after - before).abs() < 1e-6, "before={before} after={after}");
+        let after = app
+            .world()
+            .entity(entity)
+            .get::<SpatialVolume>()
+            .unwrap()
+            .radius;
+        assert!(
+            (after - before).abs() < 1e-6,
+            "before={before} after={after}"
+        );
     }
 }

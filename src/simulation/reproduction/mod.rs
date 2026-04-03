@@ -8,17 +8,17 @@ mod constants;
 
 use bevy::prelude::*;
 
-use crate::blueprint::{equations, ElementId};
+use crate::blueprint::{ElementId, equations};
 use crate::entities::builder::EntityBuilder;
 use crate::events::DeathCause;
-use crate::layers::{
-    AllometricRadiusAnchor, BaseEnergy, BehavioralAgent, BehaviorCooldown, BehaviorIntent,
-    CacheScope, CapabilitySet, EnergyOps, HasInferredShape, InferenceProfile,
-    MatterState, MorphogenesisShapeParams, PerformanceCachePolicy, SpatialVolume, TrophicClass,
-    TrophicConsumer, TrophicState,
-};
 use crate::layers::organ::LifecycleStageCache;
 use crate::layers::senescence::SenescenceProfile;
+use crate::layers::{
+    AllometricRadiusAnchor, BaseEnergy, BehaviorCooldown, BehaviorIntent, BehavioralAgent,
+    CacheScope, CapabilitySet, EnergyOps, HasInferredShape, InferenceProfile, MatterState,
+    MorphogenesisShapeParams, PerformanceCachePolicy, SpatialVolume, TrophicClass, TrophicConsumer,
+    TrophicState,
+};
 use crate::runtime_platform::simulation_tick::SimulationClock;
 use crate::simulation::emergence::culture::CulturalMemory;
 use crate::worldgen::{EnergyFieldGrid, Materialized, WorldArchetype};
@@ -106,13 +106,17 @@ pub fn reproduction_spawn_system(
 
         if is_flora {
             if equations::can_reproduce(
-                volume.radius, anchor.base_radius, profile.branching_bias,
+                volume.radius,
+                anchor.base_radius,
+                profile.branching_bias,
                 constants::REPRODUCTION_RADIUS_FACTOR,
             ) {
                 eligible.push(entity);
             }
         } else if is_fauna {
-            let Some(qe) = energy_ops.qe(entity) else { continue };
+            let Some(qe) = energy_ops.qe(entity) else {
+                continue;
+            };
             if qe >= constants::FAUNA_REPRODUCTION_QE_MIN {
                 eligible.push(entity);
             }
@@ -125,23 +129,43 @@ pub fn reproduction_spawn_system(
         if spawned >= constants::MAX_REPRODUCTIONS_PER_FRAME {
             break;
         }
-        let Some(qe) = energy_ops.qe(entity) else { continue };
-        let Ok((_, transform, _, _anchor, profile, caps)) = query.get(entity) else { continue };
+        let Some(qe) = energy_ops.qe(entity) else {
+            continue;
+        };
+        let Ok((_, transform, _, _anchor, profile, caps)) = query.get(entity) else {
+            continue;
+        };
 
         let is_fauna = caps.has(CapabilitySet::MOVE);
-        let energy_fraction = if is_fauna { constants::FAUNA_SEED_ENERGY_FRACTION } else { constants::SEED_ENERGY_FRACTION };
+        let energy_fraction = if is_fauna {
+            constants::FAUNA_SEED_ENERGY_FRACTION
+        } else {
+            constants::SEED_ENERGY_FRACTION
+        };
         let seed_want = qe * energy_fraction;
-        if seed_want <= 0.0 { continue; }
+        if seed_want <= 0.0 {
+            continue;
+        }
 
         let drained = energy_ops.drain(entity, seed_want, DeathCause::Dissipation);
-        if drained <= 0.0 { continue; }
+        if drained <= 0.0 {
+            continue;
+        }
 
         let child_pos = sim_plane_xz(transform) + dispersal_offset_xy(entity);
         let (d_growth, d_mobility, d_branch, d_res) = profile_mutation_drifts(entity);
         let child_profile = InferenceProfile::new(
             equations::mutate_bias(profile.growth_bias, d_growth, constants::MUTATION_MAX_DRIFT),
-            equations::mutate_bias(profile.mobility_bias, d_mobility, constants::MUTATION_MAX_DRIFT),
-            equations::mutate_bias(profile.branching_bias, d_branch, constants::MUTATION_MAX_DRIFT),
+            equations::mutate_bias(
+                profile.mobility_bias,
+                d_mobility,
+                constants::MUTATION_MAX_DRIFT,
+            ),
+            equations::mutate_bias(
+                profile.branching_bias,
+                d_branch,
+                constants::MUTATION_MAX_DRIFT,
+            ),
             equations::mutate_bias(profile.resilience, d_res, constants::MUTATION_MAX_DRIFT),
         );
 
@@ -177,12 +201,20 @@ pub fn reproduction_spawn_system(
                 BehavioralAgent,
                 BehaviorIntent::default(),
                 BehaviorCooldown::default(),
-                TrophicConsumer::new(TrophicClass::Herbivore, constants::FAUNA_OFFSPRING_TROPHIC_INTAKE),
+                TrophicConsumer::new(
+                    TrophicClass::Herbivore,
+                    constants::FAUNA_OFFSPRING_TROPHIC_INTAKE,
+                ),
                 TrophicState::new(constants::FAUNA_OFFSPRING_INITIAL_SATIATION),
                 HasInferredShape,
                 LifecycleStageCache::default(),
                 MorphogenesisShapeParams::default(),
-                PerformanceCachePolicy { enabled: true, scope: CacheScope::StableWindow, version_tag: 1, dependency_signature: 0 },
+                PerformanceCachePolicy {
+                    enabled: true,
+                    scope: CacheScope::StableWindow,
+                    version_tag: 1,
+                    dependency_signature: 0,
+                },
                 SenescenceProfile {
                     tick_birth: clock.tick_id,
                     senescence_coeff: crate::blueprint::constants::senescence_coeff_fauna(),
@@ -202,9 +234,22 @@ pub fn reproduction_spawn_system(
                 .volume(constants::SEED_INITIAL_RADIUS)
                 .wave(ElementId::from_name(constants::FLORA_ELEMENT_SYMBOL))
                 .flow(Vec2::ZERO, constants::SEED_FLOW_DISSIPATION)
-                .matter(MatterState::Solid, constants::SEED_MATTER_BOND_EB, constants::SEED_MATTER_THERMAL_CONDUCTIVITY)
-                .nutrient(constants::SEED_NUTRIENT_CARBON, constants::SEED_NUTRIENT_NITROGEN, constants::SEED_NUTRIENT_PHOSPHORUS, constants::SEED_NUTRIENT_WATER)
-                .growth_budget(constants::SEED_GROWTH_BIOMASS, constants::SEED_GROWTH_LIMITER, constants::SEED_GROWTH_EFFICIENCY)
+                .matter(
+                    MatterState::Solid,
+                    constants::SEED_MATTER_BOND_EB,
+                    constants::SEED_MATTER_THERMAL_CONDUCTIVITY,
+                )
+                .nutrient(
+                    constants::SEED_NUTRIENT_CARBON,
+                    constants::SEED_NUTRIENT_NITROGEN,
+                    constants::SEED_NUTRIENT_PHOSPHORUS,
+                    constants::SEED_NUTRIENT_WATER,
+                )
+                .growth_budget(
+                    constants::SEED_GROWTH_BIOMASS,
+                    constants::SEED_GROWTH_LIMITER,
+                    constants::SEED_GROWTH_EFFICIENCY,
+                )
                 .at(child_pos)
                 .spawn(&mut commands);
 
@@ -212,7 +257,11 @@ pub fn reproduction_spawn_system(
             if let Some(grid) = grid.as_deref()
                 && let Some((cx, cy)) = grid.cell_coords(child_pos)
             {
-                commands.entity(child).insert(Materialized { cell_x: cx as i32, cell_y: cy as i32, archetype: WorldArchetype::TerraSolid });
+                commands.entity(child).insert(Materialized {
+                    cell_x: cx as i32,
+                    cell_y: cy as i32,
+                    archetype: WorldArchetype::TerraSolid,
+                });
             }
         }
 
@@ -450,30 +499,31 @@ mod tests {
             spawn_flora_parent(&mut app, 2.0, 200.0, parent_profile, caps);
             app.update();
             let world = app.world_mut();
-            for (name, prof) in world
-                .query::<(&Name, &InferenceProfile)>()
-                .iter(world)
-            {
+            for (name, prof) in world.query::<(&Name, &InferenceProfile)>().iter(world) {
                 if name.as_str() == constants::SEED_ENTITY_NAME {
                     assert!(
                         prof.growth_bias >= 0.0 && prof.growth_bias <= 1.0,
                         "growth_bias {:.4} out of [0,1] for parent {:?}",
-                        prof.growth_bias, parent_profile
+                        prof.growth_bias,
+                        parent_profile
                     );
                     assert!(
                         prof.mobility_bias >= 0.0 && prof.mobility_bias <= 1.0,
                         "mobility_bias {:.4} out of [0,1] for parent {:?}",
-                        prof.mobility_bias, parent_profile
+                        prof.mobility_bias,
+                        parent_profile
                     );
                     assert!(
                         prof.branching_bias >= 0.0 && prof.branching_bias <= 1.0,
                         "branching_bias {:.4} out of [0,1] for parent {:?}",
-                        prof.branching_bias, parent_profile
+                        prof.branching_bias,
+                        parent_profile
                     );
                     assert!(
                         prof.resilience >= 0.0 && prof.resilience <= 1.0,
                         "resilience {:.4} out of [0,1] for parent {:?}",
-                        prof.resilience, parent_profile
+                        prof.resilience,
+                        parent_profile
                     );
                 }
             }
@@ -497,10 +547,7 @@ mod tests {
         app.update();
         let world = app.world_mut();
         let mut seed_found = false;
-        for (name, transform) in world
-            .query::<(&Name, &Transform)>()
-            .iter(world)
-        {
+        for (name, transform) in world.query::<(&Name, &Transform)>().iter(world) {
             if name.as_str() == constants::SEED_ENTITY_NAME {
                 seed_found = true;
                 let dist = transform.translation.distance(parent_pos);

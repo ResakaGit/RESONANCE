@@ -1,19 +1,19 @@
 use bevy::prelude::*;
 
 // --- Subdirectorios temáticos ---
-pub mod thermodynamic;
-pub mod metabolic;
-pub mod lifecycle;
 pub mod emergence;
+pub mod lifecycle;
+pub mod metabolic;
+pub mod thermodynamic;
 
 // Re-exports transparentes: preservan `crate::simulation::module` para todo el codebase.
 pub use thermodynamic::containment;
+pub use thermodynamic::homeostasis_thermo;
 pub use thermodynamic::locomotion;
 pub use thermodynamic::osmosis;
 pub use thermodynamic::physics;
 pub use thermodynamic::pre_physics;
 pub use thermodynamic::sensory;
-pub use thermodynamic::homeostasis_thermo;
 pub use thermodynamic::structural_runtime;
 
 pub use metabolic::atmosphere_inference;
@@ -39,42 +39,42 @@ pub use lifecycle::morpho_adaptation;
 pub use lifecycle::organ_lifecycle;
 
 // --- Módulos en raíz (cross-cutting) ---
-pub mod netcode;
-pub mod culture_observation;
 pub mod ability_targeting;
-pub mod game_loop;
-pub mod checkpoint_system;
 pub mod abiogenesis;
-pub mod awakening;
-pub mod cooperation;
-pub mod observability;
-pub mod behavior;
 pub mod atomic;
+pub mod awakening;
+pub mod behavior;
 mod bootstrap;
+pub mod checkpoint_system;
+pub mod cooperation;
+pub mod culture_observation;
 #[cfg(test)]
 mod eco_e5_simulation_tests;
 pub mod element_layer2;
 #[cfg(test)]
 mod event_ordering_tests;
 pub mod fog_of_war;
+pub mod game_loop;
 pub mod grimoire_enqueue;
 pub mod input;
+pub mod netcode;
+pub mod observability;
 pub(crate) mod observers;
 pub mod pathfinding;
 pub mod pipeline;
 pub mod player_controlled;
 pub mod post;
 pub mod reactions;
-pub mod reproduction;
 #[cfg(test)]
 mod regression;
+pub mod reproduction;
 pub mod sensory_perception;
 pub mod states;
+#[cfg(test)]
+pub(crate) mod test_support;
 pub mod time_compat;
 #[cfg(test)]
 mod verify_wave_gate;
-#[cfg(test)]
-pub(crate) mod test_support;
 
 pub use bootstrap::init_simulation_bootstrap;
 pub use states::{GameState, PlayState};

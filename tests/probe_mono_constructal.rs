@@ -43,7 +43,10 @@ fn spawn_animal(app: &mut App) -> Entity {
 fn monkey_velocity_produces_limbs() {
     // Monkey-like: radius=0.55, fineness=1.5, moderate speed
     let n = optimal_appendage_count(0.55, 1.5, 1.0, 5.0, 0.1, 0.44, 0.08, 8);
-    assert!(n >= 2, "monkey-like entity at v=5 should have limbs, got {n}");
+    assert!(
+        n >= 2,
+        "monkey-like entity at v=5 should have limbs, got {n}"
+    );
 }
 
 #[test]
@@ -56,7 +59,7 @@ fn stationary_entity_gets_zero_limbs() {
 fn high_mobility_front_limbs_longer_than_rear() {
     let mobility = 0.8; // primate-like
     let (front_len, _) = organ_slot_scale(2, 6, mobility); // front limb
-    let (rear_len, _)  = organ_slot_scale(4, 6, mobility); // rear limb
+    let (rear_len, _) = organ_slot_scale(4, 6, mobility); // rear limb
     assert!(
         front_len > rear_len,
         "high mobility should make front limbs longer: front={front_len} rear={rear_len}"
@@ -67,7 +70,7 @@ fn high_mobility_front_limbs_longer_than_rear() {
 fn low_mobility_limbs_roughly_equal() {
     let mobility = 0.2; // quadruped runner
     let (front_len, _) = organ_slot_scale(2, 6, mobility);
-    let (rear_len, _)  = organ_slot_scale(4, 6, mobility);
+    let (rear_len, _) = organ_slot_scale(4, 6, mobility);
     let diff = (front_len - rear_len).abs();
     assert!(
         diff < 0.15,
@@ -93,11 +96,18 @@ fn animal_with_l6_gets_constructal_body_plan() {
     let animal = spawn_animal(&mut app);
 
     // Give it some velocity so constructal produces limbs
-    app.world_mut().entity_mut(animal).get_mut::<FlowVector>().unwrap().set_velocity(Vec2::new(4.0, 0.0), None);
+    app.world_mut()
+        .entity_mut(animal)
+        .get_mut::<FlowVector>()
+        .unwrap()
+        .set_velocity(Vec2::new(4.0, 0.0), None);
     app.update(); // constructal fires
 
     let has_layout = app.world().entity(animal).contains::<BodyPlanLayout>();
-    assert!(has_layout, "animal with AmbientPressure should get BodyPlanLayout from constructal system");
+    assert!(
+        has_layout,
+        "animal with AmbientPressure should get BodyPlanLayout from constructal system"
+    );
 
     let layout = app.world().get::<BodyPlanLayout>(animal).unwrap();
     assert!(

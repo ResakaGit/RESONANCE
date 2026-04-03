@@ -121,10 +121,22 @@ fn diffusion_early_gradient_decreases_from_source() {
     }
 
     // Check that energy decreases along cardinal direction from center.
-    let center_qe = grid.cell_xy(16, 16).map(|c| c.accumulated_qe).unwrap_or(0.0);
-    let near_qe = grid.cell_xy(17, 16).map(|c| c.accumulated_qe).unwrap_or(0.0);
-    let far_qe = grid.cell_xy(19, 16).map(|c| c.accumulated_qe).unwrap_or(0.0);
-    let edge_qe = grid.cell_xy(22, 16).map(|c| c.accumulated_qe).unwrap_or(0.0);
+    let center_qe = grid
+        .cell_xy(16, 16)
+        .map(|c| c.accumulated_qe)
+        .unwrap_or(0.0);
+    let near_qe = grid
+        .cell_xy(17, 16)
+        .map(|c| c.accumulated_qe)
+        .unwrap_or(0.0);
+    let far_qe = grid
+        .cell_xy(19, 16)
+        .map(|c| c.accumulated_qe)
+        .unwrap_or(0.0);
+    let edge_qe = grid
+        .cell_xy(22, 16)
+        .map(|c| c.accumulated_qe)
+        .unwrap_or(0.0);
 
     assert!(center_qe > 0.0, "center should have energy");
     assert!(center_qe >= near_qe, "center={center_qe} >= near={near_qe}");

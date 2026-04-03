@@ -21,9 +21,7 @@ pub fn parse_arg_f32(args: &[String], flag: &str, default: f32) -> f32 {
 
 /// Find a string CLI flag value. Returns `None` if absent.
 pub fn find_arg(args: &[String], flag: &str) -> Option<String> {
-    args.windows(2)
-        .find(|w| w[0] == flag)
-        .map(|w| w[1].clone())
+    args.windows(2).find(|w| w[0] == flag).map(|w| w[1].clone())
 }
 
 /// Human-readable archetype label from u8 code.
@@ -53,11 +51,11 @@ pub fn trophic_label(trophic: u8) -> &'static str {
 pub fn resolve_preset(name: &str) -> crate::use_cases::presets::UniversePreset {
     match name.to_lowercase().as_str() {
         "jupiter" => crate::use_cases::presets::JUPITER,
-        "mars"    => crate::use_cases::presets::MARS,
-        "eden"    => crate::use_cases::presets::EDEN,
-        "hell"    => crate::use_cases::presets::HELL,
-        "random"  => crate::use_cases::presets::UniversePreset::from_seed(42),
-        _         => crate::use_cases::presets::EARTH,
+        "mars" => crate::use_cases::presets::MARS,
+        "eden" => crate::use_cases::presets::EDEN,
+        "hell" => crate::use_cases::presets::HELL,
+        "random" => crate::use_cases::presets::UniversePreset::from_seed(42),
+        _ => crate::use_cases::presets::EARTH,
     }
 }
 

@@ -7,10 +7,7 @@
 
 use bevy::prelude::Mesh;
 
-use crate::blueprint::equations::{
-    batch_fitness,
-    frequency_to_tint_rgb, radial_field, BranchRole,
-};
+use crate::blueprint::equations::{BranchRole, batch_fitness, frequency_to_tint_rgb, radial_field};
 use crate::geometry_flow::{self, GeometryInfluence, merge_meshes};
 use crate::math_types::Vec3;
 
@@ -28,7 +25,12 @@ pub fn build_creature_mesh(
 ) -> Mesh {
     let tint = frequency_to_tint_rgb(frequency_hz);
     let (length, radius, tilt, resistance, detail, segments) =
-        batch_fitness::trunk_params_from_genome(growth_bias, mobility_bias, branching_bias, resilience);
+        batch_fitness::trunk_params_from_genome(
+            growth_bias,
+            mobility_bias,
+            branching_bias,
+            resilience,
+        );
 
     let dir = Vec3::new(tilt.sin(), tilt.cos(), 0.0).normalize_or_zero();
 
@@ -68,7 +70,8 @@ pub fn build_creature_mesh(
             angle.cos() * 0.7,
             0.3 + growth_bias * 0.4,
             angle.sin() * 0.7,
-        ).normalize_or_zero();
+        )
+        .normalize_or_zero();
 
         let branch_influence = GeometryInfluence {
             detail: detail * 0.7,
@@ -81,16 +84,15 @@ pub fn build_creature_mesh(
             radius_base: radius * plan.radius_fraction,
             start_position: attach_pos,
             qe_norm: 0.2 + branching_bias * 0.3,
-            tint_rgb: [
-                tint[0] * 0.8 + 0.1,
-                tint[1] * 0.9,
-                tint[2] * 0.7 + 0.15,
-            ],
+            tint_rgb: [tint[0] * 0.8 + 0.1, tint[1] * 0.9, tint[2] * 0.7 + 0.15],
             branch_role: BranchRole::Leaf,
         };
 
         let branch_spine = geometry_flow::build_flow_spine(&branch_influence);
-        all_meshes.push(geometry_flow::build_flow_mesh(&branch_spine, &branch_influence));
+        all_meshes.push(geometry_flow::build_flow_mesh(
+            &branch_spine,
+            &branch_influence,
+        ));
     }
 
     merge_meshes(&all_meshes)
@@ -118,13 +120,19 @@ pub fn build_creature_mesh_with_field(
 ) -> Mesh {
     let tint = frequency_to_tint_rgb(frequency_hz);
     let (length, radius, tilt, resistance, detail, segments) =
-        batch_fitness::trunk_params_from_genome(growth_bias, mobility_bias, branching_bias, resilience);
+        batch_fitness::trunk_params_from_genome(
+            growth_bias,
+            mobility_bias,
+            branching_bias,
+            resilience,
+        );
 
     let dir = Vec3::new(tilt.sin(), tilt.cos(), 0.0).normalize_or_zero();
 
     // Per-station radii from 2D field (averaged across sectors)
     let radii = radial_field::radial_to_axial_radii(
-        qe_field, radius,
+        qe_field,
+        radius,
         crate::batch::constants::FIELD_RADIUS_MIN_RATIO,
         crate::batch::constants::FIELD_RADIUS_MAX_RATIO,
     );
@@ -149,11 +157,14 @@ pub fn build_creature_mesh_with_field(
     // Interpolate radii from 8 field nodes to spine node count
     let spine_radii = interpolate_radii_to_spine(&radii, trunk_spine.len());
     let trunk_mesh = geometry_flow::build_flow_mesh_variable_radius(
-        &trunk_spine, &trunk_influence, &spine_radii,
+        &trunk_spine,
+        &trunk_influence,
+        &spine_radii,
     );
 
     // Appendages from 2D field peaks (Axiom 6: emergent, not planned)
-    let peaks = radial_field::detect_peaks(qe_field, crate::batch::constants::PEAK_THRESHOLD_FACTOR);
+    let peaks =
+        radial_field::detect_peaks(qe_field, crate::batch::constants::PEAK_THRESHOLD_FACTOR);
     let n_peaks = radial_field::peak_count(&peaks);
     if n_peaks == 0 || trunk_spine.len() < 3 {
         return trunk_mesh;
@@ -165,16 +176,16 @@ pub fn build_creature_mesh_with_field(
     let mut all_meshes = vec![trunk_mesh];
     for p in 0..n_peaks {
         let (peak_ax, peak_rad, peak_qe) = peaks[p];
-        if peak_qe < crate::batch::constants::APPENDAGE_QE_MIN { continue; }
+        if peak_qe < crate::batch::constants::APPENDAGE_QE_MIN {
+            continue;
+        }
 
         // Pure functions: 2D field peak → 3D geometry params (EM-3A + EM-3B)
-        let (attach_pos, branch_dir) = radial_field::peak_to_3d_offset(
-            peak_ax, peak_rad, &spine_positions,
-        );
+        let (attach_pos, branch_dir) =
+            radial_field::peak_to_3d_offset(peak_ax, peak_rad, &spine_positions);
         let ar = radial_field::peak_aspect_ratio(qe_field, peak_ax, peak_rad);
-        let (app_length, local_radius, _) = radial_field::peak_to_spine_params(
-            peak_qe, ar, length, radius, total_field_qe,
-        );
+        let (app_length, local_radius, _) =
+            radial_field::peak_to_spine_params(peak_qe, ar, length, radius, total_field_qe);
 
         let local_freq = freq_field[peak_ax as usize][peak_rad as usize];
         let branch_tint = frequency_to_tint_rgb(local_freq);
@@ -196,27 +207,32 @@ pub fn build_creature_mesh_with_field(
         let app_spine = geometry_flow::build_flow_spine(&appendage_influence);
 
         // EM-4: Joint articulation — extract profile, detect joints, segment
-        let direction: i8 = if peak_ax < (radial_field::AXIAL / 2) as u8 { -1 } else { 1 };
-        let (profile, prof_len) = radial_field::extract_appendage_profile(
-            qe_field, peak_ax, peak_rad, direction,
-        );
+        let direction: i8 = if peak_ax < (radial_field::AXIAL / 2) as u8 {
+            -1
+        } else {
+            1
+        };
+        let (profile, prof_len) =
+            radial_field::extract_appendage_profile(qe_field, peak_ax, peak_rad, direction);
         let joints = radial_field::detect_appendage_joints(&profile, prof_len);
         let n_joints = radial_field::appendage_joint_count(&joints);
 
         if n_joints > 0 && app_spine.len() > 2 {
             // Segmented: apply joint-thinned radii
-            let seg_radii = radial_field::segmented_radii(
-                local_radius, &joints, n_joints, app_spine.len(),
-            );
-            let spine_radii = interpolate_radii_to_spine(
-                &seg_radii, app_spine.len(),
-            );
+            let seg_radii =
+                radial_field::segmented_radii(local_radius, &joints, n_joints, app_spine.len());
+            let spine_radii = interpolate_radii_to_spine(&seg_radii, app_spine.len());
             all_meshes.push(geometry_flow::build_flow_mesh_variable_radius(
-                &app_spine, &appendage_influence, &spine_radii,
+                &app_spine,
+                &appendage_influence,
+                &spine_radii,
             ));
         } else {
             // No joints: single tube (existing behavior)
-            all_meshes.push(geometry_flow::build_flow_mesh(&app_spine, &appendage_influence));
+            all_meshes.push(geometry_flow::build_flow_mesh(
+                &app_spine,
+                &appendage_influence,
+            ));
         }
     }
 
@@ -226,9 +242,15 @@ pub fn build_creature_mesh_with_field(
 /// Linearly interpolate N radii values to match spine node count.
 fn interpolate_radii_to_spine(radii: &[f32], spine_len: usize) -> Vec<f32> {
     let n = radii.len();
-    if spine_len == 0 || n == 0 { return Vec::new(); }
-    if spine_len == 1 { return vec![radii[0]]; }
-    if n == 1 { return vec![radii[0]; spine_len]; }
+    if spine_len == 0 || n == 0 {
+        return Vec::new();
+    }
+    if spine_len == 1 {
+        return vec![radii[0]];
+    }
+    if n == 1 {
+        return vec![radii[0]; spine_len];
+    }
     let mut result = Vec::with_capacity(spine_len);
     for i in 0..spine_len {
         let t = i as f32 / (spine_len - 1).max(1) as f32;
@@ -255,17 +277,24 @@ mod tests {
     #[test]
     fn creature_mesh_with_branches_is_larger() {
         let no_branch = build_creature_mesh(0.8, 0.5, 0.0, 0.7, 440.0);
-        let branched  = build_creature_mesh(0.8, 0.5, 1.0, 0.7, 440.0);
+        let branched = build_creature_mesh(0.8, 0.5, 1.0, 0.7, 440.0);
         let count_a = vertex_count(&no_branch);
         let count_b = vertex_count(&branched);
-        assert!(count_b > count_a, "branches should add vertices: {count_a} vs {count_b}");
+        assert!(
+            count_b > count_a,
+            "branches should add vertices: {count_a} vs {count_b}"
+        );
     }
 
     #[test]
     fn different_genomes_produce_different_meshes() {
         let a = build_creature_mesh(0.2, 0.8, 0.1, 0.3, 200.0);
         let b = build_creature_mesh(0.9, 0.1, 0.9, 0.9, 700.0);
-        assert_ne!(vertex_count(&a), vertex_count(&b), "different genomes → different vertex counts");
+        assert_ne!(
+            vertex_count(&a),
+            vertex_count(&b),
+            "different genomes → different vertex counts"
+        );
     }
 
     #[test]
@@ -286,8 +315,10 @@ mod tests {
         let with_peaks = build_creature_mesh_with_field(0.8, 0.5, 0.8, 0.5, 440.0, &field, &freq);
         let uniform = [[3.0; radial_field::RADIAL]; radial_field::AXIAL];
         let without = build_creature_mesh_with_field(0.8, 0.5, 0.0, 0.5, 440.0, &uniform, &freq);
-        assert!(vertex_count(&with_peaks) > vertex_count(&without),
-            "peaks should add appendage vertices");
+        assert!(
+            vertex_count(&with_peaks) > vertex_count(&without),
+            "peaks should add appendage vertices"
+        );
     }
 
     #[test]

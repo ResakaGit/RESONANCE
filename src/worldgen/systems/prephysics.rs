@@ -28,7 +28,9 @@ use crate::simulation::input::grimoire_cast_resolve_system;
 use crate::topology::config::TerrainConfigRuntime;
 use crate::topology::{TerrainField, TerrainMutationEvent};
 use crate::world::update_spatial_index_system;
-use crate::worldgen::cell_field_snapshot::{CellFieldSnapshotCache, cell_field_snapshot_sync_system};
+use crate::worldgen::cell_field_snapshot::{
+    CellFieldSnapshotCache, cell_field_snapshot_sync_system,
+};
 use crate::worldgen::sync_nutrient_field_len_system;
 
 use super::materialization::worldgen_nucleus_death_notify_system;
@@ -88,10 +90,7 @@ pub fn register_worldgen_core_prephysics_chain<S: ScheduleLabel + Clone>(
 
 /// Grimoire emit + cast resolve + spatial index — non-worldgen ThermodynamicLayer head.
 /// Separada para que `WorldgenPlugin` (v7) pueda registrar la cadena worldgen independientemente.
-pub fn register_grimoire_and_spatial_index<S: ScheduleLabel + Clone>(
-    app: &mut App,
-    schedule: S,
-) {
+pub fn register_grimoire_and_spatial_index<S: ScheduleLabel + Clone>(app: &mut App, schedule: S) {
     app.add_systems(
         schedule.clone(),
         (
@@ -168,8 +167,7 @@ pub fn register_postphysics_nucleus_death_before_faction<S: ScheduleLabel + Clon
     app.add_systems(
         schedule,
         (
-            fog_of_war_provider_system
-                .after(metabolic_stress_death_system),
+            fog_of_war_provider_system.after(metabolic_stress_death_system),
             fog_visibility_mask_system,
             worldgen_nucleus_death_notify_system,
             faction_identity_system,

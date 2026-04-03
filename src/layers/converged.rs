@@ -15,7 +15,7 @@ use bevy::prelude::*;
 #[component(storage = "SparseSet")]
 pub struct Converged<T: Send + Sync + 'static> {
     env_hash: u64,
-    _marker:  PhantomData<T>,
+    _marker: PhantomData<T>,
 }
 
 impl<T: Send + Sync + 'static> Converged<T> {
@@ -23,13 +23,18 @@ impl<T: Send + Sync + 'static> Converged<T> {
     /// Creates a convergence flag with the current environment hash.
     #[inline]
     pub fn new(env_hash: u64) -> Self {
-        Self { env_hash, _marker: PhantomData }
+        Self {
+            env_hash,
+            _marker: PhantomData,
+        }
     }
 
     /// Hash del entorno cuando convergió.
     /// Environment hash when converged.
     #[inline]
-    pub fn env_hash(&self) -> u64 { self.env_hash }
+    pub fn env_hash(&self) -> u64 {
+        self.env_hash
+    }
 
     /// ¿Sigue válido? `true` si el hash ambiental no cambió.
     /// Still valid? `true` if environment hash unchanged.
@@ -45,7 +50,9 @@ impl<T: Send + Sync + 'static> Converged<T> {
 /// NaN se normaliza a 0 para consistencia (todos los NaN → mismo hash).
 #[inline]
 pub fn hash_f32(v: f32) -> u64 {
-    if v.is_nan() { return 0; }
+    if v.is_nan() {
+        return 0;
+    }
     f32::to_bits(v) as u64
 }
 

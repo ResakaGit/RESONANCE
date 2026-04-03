@@ -9,14 +9,14 @@ use crate::use_cases::presets::UniversePreset;
 /// Result of a Cambrian Explosion analysis.
 #[derive(Debug)]
 pub struct CambrianReport {
-    pub preset_name:       &'static str,
-    pub generations:       u32,
+    pub preset_name: &'static str,
+    pub generations: u32,
     /// Diversity per generation (from harness.history).
-    pub diversity_curve:   Vec<f32>,
+    pub diversity_curve: Vec<f32>,
     /// Species count per generation.
-    pub species_curve:     Vec<f32>,
+    pub species_curve: Vec<f32>,
     /// Generation where max diversity increase happened.
-    pub explosion_gen:     Option<u32>,
+    pub explosion_gen: Option<u32>,
     /// Max diversity delta between consecutive generations.
     pub max_diversity_delta: f32,
     /// Whether an "explosion" was detected (delta > threshold).
@@ -39,7 +39,8 @@ pub fn run(
     let diversity_curve: Vec<f32> = report.history.iter().map(|s| s.diversity).collect();
     let species_curve: Vec<f32> = report.history.iter().map(|s| s.species_mean).collect();
 
-    let (explosion_gen, max_delta) = diversity_curve.windows(2)
+    let (explosion_gen, max_delta) = diversity_curve
+        .windows(2)
         .enumerate()
         .map(|(i, w)| (i + 1, w[1] - w[0]))
         .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))

@@ -2,8 +2,8 @@
 //! Funciones puras para verificar que misma configuración → mismo resultado final.
 //! Tests en `tests/r2_determinism.rs`.
 
-use std::hash::{Hash, Hasher};
 use std::collections::hash_map::DefaultHasher;
+use std::hash::{Hash, Hasher};
 
 /// Hash determinista de un slice de f32 (orden importa).
 /// Usa `to_bits()` para garantizar bit-exacto incluyendo +0.0/-0.0/NaN.
@@ -35,7 +35,9 @@ pub fn snapshots_match(a: &[f32], b: &[f32]) -> bool {
 /// `state' = state × 6364136223846793005 + 1442695040888963407`
 #[inline]
 pub fn next_u64(state: u64) -> u64 {
-    state.wrapping_mul(6_364_136_223_846_793_005).wrapping_add(1_442_695_040_888_963_407)
+    state
+        .wrapping_mul(6_364_136_223_846_793_005)
+        .wrapping_add(1_442_695_040_888_963_407)
 }
 
 /// Uniform f32 in [0, 1) from state (uses top 24 bits for mantissa quality).
@@ -70,7 +72,9 @@ pub fn gaussian_f32(state: u64, sigma: f32) -> f32 {
 /// Each caller passes their domain-specific bandwidth constant.
 #[inline]
 pub fn gaussian_frequency_alignment(f_a: f32, f_b: f32, bandwidth: f32) -> f32 {
-    if !f_a.is_finite() || !f_b.is_finite() || bandwidth <= 0.0 { return 0.0; }
+    if !f_a.is_finite() || !f_b.is_finite() || bandwidth <= 0.0 {
+        return 0.0;
+    }
     let delta = (f_a - f_b).abs();
     (-delta * delta / (2.0 * bandwidth * bandwidth)).exp()
 }
@@ -78,7 +82,11 @@ pub fn gaussian_frequency_alignment(f_a: f32, f_b: f32, bandwidth: f32) -> f32 {
 /// Sanitize f32 to unit range [0,1]. NaN/Inf → 0.0.
 #[inline]
 pub fn sanitize_unit(v: f32) -> f32 {
-    if v.is_finite() { v.clamp(0.0, 1.0) } else { 0.0 }
+    if v.is_finite() {
+        v.clamp(0.0, 1.0)
+    } else {
+        0.0
+    }
 }
 
 #[cfg(test)]
@@ -106,10 +114,15 @@ mod tests {
     }
 
     #[test]
-    fn sanitize_unit_nan_zero() { assert_eq!(sanitize_unit(f32::NAN), 0.0); }
+    fn sanitize_unit_nan_zero() {
+        assert_eq!(sanitize_unit(f32::NAN), 0.0);
+    }
 
     #[test]
-    fn sanitize_unit_clamps() { assert_eq!(sanitize_unit(2.0), 1.0); assert_eq!(sanitize_unit(-1.0), 0.0); }
+    fn sanitize_unit_clamps() {
+        assert_eq!(sanitize_unit(2.0), 1.0);
+        assert_eq!(sanitize_unit(-1.0), 0.0);
+    }
 
     #[test]
     fn hash_f32_slice_same_input_same_output() {
@@ -222,7 +235,9 @@ mod tests {
     #[test]
     fn gaussian_f32_approximate_mean_zero() {
         let n = 10_000u64;
-        let sum: f32 = (0..n).map(|i| gaussian_f32(next_u64(i * 7 + 13), 1.0)).sum();
+        let sum: f32 = (0..n)
+            .map(|i| gaussian_f32(next_u64(i * 7 + 13), 1.0))
+            .sum();
         let mean = sum / n as f32;
         assert!(mean.abs() < 0.1, "mean={mean} should be near 0");
     }

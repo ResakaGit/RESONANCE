@@ -17,4 +17,3 @@ pub const SHAPE_INF_GRADIENT_BLEND: f32 = 0.4;
 pub const SHAPE_INF_MAX_PER_FRAME: u32 = 384;
 /// LOD detail assigned to inferred shapes (moderate fidelity).
 pub const SHAPE_INF_DETAIL: f32 = 0.55;
-

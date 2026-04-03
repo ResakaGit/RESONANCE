@@ -4,28 +4,21 @@ pub mod constants;
 
 #[cfg(feature = "bridge_optimizer")]
 pub mod benchmark_harness;
-pub mod impls;
 pub mod cache;
 pub mod config;
 pub mod context_fill;
 pub mod decorator;
+pub mod impls;
+pub mod macros;
 pub mod metrics;
 pub mod normalize;
 pub mod presets;
-pub mod macros;
 
-pub use impls::ops::{
-    BridgedInterferenceOps, CatalysisEquationInput, CollisionTransferEquationInput,
-    CollisionTransferScratch, CompetitionNormEquationInput, InterferenceEquationInput,
-    OsmosisEquationInput, canonicalize_frequency_hz,
-};
-#[cfg(feature = "bridge_optimizer")]
-pub use impls::physics::{BridgedPhysicsOps, phase_band_hint_from_state};
 pub use cache::{BridgeCache, CacheStats, CachedValue, register_bridge_cache};
 pub use config::{
     BandDef, BandValidationError, BridgeConfig, BridgeKind, CachePolicy, CatalysisBridge,
     CollisionTransferBridge, CompetitionNormBridge, DensityBridge, DissipationBridge, DragBridge,
-    EngineBridge, EvolutionSurrogateBridge, EvictionPolicy, InterferenceBridge, OsmosisBridge,
+    EngineBridge, EvictionPolicy, EvolutionSurrogateBridge, InterferenceBridge, OsmosisBridge,
     PhaseTransitionBridge, Rigidity, TemperatureBridge, WillBridge, validate_bands,
 };
 pub use constants::{
@@ -41,6 +34,13 @@ pub use decorator::{
     Bridgeable, bridge_compute, bridge_compute_with_hint, bridge_warmup_record,
     bridge_warmup_record_with_hint, hash_inputs,
 };
+pub use impls::ops::{
+    BridgedInterferenceOps, CatalysisEquationInput, CollisionTransferEquationInput,
+    CollisionTransferScratch, CompetitionNormEquationInput, InterferenceEquationInput,
+    OsmosisEquationInput, canonicalize_frequency_hz,
+};
+#[cfg(feature = "bridge_optimizer")]
+pub use impls::physics::{BridgedPhysicsOps, phase_band_hint_from_state};
 pub use metrics::{
     BridgeLayerRow, BridgeMetrics, BridgeMetricsConfig, BridgeMetricsSnapshot,
     BridgeMetricsSummary, BridgeOptimizerPhaseLogState, absorb_cache_stats_into_metrics,

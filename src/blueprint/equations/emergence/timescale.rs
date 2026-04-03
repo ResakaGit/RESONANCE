@@ -12,8 +12,14 @@ pub fn effective_trait(
 
 /// Tasa de fijación genética del efecto Baldwin.
 /// fitness_delta: mejora de qe/tick. selection_pressure: fuerza de selección.
-pub fn baldwin_fixation_rate(fitness_delta: f32, selection_pressure: f32, genetic_timescale: u32) -> f32 {
-    if genetic_timescale == 0 { return 0.0; }
+pub fn baldwin_fixation_rate(
+    fitness_delta: f32,
+    selection_pressure: f32,
+    genetic_timescale: u32,
+) -> f32 {
+    if genetic_timescale == 0 {
+        return 0.0;
+    }
     fitness_delta * selection_pressure / genetic_timescale as f32
 }
 
@@ -25,13 +31,21 @@ pub fn timescale_weight(env_variance: f32, timescale_tau: f32) -> f32 {
 }
 
 /// Plasticidad fenotípica: capacidad de responder a cambios en la escala τ.
-pub fn phenotypic_plasticity(max_plastic_range: f32, developmental_cost: f32, env_predictability: f32) -> f32 {
+pub fn phenotypic_plasticity(
+    max_plastic_range: f32,
+    developmental_cost: f32,
+    env_predictability: f32,
+) -> f32 {
     let need = 1.0 - env_predictability;
     (max_plastic_range * need - developmental_cost).max(0.0)
 }
 
 /// Transferencia de offset entre timescales (aprendido → cultural).
-pub fn timescale_transfer_rate(offset_source: f32, transfer_coefficient: f32, population_density: f32) -> f32 {
+pub fn timescale_transfer_rate(
+    offset_source: f32,
+    transfer_coefficient: f32,
+    population_density: f32,
+) -> f32 {
     offset_source * transfer_coefficient * population_density.sqrt()
 }
 

@@ -16,10 +16,7 @@ pub fn spawn_demo_planta_startup_system(
     mut id_gen: ResMut<IdGenerator>,
     layout: Res<SimWorldTransformParams>,
 ) {
-    let positions = [
-        Vec2::new(-2.5, -1.5),
-        Vec2::new( 2.5, -1.5),
-    ];
+    let positions = [Vec2::new(-2.5, -1.5), Vec2::new(2.5, -1.5)];
     for pos in positions {
         spawn_planta_demo(&mut commands, &mut id_gen, pos, &layout);
     }

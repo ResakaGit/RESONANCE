@@ -11,12 +11,7 @@ use crate::math_types::Vec3;
 /// `tangent` es el eje axial del nodo; el delta se aplica perpendicular a él.
 ///
 /// `δ = tangent_perp · (1 − bond) · normalize(t_energy + t_gravity)`
-pub fn deformation_delta(
-    tangent: Vec3,
-    t_energy: Vec3,
-    t_gravity: Vec3,
-    bond_energy: f32,
-) -> Vec3 {
+pub fn deformation_delta(tangent: Vec3, t_energy: Vec3, t_gravity: Vec3, bond_energy: f32) -> Vec3 {
     let combined = t_energy + t_gravity;
     if combined.length_squared() < 1e-12 {
         return Vec3::ZERO;

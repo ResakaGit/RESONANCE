@@ -12,31 +12,31 @@
 
 use crate::math_types::Vec3;
 
-use crate::geometry_flow::GeometryInfluence;
+use crate::blueprint::MAX_ORGANS_PER_ENTITY;
+use crate::blueprint::MatterState;
 use crate::blueprint::equations::{BranchRole, SymmetryMode};
-use crate::layers::organ::MAX_ORGANS_PER_ENTITY;
-use crate::layers::MatterState;
+use crate::geometry_flow::GeometryInfluence;
 
 // ── Element frequency bands (Hz) ─────────────────────────────────────────────
-const BAND_UMBRA:   f32 =   20.0;
-const BAND_TERRA:   f32 =   75.0;
-const BAND_AQUA:    f32 =  250.0;
-const BAND_IGNIS:   f32 =  450.0;
-const BAND_VENTUS:  f32 =  700.0;
-const BAND_LUX:     f32 = 1000.0;
+const BAND_UMBRA: f32 = 20.0;
+const BAND_TERRA: f32 = 75.0;
+const BAND_AQUA: f32 = 250.0;
+const BAND_IGNIS: f32 = 450.0;
+const BAND_VENTUS: f32 = 700.0;
+const BAND_LUX: f32 = 1000.0;
 
 // ── Tint anchors: linear RGB per band ────────────────────────────────────────
-const TINT_UMBRA:   [f32; 3] = [0.15, 0.00, 0.25];
-const TINT_TERRA:   [f32; 3] = [0.42, 0.22, 0.05];
-const TINT_AQUA:    [f32; 3] = [0.05, 0.25, 0.75];
-const TINT_IGNIS:   [f32; 3] = [0.85, 0.28, 0.02];
-const TINT_VENTUS:  [f32; 3] = [0.18, 0.65, 0.22];
-const TINT_LUX:     [f32; 3] = [0.95, 0.80, 0.15];
+const TINT_UMBRA: [f32; 3] = [0.15, 0.00, 0.25];
+const TINT_TERRA: [f32; 3] = [0.42, 0.22, 0.05];
+const TINT_AQUA: [f32; 3] = [0.05, 0.25, 0.75];
+const TINT_IGNIS: [f32; 3] = [0.85, 0.28, 0.02];
+const TINT_VENTUS: [f32; 3] = [0.18, 0.65, 0.22];
+const TINT_LUX: [f32; 3] = [0.95, 0.80, 0.15];
 
 // ── Resistance base values per MatterState ────────────────────────────────────
-const RESIST_SOLID:  f32 = 1.20;
+const RESIST_SOLID: f32 = 1.20;
 const RESIST_LIQUID: f32 = 0.60;
-const RESIST_GAS:    f32 = 0.20;
+const RESIST_GAS: f32 = 0.20;
 const RESIST_PLASMA: f32 = 0.05;
 
 const BOND_RESIST_SCALE: f32 = 0.08;
@@ -45,7 +45,7 @@ const BOND_RESIST_SCALE: f32 = 0.08;
 const ENTITY_MAX_SEGMENTS: u32 = 12;
 
 // ── Minimum spine / radius guard values ──────────────────────────────────────
-const MIN_LENGTH_BUDGET:   f32 = 0.05;
+const MIN_LENGTH_BUDGET: f32 = 0.05;
 const MIN_RADIUS_BASE_FRAC: f32 = 0.04;
 
 /// Maps element frequency Hz to linear RGB tint by interpolating 6 anchor bands.
@@ -53,16 +53,20 @@ const MIN_RADIUS_BASE_FRAC: f32 = 0.04;
 /// Anchors: Umbra 20Hz, Terra 75Hz, Aqua 250Hz, Ignis 450Hz, Ventus 700Hz, Lux 1000Hz.
 pub fn frequency_to_tint_rgb(hz: f32) -> [f32; 3] {
     let bands: [(f32, [f32; 3]); 6] = [
-        (BAND_UMBRA,  TINT_UMBRA),
-        (BAND_TERRA,  TINT_TERRA),
-        (BAND_AQUA,   TINT_AQUA),
-        (BAND_IGNIS,  TINT_IGNIS),
+        (BAND_UMBRA, TINT_UMBRA),
+        (BAND_TERRA, TINT_TERRA),
+        (BAND_AQUA, TINT_AQUA),
+        (BAND_IGNIS, TINT_IGNIS),
         (BAND_VENTUS, TINT_VENTUS),
-        (BAND_LUX,    TINT_LUX),
+        (BAND_LUX, TINT_LUX),
     ];
 
-    if hz <= bands[0].0 { return bands[0].1; }
-    if hz >= bands[5].0 { return bands[5].1; }
+    if hz <= bands[0].0 {
+        return bands[0].1;
+    }
+    if hz >= bands[5].0 {
+        return bands[5].1;
+    }
 
     for i in 0..5 {
         let (lo_hz, lo_tint) = bands[i];
@@ -82,8 +86,8 @@ pub fn frequency_to_tint_rgb(hz: f32) -> [f32; 3] {
 pub fn fineness_to_spine_params(fineness_ratio: f32, entity_radius: f32) -> (f32, f32) {
     let f = fineness_ratio.max(0.1);
     let diameter = entity_radius * 2.0;
-    let length  = (diameter * f).max(MIN_LENGTH_BUDGET);
-    let r_base  = (diameter / f).max(entity_radius * MIN_RADIUS_BASE_FRAC);
+    let length = (diameter * f).max(MIN_LENGTH_BUDGET);
+    let r_base = (diameter / f).max(entity_radius * MIN_RADIUS_BASE_FRAC);
     (length, r_base)
 }
 
@@ -93,9 +97,9 @@ pub fn fineness_to_spine_params(fineness_ratio: f32, entity_radius: f32) -> (f32
 /// Bond energy contributes a log-scaled additive term within each band.
 pub fn matter_to_gf1_resistance(bond_energy: f32, state: MatterState) -> f32 {
     let base = match state {
-        MatterState::Solid  => RESIST_SOLID,
+        MatterState::Solid => RESIST_SOLID,
         MatterState::Liquid => RESIST_LIQUID,
-        MatterState::Gas    => RESIST_GAS,
+        MatterState::Gas => RESIST_GAS,
         MatterState::Plasma => RESIST_PLASMA,
     };
     let bond_add = (bond_energy.max(0.0).ln_1p()) * BOND_RESIST_SCALE;
@@ -158,12 +162,12 @@ pub fn entity_geometry_influence(
 }
 
 // ── Shape cache signature constants ──────────────────────────────────────────
-const FINENESS_SIG_MIN: f32 =  0.5;
-const FINENESS_SIG_MAX: f32 =  8.0;
-const RADIUS_SIG_MAX:   f32 =  4.0;
-const FOOD_DIST_IMM:    f32 =  1.0;
-const FOOD_DIST_NEAR:   f32 =  4.0;
-const FOOD_DIST_FAR:    f32 = 16.0;
+const FINENESS_SIG_MIN: f32 = 0.5;
+const FINENESS_SIG_MAX: f32 = 8.0;
+const RADIUS_SIG_MAX: f32 = 4.0;
+const FOOD_DIST_IMM: f32 = 1.0;
+const FOOD_DIST_NEAR: f32 = 4.0;
+const FOOD_DIST_FAR: f32 = 16.0;
 
 /// Compact `u16` encoding shape inference inputs for [`PerformanceCachePolicy`] invalidation.
 ///
@@ -184,18 +188,29 @@ pub fn shape_cache_signature(
     has_hostile: bool,
 ) -> u16 {
     let f = fineness_ratio.clamp(FINENESS_SIG_MIN, FINENESS_SIG_MAX);
-    let fineness_b = ((f - FINENESS_SIG_MIN) / (FINENESS_SIG_MAX - FINENESS_SIG_MIN) * 15.0) as u16 & 0xF;
-    let qe_b       = (qe_norm.clamp(0.0, 1.0) * 7.0) as u16 & 0x7;
-    let r          = radius.clamp(0.0, RADIUS_SIG_MAX);
-    let radius_b   = (r / RADIUS_SIG_MAX * 7.0) as u16 & 0x7;
-    let hunger_b   = (hunger.clamp(0.0, 1.0) * 3.0) as u16 & 0x3;
-    let food_b: u16 = if food_distance < FOOD_DIST_IMM  { 0 }
-                      else if food_distance < FOOD_DIST_NEAR { 1 }
-                      else if food_distance < FOOD_DIST_FAR  { 2 }
-                      else                                    { 3 };
-    let hostile_b  = has_hostile as u16;
+    let fineness_b =
+        ((f - FINENESS_SIG_MIN) / (FINENESS_SIG_MAX - FINENESS_SIG_MIN) * 15.0) as u16 & 0xF;
+    let qe_b = (qe_norm.clamp(0.0, 1.0) * 7.0) as u16 & 0x7;
+    let r = radius.clamp(0.0, RADIUS_SIG_MAX);
+    let radius_b = (r / RADIUS_SIG_MAX * 7.0) as u16 & 0x7;
+    let hunger_b = (hunger.clamp(0.0, 1.0) * 3.0) as u16 & 0x3;
+    let food_b: u16 = if food_distance < FOOD_DIST_IMM {
+        0
+    } else if food_distance < FOOD_DIST_NEAR {
+        1
+    } else if food_distance < FOOD_DIST_FAR {
+        2
+    } else {
+        3
+    };
+    let hostile_b = has_hostile as u16;
 
-    (fineness_b << 12) | (qe_b << 9) | (radius_b << 6) | (hunger_b << 4) | (food_b << 2) | (hostile_b << 1)
+    (fineness_b << 12)
+        | (qe_b << 9)
+        | (radius_b << 6)
+        | (hunger_b << 4)
+        | (food_b << 2)
+        | (hostile_b << 1)
 }
 
 /// Extiende la firma base con modulación de rugosidad y albedo.
@@ -211,9 +226,7 @@ pub fn shape_cache_signature_with_surface(
     let rug_bucket = rugosity
         .map(|s| ((s - 1.0) / 3.0 * 7.0) as u16 & 0x7)
         .unwrap_or(0);
-    let alb_bucket = albedo
-        .map(|a| (a * 3.0) as u16 & 0x3)
-        .unwrap_or(0);
+    let alb_bucket = albedo.map(|a| (a * 3.0) as u16 & 0x3).unwrap_or(0);
     base_sig.wrapping_add(rug_bucket.wrapping_shl(1) | alb_bucket.wrapping_shl(5))
 }
 
@@ -224,33 +237,38 @@ pub fn shape_cache_signature_with_surface(
 pub fn bilateral_quadruped_attachments(
     radius: f32,
     mobility_bias: f32,
-) -> ([Vec3; MAX_ORGANS_PER_ENTITY], [Vec3; MAX_ORGANS_PER_ENTITY], SymmetryMode, u8) {
+) -> (
+    [Vec3; MAX_ORGANS_PER_ENTITY],
+    [Vec3; MAX_ORGANS_PER_ENTITY],
+    SymmetryMode,
+    u8,
+) {
     let r = radius.max(0.01);
     let spread = r * (0.4 + mobility_bias * 0.4).clamp(0.2, 0.8);
     let leg_y = -r * 0.7;
     let front_z = r * 0.3;
-    let rear_z  = -r * 0.3;
+    let rear_z = -r * 0.3;
 
-    let mut positions  = [Vec3::ZERO; MAX_ORGANS_PER_ENTITY];
-    let mut directions = [Vec3::Y;    MAX_ORGANS_PER_ENTITY];
+    let mut positions = [Vec3::ZERO; MAX_ORGANS_PER_ENTITY];
+    let mut directions = [Vec3::Y; MAX_ORGANS_PER_ENTITY];
 
     // Head (0) — forward
-    positions[0]  = Vec3::new(0.0, 0.0, r * 0.65);
+    positions[0] = Vec3::new(0.0, 0.0, r * 0.65);
     directions[0] = Vec3::Z;
     // Tail (1) — backward
-    positions[1]  = Vec3::new(0.0, 0.0, -r * 0.55);
+    positions[1] = Vec3::new(0.0, 0.0, -r * 0.55);
     directions[1] = -Vec3::Z;
     // Front-left leg (2)
-    positions[2]  = Vec3::new( spread, leg_y, front_z);
-    directions[2] = Vec3::new( 0.3, -0.9, 0.0).normalize_or(Vec3::NEG_Y);
+    positions[2] = Vec3::new(spread, leg_y, front_z);
+    directions[2] = Vec3::new(0.3, -0.9, 0.0).normalize_or(Vec3::NEG_Y);
     // Front-right leg (3)
-    positions[3]  = Vec3::new(-spread, leg_y, front_z);
+    positions[3] = Vec3::new(-spread, leg_y, front_z);
     directions[3] = Vec3::new(-0.3, -0.9, 0.0).normalize_or(Vec3::NEG_Y);
     // Rear-left leg (4)
-    positions[4]  = Vec3::new( spread, leg_y, rear_z);
+    positions[4] = Vec3::new(spread, leg_y, rear_z);
     directions[4] = directions[2];
     // Rear-right leg (5)
-    positions[5]  = Vec3::new(-spread, leg_y, rear_z);
+    positions[5] = Vec3::new(-spread, leg_y, rear_z);
     directions[5] = directions[3];
 
     (positions, directions, SymmetryMode::Bilateral, 6)
@@ -282,15 +300,15 @@ pub fn projected_area_with_limbs(
 pub fn organ_slot_scale(slot_index: usize, active_count: u8, mobility_bias: f32) -> (f32, f32) {
     let m = mobility_bias.clamp(0.0, 1.0);
     match slot_index {
-        0 => (0.30 + m * 0.15, 0.55 + m * 0.25),                // head: bigger with mobility (proxy for neural cost)
-        1 => (0.45 + m * 0.35, 0.12 + m * 0.12),                // tail: longer with mobility (balance organ)
+        0 => (0.30 + m * 0.15, 0.55 + m * 0.25), // head: bigger with mobility (proxy for neural cost)
+        1 => (0.45 + m * 0.35, 0.12 + m * 0.12), // tail: longer with mobility (balance organ)
         _ if slot_index >= active_count as usize => (0.0, 0.0),
         _ => {
             let limb_slots = active_count.saturating_sub(2) as usize;
             let half = limb_slots / 2;
             let is_front = slot_index < 2 + half;
             if is_front {
-                (0.40 + m * 0.35, 0.22 + m * 0.12)              // front limbs: longer with mobility (arms)
+                (0.40 + m * 0.35, 0.22 + m * 0.12) // front limbs: longer with mobility (arms)
             } else {
                 (0.40 + (1.0 - m) * 0.15, 0.30 + (1.0 - m) * 0.15) // rear limbs: sturdier with low mobility (legs)
             }
@@ -328,7 +346,9 @@ pub fn optimal_appendage_count(
     use crate::blueprint::constants::DRAG_SPEED_EPSILON;
     use crate::blueprint::morphogenesis::inferred_drag_coefficient;
 
-    if velocity.abs() <= DRAG_SPEED_EPSILON { return 0; }
+    if velocity.abs() <= DRAG_SPEED_EPSILON {
+        return 0;
+    }
 
     let diameter = body_radius.max(0.01) * 2.0;
     let body_length = fineness_ratio.max(0.1) * diameter;
@@ -364,7 +384,7 @@ fn lerp_rgb(a: [f32; 3], b: [f32; 3], t: f32) -> [f32; 3] {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::layers::MatterState;
+    use crate::blueprint::MatterState;
 
     // ── frequency_to_tint_rgb ─────────────────────────────────────────────────
 
@@ -402,11 +422,21 @@ mod tests {
 
     #[test]
     fn tint_all_bands_produce_unit_interval_rgb() {
-        let bands = [BAND_UMBRA, BAND_TERRA, BAND_AQUA, BAND_IGNIS, BAND_VENTUS, BAND_LUX];
+        let bands = [
+            BAND_UMBRA,
+            BAND_TERRA,
+            BAND_AQUA,
+            BAND_IGNIS,
+            BAND_VENTUS,
+            BAND_LUX,
+        ];
         for hz in bands {
             let t = frequency_to_tint_rgb(hz);
             for ch in t {
-                assert!((0.0..=1.0).contains(&ch), "channel {ch} out of [0,1] for hz={hz}");
+                assert!(
+                    (0.0..=1.0).contains(&ch),
+                    "channel {ch} out of [0,1] for hz={hz}"
+                );
             }
         }
     }
@@ -419,7 +449,11 @@ mod tests {
         let r = 1.0_f32;
         let (length, radius_base) = fineness_to_spine_params(f, r);
         let ratio = length / radius_base;
-        assert!((ratio - f * f).abs() < 1e-3, "ratio={ratio} fineness²={}", f * f);
+        assert!(
+            (ratio - f * f).abs() < 1e-3,
+            "ratio={ratio} fineness²={}",
+            f * f
+        );
     }
 
     #[test]
@@ -442,13 +476,13 @@ mod tests {
     #[test]
     fn resistance_solid_gt_liquid_gt_gas_gt_plasma() {
         let bond = 500.0;
-        let r_solid  = matter_to_gf1_resistance(bond, MatterState::Solid);
+        let r_solid = matter_to_gf1_resistance(bond, MatterState::Solid);
         let r_liquid = matter_to_gf1_resistance(bond, MatterState::Liquid);
-        let r_gas    = matter_to_gf1_resistance(bond, MatterState::Gas);
+        let r_gas = matter_to_gf1_resistance(bond, MatterState::Gas);
         let r_plasma = matter_to_gf1_resistance(bond, MatterState::Plasma);
         assert!(r_solid > r_liquid, "solid > liquid");
-        assert!(r_liquid > r_gas,   "liquid > gas");
-        assert!(r_gas > r_plasma,   "gas > plasma");
+        assert!(r_liquid > r_gas, "liquid > gas");
+        assert!(r_gas > r_plasma, "gas > plasma");
     }
 
     #[test]
@@ -489,18 +523,15 @@ mod tests {
 
     #[test]
     fn influence_zero_velocity_uses_y_direction() {
-        let inf = entity_geometry_influence(
-            Vec3::ZERO, 0.5, 0.5, 2.0, 0.8, Vec3::ZERO, [0.5; 3], 0.5,
-        );
+        let inf =
+            entity_geometry_influence(Vec3::ZERO, 0.5, 0.5, 2.0, 0.8, Vec3::ZERO, [0.5; 3], 0.5);
         assert!((inf.energy_direction - Vec3::Y).length() < 1e-6);
     }
 
     #[test]
     fn influence_nonzero_velocity_normalizes_direction() {
         let vel = Vec3::new(3.0, 0.0, 0.0);
-        let inf = entity_geometry_influence(
-            Vec3::ZERO, 0.5, 0.5, 2.0, 0.8, vel, [0.5; 3], 0.5,
-        );
+        let inf = entity_geometry_influence(Vec3::ZERO, 0.5, 0.5, 2.0, 0.8, vel, [0.5; 3], 0.5);
         assert!((inf.energy_direction.length() - 1.0).abs() < 1e-6);
         assert!((inf.energy_direction - Vec3::X).length() < 1e-6);
     }
@@ -520,10 +551,11 @@ mod tests {
     #[test]
     fn influence_least_resistance_orthogonal_to_energy_direction() {
         let vel = Vec3::new(0.0, 1.0, 0.0);
-        let inf = entity_geometry_influence(
-            Vec3::ZERO, 0.5, 0.5, 2.0, 0.5, vel, [0.5; 3], 0.5,
-        );
-        let dot = inf.energy_direction.dot(inf.least_resistance_direction).abs();
+        let inf = entity_geometry_influence(Vec3::ZERO, 0.5, 0.5, 2.0, 0.5, vel, [0.5; 3], 0.5);
+        let dot = inf
+            .energy_direction
+            .dot(inf.least_resistance_direction)
+            .abs();
         assert!(dot < 1e-5, "not orthogonal: dot={dot}");
     }
 
@@ -539,7 +571,7 @@ mod tests {
     #[test]
     fn signature_hostile_bit_changes_output() {
         let no_hostile = shape_cache_signature(2.0, 0.5, 1.0, 0.0, f32::MAX, false);
-        let hostile    = shape_cache_signature(2.0, 0.5, 1.0, 0.0, f32::MAX, true);
+        let hostile = shape_cache_signature(2.0, 0.5, 1.0, 0.0, f32::MAX, true);
         assert_ne!(no_hostile, hostile);
     }
 
@@ -553,16 +585,16 @@ mod tests {
 
     #[test]
     fn signature_hunger_bucket_change_changes_output() {
-        let sated  = shape_cache_signature(2.0, 0.5, 1.0, 0.0,  f32::MAX, false);
+        let sated = shape_cache_signature(2.0, 0.5, 1.0, 0.0, f32::MAX, false);
         let hungry = shape_cache_signature(2.0, 0.5, 1.0, 0.99, f32::MAX, false);
         assert_ne!(sated, hungry);
     }
 
     #[test]
     fn signature_food_proximity_buckets_differ() {
-        let imm  = shape_cache_signature(2.0, 0.5, 1.0, 0.0, 0.5,      false); // <1
-        let near = shape_cache_signature(2.0, 0.5, 1.0, 0.0, 2.0,      false); // <4
-        let far  = shape_cache_signature(2.0, 0.5, 1.0, 0.0, 8.0,      false); // <16
+        let imm = shape_cache_signature(2.0, 0.5, 1.0, 0.0, 0.5, false); // <1
+        let near = shape_cache_signature(2.0, 0.5, 1.0, 0.0, 2.0, false); // <4
+        let far = shape_cache_signature(2.0, 0.5, 1.0, 0.0, 8.0, false); // <16
         let none = shape_cache_signature(2.0, 0.5, 1.0, 0.0, f32::MAX, false); // >=16
         assert_ne!(imm, near);
         assert_ne!(near, far);
@@ -589,7 +621,14 @@ mod tests {
     fn full_gf1_pipeline_produces_mesh_with_triangles() {
         use crate::geometry_flow::{build_flow_mesh, build_flow_spine};
         let inf = entity_geometry_influence(
-            Vec3::ZERO, 0.6, 0.5, 2.5, 0.8, Vec3::new(0.1, 1.0, 0.0), TINT_TERRA, 0.5,
+            Vec3::ZERO,
+            0.6,
+            0.5,
+            2.5,
+            0.8,
+            Vec3::new(0.1, 1.0, 0.0),
+            TINT_TERRA,
+            0.5,
         );
         let spine = build_flow_spine(&inf);
         assert!(spine.len() >= 2, "spine needs at least 2 nodes");
@@ -635,7 +674,10 @@ mod tests {
     #[test]
     fn optimal_appendage_high_velocity_returns_nonzero() {
         let n = optimal_appendage_count(0.5, 2.0, 1.0, 10.0, 0.1, 0.4, 0.08, 8);
-        assert!(n > 0, "high velocity should favor limbs for thrust, got {n}");
+        assert!(
+            n > 0,
+            "high velocity should favor limbs for thrust, got {n}"
+        );
     }
 
     #[test]
@@ -652,7 +694,10 @@ mod tests {
         for v_int in 0..=20 {
             let v = v_int as f32 * 2.5;
             let n = optimal_appendage_count(0.5, 2.0, 1.0, v, 0.1, 0.4, 0.08, 8);
-            assert!(n >= prev, "limb count should not decrease as velocity grows: v={v} n={n} prev={prev}");
+            assert!(
+                n >= prev,
+                "limb count should not decrease as velocity grows: v={v} n={n} prev={prev}"
+            );
             prev = n;
         }
     }
@@ -690,7 +735,7 @@ mod tests {
         let base = shape_cache_signature(2.0, 0.5, 1.0, 0.0, f32::MAX, false);
         let rug_only = shape_cache_signature_with_surface(base, Some(2.5), None);
         let alb_only = shape_cache_signature_with_surface(base, None, Some(0.8));
-        let both     = shape_cache_signature_with_surface(base, Some(2.5), Some(0.8));
+        let both = shape_cache_signature_with_surface(base, Some(2.5), Some(0.8));
         assert_ne!(both, rug_only);
         assert_ne!(both, alb_only);
     }
@@ -702,7 +747,10 @@ mod tests {
         let sig = shape_cache_signature_with_surface(base, Some(100.0), None);
         // Extract rugosity contribution: bits shifted left by 1
         let rug_contrib = sig >> 1;
-        assert!(rug_contrib <= 7, "rugosity bucket exceeds 3 bits: {rug_contrib}");
+        assert!(
+            rug_contrib <= 7,
+            "rugosity bucket exceeds 3 bits: {rug_contrib}"
+        );
     }
 
     #[test]
@@ -711,6 +759,9 @@ mod tests {
         let sig = shape_cache_signature_with_surface(base, None, Some(100.0));
         // Extract albedo contribution: bits shifted left by 5
         let alb_contrib = sig >> 5;
-        assert!(alb_contrib <= 3, "albedo bucket exceeds 2 bits: {alb_contrib}");
+        assert!(
+            alb_contrib <= 3,
+            "albedo bucket exceeds 2 bits: {alb_contrib}"
+        );
     }
 }

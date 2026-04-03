@@ -82,14 +82,16 @@ pub fn apply_spine_to_mesh(
 
             // Desplazamiento interpolado respecto a posición base del spine.
             // La posición de vértice se desplaza proporcionalmente al nodo de spine.
-            let disp_lo = lo_node.position - deformed_spine
-                .first()
-                .map(|n| n.position)
-                .unwrap_or(lo_node.position);
-            let disp_hi = hi_node.position - deformed_spine
-                .first()
-                .map(|n| n.position)
-                .unwrap_or(hi_node.position);
+            let disp_lo = lo_node.position
+                - deformed_spine
+                    .first()
+                    .map(|n| n.position)
+                    .unwrap_or(lo_node.position);
+            let disp_hi = hi_node.position
+                - deformed_spine
+                    .first()
+                    .map(|n| n.position)
+                    .unwrap_or(hi_node.position);
             let disp = disp_lo.lerp(disp_hi, frac);
 
             [pos[0] + disp.x, pos[1] + disp.y, pos[2] + disp.z]
@@ -232,19 +234,13 @@ mod tests {
     fn deformation_fingerprint_same_payload_same_hash() {
         let p_a = make_payload(make_spine(4), 9.8, Vec3::X, Vec3::NEG_Y, 0.4);
         let p_b = make_payload(make_spine(4), 9.8, Vec3::X, Vec3::NEG_Y, 0.4);
-        assert_eq!(
-            deformation_fingerprint(&p_a),
-            deformation_fingerprint(&p_b)
-        );
+        assert_eq!(deformation_fingerprint(&p_a), deformation_fingerprint(&p_b));
     }
 
     #[test]
     fn deformation_fingerprint_different_payloads_differ() {
         let p_a = make_payload(make_spine(4), 9.8, Vec3::X, Vec3::NEG_Y, 0.4);
         let p_b = make_payload(make_spine(4), 9.8, Vec3::Y, Vec3::NEG_Y, 0.4);
-        assert_ne!(
-            deformation_fingerprint(&p_a),
-            deformation_fingerprint(&p_b)
-        );
+        assert_ne!(deformation_fingerprint(&p_a), deformation_fingerprint(&p_b));
     }
 }

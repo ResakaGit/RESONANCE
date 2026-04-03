@@ -2,6 +2,20 @@ use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
 use crate::blueprint::ElementId;
+
+// ---------------------------------------------------------------------------
+// WorldgenReady — señaliza que warmup completó (DC-3)
+// ---------------------------------------------------------------------------
+
+/// Señaliza que worldgen completó su warmup y el mundo está materializado.
+/// Insertada por worldgen_warmup_system. Leída por simulation para transicionar.
+///
+/// Signals that worldgen warmup completed and the world is materialized.
+#[derive(Resource, Debug, Default)]
+pub struct WorldgenReady {
+    /// Tick en el que se completó el warmup.
+    pub completed_at_tick: u64,
+}
 use crate::eco::contracts::{TransitionType, ZoneClass};
 use crate::layers::MatterState;
 use crate::worldgen::archetypes::WorldArchetype;

@@ -6,9 +6,9 @@
 
 use bevy::prelude::*;
 
+use crate::blueprint::equations::emergence::geological_lod as lod_eq;
 use crate::layers::BaseEnergy;
 use crate::runtime_platform::simulation_tick::SimulationClock;
-use crate::blueprint::equations::emergence::geological_lod as lod_eq;
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
@@ -18,28 +18,28 @@ pub const LOD_TICK_COMPRESSIONS: [u32; 4] = [1, 10, 100, 1000];
 
 #[derive(Debug, Clone, Default)]
 pub struct PopulationGroup {
-    pub entity_ids:     [u32; 8],
-    pub entity_count:   u8,
-    pub mean_qe:        f32,
-    pub mean_intake:    f32,
-    pub mean_diss:      f32,
+    pub entity_ids: [u32; 8],
+    pub entity_count: u8,
+    pub mean_qe: f32,
+    pub mean_intake: f32,
+    pub mean_diss: f32,
 }
 
 #[derive(Resource, Debug)]
 pub struct GeologicalLODState {
-    pub current_lod:        u8,
-    pub tick_compression:   u32,
+    pub current_lod: u8,
+    pub tick_compression: u32,
     pub performance_budget: f32,
-    pub aggregate_groups:   Vec<PopulationGroup>,
+    pub aggregate_groups: Vec<PopulationGroup>,
 }
 
 impl Default for GeologicalLODState {
     fn default() -> Self {
         Self {
-            current_lod:        0,
-            tick_compression:   1,
+            current_lod: 0,
+            tick_compression: 1,
             performance_budget: 10_000.0,
-            aggregate_groups:   Vec::new(),
+            aggregate_groups: Vec::new(),
         }
     }
 }
@@ -58,11 +58,16 @@ pub struct LODCompressed {
 #[derive(Resource, Debug, Clone)]
 pub struct GeologicalLODConfig {
     pub performance_budget: f32,
-    pub variance_factor:    f32,
+    pub variance_factor: f32,
 }
 
 impl Default for GeologicalLODConfig {
-    fn default() -> Self { Self { performance_budget: 10_000.0, variance_factor: 0.1 } }
+    fn default() -> Self {
+        Self {
+            performance_budget: 10_000.0,
+            variance_factor: 0.1,
+        }
+    }
 }
 
 // ─── Systems ────────────────────────────────────────────────────────────────
@@ -75,7 +80,9 @@ pub fn geological_lod_update_system(
     config: Res<GeologicalLODConfig>,
     clock: Res<SimulationClock>,
 ) {
-    if clock.tick_id % 1000 != 0 { return; }
+    if clock.tick_id % 1000 != 0 {
+        return;
+    }
 
     let entity_count = agents.iter().count() as u32;
     let new_lod = lod_eq::optimal_lod_level(entity_count, 1000, config.performance_budget);

@@ -16,6 +16,11 @@ pub const MIN_COLONY_SIZE: u8 = 3;
 /// Expression modulation rate (how fast cells specialize). Derived: DISSIPATION_SOLID × 10.
 pub const EXPRESSION_MODULATION_RATE: f32 = DISSIPATION_SOLID * 10.0;
 /// Border target: resilience dimension stays high, others suppressed.
-pub const BORDER_TARGET: [f32; 4] = [1.0 - KLEIBER_EXPONENT, 1.0 - KLEIBER_EXPONENT, 1.0 - KLEIBER_EXPONENT, 1.0];
+pub const BORDER_TARGET: [f32; 4] = [
+    1.0 - KLEIBER_EXPONENT,
+    1.0 - KLEIBER_EXPONENT,
+    1.0 - KLEIBER_EXPONENT,
+    1.0,
+];
 /// Interior target: growth/mobility/branching high, resilience suppressed.
 pub const INTERIOR_TARGET: [f32; 4] = [1.0, 1.0, 1.0, 1.0 - KLEIBER_EXPONENT];

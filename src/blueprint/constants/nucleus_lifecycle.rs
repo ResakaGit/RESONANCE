@@ -13,15 +13,21 @@ pub const NUCLEUS_DEPLETION_FACTOR: f32 = 1.0;
 // ── Radiation pressure — derived from dissipation rates (Axiom 4) ────────────
 
 /// Pressure activates at gas density transition (derived).
-pub fn radiation_pressure_threshold_qe() -> f32 { dt::radiation_pressure_threshold() }
+pub fn radiation_pressure_threshold_qe() -> f32 {
+    dt::radiation_pressure_threshold()
+}
 
 /// Transfer rate = gas dissipation rate (derived).
-pub fn radiation_pressure_transfer_rate() -> f32 { dt::radiation_pressure_transfer_rate() }
+pub fn radiation_pressure_transfer_rate() -> f32 {
+    dt::radiation_pressure_transfer_rate()
+}
 
 // ── Nucleus recycling — axiom-derived (conservation-respecting) ──────────────
 
 /// Nutrient density threshold: sum of conversion losses (derived).
-pub fn nucleus_recycling_nutrient_threshold() -> f32 { dt::recycling_nutrient_threshold() }
+pub fn nucleus_recycling_nutrient_threshold() -> f32 {
+    dt::recycling_nutrient_threshold()
+}
 
 /// Max cells checked per tick for recycling candidates (structural budget).
 pub const NUCLEUS_RECYCLING_SCAN_BUDGET: usize = 16;

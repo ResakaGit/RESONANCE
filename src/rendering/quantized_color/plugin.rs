@@ -6,11 +6,10 @@ use crate::simulation::states::{GameState, PlayState};
 
 use super::registry::PaletteRegistry;
 use super::systems::{
-    factor_precision_system, palette_registry_cpu_sync_system,
-    quantized_precision_ensure_system,
+    factor_precision_system, palette_registry_cpu_sync_system, quantized_precision_ensure_system,
 };
 
-/// Motor de color cuantizado purificado (Sprint 14 refactorizado): paletas, ρ de LOD. 
+/// Motor de color cuantizado purificado (Sprint 14 refactorizado): paletas, ρ de LOD.
 pub struct QuantizedColorPlugin;
 
 impl Plugin for QuantizedColorPlugin {

@@ -13,8 +13,8 @@
 use crate::batch::arena::{EntitySlot, SimWorldFlat};
 use crate::batch::scratch::ScratchPad;
 use crate::batch::systems;
-use crate::blueprint::equations::determinism;
 use crate::blueprint::equations::derived_thresholds::{COHERENCE_BANDWIDTH, DISSIPATION_SOLID};
+use crate::blueprint::equations::determinism;
 use std::time::Instant;
 
 // ─── Constants ──────────────────────────────────────────────────────────────
@@ -51,47 +51,47 @@ pub enum SharmaPhase {
 #[derive(Debug, Clone)]
 pub struct SharmaConfig {
     // Population
-    pub total_cells:          u8,
-    pub quiescent_fraction:   f32,
+    pub total_cells: u8,
+    pub quiescent_fraction: f32,
     pub quiescent_growth_bias: f32,
     pub quiescent_freq_offset: f32,
-    pub sensitive_freq:       f32,
+    pub sensitive_freq: f32,
 
     // Drug
-    pub drug_freq:            f32,
-    pub drug_potency:         f32,
-    pub drug_bandwidth:       f32,
-    pub drug_start_gen:       u32,
-    pub drug_stop_gen:        u32,
+    pub drug_freq: f32,
+    pub drug_potency: f32,
+    pub drug_bandwidth: f32,
+    pub drug_start_gen: u32,
+    pub drug_stop_gen: u32,
 
     // Biology
-    pub nutrient_level:       f32,
+    pub nutrient_level: f32,
 
     // Simulation
-    pub worlds:               usize,
-    pub generations:          u32,
-    pub ticks_per_gen:        u32,
-    pub seed:                 u64,
+    pub worlds: usize,
+    pub generations: u32,
+    pub ticks_per_gen: u32,
+    pub seed: u64,
 }
 
 impl Default for SharmaConfig {
     fn default() -> Self {
         Self {
-            total_cells:          50,
-            quiescent_fraction:   0.06, // 3 out of 50, scaled from 0.3%
+            total_cells: 50,
+            quiescent_fraction: 0.06, // 3 out of 50, scaled from 0.3%
             quiescent_growth_bias: 0.03,
             quiescent_freq_offset: 200.0,
-            sensitive_freq:       400.0,
-            drug_freq:            400.0,
-            drug_potency:         0.8,
-            drug_bandwidth:       COHERENCE_BANDWIDTH,
-            drug_start_gen:       5,
-            drug_stop_gen:        40,
-            nutrient_level:       2.0,
-            worlds:               20,
-            generations:          60,
-            ticks_per_gen:        100,
-            seed:                 42,
+            sensitive_freq: 400.0,
+            drug_freq: 400.0,
+            drug_potency: 0.8,
+            drug_bandwidth: COHERENCE_BANDWIDTH,
+            drug_start_gen: 5,
+            drug_stop_gen: 40,
+            nutrient_level: 2.0,
+            worlds: 20,
+            generations: 60,
+            ticks_per_gen: 100,
+            seed: 42,
         }
     }
 }
@@ -102,25 +102,25 @@ impl Default for SharmaConfig {
 /// Per-generation snapshot for the Sharma experiment.
 #[derive(Debug, Clone)]
 pub struct SharmaSnapshot {
-    pub generation:     u32,
-    pub alive_mean:     f32,
-    pub qe_mean:        f32,
+    pub generation: u32,
+    pub alive_mean: f32,
+    pub qe_mean: f32,
     pub persister_frac: f32,
-    pub phase:          SharmaPhase,
+    pub phase: SharmaPhase,
 }
 
 /// Reporte completo del experimento Sharma 2010.
 /// Complete report for the Sharma 2010 experiment.
 #[derive(Debug)]
 pub struct SharmaReport {
-    pub config:              SharmaConfig,
-    pub timeline:            Vec<SharmaSnapshot>,
-    pub peak_population:     f32,
+    pub config: SharmaConfig,
+    pub timeline: Vec<SharmaSnapshot>,
+    pub peak_population: f32,
     pub post_drug_survivors: f32,
-    pub persister_fraction:  f32,
-    pub recovery_detected:   bool,
-    pub recovery_gen:        Option<u32>,
-    pub wall_time_ms:        u64,
+    pub persister_fraction: f32,
+    pub recovery_detected: bool,
+    pub recovery_gen: Option<u32>,
+    pub wall_time_ms: u64,
 }
 
 // ─── Pure equations ─────────────────────────────────────────────────────────
@@ -129,7 +129,9 @@ pub struct SharmaReport {
 /// Hill dose-response for cytotoxic drain.
 /// Canonical Hill: potency * alpha^n / (EC50^n + alpha^n), matches cancer_therapy.rs
 fn hill_response(alignment: f32, potency: f32, hill_n: f32) -> f32 {
-    if alignment <= 0.0 || potency <= 0.0 { return 0.0; }
+    if alignment <= 0.0 || potency <= 0.0 {
+        return 0.0;
+    }
     let c_n = alignment.powf(hill_n);
     let ec50_n = 0.5f32.powf(hill_n);
     potency * c_n / (ec50_n + c_n)
@@ -139,7 +141,9 @@ fn hill_response(alignment: f32, potency: f32, hill_n: f32) -> f32 {
 /// Cytotoxic drain per tick for one entity. Axiom 4+8.
 fn cytotoxic_drain(entity_freq: f32, config: &SharmaConfig) -> f32 {
     let alignment = determinism::gaussian_frequency_alignment(
-        entity_freq, config.drug_freq, config.drug_bandwidth,
+        entity_freq,
+        config.drug_freq,
+        config.drug_bandwidth,
     );
     let hill = hill_response(alignment, config.drug_potency, HILL_COEFF);
     hill * DRUG_DRAIN_BASE
@@ -162,7 +166,9 @@ fn phase_for_generation(generation: u32, config: &SharmaConfig) -> SharmaPhase {
 fn is_persister(entity: &EntitySlot, config: &SharmaConfig) -> bool {
     let growth_low = entity.growth_bias < 0.05;
     let alignment = determinism::gaussian_frequency_alignment(
-        entity.frequency_hz, config.drug_freq, COHERENCE_BANDWIDTH,
+        entity.frequency_hz,
+        config.drug_freq,
+        COHERENCE_BANDWIDTH,
     );
     growth_low && alignment < 0.3
 }
@@ -254,15 +260,17 @@ fn compute_snapshot(
             mask &= mask - 1;
             alive += 1;
             qe_sum += w.entities[i].qe;
-            if is_persister(&w.entities[i], config) { persisters += 1; }
+            if is_persister(&w.entities[i], config) {
+                persisters += 1;
+            }
         }
     }
 
     let n = alive.max(1) as f32;
     SharmaSnapshot {
         generation,
-        alive_mean:     alive as f32 / nw,
-        qe_mean:        qe_sum / n,
+        alive_mean: alive as f32 / nw,
+        qe_mean: qe_sum / n,
         persister_frac: persisters as f32 / n,
         phase,
     }
@@ -302,7 +310,8 @@ fn spawn_population(world: &mut SimWorldFlat, config: &SharmaConfig, seed: u64) 
         let mut e = EntitySlot::default();
         e.qe = 40.0; // lower starting energy (dormant)
         e.radius = 0.3;
-        e.frequency_hz = config.sensitive_freq + config.quiescent_freq_offset
+        e.frequency_hz = config.sensitive_freq
+            + config.quiescent_freq_offset
             + determinism::gaussian_f32(s, 15.0);
         e.growth_bias = config.quiescent_growth_bias;
         e.mobility_bias = 0.1;
@@ -326,14 +335,20 @@ fn spawn_population(world: &mut SimWorldFlat, config: &SharmaConfig, seed: u64) 
 pub fn run(config: &SharmaConfig) -> SharmaReport {
     let start = Instant::now();
 
-    let mut worlds: Vec<SimWorldFlat> = (0..config.worlds).map(|wi| {
-        let ws = determinism::next_u64(config.seed ^ (wi as u64));
-        let mut w = SimWorldFlat::new(ws, 0.05);
-        for cell in w.nutrient_grid.iter_mut() { *cell = config.nutrient_level; }
-        for cell in w.irradiance_grid.iter_mut() { *cell = config.nutrient_level * IRRADIANCE_NUTRIENT_RATIO; }
-        spawn_population(&mut w, config, ws);
-        w
-    }).collect();
+    let mut worlds: Vec<SimWorldFlat> = (0..config.worlds)
+        .map(|wi| {
+            let ws = determinism::next_u64(config.seed ^ (wi as u64));
+            let mut w = SimWorldFlat::new(ws, 0.05);
+            for cell in w.nutrient_grid.iter_mut() {
+                *cell = config.nutrient_level;
+            }
+            for cell in w.irradiance_grid.iter_mut() {
+                *cell = config.nutrient_level * IRRADIANCE_NUTRIENT_RATIO;
+            }
+            spawn_population(&mut w, config, ws);
+            w
+        })
+        .collect();
 
     let mut scratches: Vec<ScratchPad> = (0..config.worlds).map(|_| ScratchPad::new()).collect();
     let mut timeline = Vec::with_capacity(config.generations as usize);
@@ -351,18 +366,18 @@ pub fn run(config: &SharmaConfig) -> SharmaReport {
     }
 
     // Peak population (pre-treatment or early treatment).
-    let peak_population = timeline.iter()
-        .map(|s| s.alive_mean)
-        .fold(0.0f32, f32::max);
+    let peak_population = timeline.iter().map(|s| s.alive_mean).fold(0.0f32, f32::max);
 
     // Survivors right after treatment ends.
-    let post_drug_survivors = timeline.iter()
+    let post_drug_survivors = timeline
+        .iter()
         .find(|s| s.phase == SharmaPhase::Recovery)
         .map(|s| s.alive_mean)
         .unwrap_or(0.0);
 
     // Persister fraction at end of treatment.
-    let persister_fraction = timeline.iter()
+    let persister_fraction = timeline
+        .iter()
         .filter(|s| s.phase == SharmaPhase::Treatment)
         .last()
         .map(|s| s.persister_frac)
@@ -370,7 +385,8 @@ pub fn run(config: &SharmaConfig) -> SharmaReport {
 
     // Recovery detection: population recovers to >50% of peak after drug removal.
     let recovery_threshold = peak_population * 0.5;
-    let recovery_gen = timeline.iter()
+    let recovery_gen = timeline
+        .iter()
         .find(|s| s.phase == SharmaPhase::Recovery && s.alive_mean > recovery_threshold)
         .map(|s| s.generation);
     let recovery_detected = recovery_gen.is_some();
@@ -421,7 +437,10 @@ mod tests {
         let c = SharmaConfig::default();
         let on = cytotoxic_drain(400.0, &c);
         let off = cytotoxic_drain(700.0, &c);
-        assert!(on > off, "on-target drain ({on}) must exceed off-target ({off})");
+        assert!(
+            on > off,
+            "on-target drain ({on}) must exceed off-target ({off})"
+        );
     }
 
     #[test]

@@ -38,12 +38,7 @@ pub fn ectotherm_temperature(t_current: f32, t_env: f32, convergence_rate: f32) 
 /// Endotherm body temperature: maintains t_target when qe suffices.
 /// Full maintenance when qe >= gap/insulation; partial interpolation otherwise.
 #[inline]
-pub fn endotherm_temperature(
-    t_target: f32,
-    t_env: f32,
-    insulation: f32,
-    qe_available: f32,
-) -> f32 {
+pub fn endotherm_temperature(t_target: f32, t_env: f32, insulation: f32, qe_available: f32) -> f32 {
     if !t_target.is_finite() || !t_env.is_finite() {
         return 0.0;
     }
@@ -109,7 +104,10 @@ mod tests {
 
     #[test]
     fn thermoreg_cost_infinite_inputs_return_zero() {
-        assert_eq!(thermoregulation_cost(f32::INFINITY, 310.0, 100.0, 0.5, 1.0), 0.0);
+        assert_eq!(
+            thermoregulation_cost(f32::INFINITY, 310.0, 100.0, 0.5, 1.0),
+            0.0
+        );
     }
 
     #[test]

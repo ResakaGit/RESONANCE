@@ -13,8 +13,7 @@ pub use plugin::QuantizedColorPlugin;
 pub use registry::PaletteRegistry;
 
 pub use systems::{
-    factor_precision_system, palette_registry_cpu_sync_system,
-    quantized_precision_ensure_system,
+    factor_precision_system, palette_registry_cpu_sync_system, quantized_precision_ensure_system,
 };
 
 use bevy::prelude::Component;

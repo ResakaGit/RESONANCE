@@ -78,7 +78,10 @@ struct G9PendingDeliveryCount(u32);
 
 fn configure_g9_two_phase_chain(app: &mut App) {
     app.add_event::<DeathEvent>();
-    app.configure_sets(FixedUpdate, (Phase::AtomicLayer, Phase::MetabolicLayer).chain());
+    app.configure_sets(
+        FixedUpdate,
+        (Phase::AtomicLayer, Phase::MetabolicLayer).chain(),
+    );
     app.add_systems(
         FixedUpdate,
         g9_death_emit_once_physics.in_set(Phase::AtomicLayer),
@@ -91,7 +94,10 @@ fn configure_g9_two_phase_chain(app: &mut App) {
 
 fn configure_g9_input_prephysics_chain(app: &mut App) {
     app.add_event::<G9CrossChannelPending>();
-    app.configure_sets(FixedUpdate, (Phase::Input, Phase::ThermodynamicLayer).chain());
+    app.configure_sets(
+        FixedUpdate,
+        (Phase::Input, Phase::ThermodynamicLayer).chain(),
+    );
     app.add_systems(FixedUpdate, g9_pending_emit_input.in_set(Phase::Input));
     app.add_systems(
         FixedUpdate,

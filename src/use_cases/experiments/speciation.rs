@@ -3,27 +3,27 @@
 //! Two populations evolve isolated (different seeds on same preset).
 //! After N generations, measure frequency divergence via `interference()`.
 
-use crate::use_cases::evolve_with;
-use crate::use_cases::presets::UniversePreset;
 use crate::batch::bridge;
 use crate::batch::genome::GenomeBlob;
 use crate::blueprint::equations;
+use crate::use_cases::evolve_with;
+use crate::use_cases::presets::UniversePreset;
 
 /// Result of a speciation experiment.
 #[derive(Debug)]
 pub struct SpeciationReport {
-    pub preset_name:       &'static str,
-    pub generations:       u32,
-    pub pop_a_genomes:     Vec<GenomeBlob>,
-    pub pop_b_genomes:     Vec<GenomeBlob>,
+    pub preset_name: &'static str,
+    pub generations: u32,
+    pub pop_a_genomes: Vec<GenomeBlob>,
+    pub pop_b_genomes: Vec<GenomeBlob>,
     /// Mean frequency of population A's top genomes.
-    pub mean_freq_a:       f32,
+    pub mean_freq_a: f32,
     /// Mean frequency of population B's top genomes.
-    pub mean_freq_b:       f32,
+    pub mean_freq_b: f32,
     /// Interference between mean frequencies (1.0 = identical, 0.0 = orthogonal, -1.0 = destructive).
     pub cross_interference: f32,
     /// Whether populations diverged enough to be "reproductively isolated".
-    pub speciated:          bool,
+    pub speciated: bool,
 }
 
 /// Run two isolated populations and measure divergence.
@@ -43,8 +43,11 @@ pub fn run(
 
     // Use bridge's canonical frequency mapping (single source of truth).
     let mean_freq = |genomes: &[GenomeBlob]| -> f32 {
-        if genomes.is_empty() { return 0.0; }
-        let sum: f32 = genomes.iter()
+        if genomes.is_empty() {
+            return 0.0;
+        }
+        let sum: f32 = genomes
+            .iter()
             .map(|g| bridge::genome_to_components(g).2.frequency_hz())
             .sum();
         sum / genomes.len() as f32
@@ -66,4 +69,3 @@ pub fn run(
         speciated: interference < speciation_threshold,
     }
 }
-

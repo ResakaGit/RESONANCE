@@ -150,11 +150,27 @@ mod tests {
         app.add_plugins(LayersPlugin);
 
         let registry = app.world().resource::<AppTypeRegistry>().read();
-        assert!(registry.get(std::any::TypeId::of::<LifecycleStage>()).is_some());
-        assert!(registry.get(std::any::TypeId::of::<LifecycleStageCache>()).is_some());
-        assert!(registry.get(std::any::TypeId::of::<GeometryPrimitive>()).is_some());
+        assert!(
+            registry
+                .get(std::any::TypeId::of::<LifecycleStage>())
+                .is_some()
+        );
+        assert!(
+            registry
+                .get(std::any::TypeId::of::<LifecycleStageCache>())
+                .is_some()
+        );
+        assert!(
+            registry
+                .get(std::any::TypeId::of::<GeometryPrimitive>())
+                .is_some()
+        );
         assert!(registry.get(std::any::TypeId::of::<OrganRole>()).is_some());
         assert!(registry.get(std::any::TypeId::of::<OrganSpec>()).is_some());
-        assert!(registry.get(std::any::TypeId::of::<OrganManifest>()).is_some());
+        assert!(
+            registry
+                .get(std::any::TypeId::of::<OrganManifest>())
+                .is_some()
+        );
     }
 }

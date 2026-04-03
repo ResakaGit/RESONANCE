@@ -13,24 +13,33 @@ use crate::batch::harness::GenerationStats;
 
 /// Header CSV para snapshots de entidad (sin prefijo de generación).
 /// CSV header for entity snapshots (no generation prefix).
-pub const ENTITY_CSV_HEADER: &str =
-    "world,slot,archetype,alive,qe,radius,freq_hz,growth,mobility,branching,resilience,trophic,age,lineage_id";
+pub const ENTITY_CSV_HEADER: &str = "world,slot,archetype,alive,qe,radius,freq_hz,growth,mobility,branching,resilience,trophic,age,lineage_id";
 
 /// Header CSV para stats de generación.
 /// CSV header for generation stats.
-pub const GENERATION_CSV_HEADER: &str =
-    "gen,best,mean,worst,diversity,survivors,species,genes,metab_rate,protein_rate,codons,multicell_rate";
+pub const GENERATION_CSV_HEADER: &str = "gen,best,mean,worst,diversity,survivors,species,genes,metab_rate,protein_rate,codons,multicell_rate";
 
 /// Escribe un EntitySnapshot como línea CSV en el buffer.
 /// Writes an EntitySnapshot as a CSV line into the buffer.
 #[inline]
 pub fn write_entity_csv(out: &mut String, s: &EntitySnapshot) {
-    let _ = write!(out,
+    let _ = write!(
+        out,
         "{},{},{},{},{:.4},{:.4},{:.2},{:.4},{:.4},{:.4},{:.4},{},{},{}",
-        s.world_index, s.slot_index, s.archetype,
-        s.alive as u8, s.qe, s.radius, s.frequency_hz,
-        s.growth_bias, s.mobility_bias, s.branching_bias, s.resilience,
-        s.trophic_class, s.age_ticks, s.lineage_id.0,
+        s.world_index,
+        s.slot_index,
+        s.archetype,
+        s.alive as u8,
+        s.qe,
+        s.radius,
+        s.frequency_hz,
+        s.growth_bias,
+        s.mobility_bias,
+        s.branching_bias,
+        s.resilience,
+        s.trophic_class,
+        s.age_ticks,
+        s.lineage_id.0,
     );
 }
 
@@ -38,13 +47,20 @@ pub fn write_entity_csv(out: &mut String, s: &EntitySnapshot) {
 /// Writes GenerationStats as a CSV line into the buffer.
 #[inline]
 pub fn write_generation_csv(out: &mut String, s: &GenerationStats) {
-    let _ = write!(out,
+    let _ = write!(
+        out,
         "{},{:.4},{:.4},{:.4},{:.4},{:.2},{:.2},{:.2},{:.4},{:.4},{:.2},{:.4}",
         s.generation,
-        s.best_fitness, s.mean_fitness, s.worst_fitness,
-        s.diversity, s.survivors_mean, s.species_mean,
-        s.gene_count_mean, s.metabolic_graph_rate,
-        s.protein_function_rate, s.codon_count_mean,
+        s.best_fitness,
+        s.mean_fitness,
+        s.worst_fitness,
+        s.diversity,
+        s.survivors_mean,
+        s.species_mean,
+        s.gene_count_mean,
+        s.metabolic_graph_rate,
+        s.protein_function_rate,
+        s.codon_count_mean,
         s.multicellular_rate,
     );
 }
@@ -108,10 +124,20 @@ pub fn export_censuses_csv(censuses: &[PopulationCensus]) -> String {
 pub fn entity_to_json(s: &EntitySnapshot) -> String {
     format!(
         r#"{{"lineage":{},"world":{},"slot":{},"arch":{},"alive":{},"qe":{:.4},"r":{:.4},"hz":{:.2},"g":{:.4},"m":{:.4},"b":{:.4},"res":{:.4},"troph":{},"age":{}}}"#,
-        s.lineage_id.0, s.world_index, s.slot_index, s.archetype,
-        s.alive, s.qe, s.radius, s.frequency_hz,
-        s.growth_bias, s.mobility_bias, s.branching_bias, s.resilience,
-        s.trophic_class, s.age_ticks,
+        s.lineage_id.0,
+        s.world_index,
+        s.slot_index,
+        s.archetype,
+        s.alive,
+        s.qe,
+        s.radius,
+        s.frequency_hz,
+        s.growth_bias,
+        s.mobility_bias,
+        s.branching_bias,
+        s.resilience,
+        s.trophic_class,
+        s.age_ticks,
     )
 }
 
@@ -121,10 +147,17 @@ pub fn entity_to_json(s: &EntitySnapshot) -> String {
 pub fn generation_to_json(s: &GenerationStats) -> String {
     format!(
         r#"{{"gen":{},"best":{:.4},"mean":{:.4},"worst":{:.4},"div":{:.4},"surv":{:.2},"spp":{:.2},"genes":{:.2},"metab":{:.4},"protein":{:.4},"codons":{:.2},"multicell":{:.4}}}"#,
-        s.generation, s.best_fitness, s.mean_fitness,
-        s.worst_fitness, s.diversity, s.survivors_mean, s.species_mean,
-        s.gene_count_mean, s.metabolic_graph_rate,
-        s.protein_function_rate, s.codon_count_mean,
+        s.generation,
+        s.best_fitness,
+        s.mean_fitness,
+        s.worst_fitness,
+        s.diversity,
+        s.survivors_mean,
+        s.species_mean,
+        s.gene_count_mean,
+        s.metabolic_graph_rate,
+        s.protein_function_rate,
+        s.codon_count_mean,
         s.multicellular_rate,
     )
 }
@@ -136,37 +169,37 @@ mod tests {
 
     fn sample_snapshot() -> EntitySnapshot {
         EntitySnapshot {
-            lineage_id:     LineageId::root(42, 0),
-            world_index:    0,
-            slot_index:     3,
-            archetype:      2,
-            alive:          true,
-            qe:             150.5,
-            radius:         2.0,
-            frequency_hz:   97.5,
-            growth_bias:    0.6,
-            mobility_bias:  0.3,
+            lineage_id: LineageId::root(42, 0),
+            world_index: 0,
+            slot_index: 3,
+            archetype: 2,
+            alive: true,
+            qe: 150.5,
+            radius: 2.0,
+            frequency_hz: 97.5,
+            growth_bias: 0.6,
+            mobility_bias: 0.3,
             branching_bias: 0.1,
-            resilience:     0.4,
-            trophic_class:  1,
-            age_ticks:      42,
+            resilience: 0.4,
+            trophic_class: 1,
+            age_ticks: 42,
         }
     }
 
     fn sample_stats() -> GenerationStats {
         GenerationStats {
-            generation:           10,
-            best_fitness:         85.0,
-            mean_fitness:         42.0,
-            worst_fitness:        1.0,
-            diversity:            0.35,
-            survivors_mean:       4.5,
-            species_mean:         2.1,
-            gene_count_mean:      8.0,
+            generation: 10,
+            best_fitness: 85.0,
+            mean_fitness: 42.0,
+            worst_fitness: 1.0,
+            diversity: 0.35,
+            survivors_mean: 4.5,
+            species_mean: 2.1,
+            gene_count_mean: 8.0,
             metabolic_graph_rate: 0.25,
-            protein_function_rate:0.10,
-            codon_count_mean:     3.5,
-            multicellular_rate:   0.05,
+            protein_function_rate: 0.10,
+            codon_count_mean: 3.5,
+            multicellular_rate: 0.05,
         }
     }
 
@@ -177,8 +210,11 @@ mod tests {
         let csv = entity_to_csv(&sample_snapshot());
         let fields: Vec<&str> = csv.split(',').collect();
         let header_fields: Vec<&str> = ENTITY_CSV_HEADER.split(',').collect();
-        assert_eq!(fields.len(), header_fields.len(),
-            "entity CSV field count must match header");
+        assert_eq!(
+            fields.len(),
+            header_fields.len(),
+            "entity CSV field count must match header"
+        );
     }
 
     #[test]
@@ -212,7 +248,10 @@ mod tests {
         };
         let csv = export_censuses_csv(&[census]);
         let data_line = csv.lines().nth(1).expect("should have data line");
-        assert!(data_line.starts_with("7,"), "data line should start with generation number");
+        assert!(
+            data_line.starts_with("7,"),
+            "data line should start with generation number"
+        );
     }
 
     #[test]
@@ -233,8 +272,14 @@ mod tests {
     #[test]
     fn entity_json_contains_all_fields() {
         let json = entity_to_json(&sample_snapshot());
-        for field in ["lineage", "world", "slot", "arch", "alive", "qe", "r", "hz", "g", "m", "b", "res", "troph", "age"] {
-            assert!(json.contains(&format!("\"{}\":", field)), "missing field: {field}");
+        for field in [
+            "lineage", "world", "slot", "arch", "alive", "qe", "r", "hz", "g", "m", "b", "res",
+            "troph", "age",
+        ] {
+            assert!(
+                json.contains(&format!("\"{}\":", field)),
+                "missing field: {field}"
+            );
         }
     }
 

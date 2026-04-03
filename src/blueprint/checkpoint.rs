@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::layers::MatterState;
+use crate::blueprint::MatterState;
 
 /// Schema version for checkpoint format.
 pub const CHECKPOINT_VERSION: u32 = 1;

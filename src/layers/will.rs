@@ -1,8 +1,8 @@
 use bevy::prelude::*;
 use serde::{Deserialize, Serialize};
 
-use crate::blueprint::constants::WILL_MOVEMENT_INTENT_SQ_EPSILON;
 use crate::blueprint::ElementId;
+use crate::blueprint::constants::WILL_MOVEMENT_INTENT_SQ_EPSILON;
 use crate::blueprint::recipes::{EffectRecipe, TransmuteDir};
 
 /// Máximo de habilidades por entidad. / Max ability slots per entity.
@@ -248,7 +248,9 @@ impl Grimoire {
     /// Insert ability. Returns false if full.
     pub fn push_ability(&mut self, ability: AbilitySlot) -> bool {
         let idx = self.len as usize;
-        if idx >= MAX_GRIMOIRE_ABILITIES { return false; }
+        if idx >= MAX_GRIMOIRE_ABILITIES {
+            return false;
+        }
         self.abilities[idx] = Some(ability);
         self.len += 1;
         true

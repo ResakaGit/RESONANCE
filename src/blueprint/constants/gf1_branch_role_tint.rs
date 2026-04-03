@@ -11,4 +11,3 @@ pub const GF1_BRANCH_ROLE_ACCENT_STEM_LIN: [f32; 3] = [0.52, 0.38, 0.24];
 pub const GF1_BRANCH_ROLE_ACCENT_LEAF_LIN: [f32; 3] = [0.18, 0.82, 0.22];
 /// Acento RGB lineal THORN.
 pub const GF1_BRANCH_ROLE_ACCENT_THORN_LIN: [f32; 3] = [0.45, 0.38, 0.32];
-

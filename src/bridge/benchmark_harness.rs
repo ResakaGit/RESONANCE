@@ -8,12 +8,6 @@ use bevy::ecs::system::SystemState;
 use bevy::prelude::*;
 
 use crate::blueprint::equations;
-use crate::bridge::impls::ops::{
-    BridgedInterferenceOps, CatalysisEquationInput, CollisionTransferEquationInput,
-    InterferenceEquationInput,
-};
-#[cfg(feature = "bridge_optimizer")]
-use crate::bridge::impls::physics::BridgedPhysicsOps;
 use crate::bridge::cache::BridgeCache;
 use crate::bridge::config::{
     BandDef, BridgeConfig, CatalysisBridge, CollisionTransferBridge, DensityBridge,
@@ -21,6 +15,12 @@ use crate::bridge::config::{
 };
 use crate::bridge::context_fill::{BridgePhase, BridgePhaseState};
 use crate::bridge::decorator::Bridgeable;
+use crate::bridge::impls::ops::{
+    BridgedInterferenceOps, CatalysisEquationInput, CollisionTransferEquationInput,
+    InterferenceEquationInput,
+};
+#[cfg(feature = "bridge_optimizer")]
+use crate::bridge::impls::physics::BridgedPhysicsOps;
 use crate::bridge::normalize::normalize_scalar;
 use crate::bridge::presets::{BridgeDefaults, RigidityPreset};
 use crate::layers::{BaseEnergy, MatterCoherence, MatterState, PhysicsOps, SpatialVolume};

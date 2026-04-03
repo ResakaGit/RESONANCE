@@ -18,8 +18,8 @@
 //! Derived: spawn_condition = coherence_gain(neighbors) > dissipation_cost(local).
 //! Entity properties (matter_state, capabilities, morph profile) derived from energy density.
 
+use crate::blueprint::MatterState;
 use crate::blueprint::equations::derived_thresholds as dt;
-use crate::layers::MatterState;
 
 // ── All thresholds derived from 4 fundamentals via derived_thresholds.rs ────
 // No hardcoded constants. See docs/sprints/AXIOMATIC_INFERENCE/ for derivations.
@@ -31,11 +31,15 @@ use crate::blueprint::equations::derived_thresholds::COHERENCE_BANDWIDTH;
 // ── Profile derivation scales (derived from density thresholds) ─────────────
 
 /// Reference density for profile scaling = gas threshold × 2 (high-energy baseline).
-fn profile_density_reference() -> f32 { dt::gas_density_threshold() * 2.0 }
+fn profile_density_reference() -> f32 {
+    dt::gas_density_threshold() * 2.0
+}
 
 /// Reference velocity for mobility_bias = 1.0.
 /// Derived: sqrt(gas_density_threshold) — flow speed at gas transition energy.
-fn profile_velocity_reference() -> f32 { dt::gas_density_threshold().sqrt() }
+fn profile_velocity_reference() -> f32 {
+    dt::gas_density_threshold().sqrt()
+}
 
 /// Frequency alignment factor (Axiom 8, time-averaged). Delegates to centralized impl.
 #[inline]
@@ -50,14 +54,15 @@ pub fn frequency_alignment(freq_a: f32, freq_b: f32) -> f32 {
 ///
 /// `coherence = Σ qe_i × alignment(f_center, f_i) × 1/(1 + d_i²)`
 #[inline]
-pub fn cell_coherence_gain(
-    center_hz: f32,
-    neighbors: &[(f32, f32, f32)],
-) -> f32 {
-    if !center_hz.is_finite() { return 0.0; }
+pub fn cell_coherence_gain(center_hz: f32, neighbors: &[(f32, f32, f32)]) -> f32 {
+    if !center_hz.is_finite() {
+        return 0.0;
+    }
     let mut sum = 0.0f32;
     for &(qe, hz, dist) in neighbors {
-        if !qe.is_finite() || !hz.is_finite() || !dist.is_finite() { continue; }
+        if !qe.is_finite() || !hz.is_finite() || !dist.is_finite() {
+            continue;
+        }
         let alignment = frequency_alignment(center_hz, hz);
         let attenuation = 1.0 / (1.0 + dist * dist); // Axiom 7
         sum += qe.max(0.0) * alignment * attenuation;
@@ -77,12 +82,24 @@ pub fn axiomatic_abiogenesis_potential(
     coherence_gain: f32,
     dissipation_rate: f32,
 ) -> f32 {
-    let qe = if cell_qe.is_finite() { cell_qe.max(0.0) } else { return 0.0 };
-    if qe < dt::self_sustaining_qe_min() { return 0.0; }
-    let gain = if coherence_gain.is_finite() { coherence_gain.max(0.0) } else { 0.0 };
+    let qe = if cell_qe.is_finite() {
+        cell_qe.max(0.0)
+    } else {
+        return 0.0;
+    };
+    if qe < dt::self_sustaining_qe_min() {
+        return 0.0;
+    }
+    let gain = if coherence_gain.is_finite() {
+        coherence_gain.max(0.0)
+    } else {
+        0.0
+    };
     let loss = qe * dissipation_rate.max(0.0);
     let net = gain - loss;
-    if net <= 0.0 { return 0.0; }
+    if net <= 0.0 {
+        return 0.0;
+    }
     // Sigmoid normalization to [0, 1]
     (net / (net + qe)).clamp(0.0, 1.0)
 }
@@ -100,10 +117,15 @@ pub fn axiomatic_spawn_viable(potential: f32) -> bool {
 /// No element-specific mapping — state is a CONSEQUENCE of energy.
 pub fn matter_state_from_density(qe: f32, volume: f32) -> MatterState {
     let density = qe.max(0.0) / volume.max(f32::EPSILON);
-    if density >= dt::plasma_density_threshold() { MatterState::Plasma }
-    else if density >= dt::gas_density_threshold() { MatterState::Gas }
-    else if density >= dt::liquid_density_threshold() { MatterState::Liquid }
-    else { MatterState::Solid }
+    if density >= dt::plasma_density_threshold() {
+        MatterState::Plasma
+    } else if density >= dt::gas_density_threshold() {
+        MatterState::Gas
+    } else if density >= dt::liquid_density_threshold() {
+        MatterState::Liquid
+    } else {
+        MatterState::Solid
+    }
 }
 
 /// Capabilities derived from energy profile (Axioms 1, 8).
@@ -112,11 +134,7 @@ pub fn matter_state_from_density(qe: f32, volume: f32) -> MatterState {
 /// - SENSE: high coherence (can detect frequency patterns)
 /// - BRANCH: enough energy + not gaseous
 /// - GROW: always (qe accumulation is universal)
-pub fn capabilities_from_energy(
-    qe: f32,
-    density: f32,
-    coherence: f32,
-) -> u8 {
+pub fn capabilities_from_energy(qe: f32, density: f32, coherence: f32) -> u8 {
     use crate::layers::CapabilitySet;
     let mut caps = CapabilitySet::GROW;
     if density >= dt::move_density_min() && density <= dt::move_density_max() {
@@ -142,8 +160,8 @@ pub fn inference_profile_from_energy(
 ) -> (f32, f32, f32, f32) {
     let d = density.max(0.0);
     let c = coherence.clamp(0.0, 1.0);
-    let growth    = (1.0 - d / profile_density_reference()).clamp(0.1, 0.95);
-    let mobility  = (flow_speed / profile_velocity_reference().max(1.0)).clamp(0.0, 0.95);
+    let growth = (1.0 - d / profile_density_reference()).clamp(0.1, 0.95);
+    let mobility = (flow_speed / profile_velocity_reference().max(1.0)).clamp(0.0, 0.95);
     let branching = growth * (1.0 - mobility).max(0.1); // mobile entities don't branch
     let resilience = (0.5 * d / profile_density_reference() + 0.5 * c).clamp(0.1, 0.95); // density + coherence → structural organization
     (growth, mobility, branching, resilience)
@@ -156,7 +174,10 @@ pub fn inference_profile_from_energy(
 #[inline]
 pub fn bond_from_energy(qe: f32) -> f32 {
     let scale = 1.0 / dt::DISSIPATION_SOLID; // = 200
-    (qe.max(0.0) * scale).clamp(dt::liquid_density_threshold(), dt::plasma_density_threshold() * 10.0)
+    (qe.max(0.0) * scale).clamp(
+        dt::liquid_density_threshold(),
+        dt::plasma_density_threshold() * 10.0,
+    )
 }
 
 /// Thermal conductivity from matter state (Axiom 4).
@@ -173,9 +194,9 @@ pub fn conductivity_from_state(state: MatterState) -> f32 {
 pub fn dissipation_from_state(state: MatterState) -> f32 {
     match state {
         MatterState::Plasma => dt::DISSIPATION_PLASMA,
-        MatterState::Gas    => dt::DISSIPATION_GAS,
+        MatterState::Gas => dt::DISSIPATION_GAS,
         MatterState::Liquid => dt::DISSIPATION_LIQUID,
-        MatterState::Solid  => dt::DISSIPATION_SOLID,
+        MatterState::Solid => dt::DISSIPATION_SOLID,
     }
 }
 
@@ -187,13 +208,13 @@ pub fn dissipation_from_state(state: MatterState) -> f32 {
 pub fn element_symbol_from_frequency(frequency_hz: f32) -> &'static str {
     let band = (frequency_hz / COHERENCE_BANDWIDTH) as u32;
     match band {
-        0       => "Um",  // Umbra    ~0–50 Hz
-        1       => "Te",  // Terra    ~50–100 Hz
-        2..=4   => "Fl",  // Flora    ~100–250 Hz
-        5..=6   => "Aq",  // Aqua     ~250–350 Hz
-        7..=10  => "Ig",  // Ignis    ~350–550 Hz
-        11..=15 => "Ve",  // Ventus   ~550–800 Hz
-        _       => "Lx",  // Lux      ~800+ Hz
+        0 => "Um",       // Umbra    ~0–50 Hz
+        1 => "Te",       // Terra    ~50–100 Hz
+        2..=4 => "Fl",   // Flora    ~100–250 Hz
+        5..=6 => "Aq",   // Aqua     ~250–350 Hz
+        7..=10 => "Ig",  // Ignis    ~350–550 Hz
+        11..=15 => "Ve", // Ventus   ~550–800 Hz
+        _ => "Lx",       // Lux      ~800+ Hz
     }
 }
 
@@ -237,13 +258,16 @@ mod tests {
     #[test]
     fn coherence_gain_same_freq_close_neighbor_high() {
         let gain = cell_coherence_gain(100.0, &[(50.0, 100.0, 1.0)]);
-        assert!(gain > 10.0, "close same-freq neighbor should give high gain: {gain}");
+        assert!(
+            gain > 10.0,
+            "close same-freq neighbor should give high gain: {gain}"
+        );
     }
 
     #[test]
     fn coherence_gain_far_neighbor_attenuated() {
         let close = cell_coherence_gain(100.0, &[(50.0, 100.0, 1.0)]);
-        let far   = cell_coherence_gain(100.0, &[(50.0, 100.0, 10.0)]);
+        let far = cell_coherence_gain(100.0, &[(50.0, 100.0, 10.0)]);
         assert!(close > far, "close > far: {close} vs {far}");
     }
 
@@ -281,7 +305,10 @@ mod tests {
     #[test]
     fn matter_state_high_density_is_plasma() {
         let plasma_d = dt::plasma_density_threshold();
-        assert_eq!(matter_state_from_density(plasma_d * 2.0, 1.0), MatterState::Plasma);
+        assert_eq!(
+            matter_state_from_density(plasma_d * 2.0, 1.0),
+            MatterState::Plasma
+        );
     }
 
     #[test]
@@ -315,13 +342,19 @@ mod tests {
     fn profile_high_density_and_coherence_high_resilience() {
         let ref_d = profile_density_reference();
         let (_, _, _, resilience) = inference_profile_from_energy(ref_d, 0.9, 0.0);
-        assert!(resilience > 0.7, "high density + coherence → high resilience: {resilience}");
+        assert!(
+            resilience > 0.7,
+            "high density + coherence → high resilience: {resilience}"
+        );
     }
 
     #[test]
     fn profile_high_flow_high_mobility() {
         let ref_v = profile_velocity_reference();
         let (_, mobility, _, _) = inference_profile_from_energy(200.0, 0.5, ref_v * 0.9);
-        assert!(mobility > 0.7, "flow near reference → high mobility: {mobility}");
+        assert!(
+            mobility > 0.7,
+            "flow near reference → high mobility: {mobility}"
+        );
     }
 }

@@ -36,7 +36,9 @@ impl InferenceProfile {
     /// `resilience` con fallback al default del perfil si el componente falta (EA4, EA7, …).
     #[inline]
     pub fn resilience_effective(profile: Option<&Self>) -> f32 {
-        profile.map(|p| p.resilience).unwrap_or(DEFAULT_INFERENCE_RESILIENCE)
+        profile
+            .map(|p| p.resilience)
+            .unwrap_or(DEFAULT_INFERENCE_RESILIENCE)
     }
 
     // ── ET-6 Epigenetic Expression API ────────────────────────────────────────
@@ -62,7 +64,7 @@ impl InferenceProfile {
     /// Complejidad del gen `i` — usada por `silencing_cost` (ET-6).
     #[inline]
     pub fn gene_complexity(&self, i: usize) -> f32 {
-        self.gene_benefit(i)  // complejidad ∝ expresión base
+        self.gene_benefit(i) // complejidad ∝ expresión base
     }
 
     /// Escribe la dimensión `i` con `val` clampeado a `[0, 1]`.
@@ -70,10 +72,10 @@ impl InferenceProfile {
     pub fn set_bias(&mut self, i: usize, val: f32) {
         let v = sanitize_norm(val);
         match i {
-            0 => self.growth_bias    = v,
-            1 => self.mobility_bias  = v,
+            0 => self.growth_bias = v,
+            1 => self.mobility_bias = v,
             2 => self.branching_bias = v,
-            3 => self.resilience     = v,
+            3 => self.resilience = v,
             _ => {}
         }
     }
@@ -173,17 +175,8 @@ impl GrowthIntent {
 #[component(storage = "SparseSet")]
 pub struct PendingMorphRebuild;
 
-/// Clase trófica para transformaciones energéticas data-driven.
-#[repr(u8)]
-#[derive(Reflect, Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
-pub enum TrophicClass {
-    #[default]
-    PrimaryProducer = 0,
-    Herbivore = 1,
-    Omnivore = 2,
-    Carnivore = 3,
-    Detritivore = 4,
-}
+// TrophicClass — canonical definition in blueprint/domain_enums.rs
+pub use crate::blueprint::domain_enums::TrophicClass;
 
 /// Contrato energético genérico para entidades vivas sin branch por especie.
 #[derive(Reflect, Debug, Clone, Copy, PartialEq)]
@@ -267,7 +260,9 @@ fn sanitize_norm(value: f32) -> f32 {
 
 #[cfg(test)]
 mod tests {
-    use super::{AnimalSpec, CapabilitySet, EnvContext, GrowthIntent, InferenceProfile, TrophicClass};
+    use super::{
+        AnimalSpec, CapabilitySet, EnvContext, GrowthIntent, InferenceProfile, TrophicClass,
+    };
 
     #[test]
     fn inference_profile_new_clamps_biases() {

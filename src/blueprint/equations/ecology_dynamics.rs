@@ -1,11 +1,11 @@
 //! D9: Ecological Dynamics — pure equations (E1-E4).
 
 use super::finite_helpers::{finite_non_negative, finite_unit};
+use crate::blueprint::TrophicClass;
 use crate::blueprint::constants::{
     ABIOGENESIS_PRESSURE_SCALE, CARRYING_CAPACITY_QE_FACTOR, SUCCESSION_EARLY_TICKS,
     SUCCESSION_MID_TICKS, SUCCESSION_PIONEER_TICKS,
 };
-use crate::layers::inference::TrophicClass;
 
 /// Ecological succession phase (not a component — return value only).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -39,7 +39,10 @@ pub fn reproduction_pressure(local_population: u32, carrying_capacity: u32) -> f
 
 /// E3: Succession stage from elapsed ticks and dominant trophic class.
 /// Higher trophic dominants accelerate succession.
-pub fn succession_stage(time_since_disturbance: u32, dominant_trophic: TrophicClass) -> SuccessionStage {
+pub fn succession_stage(
+    time_since_disturbance: u32,
+    dominant_trophic: TrophicClass,
+) -> SuccessionStage {
     let baseline = if time_since_disturbance < SUCCESSION_PIONEER_TICKS {
         SuccessionStage::Pioneer
     } else if time_since_disturbance < SUCCESSION_EARLY_TICKS {
@@ -51,8 +54,8 @@ pub fn succession_stage(time_since_disturbance: u32, dominant_trophic: TrophicCl
     };
     let trophic_floor = match dominant_trophic {
         TrophicClass::Carnivore | TrophicClass::Detritivore => SuccessionStage::Mid,
-        TrophicClass::Herbivore | TrophicClass::Omnivore    => SuccessionStage::Early,
-        TrophicClass::PrimaryProducer                       => SuccessionStage::Pioneer,
+        TrophicClass::Herbivore | TrophicClass::Omnivore => SuccessionStage::Early,
+        TrophicClass::PrimaryProducer => SuccessionStage::Pioneer,
     };
     baseline.max(trophic_floor)
 }
@@ -163,7 +166,10 @@ mod tests {
         let base = 100.0;
         let full = abiogenesis_modulated_threshold(base, 0.0);
         let empty = abiogenesis_modulated_threshold(base, 1.0);
-        assert!(empty < full, "empty cell should lower threshold: {empty} < {full}");
+        assert!(
+            empty < full,
+            "empty cell should lower threshold: {empty} < {full}"
+        );
     }
 
     #[test]

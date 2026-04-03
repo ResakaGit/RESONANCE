@@ -42,7 +42,11 @@ impl LineageId {
     /// Id for offspring derived from a parent.
     #[inline]
     pub fn child(parent: LineageId, child_index: u8, generation: u32) -> Self {
-        Self(hash_u64_parts(&[parent.0, child_index as u64, generation as u64]))
+        Self(hash_u64_parts(&[
+            parent.0,
+            child_index as u64,
+            generation as u64,
+        ]))
     }
 }
 
@@ -52,10 +56,10 @@ impl LineageId {
 /// Genome + lineage metadata. `GenomeBlob` unchanged (22 bytes). Wrapping metadata.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct TrackedGenome {
-    pub genome:     GenomeBlob,
+    pub genome: GenomeBlob,
     pub lineage_id: LineageId,
-    pub parent_id:  Option<LineageId>,
-    pub birth_gen:  u32,
+    pub parent_id: Option<LineageId>,
+    pub birth_gen: u32,
 }
 
 impl TrackedGenome {
@@ -66,25 +70,20 @@ impl TrackedGenome {
         Self {
             genome,
             lineage_id: LineageId::root(seed, slot),
-            parent_id:  None,
-            birth_gen:  0,
+            parent_id: None,
+            birth_gen: 0,
         }
     }
 
     /// Crea un tracked genome hijo.
     /// Creates a child tracked genome.
     #[inline]
-    pub fn child(
-        genome: GenomeBlob,
-        parent: LineageId,
-        child_index: u8,
-        generation: u32,
-    ) -> Self {
+    pub fn child(genome: GenomeBlob, parent: LineageId, child_index: u8, generation: u32) -> Self {
         Self {
             genome,
             lineage_id: LineageId::child(parent, child_index, generation),
-            parent_id:  Some(parent),
-            birth_gen:  generation,
+            parent_id: Some(parent),
+            birth_gen: generation,
         }
     }
 }

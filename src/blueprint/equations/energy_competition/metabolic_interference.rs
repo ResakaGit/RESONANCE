@@ -23,11 +23,19 @@ use crate::blueprint::equations::core_physics;
 ///
 /// `t` should be `SimulationElapsed.secs` for deterministic results.
 pub fn metabolic_interference_factor(
-    extractor_freq: f32, extractor_phase: f32,
-    target_freq:    f32, target_phase:    f32,
+    extractor_freq: f32,
+    extractor_phase: f32,
+    target_freq: f32,
+    target_phase: f32,
     t: f32,
 ) -> f32 {
-    let raw = core_physics::interference(extractor_freq, extractor_phase, target_freq, target_phase, t);
+    let raw = core_physics::interference(
+        extractor_freq,
+        extractor_phase,
+        target_freq,
+        target_phase,
+        t,
+    );
     raw.clamp(METABOLIC_INTERFERENCE_FLOOR, 1.0)
 }
 
@@ -96,14 +104,20 @@ mod tests {
             .collect();
         let below_one_count = values.iter().filter(|&&v| v < 1.0 - EPS).count();
         // At many points the factor should be < 1.0 due to rapid oscillation
-        assert!(below_one_count > 5, "expected some non-maximal values, got {below_one_count}/100");
+        assert!(
+            below_one_count > 5,
+            "expected some non-maximal values, got {below_one_count}/100"
+        );
     }
 
     #[test]
     fn factor_same_band_close_freqs_often_near_one() {
         // Terra sub-band: 72 vs 78 Hz — small gap, slow oscillation → stays near 1 for small t
         let f = metabolic_interference_factor(72.0, 0.0, 78.0, 0.0, 0.001);
-        assert!(f > 0.9, "close freqs should have high factor at small t: {f}");
+        assert!(
+            f > 0.9,
+            "close freqs should have high factor at small t: {f}"
+        );
     }
 
     // ── apply_metabolic_interference ──────────────────────────────────────────
@@ -116,7 +130,10 @@ mod tests {
     #[test]
     fn apply_factor_floor_returns_floor_times_raw() {
         let expected = 100.0 * METABOLIC_INTERFERENCE_FLOOR;
-        assert!((apply_metabolic_interference(100.0, METABOLIC_INTERFERENCE_FLOOR) - expected).abs() < EPS);
+        assert!(
+            (apply_metabolic_interference(100.0, METABOLIC_INTERFERENCE_FLOOR) - expected).abs()
+                < EPS
+        );
     }
 
     #[test]
@@ -155,7 +172,10 @@ mod tests {
         let factor = metabolic_interference_factor(75.0, 0.0, 75.0, PI, 0.0);
         let result = apply_metabolic_interference(raw, factor);
         let expected_max = raw * METABOLIC_INTERFERENCE_FLOOR + EPS;
-        assert!(result <= expected_max, "result={result} expected≤{expected_max}");
+        assert!(
+            result <= expected_max,
+            "result={result} expected≤{expected_max}"
+        );
         assert!(result >= 0.0);
     }
 }

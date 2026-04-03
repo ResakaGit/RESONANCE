@@ -37,10 +37,7 @@ pub fn social_pack_formation_system(
     spatial_index: Res<SpatialIndex>,
     layout: Res<SimWorldTransformParams>,
     mut commands: Commands,
-    unattached_query: Query<
-        (Entity, &Transform, &MobaIdentity),
-        Without<PackMembership>,
-    >,
+    unattached_query: Query<(Entity, &Transform, &MobaIdentity), Without<PackMembership>>,
     existing_packs: Query<&PackMembership>,
 ) {
     if clock.tick_id % PACK_FORMATION_TICK_INTERVAL != 0 {
@@ -61,7 +58,13 @@ pub fn social_pack_formation_system(
     let candidates: Vec<_> = unattached_query
         .iter()
         .filter(|(_, _, id)| id.faction() != Faction::Neutral)
-        .map(|(e, t, id)| (e, sim_plane_pos(t.translation, layout.use_xz_ground), id.faction()))
+        .map(|(e, t, id)| {
+            (
+                e,
+                sim_plane_pos(t.translation, layout.use_xz_ground),
+                id.faction(),
+            )
+        })
         .collect();
 
     // Track which entities have been assigned in this tick
@@ -86,7 +89,9 @@ pub fn social_pack_formation_system(
                 continue;
             }
             // Must be unattached + same faction
-            let Some((_, _, other_faction)) = candidates.iter().find(|(e, _, _)| *e == entry.entity) else {
+            let Some((_, _, other_faction)) =
+                candidates.iter().find(|(e, _, _)| *e == entry.entity)
+            else {
                 continue;
             };
             if *other_faction != faction_a {
@@ -104,8 +109,14 @@ pub fn social_pack_formation_system(
         let tick = clock.tick_id as u32;
 
         for (idx, &member) in pack_members.iter().enumerate() {
-            let role = if idx == 0 { PackRole::Leader } else { PackRole::Member };
-            commands.entity(member).insert(PackMembership::new(pack_counter, role, tick));
+            let role = if idx == 0 {
+                PackRole::Leader
+            } else {
+                PackRole::Member
+            };
+            commands
+                .entity(member)
+                .insert(PackMembership::new(pack_counter, role, tick));
             assigned.push(member);
         }
 
@@ -134,37 +145,55 @@ pub fn social_pack_cohesion_system(
     // Using sorted vec (no HashMap in hot paths)
     let mut members: Vec<(u32, Entity, Vec2)> = pack_query
         .iter()
-        .map(|(e, pm, t)| (pm.pack_id, e, sim_plane_pos(t.translation, layout.use_xz_ground)))
+        .map(|(e, pm, t)| {
+            (
+                pm.pack_id,
+                e,
+                sim_plane_pos(t.translation, layout.use_xz_ground),
+            )
+        })
         .collect();
     members.sort_by_key(|(pid, _, _)| *pid);
 
-    for_each_group(&members, |(pid, _, _)| *pid, |group| {
-        let centroid = group
-            .iter()
-            .map(|(_, _, pos)| *pos)
-            .fold(Vec2::ZERO, |acc, p| acc + p)
-            / group.len() as f32;
+    for_each_group(
+        &members,
+        |(pid, _, _)| *pid,
+        |group| {
+            let centroid = group
+                .iter()
+                .map(|(_, _, pos)| *pos)
+                .fold(Vec2::ZERO, |acc, p| acc + p)
+                / group.len() as f32;
 
-        for &(_, entity, pos) in group {
-            let force = equations::pack_cohesion_force(pos, centroid, SOCIAL_BOND_REST_LENGTH);
-            if force.length_squared() < f32::EPSILON {
-                continue;
+            for &(_, entity, pos) in group {
+                let force = equations::pack_cohesion_force(pos, centroid, SOCIAL_BOND_REST_LENGTH);
+                if force.length_squared() < f32::EPSILON {
+                    continue;
+                }
+                let Ok(mut will) = will_query.get_mut(entity) else {
+                    continue;
+                };
+                let current = will.movement_intent();
+                let new_intent = current + force;
+                if current != new_intent {
+                    will.set_movement_intent(new_intent);
+                }
             }
-            let Ok(mut will) = will_query.get_mut(entity) else { continue };
-            let current = will.movement_intent();
-            let new_intent = current + force;
-            if current != new_intent {
-                will.set_movement_intent(new_intent);
-            }
-        }
-    });
+        },
+    );
 }
 
 /// S3: Dominancia — recalcula leader por pack basado en score.
 /// Run condition: every DOMINANCE_TICK_INTERVAL ticks.
 pub fn social_dominance_system(
     clock: Res<SimulationClock>,
-    mut pack_query: Query<(Entity, &mut PackMembership, &BaseEnergy, &SpatialVolume, Option<&InferenceProfile>)>,
+    mut pack_query: Query<(
+        Entity,
+        &mut PackMembership,
+        &BaseEnergy,
+        &SpatialVolume,
+        Option<&InferenceProfile>,
+    )>,
 ) {
     if clock.tick_id % DOMINANCE_TICK_INTERVAL != 0 {
         return;
@@ -184,20 +213,32 @@ pub fn social_dominance_system(
     // Collect leader decisions first to avoid borrow conflicts with get_mut
     let mut role_updates: Vec<(Entity, PackRole)> = Vec::new();
 
-    for_each_group(&scored, |(pid, _, _)| *pid, |group| {
-        let Some((_, leader_entity, _)) = group
-            .iter()
-            .max_by(|a, b| a.2.partial_cmp(&b.2).unwrap_or(std::cmp::Ordering::Equal))
-        else { return };
+    for_each_group(
+        &scored,
+        |(pid, _, _)| *pid,
+        |group| {
+            let Some((_, leader_entity, _)) = group
+                .iter()
+                .max_by(|a, b| a.2.partial_cmp(&b.2).unwrap_or(std::cmp::Ordering::Equal))
+            else {
+                return;
+            };
 
-        for &(_, entity, _) in group {
-            let new_role = if entity == *leader_entity { PackRole::Leader } else { PackRole::Member };
-            role_updates.push((entity, new_role));
-        }
-    });
+            for &(_, entity, _) in group {
+                let new_role = if entity == *leader_entity {
+                    PackRole::Leader
+                } else {
+                    PackRole::Member
+                };
+                role_updates.push((entity, new_role));
+            }
+        },
+    );
 
     for (entity, new_role) in role_updates {
-        let Ok((_, mut pm, _, _, _)) = pack_query.get_mut(entity) else { continue };
+        let Ok((_, mut pm, _, _, _)) = pack_query.get_mut(entity) else {
+            continue;
+        };
         if pm.role != new_role {
             pm.role = new_role;
         }
@@ -242,18 +283,26 @@ mod tests {
     fn pack_forms_when_two_entities_near() {
         let mut app = test_app();
 
-        let e1 = app.world_mut().spawn((
-            Transform::from_xyz(0.0, 0.0, 0.0),
-            red_identity(),
-        )).id();
-        let e2 = app.world_mut().spawn((
-            Transform::from_xyz(3.0, 0.0, 0.0),
-            red_identity(),
-        )).id();
+        let e1 = app
+            .world_mut()
+            .spawn((Transform::from_xyz(0.0, 0.0, 0.0), red_identity()))
+            .id();
+        let e2 = app
+            .world_mut()
+            .spawn((Transform::from_xyz(3.0, 0.0, 0.0), red_identity()))
+            .id();
 
         let mut index = SpatialIndex::new(10.0);
-        index.insert(SpatialEntry { entity: e1, position: Vec2::ZERO, radius: 1.0 });
-        index.insert(SpatialEntry { entity: e2, position: Vec2::new(3.0, 0.0), radius: 1.0 });
+        index.insert(SpatialEntry {
+            entity: e1,
+            position: Vec2::ZERO,
+            radius: 1.0,
+        });
+        index.insert(SpatialEntry {
+            entity: e2,
+            position: Vec2::new(3.0, 0.0),
+            radius: 1.0,
+        });
         app.insert_resource(index);
 
         app.add_systems(Update, social_pack_formation_system);
@@ -270,18 +319,32 @@ mod tests {
     fn pack_does_not_form_for_neutral_faction() {
         let mut app = test_app();
 
-        let e1 = app.world_mut().spawn((
-            Transform::from_xyz(0.0, 0.0, 0.0),
-            MobaIdentity::default(), // Neutral
-        )).id();
-        let e2 = app.world_mut().spawn((
-            Transform::from_xyz(2.0, 0.0, 0.0),
-            MobaIdentity::default(), // Neutral
-        )).id();
+        let e1 = app
+            .world_mut()
+            .spawn((
+                Transform::from_xyz(0.0, 0.0, 0.0),
+                MobaIdentity::default(), // Neutral
+            ))
+            .id();
+        let e2 = app
+            .world_mut()
+            .spawn((
+                Transform::from_xyz(2.0, 0.0, 0.0),
+                MobaIdentity::default(), // Neutral
+            ))
+            .id();
 
         let mut index = SpatialIndex::new(10.0);
-        index.insert(SpatialEntry { entity: e1, position: Vec2::ZERO, radius: 1.0 });
-        index.insert(SpatialEntry { entity: e2, position: Vec2::new(2.0, 0.0), radius: 1.0 });
+        index.insert(SpatialEntry {
+            entity: e1,
+            position: Vec2::ZERO,
+            radius: 1.0,
+        });
+        index.insert(SpatialEntry {
+            entity: e2,
+            position: Vec2::new(2.0, 0.0),
+            radius: 1.0,
+        });
         app.insert_resource(index);
 
         app.add_systems(Update, social_pack_formation_system);
@@ -295,18 +358,26 @@ mod tests {
     fn pack_does_not_form_across_factions() {
         let mut app = test_app();
 
-        let e1 = app.world_mut().spawn((
-            Transform::from_xyz(0.0, 0.0, 0.0),
-            red_identity(),
-        )).id();
-        let e2 = app.world_mut().spawn((
-            Transform::from_xyz(3.0, 0.0, 0.0),
-            blue_identity(),
-        )).id();
+        let e1 = app
+            .world_mut()
+            .spawn((Transform::from_xyz(0.0, 0.0, 0.0), red_identity()))
+            .id();
+        let e2 = app
+            .world_mut()
+            .spawn((Transform::from_xyz(3.0, 0.0, 0.0), blue_identity()))
+            .id();
 
         let mut index = SpatialIndex::new(10.0);
-        index.insert(SpatialEntry { entity: e1, position: Vec2::ZERO, radius: 1.0 });
-        index.insert(SpatialEntry { entity: e2, position: Vec2::new(3.0, 0.0), radius: 1.0 });
+        index.insert(SpatialEntry {
+            entity: e1,
+            position: Vec2::ZERO,
+            radius: 1.0,
+        });
+        index.insert(SpatialEntry {
+            entity: e2,
+            position: Vec2::new(3.0, 0.0),
+            radius: 1.0,
+        });
         app.insert_resource(index);
 
         app.add_systems(Update, social_pack_formation_system);
@@ -320,18 +391,26 @@ mod tests {
     fn pack_does_not_form_when_too_far() {
         let mut app = test_app();
 
-        let e1 = app.world_mut().spawn((
-            Transform::from_xyz(0.0, 0.0, 0.0),
-            red_identity(),
-        )).id();
-        let e2 = app.world_mut().spawn((
-            Transform::from_xyz(100.0, 0.0, 0.0),
-            red_identity(),
-        )).id();
+        let e1 = app
+            .world_mut()
+            .spawn((Transform::from_xyz(0.0, 0.0, 0.0), red_identity()))
+            .id();
+        let e2 = app
+            .world_mut()
+            .spawn((Transform::from_xyz(100.0, 0.0, 0.0), red_identity()))
+            .id();
 
         let mut index = SpatialIndex::new(10.0);
-        index.insert(SpatialEntry { entity: e1, position: Vec2::ZERO, radius: 1.0 });
-        index.insert(SpatialEntry { entity: e2, position: Vec2::new(100.0, 0.0), radius: 1.0 });
+        index.insert(SpatialEntry {
+            entity: e1,
+            position: Vec2::ZERO,
+            radius: 1.0,
+        });
+        index.insert(SpatialEntry {
+            entity: e2,
+            position: Vec2::new(100.0, 0.0),
+            radius: 1.0,
+        });
         app.insert_resource(index);
 
         app.add_systems(Update, social_pack_formation_system);
@@ -345,18 +424,26 @@ mod tests {
     fn pack_leader_is_lowest_entity_index() {
         let mut app = test_app();
 
-        let e1 = app.world_mut().spawn((
-            Transform::from_xyz(0.0, 0.0, 0.0),
-            red_identity(),
-        )).id();
-        let e2 = app.world_mut().spawn((
-            Transform::from_xyz(2.0, 0.0, 0.0),
-            red_identity(),
-        )).id();
+        let e1 = app
+            .world_mut()
+            .spawn((Transform::from_xyz(0.0, 0.0, 0.0), red_identity()))
+            .id();
+        let e2 = app
+            .world_mut()
+            .spawn((Transform::from_xyz(2.0, 0.0, 0.0), red_identity()))
+            .id();
 
         let mut index = SpatialIndex::new(10.0);
-        index.insert(SpatialEntry { entity: e1, position: Vec2::ZERO, radius: 1.0 });
-        index.insert(SpatialEntry { entity: e2, position: Vec2::new(2.0, 0.0), radius: 1.0 });
+        index.insert(SpatialEntry {
+            entity: e1,
+            position: Vec2::ZERO,
+            radius: 1.0,
+        });
+        index.insert(SpatialEntry {
+            entity: e2,
+            position: Vec2::new(2.0, 0.0),
+            radius: 1.0,
+        });
         app.insert_resource(index);
 
         app.add_systems(Update, social_pack_formation_system);
@@ -378,18 +465,26 @@ mod tests {
     fn pack_formation_creates_structural_link() {
         let mut app = test_app();
 
-        let e1 = app.world_mut().spawn((
-            Transform::from_xyz(0.0, 0.0, 0.0),
-            red_identity(),
-        )).id();
-        let e2 = app.world_mut().spawn((
-            Transform::from_xyz(2.0, 0.0, 0.0),
-            red_identity(),
-        )).id();
+        let e1 = app
+            .world_mut()
+            .spawn((Transform::from_xyz(0.0, 0.0, 0.0), red_identity()))
+            .id();
+        let e2 = app
+            .world_mut()
+            .spawn((Transform::from_xyz(2.0, 0.0, 0.0), red_identity()))
+            .id();
 
         let mut index = SpatialIndex::new(10.0);
-        index.insert(SpatialEntry { entity: e1, position: Vec2::ZERO, radius: 1.0 });
-        index.insert(SpatialEntry { entity: e2, position: Vec2::new(2.0, 0.0), radius: 1.0 });
+        index.insert(SpatialEntry {
+            entity: e1,
+            position: Vec2::ZERO,
+            radius: 1.0,
+        });
+        index.insert(SpatialEntry {
+            entity: e2,
+            position: Vec2::new(2.0, 0.0),
+            radius: 1.0,
+        });
         app.insert_resource(index);
 
         app.add_systems(Update, social_pack_formation_system);
@@ -412,13 +507,19 @@ mod tests {
         let mut app = test_app();
         app.insert_resource(SimulationClock { tick_id: 3 }); // Not divisible by 16
 
-        app.world_mut().spawn((Transform::from_xyz(0.0, 0.0, 0.0), red_identity()));
-        app.world_mut().spawn((Transform::from_xyz(2.0, 0.0, 0.0), red_identity()));
+        app.world_mut()
+            .spawn((Transform::from_xyz(0.0, 0.0, 0.0), red_identity()));
+        app.world_mut()
+            .spawn((Transform::from_xyz(2.0, 0.0, 0.0), red_identity()));
 
         app.add_systems(Update, social_pack_formation_system);
         app.update();
 
-        let count = app.world_mut().query::<&PackMembership>().iter(app.world()).count();
+        let count = app
+            .world_mut()
+            .query::<&PackMembership>()
+            .iter(app.world())
+            .count();
         assert_eq!(count, 0, "should skip on non-interval ticks");
     }
 
@@ -435,11 +536,14 @@ mod tests {
             Transform::from_xyz(0.0, 0.0, 0.0),
             WillActuator::default(),
         ));
-        let e2 = app.world_mut().spawn((
-            PackMembership::new(1, PackRole::Member, 0),
-            Transform::from_xyz(20.0, 0.0, 0.0),
-            WillActuator::default(),
-        )).id();
+        let e2 = app
+            .world_mut()
+            .spawn((
+                PackMembership::new(1, PackRole::Member, 0),
+                Transform::from_xyz(20.0, 0.0, 0.0),
+                WillActuator::default(),
+            ))
+            .id();
 
         app.add_systems(Update, social_pack_cohesion_system);
         app.update();
@@ -477,24 +581,38 @@ mod tests {
         app.insert_resource(SimulationClock { tick_id: 0 }); // tick 0 % 60 == 0
 
         // Weak leader, strong member
-        let e1 = app.world_mut().spawn((
-            PackMembership::new(1, PackRole::Leader, 0),
-            BaseEnergy::new(10.0),
-            SpatialVolume::new(1.0),
-        )).id();
-        let e2 = app.world_mut().spawn((
-            PackMembership::new(1, PackRole::Member, 0),
-            BaseEnergy::new(200.0),
-            SpatialVolume::new(3.0),
-        )).id();
+        let e1 = app
+            .world_mut()
+            .spawn((
+                PackMembership::new(1, PackRole::Leader, 0),
+                BaseEnergy::new(10.0),
+                SpatialVolume::new(1.0),
+            ))
+            .id();
+        let e2 = app
+            .world_mut()
+            .spawn((
+                PackMembership::new(1, PackRole::Member, 0),
+                BaseEnergy::new(200.0),
+                SpatialVolume::new(3.0),
+            ))
+            .id();
 
         app.add_systems(Update, social_dominance_system);
         app.update();
 
         let pm1 = app.world().get::<PackMembership>(e1).unwrap();
         let pm2 = app.world().get::<PackMembership>(e2).unwrap();
-        assert_eq!(pm2.role, PackRole::Leader, "stronger entity should become leader");
-        assert_eq!(pm1.role, PackRole::Member, "weaker entity should become member");
+        assert_eq!(
+            pm2.role,
+            PackRole::Leader,
+            "stronger entity should become leader"
+        );
+        assert_eq!(
+            pm1.role,
+            PackRole::Member,
+            "weaker entity should become member"
+        );
     }
 
     #[test]
@@ -502,11 +620,14 @@ mod tests {
         let mut app = test_app();
         app.insert_resource(SimulationClock { tick_id: 7 }); // Not divisible by 60
 
-        let e1 = app.world_mut().spawn((
-            PackMembership::new(1, PackRole::Leader, 0),
-            BaseEnergy::new(10.0),
-            SpatialVolume::new(1.0),
-        )).id();
+        let e1 = app
+            .world_mut()
+            .spawn((
+                PackMembership::new(1, PackRole::Leader, 0),
+                BaseEnergy::new(10.0),
+                SpatialVolume::new(1.0),
+            ))
+            .id();
         app.world_mut().spawn((
             PackMembership::new(1, PackRole::Member, 0),
             BaseEnergy::new(200.0),
@@ -517,7 +638,11 @@ mod tests {
         app.update();
 
         let pm1 = app.world().get::<PackMembership>(e1).unwrap();
-        assert_eq!(pm1.role, PackRole::Leader, "should not change on non-interval tick");
+        assert_eq!(
+            pm1.role,
+            PackRole::Leader,
+            "should not change on non-interval tick"
+        );
     }
 
     #[test]
@@ -527,18 +652,24 @@ mod tests {
 
         // e1: less energy but high resilience → higher score
         // Default resilience_effective(None) = 0.5, so e2 also gets some resilience
-        let e1 = app.world_mut().spawn((
-            PackMembership::new(1, PackRole::Member, 0),
-            BaseEnergy::new(90.0),
-            SpatialVolume::new(2.0),
-            InferenceProfile::new(0.0, 0.0, 0.0, 1.0),
-        )).id();
+        let e1 = app
+            .world_mut()
+            .spawn((
+                PackMembership::new(1, PackRole::Member, 0),
+                BaseEnergy::new(90.0),
+                SpatialVolume::new(2.0),
+                InferenceProfile::new(0.0, 0.0, 0.0, 1.0),
+            ))
+            .id();
         // e2: more energy, default resilience (0.5)
-        let e2 = app.world_mut().spawn((
-            PackMembership::new(1, PackRole::Leader, 0),
-            BaseEnergy::new(100.0),
-            SpatialVolume::new(2.0),
-        )).id();
+        let e2 = app
+            .world_mut()
+            .spawn((
+                PackMembership::new(1, PackRole::Leader, 0),
+                BaseEnergy::new(100.0),
+                SpatialVolume::new(2.0),
+            ))
+            .id();
 
         // e1 score = 90 * 2 * (1 + 1.0 * 0.5) = 90 * 2 * 1.5 = 270
         // e2 score = 100 * 2 * (1 + 0.5 * 0.5) = 100 * 2 * 1.25 = 250
@@ -576,6 +707,9 @@ mod tests {
         // At distance = 5000 + 7 rest → stress = 0.01 × 5000 = 50 = break_stress → breaks
         let extreme_displacement = SOCIAL_BOND_BREAK_STRESS / SOCIAL_BOND_STIFFNESS;
         let stress = SOCIAL_BOND_STIFFNESS * extreme_displacement;
-        assert!((stress - SOCIAL_BOND_BREAK_STRESS).abs() < f32::EPSILON, "bond should break at displacement {extreme_displacement}");
+        assert!(
+            (stress - SOCIAL_BOND_BREAK_STRESS).abs() < f32::EPSILON,
+            "bond should break at displacement {extreme_displacement}"
+        );
     }
 }
