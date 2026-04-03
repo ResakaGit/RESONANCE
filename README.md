@@ -3,12 +3,12 @@
 [![CI](https://github.com/ResakaGit/RESONANCE/actions/workflows/ci.yml/badge.svg)](https://github.com/ResakaGit/RESONANCE/actions/workflows/ci.yml)
 [![License: AGPL-3.0](https://img.shields.io/badge/License-AGPL--3.0-blue.svg)](./LICENSE)
 [![Tests: 3,166](https://img.shields.io/badge/tests-3%2C166%20passing-brightgreen)]()
-[![Papers: 6/6](https://img.shields.io/badge/papers-6%2F6%20validated-blue)]()
+[![Papers: 6/6](https://img.shields.io/badge/papers-6%2F6%20qualitative%20match-blue)]()
 [![Safety Class: A](https://img.shields.io/badge/IEC%2062304-Class%20A-green)]()
 
 Simulation engine where life, evolution, and therapeutic strategies emerge from **8 axioms** and **4 fundamental constants**. Built with **Rust** and **Bevy 0.15 ECS**. Open source (AGPL-3.0).
 
-Paper: https://zenodo.org/records/19342036 | Repo: https://github.com/ResakaGit/RESONANCE
+Preprint (not peer-reviewed): https://zenodo.org/records/19342036 | Repo: https://github.com/ResakaGit/RESONANCE
 
 ## What It Does
 
@@ -16,11 +16,11 @@ Define the laws of physics. Press play. Watch life emerge. Design therapeutic st
 
 - **10-level biological hierarchy** — from energy fields to social emergence, all emergent
 - **Pathway-level drug design** — inhibit specific metabolic pathways without killing cells
-- **Adaptive therapy controller** — profiles tumor, selects frequency + dose, stabilizes growth at zero
-- **Bozic 2013 validated** — combination > monotherapy, confirmed 10/10 independent seeds
-- **Clinically calibrated** — output in nM, days, cell count (3 tumor profiles from published data)
+- **Adaptive therapy controller** — feedback loop stabilizes growth within its own model (not clinically validated)
+- **Qualitatively consistent with Bozic 2013** — combo > mono reproduced in 10/10 seeds (qualitative, not quantitative — uses own parameters, not Bozic's b/d/u rates)
+- **Clinical unit mapping** — post-hoc conversion to nM, days, cell count via published data (not predictive calibration)
 - **3,166 automated tests** — deterministic, bit-exact reproducible
-- **6 published papers validated** — Bozic, Zhang, Sharma, GDSC/CCLE, Foo & Michor, Michor
+- **6 published papers — qualitative match** — structural predictions consistent with Bozic, Zhang, Sharma, GDSC/CCLE, Foo & Michor, Michor
 
 ## What It Is NOT
 
@@ -28,7 +28,7 @@ Define the laws of physics. Press play. Watch life emerge. Design therapeutic st
 - **Not a drug discovery pipeline** — does not design molecules
 - **Not a substitute for oncology** — a simulator for exploring therapeutic strategies
 
-**Clinically calibrated** — simulation output maps to real units (nM, days, cell count) via published data. Three tumor profiles: CML/imatinib (Bozic 2013), prostate/abiraterone (Gatenby 2009), NSCLC/erlotinib. Example: "399 Hz @ 0.40, gen 3" → "Imatinib 104 nM, start day 12, doubling time 4 → 7.5 days."
+**Clinical unit mapping (post-hoc, not predictive)** — simulation output can be converted to clinical units (nM, days, cell count) via published pharmacological data. This is a post-hoc linear mapping, not a prediction. Three profiles: CML/imatinib (Bozic 2013), prostate/abiraterone (Gatenby 2009), NSCLC/erlotinib. Example: "399 Hz @ 0.40, gen 3" maps to "Imatinib 104 nM, start day 12" — but this mapping is arbitrary, not derived from the model.
 
 ## The 8 Axioms
 
@@ -66,9 +66,9 @@ Drug reduces metabolic efficiency **without killing cells**. Dose-response valid
 | 0.4 | 0.488 | 51.2% |
 | 0.8 | 0.471 | 52.9% |
 
-### Experiment 5: Bozic 2013 Validation
+### Experiment 5: Qualitative Comparison with Bozic 2013
 
-Combination therapy advantage **confirmed** (10/10 seeds, p < 0.001):
+Combination therapy advantage reproduced qualitatively (10/10 seeds). **Note:** this uses RESONANCE's own parameters (frequency-based binding, abstract qe units), not Bozic's original parameters (b=0.14/day, d=0.13/day, u=10⁻⁹). The qualitative conclusion (combo > mono > double-dose) is consistent, but the quantitative curves are not directly comparable.
 
 | Arm | Efficiency | Suppression | Prediction |
 |-----|-----------|-------------|------------|
@@ -77,9 +77,9 @@ Combination therapy advantage **confirmed** (10/10 seeds, p < 0.001):
 | **combo_AB** | **0.435** | **56.5%** | **combo > mono ✓** |
 | double_A (2×) | 0.466 | 53.4% | **combo > double ✓** |
 
-### Experiment 6: Adaptive Therapy Controller
+### Experiment 6: Adaptive Therapy Controller (internal model only)
 
-Feedback loop stabilizes tumor growth at **zero net expansion**:
+Feedback loop stabilizes tumor growth at **zero net expansion** within RESONANCE's own model. This demonstrates the controller works on its own rules — it is not validated against patient data or independent simulators:
 
 ```
 Gen 0-2:  No treatment. Efficiency 1.000.
@@ -100,9 +100,9 @@ Validated across 10 seeds: stabilizes in ≥7/10, suppresses in ≥7/10.
 | 128 entities | ~10⁹ cells |
 | Combo A+B @ 0.8 | 208 nM + 208 nM, day 20 |
 
-### Experiment 7: Rosie Case (Canine Mast Cell Tumor)
+### Experiment 7: Rosie Case — Speculative (Canine Mast Cell Tumor)
 
-Simulation of a real-world case: personalized mRNA cancer vaccine for a dog (press reports, March 2026). Tumor profile: 70% KIT+ responsive, 30% KIT- resistant. Calibrated with published veterinary oncology data (London 2003, London 2009).
+**This experiment is speculative, not validated.** Simulates a real-world case from press reports (not peer-reviewed data) about a personalized mRNA cancer vaccine for a dog. Uses population-level parameters (70% KIT+/30% KIT- from London 2003), not the individual animal's tumor profile. The vaccine works via immune-mediated killing; RESONANCE models direct pathway inhibition — fundamentally different mechanisms. Toceranib IC50 used as pharmacological proxy (not mechanism equivalent).
 
 | Observed (real) | Predicted (simulation) | Match |
 |----------------|----------------------|-------|
@@ -143,22 +143,22 @@ Validated across 5 seeds. Partial response is structural, not stochastic.
 | Falsifiability | ✓ All BDD tests could have failed |
 | Pre-registration | ✓ Assertions written before execution |
 | Dose-response monotonicity | ✓ 5/5 seeds |
-| Against published prediction | ✓ 6 independent papers (see below) |
-| Clinical calibration | ✓ 4 profiles (CML, prostate, NSCLC, canine MCT) from published IC50 + doubling times |
+| Against published prediction | ✓ 6 independent papers — qualitative structural match (see below) |
+| Clinical unit mapping | ✓ 4 profiles (CML, prostate, NSCLC, canine MCT) — post-hoc mapping, not predictive |
 | Against patient outcomes | **Not yet** — calibrated but not validated against longitudinal patient data |
 
-### Paper Validation Suite (6 comparators + unified axiom test)
+### Paper Comparison Suite (6 comparators + unified axiom test)
 
-All qualitative — structural predictions, not absolute values. Run: `cargo run --release --bin paper_validation`
+All comparisons are **qualitative** — structural predictions reproduced within RESONANCE's own model using its own parameters. These are NOT quantitative reproductions of the original papers' exact curves or parameter values. Run: `cargo run --release --bin paper_validation`
 
-| Paper | Prediction | Result | Match |
-|-------|-----------|--------|-------|
-| Bozic 2013 (eLife) | Combo > mono therapy | 56.5% vs 51.9% suppression, 10/10 seeds | ✓ Structural |
-| Zhang 2022 (eLife) | Adaptive TTP > continuous | 1.50× ratio, 3 cycles | ✓ Qualitative |
-| Sharma 2010 (Cell) | Drug-tolerant persisters survive + recover | 2% fraction, recovery detected | ✓ Pattern |
-| GDSC/CCLE (Nature) | Hill n=2 within empirical distribution | Within IQR and 1σ | ✓ Statistical |
-| Foo & Michor 2009 (PLoS) | Pulsed < continuous resistance | 15% vs 25% | ✓ Qualitative |
-| Michor 2005 (Nature) | Biphasic CML decline, stem survive | 8.0× slope ratio | ✓ Quantitative |
+| Paper | Prediction tested | RESONANCE result | Match type |
+|-------|------------------|-----------------|------------|
+| Bozic 2013 (eLife) | Combo > mono therapy | 56.5% vs 51.9% suppression, 10/10 seeds | Qualitative (own params, not Bozic's b/d/u) |
+| Zhang 2022 (eLife) | Adaptive TTP > continuous | 1.50× ratio, 3 cycles | Qualitative (Lotka-Volterra, calibrated) |
+| Sharma 2010 (Cell) | Drug-tolerant persisters survive + recover | 2% fraction, recovery detected | Pattern match (scaled population) |
+| GDSC/CCLE (Nature) | Hill n=2 within empirical distribution | Within IQR and 1σ | Statistical (input validation, not output) |
+| Foo & Michor 2009 (PLoS) | Pulsed < continuous resistance | 15% vs 25% | Qualitative (own params) |
+| Michor 2005 (Nature) | Biphasic CML decline, stem survive | 8.0× slope ratio | Qualitative (3 subpops, own params) |
 
 ### PV-6: Unified Axiom Test (4 constants, zero calibration)
 
