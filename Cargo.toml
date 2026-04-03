@@ -113,6 +113,10 @@ path = "src/bin/cancer_therapy.rs"
 name = "planet_viewer"
 path = "src/bin/planet_viewer.rs"
 
+[[bin]]
+name = "paper_validation"
+path = "src/bin/paper_validation.rs"
+
 [[bench]]
 name = "worldgen_field_perf"
 harness = false
