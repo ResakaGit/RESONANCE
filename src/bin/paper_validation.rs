@@ -9,6 +9,7 @@ use resonance::use_cases::experiments::paper_sharma2010;
 use resonance::use_cases::experiments::paper_hill_ccle;
 use resonance::use_cases::experiments::paper_foo_michor2009;
 use resonance::use_cases::experiments::paper_michor2005;
+use resonance::use_cases::experiments::paper_unified_axioms;
 
 fn main() {
     println!("╔══════════════════════════════════════════════════════════════════╗");
@@ -95,10 +96,33 @@ fn main() {
         failed += 1;
     }
 
+    // ── PV-6: Unified axioms — ALL phenomena from 4 constants ─────────────
+    println!();
+    print!("  PV-6  UNIFIED (all 6 tests from 4 constants) ... ");
+    let unified = paper_unified_axioms::run(42);
+    for r in &unified.results {
+        if r.passed { passed += 1; } else { failed += 1; }
+    }
+    if unified.all_passed {
+        println!("PASS  ({}/{} sub-tests, {:.1}s)",
+            unified.passed_count, unified.total_count,
+            unified.wall_time_ms as f64 / 1000.0);
+    } else {
+        println!("PARTIAL  ({}/{} sub-tests)", unified.passed_count, unified.total_count);
+        for r in &unified.results {
+            if !r.passed {
+                println!("         FAIL {}: {}", r.name, r.detail);
+            }
+        }
+    }
+
     // ── Summary ─────────────────────────────────────────────────────────────
     println!();
+    let total_tests = 5 + unified.total_count;
+    let total_pass = passed;
+    let total_fail = failed;
     println!("╔══════════════════════════════════════════════════════════════════╗");
-    println!("║  Results: {passed} PASS, {failed} FAIL out of 5 papers                       ║");
+    println!("║  Results: {total_pass} PASS, {total_fail} FAIL out of {total_tests} tests                      ║");
     println!("╠══════════════════════════════════════════════════════════════════╣");
     println!("║                                                                ║");
     println!("║  PV-1  Zhang 2022      adaptive TTP > continuous     {}      ║",
