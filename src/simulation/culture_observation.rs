@@ -72,16 +72,9 @@ impl Default for CultureObservationState {
 }
 
 /// Per-faction frequency buffers — reused across ticks to avoid allocation.
+#[derive(Default)]
 pub struct FactionFreqBuffers {
     bins: [Vec<f32>; FACTION_COUNT],
-}
-
-impl Default for FactionFreqBuffers {
-    fn default() -> Self {
-        Self {
-            bins: [Vec::new(), Vec::new(), Vec::new(), Vec::new()],
-        }
-    }
 }
 
 impl FactionFreqBuffers {

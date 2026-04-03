@@ -378,8 +378,7 @@ pub fn run(config: &SharmaConfig) -> SharmaReport {
     // Persister fraction at end of treatment.
     let persister_fraction = timeline
         .iter()
-        .filter(|s| s.phase == SharmaPhase::Treatment)
-        .last()
+        .rfind(|s| s.phase == SharmaPhase::Treatment)
         .map(|s| s.persister_frac)
         .unwrap_or(0.0);
 

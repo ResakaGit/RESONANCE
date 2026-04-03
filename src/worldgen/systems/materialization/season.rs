@@ -85,23 +85,12 @@ struct SeasonLerpEntry {
     target: EnergyNucleus,
 }
 
-#[derive(Resource, Debug)]
+#[derive(Resource, Debug, Default)]
 pub struct SeasonTransition {
     pub preset_name: String,
     pub tick_index: u32,
     pub total_ticks: u32,
     entries: Vec<SeasonLerpEntry>,
-}
-
-impl Default for SeasonTransition {
-    fn default() -> Self {
-        Self {
-            preset_name: String::new(),
-            tick_index: 0,
-            total_ticks: 0,
-            entries: Vec::new(),
-        }
-    }
 }
 
 impl SeasonTransition {

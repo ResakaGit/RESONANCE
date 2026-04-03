@@ -360,11 +360,9 @@ fn render_batch_controls(
     if state.wall_ms > 0 {
         ui.label(format!("Last run: {}ms", state.wall_ms));
     }
-    if !state.last_csv.is_empty() {
-        if ui.button("Export CSV").clicked() {
-            let _ = std::fs::write(DEFAULT_EXPORT_PATH, &state.last_csv);
-            ui.label(format!("Saved to {}", DEFAULT_EXPORT_PATH));
-        }
+    if !state.last_csv.is_empty() && ui.button("Export CSV").clicked() {
+        let _ = std::fs::write(DEFAULT_EXPORT_PATH, &state.last_csv);
+        ui.label(format!("Saved to {}", DEFAULT_EXPORT_PATH));
     }
 }
 
@@ -523,9 +521,9 @@ fn result_to_csv(result: &LabResult) -> String {
             let mut csv = String::from("universe,species,fitness,diversity\n");
             for (i, rep) in r.reports.iter().enumerate() {
                 let last = rep.history.last();
-                let _ = write!(
+                let _ = writeln!(
                     csv,
-                    "{},{:.2},{:.4},{:.4}\n",
+                    "{},{:.2},{:.4},{:.4}",
                     i,
                     last.map(|s| s.species_mean).unwrap_or(0.0),
                     last.map(|s| s.best_fitness).unwrap_or(0.0),
@@ -538,9 +536,9 @@ fn result_to_csv(result: &LabResult) -> String {
             let mut csv =
                 String::from("gen,cancer,normal,freq_mean,resistance,diversity,drug_active\n");
             for s in &r.timeline {
-                let _ = write!(
+                let _ = writeln!(
                     csv,
-                    "{},{:.2},{:.2},{:.2},{:.4},{:.2},{}\n",
+                    "{},{:.2},{:.2},{:.2},{:.4},{:.2},{}",
                     s.generation,
                     s.cancer_alive_mean,
                     s.normal_alive_mean,
@@ -556,9 +554,9 @@ fn result_to_csv(result: &LabResult) -> String {
             let mut csv = String::from("step,best_fitness,mean_fitness,diversity,species\n");
             for (i, r) in reports.iter().enumerate() {
                 let last = r.history.last();
-                let _ = write!(
+                let _ = writeln!(
                     csv,
-                    "{},{:.4},{:.4},{:.4},{:.2}\n",
+                    "{},{:.4},{:.4},{:.4},{:.2}",
                     i,
                     last.map(|s| s.best_fitness).unwrap_or(0.0),
                     last.map(|s| s.mean_fitness).unwrap_or(0.0),
@@ -572,9 +570,9 @@ fn result_to_csv(result: &LabResult) -> String {
             let mut csv = String::from("seed,best_fitness,diversity,species\n");
             for (i, r) in e.reports.iter().enumerate() {
                 let last = r.history.last();
-                let _ = write!(
+                let _ = writeln!(
                     csv,
-                    "{},{:.4},{:.4},{:.2}\n",
+                    "{},{:.4},{:.4},{:.2}",
                     i,
                     last.map(|s| s.best_fitness).unwrap_or(0.0),
                     last.map(|s| s.diversity).unwrap_or(0.0),

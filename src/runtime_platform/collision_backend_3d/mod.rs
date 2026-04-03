@@ -7,19 +7,11 @@ use crate::runtime_platform::contracts::{CollisionContact, Pose3, SpatialCandida
 use crate::runtime_platform::spatial_index_backend::SpatialBroadphase;
 
 /// Config de bridge 3D/2D para narrowphase V6.
-#[derive(Resource, Debug, Clone, Copy)]
+#[derive(Resource, Debug, Clone, Copy, Default)]
 pub struct V6CollisionBackendConfig {
     /// Si es `true`, usa narrowphase 3D esfera-esfera.
     /// Si es `false`, delega al snapshot legacy 2D.
     pub use_3d_backend: bool,
-}
-
-impl Default for V6CollisionBackendConfig {
-    fn default() -> Self {
-        Self {
-            use_3d_backend: cfg!(feature = "v6_collision_backend_3d"),
-        }
-    }
 }
 
 /// Snapshot puente para mantener compatibilidad cuando el backend 3D está apagado.

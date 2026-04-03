@@ -1,8 +1,9 @@
 use bevy::prelude::*;
 
 /// Active behavioral mode with variant-specific data.
-#[derive(Reflect, Debug, Clone, PartialEq)]
+#[derive(Reflect, Debug, Clone, PartialEq, Default)]
 pub enum BehaviorMode {
+    #[default]
     Idle,
     Forage {
         urgency: f32,
@@ -27,12 +28,6 @@ pub enum BehaviorMode {
     Regroup {
         rally_pos: Vec2,
     },
-}
-
-impl Default for BehaviorMode {
-    fn default() -> Self {
-        Self::Idle
-    }
 }
 
 /// Current behavioral decision for an autonomous entity.
@@ -60,18 +55,10 @@ pub struct BehavioralAgent;
 /// Tick counters for behavior decision gating.
 #[derive(Component, Reflect, Debug, Clone)]
 #[reflect(Component)]
+#[derive(Default)]
 pub struct BehaviorCooldown {
     pub decision_cooldown: u32,
     pub action_cooldown: u32,
-}
-
-impl Default for BehaviorCooldown {
-    fn default() -> Self {
-        Self {
-            decision_cooldown: 0,
-            action_cooldown: 0,
-        }
-    }
 }
 
 /// Transient cache: internal energy assessment (S1 → S3).

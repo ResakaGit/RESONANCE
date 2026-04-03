@@ -22,11 +22,11 @@ impl MatterLense {
         if energy.qe() <= 0.0 {
             return MatterProjection::Unstable;
         }
-        let projection = almanac
+
+        almanac
             .find_stable_band_id(sig.frequency_hz())
             .map(MatterProjection::StableBand)
-            .unwrap_or(MatterProjection::Unstable);
-        projection
+            .unwrap_or(MatterProjection::Unstable)
     }
 
     pub fn project_entity(

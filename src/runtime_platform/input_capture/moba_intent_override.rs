@@ -3,17 +3,8 @@
 use bevy::prelude::*;
 
 /// Valores que `capture_input_system` aplica tras sincronizar con `Camera3dEnabled`.
-#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct MobaIntentCaptureOverride {
     pub suppress_wasd_in_movement_intent: bool,
     pub primary_action_uses_left_shift: bool,
-}
-
-impl Default for MobaIntentCaptureOverride {
-    fn default() -> Self {
-        Self {
-            suppress_wasd_in_movement_intent: false,
-            primary_action_uses_left_shift: false,
-        }
-    }
 }

@@ -227,9 +227,9 @@ fn update_heatmap(
     let origin_x = 8.0;
     let origin_z = -4.0;
 
-    for a in 0..radial_field::AXIAL {
-        for r in 0..radial_field::RADIAL {
-            let val = field[a][r] / max_qe;
+    for (a, row) in field.iter().enumerate().take(radial_field::AXIAL) {
+        for (r, &cell_qe) in row.iter().enumerate().take(radial_field::RADIAL) {
+            let val = cell_qe / max_qe;
             let color = Color::srgb(val, val * 0.3, (1.0 - val) * 0.5);
             let x = origin_x + a as f32 * cell_size;
             let z = origin_z + r as f32 * cell_size;

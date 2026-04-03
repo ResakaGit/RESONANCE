@@ -160,7 +160,7 @@ fn apply_pathway_inhibition(
             continue;
         };
 
-        let nc = graph.node_count() as usize;
+        let nc = graph.node_count();
         if nc == 0 {
             continue;
         }

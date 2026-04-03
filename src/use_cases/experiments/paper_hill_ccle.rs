@@ -138,7 +138,7 @@ pub fn validate_hill_assumption(slopes: &[f32]) -> HillCalibrationReport {
     let n2_within_iqr = n2 >= gdsc_stats.p25 && n2 <= gdsc_stats.p75;
     let n2_within_1_std = (n2 - gdsc_stats.mean).abs() <= gdsc_stats.std;
 
-    let in_range = slopes.iter().filter(|&&s| s >= 1.0 && s <= 3.0).count();
+    let in_range = slopes.iter().filter(|&&s| (1.0..=3.0).contains(&s)).count();
     let fraction_between_1_and_3 = if slopes.is_empty() {
         0.0
     } else {

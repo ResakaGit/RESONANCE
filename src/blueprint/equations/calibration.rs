@@ -9,22 +9,22 @@ use crate::blueprint::constants::calibration::{
 
 /// Returns true if `rate` is within the empirically plausible intake-rate range.
 pub fn is_intake_rate_plausible(rate: f32) -> bool {
-    rate >= INTAKE_RATE_MIN && rate <= INTAKE_RATE_MAX
+    (INTAKE_RATE_MIN..=INTAKE_RATE_MAX).contains(&rate)
 }
 
 /// Returns true if `rate` is within the empirically plausible maintenance-rate range.
 pub fn is_maintenance_rate_plausible(rate: f32) -> bool {
-    rate >= MAINTENANCE_RATE_MIN && rate <= MAINTENANCE_RATE_MAX
+    (MAINTENANCE_RATE_MIN..=MAINTENANCE_RATE_MAX).contains(&rate)
 }
 
 /// Returns true if `rate` is within the empirically plausible growth-rate range.
 pub fn is_growth_rate_plausible(rate: f32) -> bool {
-    rate >= GROWTH_RATE_MIN && rate <= GROWTH_RATE_MAX
+    (GROWTH_RATE_MIN..=GROWTH_RATE_MAX).contains(&rate)
 }
 
 /// Returns true if `rate` is within the empirically plausible decay-rate range.
 pub fn is_decay_rate_plausible(rate: f32) -> bool {
-    rate >= DECAY_RATE_MIN && rate <= DECAY_RATE_MAX
+    (DECAY_RATE_MIN..=DECAY_RATE_MAX).contains(&rate)
 }
 
 /// Golden snapshot: energy after `n_ticks` with nominal intake and maintenance rates.

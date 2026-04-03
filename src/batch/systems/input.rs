@@ -56,18 +56,18 @@ pub fn behavior_assess(world: &mut SimWorldFlat, scratch: &mut ScratchPad) {
             let dist_sq = dx * dx + dy * dy;
 
             // Axiom 6: food = entity with less energy (energy dominance).
-            if world.entities[j].qe < world.entities[i].qe * FOOD_QE_RATIO {
-                if dist_sq < best_food_dist_sq {
-                    best_food_dist_sq = dist_sq;
-                    best_food_idx = j as u8;
-                }
+            if world.entities[j].qe < world.entities[i].qe * FOOD_QE_RATIO
+                && dist_sq < best_food_dist_sq
+            {
+                best_food_dist_sq = dist_sq;
+                best_food_idx = j as u8;
             }
             // Axiom 6: threat = entity with significantly more energy.
-            if world.entities[j].qe > world.entities[i].qe * THREAT_QE_RATIO {
-                if dist_sq < best_threat_dist_sq {
-                    best_threat_dist_sq = dist_sq;
-                    best_threat_idx = j as u8;
-                }
+            if world.entities[j].qe > world.entities[i].qe * THREAT_QE_RATIO
+                && dist_sq < best_threat_dist_sq
+            {
+                best_threat_dist_sq = dist_sq;
+                best_threat_idx = j as u8;
             }
         }
 

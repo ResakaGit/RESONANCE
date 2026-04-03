@@ -98,7 +98,7 @@ pub fn planetary_formation_system(
                 let release = pf::fusion_release(cell.accumulated_qe) * dt_ratio;
                 if release > 0.01 {
                     let src_idx = y as usize * w as usize + x as usize;
-                    let neighbors = grid.neighbors4(x as u32, y as u32);
+                    let neighbors = grid.neighbors4(x, y);
                     let n_count = neighbors.iter().flatten().count() as f32;
                     // Source loses mass; neighbors gain radiation (Axiom 5 conserved).
                     deltas[src_idx] -= release;

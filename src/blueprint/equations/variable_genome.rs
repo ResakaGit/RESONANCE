@@ -414,7 +414,7 @@ pub fn serialize_variable_genome(genome: &VariableGenome) -> Vec<u8> {
 pub fn deserialize_variable_genome(data: &[u8]) -> Option<VariableGenome> {
     let &len_byte = data.first()?;
     let len = len_byte as usize;
-    if len < MIN_GENES || len > MAX_GENES {
+    if !(MIN_GENES..=MAX_GENES).contains(&len) {
         return None;
     }
     if data.len() < 1 + 4 + len * 4 {

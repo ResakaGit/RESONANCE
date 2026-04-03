@@ -19,15 +19,9 @@ use crate::world::fog_of_war::{FogOfWarGrid, NUM_FOG_TEAMS, fog_team_index};
 const FOG_OVERLAY_Y_ABOVE_STANDING: f32 = 2.8;
 
 /// Equipo cuya perspectiva de niebla usa el cliente (overlay + visibilidad de meshes).
-#[derive(Resource, Debug, Clone, Copy)]
+#[derive(Resource, Debug, Clone, Copy, Default)]
 pub struct FogRenderObserver {
     pub team: u8,
-}
-
-impl Default for FogRenderObserver {
-    fn default() -> Self {
-        Self { team: 0 }
-    }
 }
 
 /// Handles del overlay world-space (opcional si no hay perfil 3D).
@@ -125,7 +119,7 @@ pub fn sync_local_fog_observer_from_player_system(
     use std::sync::atomic::{AtomicBool, Ordering};
     static NEUTRAL_PLAYER_WARNED: AtomicBool = AtomicBool::new(false);
 
-    for id in &q {
+    if let Some(id) = (&q).into_iter().next() {
         if let Some(t) = fog_team_index(id.faction()) {
             if observer.team != t {
                 observer.team = t;
@@ -138,7 +132,6 @@ pub fn sync_local_fog_observer_from_player_system(
                 observer.team
             );
         }
-        return;
     }
 }
 

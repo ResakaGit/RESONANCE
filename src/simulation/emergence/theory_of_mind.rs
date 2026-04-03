@@ -55,7 +55,7 @@ pub fn theory_of_mind_update_system(
                 }
             }
 
-            if !found && (models.model_count() as usize) < MAX_MODELS {
+            if !found && models.model_count() < MAX_MODELS {
                 let idx = models.model_count();
                 models.models[idx] = OtherModel {
                     target_id,

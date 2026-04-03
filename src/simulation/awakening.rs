@@ -41,7 +41,7 @@ pub fn awakening_system(
     >,
 ) {
     // Scan only every N ticks to reduce cost.
-    if clock.tick_id % AWAKENING_SCAN_INTERVAL as u64 != 0 {
+    if clock.tick_id % AWAKENING_SCAN_INTERVAL != 0 {
         return;
     }
     let Some(grid) = grid else { return };

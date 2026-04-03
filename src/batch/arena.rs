@@ -10,9 +10,10 @@ use crate::blueprint::equations::variable_genome::VariableGenome;
 use super::constants::{GRID_CELLS, MAX_ENTITIES, QE_MIN_EXISTENCE};
 
 /// Force computation strategy. Configurable per world.
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Copy, Debug, PartialEq, Default)]
 pub enum ForceStrategy {
     /// No particle forces (legacy behavior). Zero overhead.
+    #[default]
     Disabled,
     /// Coulomb only (long-range electromagnetic).
     CoulombOnly,
@@ -20,11 +21,6 @@ pub enum ForceStrategy {
     Full,
 }
 
-impl Default for ForceStrategy {
-    fn default() -> Self {
-        Self::Disabled
-    } // disabled by default for backward compatibility
-}
 use super::events::EventBuffer;
 
 // ─── EntitySlot ─────────────────────────────────────────────────────────────

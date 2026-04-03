@@ -36,9 +36,7 @@ fn phenology_params_for_frequency(
 ) -> Option<PhenologyVisualParams> {
     let element_id = almanac.find_stable_band_id(frequency_hz)?;
     let def = almanac.get(element_id)?;
-    if def.phenology.is_none() {
-        return None;
-    }
+    def.phenology?;
     Some(PhenologyVisualParams {
         element_id,
         growth_norm_ceiling: crate::blueprint::constants::PHENOLOGY_DEFAULT_GROWTH_NORM_CEILING,

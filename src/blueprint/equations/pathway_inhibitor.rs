@@ -208,7 +208,7 @@ pub fn inhibit_pathway(
         maintenance_cost: 0.0,
     };
 
-    let node_count = graph.node_count() as usize;
+    let node_count = graph.node_count();
     let nodes = graph.nodes();
 
     for i in 0..node_count {
@@ -312,7 +312,7 @@ pub fn effective_node_params(
     let mut efficiencies = [0.0f32; METABOLIC_GRAPH_MAX_NODES];
     let mut activations = [0.0f32; METABOLIC_GRAPH_MAX_NODES];
     let nodes = graph.nodes();
-    let n = graph.node_count() as usize;
+    let n = graph.node_count();
 
     for i in 0..n {
         efficiencies[i] = inhibition.effects[i].effective_efficiency;

@@ -301,7 +301,7 @@ fn run_arm(config: &ZhangConfig, adaptive: bool) -> (Vec<ZhangSnapshot>, u32) {
         prev_pop = total;
 
         timeline.push(ZhangSnapshot {
-            generation: generation,
+            generation,
             alive_mean: total,
             efficiency: total, // PSA proxy ∝ tumor burden
             sensitive_frac: pop.sensitive_frac(),

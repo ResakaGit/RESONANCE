@@ -88,7 +88,7 @@ pub fn containment_system(
 
             // Priorizamos el host más cercano (menor dist).
             let priority = -dist;
-            let should_replace = best.as_ref().map_or(true, |(best_host, _, best_p)| {
+            let should_replace = best.as_ref().is_none_or(|(best_host, _, best_p)| {
                 if priority > *best_p {
                     true
                 } else if (priority - *best_p).abs() < f32::EPSILON {
@@ -169,7 +169,7 @@ pub fn containment_overlap_system(
                 overlap_area: total_overlap,
                 drag_factor,
             };
-            let needs_insert = contact_opt.map_or(true, |c| {
+            let needs_insert = contact_opt.is_none_or(|c| {
                 (c.overlap_area - new_contact.overlap_area).abs() > f32::EPSILON
                     || (c.drag_factor - new_contact.drag_factor).abs() > f32::EPSILON
             });

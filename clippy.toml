@@ -1,0 +1,4 @@
+# Bevy ECS systems naturally have many query parameters and complex types.
+# These thresholds match Bevy ecosystem conventions.
+too-many-arguments-threshold = 16
+type-complexity-threshold = 350

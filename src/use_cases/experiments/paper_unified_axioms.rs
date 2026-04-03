@@ -260,7 +260,7 @@ fn count_by_freq(worlds: &[SimWorldFlat], threshold: f32) -> (f32, f32) {
 }
 
 fn mean_qe(worlds: &[SimWorldFlat]) -> f32 {
-    let nw = worlds.len().max(1) as f32;
+    let _nw = worlds.len().max(1) as f32;
     let (mut sum, mut count) = (0.0f32, 0u32);
     for w in worlds {
         let mut mask = w.alive_mask;
@@ -432,7 +432,7 @@ fn test_persisters(seed: u64) -> SubTestResult {
         }
         for _ in 0..quiescent_count {
             // Quiescent: freq offset + low growth + low dissipation.
-            *(&mut s) = determinism::next_u64(s);
+            s = determinism::next_u64(s);
             let mut e = EntitySlot::default();
             e.qe = BASE_QE * 0.8;
             e.radius = 0.4;
@@ -453,7 +453,7 @@ fn test_persisters(seed: u64) -> SubTestResult {
         }
     };
 
-    let mut worlds = make_worlds(N_WORLDS, seed, &spawn);
+    let mut worlds = make_worlds(N_WORLDS, seed, spawn);
     let mut scratches: Vec<ScratchPad> = (0..N_WORLDS).map(|_| ScratchPad::new()).collect();
 
     let initial_pop = count_alive(&worlds);
@@ -529,7 +529,7 @@ fn test_pulsed_vs_continuous(seed: u64) -> SubTestResult {
     };
 
     let run_arm = |pulsed: bool, arm_seed: u64| -> f32 {
-        let mut worlds = make_worlds(N_WORLDS, arm_seed, &spawn);
+        let mut worlds = make_worlds(N_WORLDS, arm_seed, spawn);
         let mut scratches: Vec<ScratchPad> = (0..N_WORLDS).map(|_| ScratchPad::new()).collect();
         for g in 0..gens {
             let drug_on = if pulsed {
@@ -588,7 +588,7 @@ fn test_biphasic_stem(seed: u64) -> SubTestResult {
         }
     };
 
-    let mut worlds = make_worlds(N_WORLDS, seed, &spawn);
+    let mut worlds = make_worlds(N_WORLDS, seed, spawn);
     let mut scratches: Vec<ScratchPad> = (0..N_WORLDS).map(|_| ScratchPad::new()).collect();
     let mut timeline = Vec::new();
 

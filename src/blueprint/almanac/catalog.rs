@@ -83,7 +83,7 @@ impl AlchemicalAlmanac {
             .iter()
             .filter(|(_, def)| def.contains(freq))
             .min_by(|(a_id, a_def), (b_id, b_def)| {
-                cmp_stable_band_candidates_eac2(**a_id, *a_def, **b_id, *b_def)
+                cmp_stable_band_candidates_eac2(**a_id, a_def, **b_id, b_def)
             })
             .map(|(id, _)| *id)
     }

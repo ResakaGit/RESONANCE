@@ -74,21 +74,21 @@ fn main() {
 
     // ── PV-4: Foo & Michor 2009 — Continuous vs pulsed ──────────────────────
     print!("  PV-4  Foo & Michor 2009 (pulsed vs continuous) ... ");
-    let foo = paper_foo_michor2009::run(&paper_foo_michor2009::FooMichorConfig::default());
-    let pv4_pass = foo.pulsed_beats_continuous;
+    let foo_report = paper_foo_michor2009::run(&paper_foo_michor2009::FooMichorConfig::default());
+    let pv4_pass = foo_report.pulsed_beats_continuous;
     if pv4_pass {
         println!(
             "PASS  (optimal dose: {:.2}, pulsed res: {:.1}%, continuous res: {:.1}%)",
-            foo.optimal_dose,
-            foo.pulsed_resistance_at_08 * 100.0,
-            foo.continuous_resistance_at_08 * 100.0
+            foo_report.optimal_dose,
+            foo_report.pulsed_resistance_at_08 * 100.0,
+            foo_report.continuous_resistance_at_08 * 100.0
         );
         passed += 1;
     } else {
         println!(
             "FAIL  (pulsed: {:.1}% vs continuous: {:.1}%)",
-            foo.pulsed_resistance_at_08 * 100.0,
-            foo.continuous_resistance_at_08 * 100.0
+            foo_report.pulsed_resistance_at_08 * 100.0,
+            foo_report.continuous_resistance_at_08 * 100.0
         );
         failed += 1;
     }
@@ -186,7 +186,7 @@ fn main() {
         "║  Wall time: PV-1={:.1}s PV-2={:.1}s PV-3=0ms PV-4={:.1}s PV-5={:.1}s   ║",
         zhang.wall_time_ms as f64 / 1000.0,
         sharma.wall_time_ms as f64 / 1000.0,
-        foo.wall_time_ms as f64 / 1000.0,
+        foo_report.wall_time_ms as f64 / 1000.0,
         michor.wall_time_ms as f64 / 1000.0
     );
     println!("╚══════════════════════════════════════════════════════════════════╝");

@@ -30,17 +30,9 @@ impl CacheEntry {
 }
 
 /// Caché de deformación geométrica (parallel-array al grid de entidades).
-#[derive(Resource)]
+#[derive(Resource, Default)]
 pub struct GeometryDeformationCache {
     entries: Vec<CacheEntry>,
-}
-
-impl Default for GeometryDeformationCache {
-    fn default() -> Self {
-        Self {
-            entries: Vec::new(),
-        }
-    }
 }
 
 impl GeometryDeformationCache {
