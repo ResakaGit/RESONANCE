@@ -34,7 +34,7 @@ use resonance::viewer::frame_buffer;
 use resonance::worldgen::systems::day_night::DayNightConfig;
 use resonance::worldgen::EnergyFieldGrid;
 
-// ── Visual constants (rendering, not physics) ────────────────────────────────
+// ── Visual constants (rendering, not physics) -------------------------───────
 
 /// Radio de la esfera del planeta (unidades Bevy).
 const PLANET_RADIUS: f32 = 5.0;
@@ -52,7 +52,7 @@ const SIM_TICKS_PER_SEC: f64 = 250.0;
 /// No es el K del telescopio — es con qué frecuencia el sistema decide si proyectar.
 const TELESCOPE_UPDATE_INTERVAL: u64 = 16;
 
-// ── Bevy Components & Resources ──────────────────────────────────────────────
+// ── Bevy Components & Resources -------------------------─────────────────────
 
 #[derive(Component)]
 struct Planet;
@@ -97,7 +97,7 @@ impl Default for DemoTelescopeState {
     }
 }
 
-// ── Main ─────────────────────────────────────────────────────────────────────
+// ── Main --------------------------------------------------───────────────────
 
 fn main() {
     let mut app = App::new();
@@ -139,7 +139,7 @@ fn main() {
     app.run();
 }
 
-// ── Setup ────────────────────────────────────────────────────────────────────
+// ── Setup --------------------------------------------------──────────────────
 
 fn setup_planet(
     mut commands: Commands,
@@ -216,7 +216,7 @@ fn setup_hud(mut commands: Commands) {
     ));
 }
 
-// ── Texture Update (cada frame) ──────────────────────────────────────────────
+// ── Texture Update (cada frame) -------------------------─────────────────────
 
 fn update_planet_texture(
     grid: Option<Res<EnergyFieldGrid>>,
@@ -309,7 +309,7 @@ fn update_telescope_metrics(
     };
 }
 
-// ── HUD (cada frame) ─────────────────────────────────────────────────────────
+// ── HUD (cada frame) --------------------------------------------------───────
 
 fn update_hud(
     clock: Option<Res<SimulationClock>>,
@@ -358,15 +358,15 @@ fn update_hud(
 
     **text = format!(
         "EARTH TELESCOPE DEMO\n\
-         ─────────────────────────\n\
+         -------------------------\n\
          Tick: {}  Day: {:.1}  Year: {:.2}\n\
          Season: {}\n\
-         ─────────────────────────\n\
+         -------------------------\n\
          Entities:   {}  (behavioral: {})\n\
          Field qe:   {:.0}\n\
          Entity qe:  {:.0}\n\
          Total qe:   {:.0}\n\
-         ─────────────────────────\n\
+         -------------------------\n\
          TELESCOPE\n\
          Regime:     {}\n\
          Variance:   {:.4}\n\
