@@ -28,7 +28,7 @@ noise = "0.9"
 oxidized_navigation = "0.12"
 parry3d = "0.17"
 rayon = "1.10"
-bevy_egui = "0.31"
+bevy_egui = "0.33"
 egui_plot = "0.29"
 minifb = { version = "0.27", optional = true }
 
