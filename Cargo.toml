@@ -40,7 +40,7 @@ opt-level = 3
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
-naga = { version = "23", features = ["wgsl-in"] }
+naga = { version = "28", features = ["wgsl-in"] }
 pollster = "0.4"
 proptest = "1.4"
 wgpu = { version = "23", default-features = true, features = ["wgsl"] }
