@@ -114,6 +114,10 @@ name = "planet_viewer"
 path = "src/bin/planet_viewer.rs"
 
 [[bin]]
+name = "earth_telescope"
+path = "src/bin/earth_telescope.rs"
+
+[[bin]]
 name = "paper_validation"
 path = "src/bin/paper_validation.rs"
 

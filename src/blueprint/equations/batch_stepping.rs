@@ -61,15 +61,20 @@ pub fn locomotion_n_ticks(qe: f32, speed: f32, terrain_factor: f32, n: u32) -> f
     (qe - cost * n as f32).max(0.0)
 }
 
-/// Check if entity is isolated (no neighbors within range).
+/// Encuentra vecinos de una entidad dentro del radio. Stack-allocated.
+/// Finds neighbors of an entity within radius. Stack-allocated.
 ///
-/// If isolated, analytical stepping is exact (no interactions to miss).
-pub fn is_isolated(
+/// Retorna (indices, count). Máximo MAX_NEIGHBORS resultados.
+pub const MAX_NEIGHBORS: usize = 128;
+
+pub fn neighbors_within_radius(
     positions: &[[f32; 2]],
     alive_mask: u128,
     entity_idx: usize,
     range_sq: f32,
-) -> bool {
+) -> ([usize; MAX_NEIGHBORS], usize) {
+    let mut result = [0_usize; MAX_NEIGHBORS];
+    let mut count = 0;
     let pos = positions[entity_idx];
     let mut mask = alive_mask & !(1u128 << entity_idx);
     while mask != 0 {
@@ -77,11 +82,27 @@ pub fn is_isolated(
         mask &= mask - 1;
         let dx = positions[j][0] - pos[0];
         let dy = positions[j][1] - pos[1];
-        if dx * dx + dy * dy < range_sq {
-            return false;
+        if dx * dx + dy * dy < range_sq && count < MAX_NEIGHBORS {
+            result[count] = j;
+            count += 1;
         }
     }
-    true
+    (result, count)
+}
+
+/// Verifica si una entidad está aislada (sin vecinos en rango).
+/// Check if entity is isolated (no neighbors within range).
+///
+/// Si aislada, stepping analítico es exacto (no hay interacciones que perder).
+/// If isolated, analytical stepping is exact (no interactions to miss).
+#[inline]
+pub fn is_isolated(
+    positions: &[[f32; 2]],
+    alive_mask: u128,
+    entity_idx: usize,
+    range_sq: f32,
+) -> bool {
+    neighbors_within_radius(positions, alive_mask, entity_idx, range_sq).1 == 0
 }
 
 /// Predict death tick: when qe drops below threshold via dissipation.

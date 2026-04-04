@@ -31,6 +31,7 @@ Resonance is an emergent life simulation engine in Rust/Bevy 0.15 where everythi
 ```
 math_types.rs       → Engine-agnostic glam re-exports (Vec2, Vec3, Quat). All non-ECS code imports from here.
 batch/              → Batch simulator: millions of worlds without Bevy (rayon parallel)
+  telescope/        → Temporal Telescope: dual-timeline speculative execution (ADR-015/016, 10 modules, 205 tests)
   arena.rs          → EntitySlot (flat entity, repr(C)), SimWorldFlat (64 slots + grids)
   systems/          → 33 stateless systems (6 phases), call blueprint/equations/ for math
   genome.rs         → GenomeBlob (DNA: 4 biases + archetype), mutate, crossover
@@ -602,6 +603,11 @@ If following a coding rule makes the game worse, break the rule and explain why.
 - `src/use_cases/experiments/paper_michor2005.rs` — Michor 2005 biphasic CML decline
 - `src/use_cases/experiments/paper_unified_axioms.rs` — PV-6: all 6 phenomena from 4 constants (zero calibration, 4/6 PASS)
 - `src/bin/paper_validation.rs` — unified runner: 6 papers + PV-6, PASS/FAIL per test
+- `src/blueprint/equations/temporal_telescope.rs` — Temporal Telescope math: sliding stats, Hurst DFA, projection normalizers, speculative visibility (Englert D²+V²≤1), conservation-bounded projection (61 tests)
+- `src/blueprint/constants/temporal_telescope.rs` — Telescope constants derived from 4 fundamentals + calibration
+- `src/batch/telescope/` — 10-module Temporal Telescope: diff engine, cascade propagator, calibration bridge, projection engine, dual-timeline pipeline, multi-level stack (ADR-015/016, 205 tests)
+- `src/batch/telescope/stack.rs` — Multi-Telescope stack: collapse + re-emanation (quantum-inspired, ADR-016)
+- `src/bin/earth_telescope.rs` — Earth Telescope Demo: 3D planet + telescope metrics (day/night, seasons, abiogenesis)
 - `docs/paper/resonance_arxiv.tex` — arXiv paper source (7 experiments, 12 references)
 
 ## Documentation
@@ -609,7 +615,7 @@ If following a coding rule makes the game worse, break the rule and explain why.
 **Canonical:** `docs/ARCHITECTURE.md` — axioms, constants, module map, drug pipeline, Bozic validation, adaptive controller, emergence status, limitations.
 
 **Design specs (code-referenced only):**
-`docs/design/` — `TOPOLOGY.md` | `ECO_BOUNDARIES.md` | `BRIDGE_OPTIMIZER.md` | `AXIOMATIC_CLOSURE.md` | `SIMULATION_CORE_DECOUPLING.md` | `TERRAIN_MESHER.md` | `QUANTIZED_COLOR_ENGINE.md` | `FOLDER_STRUCTURE.md`
+`docs/design/` — `TOPOLOGY.md` | `ECO_BOUNDARIES.md` | `BRIDGE_OPTIMIZER.md` | `AXIOMATIC_CLOSURE.md` | `SIMULATION_CORE_DECOUPLING.md` | `TERRAIN_MESHER.md` | `QUANTIZED_COLOR_ENGINE.md` | `FOLDER_STRUCTURE.md` | `EARTH_TELESCOPE_DEMO.md`
 
 **Module contracts (code-referenced only):**
 `docs/arquitectura/` — `blueprint_batch_simulator.md` | `blueprint_layer_bridge_optimizer.md` | `blueprint_axiomatic_closure.md` | `blueprint_blueprint_math.md`

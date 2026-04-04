@@ -71,6 +71,7 @@ mod social_communication;
 mod spatial;
 pub mod surrogate_error;
 mod tactical_ai;
+pub mod temporal_telescope;
 mod trophic;
 pub mod variable_genome;
 pub mod vision;

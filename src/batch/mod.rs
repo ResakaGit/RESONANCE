@@ -17,6 +17,7 @@ pub mod lineage;
 pub mod pipeline;
 pub mod scratch;
 pub mod systems;
+pub mod telescope;
 
 pub use arena::{EntitySlot, SimWorldFlat};
 pub use batch::{BatchConfig, WorldBatch};

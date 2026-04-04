@@ -74,6 +74,7 @@ mod social_communication_d6;
 pub mod stellar;
 mod surrogate;
 mod tactical_ai;
+pub mod temporal_telescope;
 mod thermal_transfer;
 mod trophic_predation_d2;
 pub mod units;

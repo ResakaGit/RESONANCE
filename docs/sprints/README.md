@@ -13,10 +13,10 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 | Sprints pendientes | **44** (39 prev + 5 PV) |
 | Tracks activos | **9** |
 | Oleadas restantes | **4** |
-| Tracks archivados | **51** (49 prev + RD ✅ + RI ✅) |
-| Tests | **3,113** |
-| LOC | **113K** |
-| Binarios | **25** |
+| Tracks archivados | **53** (51 prev + TT ✅ + MT ✅) |
+| Tests | **3,324** |
+| LOC | **~117K** |
+| Binarios | **26** |
 
 ---
 
@@ -33,6 +33,22 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 | [PV-5](PAPER_VALIDATION/SPRINT_PV5_MICHOR_BIPHASIC.md) | Michor 2005 (Nature) | Biphasic CML decline, slope ratio 6-10× | Medio-Alto | — |
 
 Todos paralelos. Zero acoplamiento: cada PV es 1 archivo nuevo en `use_cases/experiments/paper_*.rs`. Track README: [PAPER_VALIDATION/](PAPER_VALIDATION/)
+
+---
+
+### TEMPORAL_TELESCOPE ✅ COMPLETADO (2026-04-04)
+
+10 sprints: TT-1 (sliding statistics), TT-2 (Hurst DFA), TT-3 (projection normalizers), TT-4 (diff engine), TT-5 (telescope state), TT-6 (projection engine), TT-7 (calibration bridge), TT-8 (cascade propagator), TT-9 (dual pipeline), TT-10 (activation + dashboard). 9 archivos nuevos, 179 tests. ADR-015.
+
+Track README: [archive/TEMPORAL_TELESCOPE/](archive/TEMPORAL_TELESCOPE/)
+
+---
+
+### MULTI_TELESCOPE ✅ COMPLETADO (2026-04-04)
+
+5 sprints: MT-1 (quantum equations: speculative visibility, conservation-bounded projection, frequency-aware decay), MT-2 (conservation projection), MT-3 (telescope stack: collapse + re-emanation), MT-4 (stack pipeline), MT-5 (activation + metrics). 1 archivo nuevo + 5 modificados, 26 tests. ADR-016. Earth Telescope Demo binary.
+
+Track README: [archive/MULTI_TELESCOPE/](archive/MULTI_TELESCOPE/)
 
 ---
 
@@ -259,6 +275,8 @@ Track README: [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
 | **TU** | 4 | TOOL_USE | 2 serie + 2 paralelo | ⏳ Diseñado | EI |
 | **EL** | 4 | EMERGENT_LANGUAGE | 4 serie | ⏳ Diseñado | NS |
 | **CV** | 4 | CIVILIZATION | 4 serie | ⏳ Diseñado | TU + EL |
+| **TT** | 10 | TEMPORAL_TELESCOPE | 4 paralelo → 6 serie | ✅ COMPLETA | — (independiente) |
+| **MT** | 5 | MULTI_TELESCOPE | 5 serie | ✅ COMPLETA | TT ✅ |
 | **BSD** | 7 | BRIDGE_STRATEGY_DECOUPLING | 2 ✅ → 5 pendiente | ⏳ BS-2/3 done | — (independiente) |
 | **SO** | 5 | SCIENTIFIC_OBSERVABILITY | 5 ✅ | ✅ ARCHIVADA | — |
 | **RI** | 3 | REGULATORY_INFRASTRUCTURE | 1 → 2 paralelo | ⏳ Diseñado | RD ✅ |
@@ -269,7 +287,7 @@ Track README: [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
 
 | Estado | Tracks | Sprints |
 |--------|--------|---------|
-| ✅ Archivados | 51 tracks (incl. RD ✅, RI ✅) | 88 sprints |
+| ✅ Archivados | 53 tracks (incl. RD ✅, RI ✅, TT ✅, MT ✅) | 103 sprints |
 | ⏳ Activos | GS(6), PC(7), NS(4), EI(3), TU(4), EL(4), CV(4), BSD(5) | 37 sprints |
 | 🔒 Bloqueados | DEMO (1) | 1 sprint |
 
@@ -279,6 +297,7 @@ Track README: [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
 
 Implementation in `src/`, contracts in `docs/design/` and `docs/arquitectura/`. Full list in [`archive/README.md`](archive/README.md):
 
+- **TEMPORAL_TELESCOPE** — TT-1–TT-10 ✅: Dual-timeline speculative execution (ADR-015). Ancla (ground truth tick-a-tick) + Telescopio (proyección analítica) + Puente de Calibración (feedback loop). 9 archivos, 179 tests, 0 hardcoded values. Axiomas 4/5/7 verificados con property tests. sliding_variance, Hurst DFA, Fisher information, RegimeMetrics, NormalizerWeights, DiffReport, cascade propagator, calibration bridge, dual pipeline sync. (2026-04-04) — [archive/TEMPORAL_TELESCOPE/](archive/TEMPORAL_TELESCOPE/)
 - **BRIDGE_STRATEGY_DECOUPLING (parcial)** — BS-2 ✅: CompetitionNormBridge wired + hot reload fix. BS-3 parcial ✅: exact_cache (KleiberCache, GompertzCache, Converged\<T\>), shape_cache_signature extraction. 52 tests (2026-03-30) — [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
 - **SCIENTIFIC_OBSERVABILITY** — SO-1–SO-5 ✅: lineage, census, CSV/JSON export, HOF orchestrators, CSV in binaries. 32 tests (2026-03-30) — [archive/SCIENTIFIC_OBSERVABILITY/](archive/SCIENTIFIC_OBSERVABILITY/)
 - **PROTO_DNA** — PD-1–PD-5: CodonGenome (tripletes), CodonTable (64→8 amino, evolucionable), translate_genome, silent mutations, neutral drift, batch wiring. 28 tests (2026-03-30) — [archive/PROTO_DNA/](archive/PROTO_DNA/)
