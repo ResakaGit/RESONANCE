@@ -13,7 +13,7 @@ pub struct CellList {
     /// Grid dimensions [nx, ny].
     grid_dims: [usize; 2],
     /// Cell side length (>= r_cut).
-    cell_size: f32,
+    _cell_size: f32,
     /// Cutoff radius squared.
     r_cut_sq: f32,
     /// Box dimensions for PBC wrapping.
@@ -63,7 +63,7 @@ impl CellList {
 
         Some(Self {
             grid_dims: [nx, ny],
-            cell_size,
+            _cell_size: cell_size,
             r_cut_sq: r_cut * r_cut,
             box_lengths,
             head,
@@ -135,7 +135,7 @@ impl CellList {
 /// 3D cell list for f64 positions. 27 neighbor cells (3^3).
 pub struct CellList3D {
     grid_dims: [usize; 3],
-    cell_size: [f64; 3],
+    _cell_size: [f64; 3],
     r_cut_sq: f64,
     box_lengths: [f64; 3],
     head: Vec<u16>,
@@ -179,7 +179,7 @@ impl CellList3D {
 
         Some(Self {
             grid_dims: [nx, ny, nz],
-            cell_size: cs,
+            _cell_size: cs,
             r_cut_sq: r_cut * r_cut,
             box_lengths,
             head,

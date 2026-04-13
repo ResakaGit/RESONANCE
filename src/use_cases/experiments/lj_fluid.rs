@@ -7,7 +7,7 @@
 //! Literature: Toxvaerd 1977, Smit & Frenkel 1991.
 
 use crate::blueprint::equations::{
-    determinism, md_observables, pbc, thermostat as thermo_eq, verlet,
+    determinism, md_observables, pbc, thermostat as thermo_eq,
 };
 
 // ─── Config ────────────────────────────────────────────────────────────────
@@ -269,7 +269,7 @@ pub fn run_lj_fluid(config: &LjFluidConfig) -> LjFluidResult {
     let mut temp_sum = 0.0;
     let mut pressure_sum = 0.0;
     let mut pe_sum = 0.0;
-    let rdf_r_max = world.box_length as f64 / 2.0;
+    let rdf_r_max = world.box_length / 2.0;
     let mut rdf = md_observables::RdfAccumulator::new(rdf_r_max, 100, config.n_particles, volume);
 
     for step in 0..config.prod_steps {

@@ -232,47 +232,66 @@ pub fn run_remd(
     let mut rng = config.seed;
 
     for swap_round in 0..config.total_swaps {
-        // MD steps for each replica
-        for rep in &mut replicas {
-            for _ in 0..config.steps_per_swap {
-                // Verlet position step
-                for i in 0..n {
-                    rep.positions[i] = verlet::position_step_3d(
-                        rep.positions[i], rep.velocities[i], rep.old_acc[i], config.dt,
-                    );
-                }
+        // Pre-compute per-replica RNG seeds (deterministic, independent streams)
+        let rep_seeds: Vec<u64> = (0..config.n_replicas)
+            .map(|r| determinism::next_u64(config.seed ^ (swap_round as u64 * 31 + r as u64 * 997)))
+            .collect();
 
-                // Forces
-                let (forces, pe) = go_forces(&rep.positions, topo, bandwidth);
-                rep.potential_energy = pe;
+        // MD steps for each replica (parallel across threads)
+        let dt = config.dt;
+        let gamma = config.gamma;
+        let steps = config.steps_per_swap;
+        std::thread::scope(|s| {
+            let handles: Vec<_> = replicas.iter_mut().zip(rep_seeds.iter()).map(|(rep, &seed)| {
+                s.spawn(move || {
+                    let mut rep_rng = seed;
+                    for _ in 0..steps {
+                        // Verlet position step
+                        for i in 0..n {
+                            rep.positions[i] = verlet::position_step_3d(
+                                rep.positions[i], rep.velocities[i], rep.old_acc[i], dt,
+                            );
+                        }
 
-                // Verlet velocity finish
-                for i in 0..n {
-                    let new_acc = forces[i];
-                    rep.velocities[i] = verlet::velocity_step_3d(
-                        rep.velocities[i], rep.old_acc[i], new_acc, config.dt,
-                    );
-                    rep.old_acc[i] = new_acc;
-                }
+                        // Forces
+                        let (forces, pe) = go_forces(&rep.positions, topo, bandwidth);
+                        rep.potential_energy = pe;
 
-                // Langevin thermostat
-                if config.gamma > 0.0 {
-                    let c1 = 1.0 - config.gamma * config.dt;
-                    let sigma_v = thermo_eq::langevin_velocity_sigma(
-                        config.gamma, rep.temperature, config.dt, 1.0,
-                    );
-                    rng = determinism::next_u64(rng);
-                    let mut local_rng = rng;
-                    for i in 0..n {
-                        for d in 0..3 {
-                            local_rng = determinism::next_u64(local_rng);
-                            let z = determinism::gaussian_f32(local_rng, 1.0) as f64;
-                            rep.velocities[i][d] = rep.velocities[i][d] * c1 + sigma_v * z;
+                        // Verlet velocity finish
+                        for i in 0..n {
+                            let new_acc = forces[i];
+                            rep.velocities[i] = verlet::velocity_step_3d(
+                                rep.velocities[i], rep.old_acc[i], new_acc, dt,
+                            );
+                            rep.old_acc[i] = new_acc;
+                        }
+
+                        // Langevin thermostat
+                        if gamma > 0.0 {
+                            let c1 = 1.0 - gamma * dt;
+                            let sigma_v = thermo_eq::langevin_velocity_sigma(
+                                gamma, rep.temperature, dt, 1.0,
+                            );
+                            rep_rng = determinism::next_u64(rep_rng);
+                            let mut local_rng = rep_rng;
+                            for i in 0..n {
+                                for d in 0..3 {
+                                    local_rng = determinism::next_u64(local_rng);
+                                    let z = determinism::gaussian_f32(local_rng, 1.0) as f64;
+                                    rep.velocities[i][d] = rep.velocities[i][d] * c1 + sigma_v * z;
+                                }
+                            }
                         }
                     }
-                }
+                })
+            }).collect();
+            for h in handles {
+                let _ = h.join();
             }
-        }
+        });
+
+        // Advance main RNG for swap determinism
+        rng = determinism::next_u64(rng);
 
         // Accumulate energies
         for (r, rep) in replicas.iter().enumerate() {
@@ -313,10 +332,10 @@ pub fn run_remd(
             .map(|(i, _)| i)
             .unwrap_or(0);
 
-        let q = go_model::native_contact_fraction(&replicas[lowest_t_idx].positions, &topo.native_contacts, 1.2);
+        let q = go_model::native_contact_fraction(&replicas[lowest_t_idx].positions, &topo.native_contacts, go_model::Q_TOLERANCE);
         let coherence = go_model::folding_coherence(
             &replicas[lowest_t_idx].positions, &topo.native_contacts,
-            &topo.frequencies, bandwidth, 1.2,
+            &topo.frequencies, bandwidth, go_model::Q_TOLERANCE,
         );
 
         use crate::blueprint::equations::md_analysis;

@@ -10,6 +10,15 @@
 
 use crate::blueprint::equations::determinism;
 
+// ─── Go model constants ──────────────────────────────────────────────────
+
+/// Contact cutoff for C-alpha Go models (Angstrom). Standard: 8 A.
+pub const CONTACT_CUTOFF: f64 = 8.0;
+
+/// Q tolerance factor: contact formed if r < tolerance * sigma_native.
+/// Standard Go value = 1.2 (20% stretch allowed).
+pub const Q_TOLERANCE: f64 = 1.2;
+
 // ─── Go 10-12 potential ───────────────────────────────────────────────────
 
 /// Go model native contact potential: V = epsilon * [5*(sigma/r)^12 - 6*(sigma/r)^10].
@@ -501,7 +510,7 @@ mod tests {
     fn native_fraction_100_at_native_structure() {
         let positions = vec![[0.0, 0.0, 0.0], [5.0, 0.0, 0.0], [10.0, 0.0, 0.0], [2.0, 3.0, 0.0]];
         let contacts = native_contact_map(&positions, 8.0, 3);
-        let q = native_contact_fraction(&positions, &contacts, 1.2);
+        let q = native_contact_fraction(&positions, &contacts, Q_TOLERANCE);
         assert!((q - 1.0).abs() < 1e-10, "Q at native should be 1.0, got {q}");
     }
 
@@ -511,7 +520,7 @@ mod tests {
         let contacts = native_contact_map(&native, 8.0, 3);
         // Random coil: spread far apart
         let random = vec![[0.0, 0.0, 0.0], [20.0, 0.0, 0.0], [40.0, 0.0, 0.0], [60.0, 0.0, 0.0], [80.0, 0.0, 0.0]];
-        let q = native_contact_fraction(&random, &contacts, 1.2);
+        let q = native_contact_fraction(&random, &contacts, Q_TOLERANCE);
         assert!(q < 0.5, "Q at random coil should be low, got {q}");
     }
 
@@ -543,7 +552,7 @@ mod tests {
         let positions = vec![[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [4.0, 0.0, 0.0]];
         let contacts = vec![(0u16, 3, 5.0)]; // formed (4.0 < 1.2*5.0)
         let freqs = vec![100.0, 100.0, 100.0, 100.0]; // same → alignment=1.0
-        let spectrum = coherence_spectrum(&positions, &contacts, &freqs, 50.0, 1.2, 10);
+        let spectrum = coherence_spectrum(&positions, &contacts, &freqs, 50.0, Q_TOLERANCE, 10);
         // alignment=1.0 → should land in last bin (bin 9)
         assert_eq!(spectrum[9], 1);
     }
