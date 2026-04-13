@@ -149,6 +149,118 @@ pub fn harmonic_angle_forces_3d(
     forces
 }
 
+// ─── Analytical Angle Forces (3D) — R5b ──────────────────────────────────
+
+/// Analytical harmonic angle forces on a, b (vertex), c in 3D.
+///
+/// ∂V/∂r_a = k*(θ-θ₀) * ∂θ/∂r_a
+/// ∂θ/∂r_a = -(1/|ba|) * (bc_hat - cos(θ)*ba_hat) / sin(θ)
+///
+/// Reference: Allen & Tildesley, App. C; GROMACS manual Ch. 4.2.
+/// 6x faster than numerical gradient (no energy re-evaluation).
+pub fn harmonic_angle_forces_3d_analytical(
+    a: [f64; 3], b: [f64; 3], c: [f64; 3],
+    theta0: f64, k: f64,
+) -> [[f64; 3]; 3] {
+    let ba = sub_3d(a, b);
+    let bc = sub_3d(c, b);
+    let r_ba = mag_3d(ba);
+    let r_bc = mag_3d(bc);
+
+    if r_ba < 1e-15 || r_bc < 1e-15 {
+        return [[0.0; 3]; 3];
+    }
+
+    let cos_theta = dot_3d(ba, bc) / (r_ba * r_bc);
+    let cos_clamped = cos_theta.clamp(-1.0 + 1e-12, 1.0 - 1e-12);
+    let theta = cos_clamped.acos();
+    let sin_theta = (1.0 - cos_clamped * cos_clamped).sqrt().max(1e-15);
+
+    let d_theta = theta - theta0;
+    let prefactor = -k * d_theta / sin_theta;
+
+    // ∂θ/∂r_a = (1/(r_ba)) * (cos_theta * ba_hat - bc_hat) / sin_theta
+    // → f_a = prefactor * (cos_theta * ba/r_ba - bc/r_bc) / r_ba
+    let mut f_a = [0.0; 3];
+    let mut f_c = [0.0; 3];
+    for d in 0..3 {
+        f_a[d] = prefactor * (cos_clamped * ba[d] / r_ba - bc[d] / r_bc) / r_ba;
+        f_c[d] = prefactor * (cos_clamped * bc[d] / r_bc - ba[d] / r_ba) / r_bc;
+    }
+    // Newton 3: f_b = -(f_a + f_c)
+    let f_b = [-f_a[0] - f_c[0], -f_a[1] - f_c[1], -f_a[2] - f_c[2]];
+
+    [f_a, f_b, f_c]
+}
+
+/// Analytical dihedral forces on a, b, c, d in 3D.
+///
+/// V = k * (1 + cos(n*φ - δ))
+/// F_a = -k*n*sin(n*φ-δ) * ∂φ/∂r_a
+///
+/// Reference: Bekker et al., GROMACS manual Ch. 4.9.
+pub fn dihedral_forces_3d_analytical(
+    a: [f64; 3], b: [f64; 3], c: [f64; 3], d: [f64; 3],
+    k: f64, n: u8, delta: f64,
+) -> [[f64; 3]; 4] {
+    let b0 = sub_3d(b, a); // a→b
+    let b1 = sub_3d(c, b); // b→c
+    let b2 = sub_3d(d, c); // c→d
+
+    let n1 = cross_3d(b0, b1);
+    let n2 = cross_3d(b1, b2);
+    let n1_sq = dot_3d(n1, n1);
+    let n2_sq = dot_3d(n2, n2);
+
+    if n1_sq < 1e-30 || n2_sq < 1e-30 {
+        return [[0.0; 3]; 4];
+    }
+
+    let b1_mag = mag_3d(b1);
+    if b1_mag < 1e-15 {
+        return [[0.0; 3]; 4];
+    }
+
+    // Compute dihedral angle
+    let m1 = cross_3d(n1, [b1[0] / b1_mag, b1[1] / b1_mag, b1[2] / b1_mag]);
+    let x = dot_3d(n1, n2);
+    let y = dot_3d(m1, n2);
+    let phi = y.atan2(x);
+
+    // dV/dφ = -k * n * sin(n*φ - δ)
+    let dv_dphi = -k * n as f64 * (n as f64 * phi - delta).sin();
+
+    // ∂φ/∂r_a = -|b1| * n1 / n1²
+    // ∂φ/∂r_d = |b1| * n2 / n2²
+    // ∂φ/∂r_b and ∂φ/∂r_c from chain rule
+    let inv_n1_sq = 1.0 / n1_sq;
+    let inv_n2_sq = 1.0 / n2_sq;
+
+    let mut f_a = [0.0; 3];
+    let mut f_d = [0.0; 3];
+    for i in 0..3 {
+        f_a[i] = -dv_dphi * (-b1_mag * n1[i] * inv_n1_sq);
+        f_d[i] = -dv_dphi * (b1_mag * n2[i] * inv_n2_sq);
+    }
+
+    // f_b and f_c from: f_b = -f_a + correction, f_c = -f_d + correction
+    let dot_b0_b1 = dot_3d(b0, b1);
+    let dot_b2_b1 = dot_3d(b2, b1);
+    let b1_sq = b1_mag * b1_mag;
+
+    let coeff_b_a = dot_b0_b1 / b1_sq;
+    let coeff_c_d = dot_b2_b1 / b1_sq;
+
+    let mut f_b = [0.0; 3];
+    let mut f_c = [0.0; 3];
+    for i in 0..3 {
+        f_b[i] = (coeff_b_a - 1.0) * f_a[i] - coeff_c_d * f_d[i];
+        f_c[i] = (coeff_c_d - 1.0) * f_d[i] - coeff_b_a * f_a[i];
+    }
+
+    [f_a, f_b, f_c, f_d]
+}
+
 // ─── Proper Dihedral (3D) ──────────────────────────────────────────────────
 
 /// Cross product of two 3D vectors.

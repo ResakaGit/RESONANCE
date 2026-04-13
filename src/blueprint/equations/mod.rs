@@ -34,6 +34,7 @@ mod energy_competition;
 pub mod ewald;
 pub mod exact_cache;
 pub mod go_model;
+pub mod implicit_solvent;
 
 mod field_body;
 mod field_color;
@@ -71,6 +72,7 @@ pub mod protein_fold;
 mod quantized_color;
 pub mod radial_field;
 mod radiation_pressure;
+pub mod respa;
 pub mod sensitivity;
 pub mod special_functions;
 mod sensory;
