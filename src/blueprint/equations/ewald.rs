@@ -14,22 +14,7 @@
 //! `k_e` must be passed by the caller (not hardcoded).
 
 use core::f64::consts::PI;
-
-// ─── Complementary error function approximation ───────────────────────────
-
-/// erfc(x) approximation (Abramowitz & Stegun, 7.1.26). Max error ~1.5e-7.
-///
-/// Good enough for MD force computation. No external crate needed.
-fn erfc_approx(x: f64) -> f64 {
-    let t = 1.0 / (1.0 + 0.327_591_1 * x.abs());
-    let poly = t * (0.254_829_592
-        + t * (-0.284_496_736
-            + t * (1.421_413_741
-                + t * (-1.453_152_027
-                    + t * 1.061_405_429))));
-    let result = poly * (-x * x).exp();
-    if x >= 0.0 { result } else { 2.0 - result }
-}
+use super::special_functions::erfc_approx;
 
 // ─── Real space ───────────────────────────────────────────────────────────
 

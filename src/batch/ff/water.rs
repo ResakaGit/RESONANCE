@@ -32,9 +32,9 @@ pub const TIP3P_MASS_H: f64 = 1.008;
 
 /// High spring constant for rigid O-H bond approximation (before SHAKE).
 /// Large enough to keep geometry near-rigid at 2 fs timestep.
-const RIGID_BOND_K: f32 = 10_000.0;
+const RIGID_BOND_K: f64 = 10_000.0;
 /// High spring constant for H-O-H angle approximation.
-const RIGID_ANGLE_K: f32 = 2_000.0;
+const RIGID_ANGLE_K: f64 = 2_000.0;
 
 // ─── Topology builder ─────────────────────────────────────────────────────
 
@@ -47,11 +47,11 @@ pub fn create_water_topology(n_waters: usize) -> Topology {
     let mut topo = Topology::new(n_atoms);
 
     let bond_oh = BondParams {
-        r0: TIP3P_R_OH as f32,
+        r0: TIP3P_R_OH,
         k: RIGID_BOND_K,
     };
     let angle_hoh = AngleParams {
-        theta0: TIP3P_ANGLE_HOH as f32,
+        theta0: TIP3P_ANGLE_HOH,
         k: RIGID_ANGLE_K,
     };
 
@@ -197,14 +197,14 @@ mod tests {
     #[test]
     fn topology_bond_params() {
         let topo = create_water_topology(1);
-        assert!((topo.bonds[0].2.r0 - TIP3P_R_OH as f32).abs() < 1e-4);
+        assert!((topo.bonds[0].2.r0 - TIP3P_R_OH).abs() < 1e-4);
         assert!((topo.bonds[0].2.k - RIGID_BOND_K).abs() < 1e-4);
     }
 
     #[test]
     fn topology_angle_params() {
         let topo = create_water_topology(1);
-        assert!((topo.angles[0].3.theta0 - TIP3P_ANGLE_HOH as f32).abs() < 1e-3);
+        assert!((topo.angles[0].3.theta0 - TIP3P_ANGLE_HOH).abs() < 1e-3);
     }
 
     #[test]

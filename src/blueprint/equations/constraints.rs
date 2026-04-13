@@ -119,6 +119,23 @@ pub fn shake_solve(
         }
     }
 
+    // Non-convergence: log max residual for diagnostics
+    #[cfg(debug_assertions)]
+    {
+        let mut max_err = 0.0_f64;
+        for &(ai, aj, d_target) in constraints {
+            let (i, j) = (ai as usize, aj as usize);
+            let mut d_sq = 0.0;
+            for k in 0..3 {
+                let dk = positions[i][k] - positions[j][k];
+                d_sq += dk * dk;
+            }
+            let err = (d_sq.sqrt() - d_target).abs() / d_target;
+            if err > max_err { max_err = err; }
+        }
+        eprintln!("SHAKE: did not converge in {max_iter} iterations (max residual: {max_err:.2e})");
+    }
+
     max_iter
 }
 
@@ -206,12 +223,12 @@ pub fn rattle_solve(
 /// Returns `(atom_i, atom_j, d_target)` tuples.
 pub fn constraints_from_topology(
     topology: &crate::batch::topology::Topology,
-    k_threshold: f32,
+    k_threshold: f64,
 ) -> Vec<(u16, u16, f64)> {
     topology.bonds
         .iter()
         .filter(|(_, _, params)| params.k >= k_threshold)
-        .map(|&(i, j, params)| (i, j, params.r0 as f64))
+        .map(|&(i, j, params)| (i, j, params.r0))
         .collect()
 }
 
@@ -259,8 +276,8 @@ mod tests {
     #[test]
     fn shake_converges_quickly_for_water() {
         // TIP3P water: O at origin, H1 and H2 at correct geometry
-        let r_oh = 0.9572;
-        let half_angle = (104.52_f64).to_radians() / 2.0;
+        let r_oh = crate::batch::ff::water::TIP3P_R_OH;
+        let half_angle = crate::batch::ff::water::TIP3P_ANGLE_HOH / 2.0;
         let h_dx = r_oh * half_angle.sin();
         let h_dy = r_oh * half_angle.cos();
 
@@ -370,8 +387,8 @@ mod tests {
     #[test]
     fn water_geometry_rigid_over_steps() {
         // Simulate 1000 Verlet steps with SHAKE — water geometry must stay rigid
-        let r_oh = 0.9572;
-        let half_angle = (104.52_f64).to_radians() / 2.0;
+        let r_oh = crate::batch::ff::water::TIP3P_R_OH;
+        let half_angle = crate::batch::ff::water::TIP3P_ANGLE_HOH / 2.0;
         let h_dx = r_oh * half_angle.sin();
         let h_dy = r_oh * half_angle.cos();
 

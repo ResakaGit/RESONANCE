@@ -10,23 +10,23 @@
 /// Harmonic bond parameters: V = 0.5 * k * (r - r0)^2.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct BondParams {
-    pub r0: f32,
-    pub k: f32,
+    pub r0: f64,
+    pub k: f64,
 }
 
 /// Harmonic angle parameters: V = 0.5 * k * (theta - theta0)^2.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct AngleParams {
-    pub theta0: f32,
-    pub k: f32,
+    pub theta0: f64,
+    pub k: f64,
 }
 
 /// Proper dihedral parameters: V = k * (1 + cos(n*phi - delta)).
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct DihedralParams {
-    pub k: f32,
+    pub k: f64,
     pub n: u8,
-    pub delta: f32,
+    pub delta: f64,
 }
 
 /// Residue information (amino acid, nucleotide, etc.).
@@ -218,7 +218,7 @@ mod tests {
 
     fn default_angle() -> AngleParams {
         AngleParams {
-            theta0: std::f32::consts::PI,
+            theta0: std::f64::consts::PI,
             k: 50.0,
         }
     }

@@ -72,6 +72,7 @@ mod quantized_color;
 pub mod radial_field;
 mod radiation_pressure;
 pub mod sensitivity;
+pub mod special_functions;
 mod sensory;
 mod signal_propagation;
 mod simulation_quality;

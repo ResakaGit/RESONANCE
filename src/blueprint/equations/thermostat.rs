@@ -109,19 +109,9 @@ pub fn velocity_distribution_chi2(
     chi2
 }
 
-/// Error function approximation (Abramowitz & Stegun 7.1.26). Max error 1.5e-7.
+/// Error function via shared erfc approximation (A&S 7.1.26).
 fn erf(x: f64) -> f64 {
-    let sign = if x >= 0.0 { 1.0 } else { -1.0 };
-    let x = x.abs();
-    let t = 1.0 / (1.0 + 0.327_591_1 * x);
-    let t2 = t * t;
-    let t3 = t2 * t;
-    let t4 = t3 * t;
-    let t5 = t4 * t;
-    let poly = 0.254_829_592 * t - 0.284_496_736 * t2 + 1.421_413_741 * t3
-        - 1.453_152_027 * t4
-        + 1.061_405_429 * t5;
-    sign * (1.0 - poly * (-x * x).exp())
+    1.0 - super::special_functions::erfc_approx(x)
 }
 
 // ─── Tests ──────────────────────────────────────────────────────────────────

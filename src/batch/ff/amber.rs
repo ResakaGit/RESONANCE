@@ -119,10 +119,10 @@ fn parse_bond_line(
 ) -> Result<(), String> {
     let (types_str, rest) = split_types_and_values(line, 2, line_num, "BOND")?;
     let types = parse_type_pair(&types_str)?;
-    let k: f32 = rest[0]
+    let k: f64 = rest[0]
         .parse()
         .map_err(|_| format!("line {}: bad bond k: {}", line_num + 1, rest[0]))?;
-    let r0: f32 = rest[1]
+    let r0: f64 = rest[1]
         .parse()
         .map_err(|_| format!("line {}: bad bond r_eq: {}", line_num + 1, rest[1]))?;
     ff.bond_params.push((types.0, types.1, BondParams { r0, k }));
@@ -135,13 +135,13 @@ fn parse_angle_line(
 ) -> Result<(), String> {
     let (types_str, rest) = split_types_and_values(line, 2, line_num, "ANGLE")?;
     let types = parse_type_triplet(&types_str)?;
-    let k: f32 = rest[0]
+    let k: f64 = rest[0]
         .parse()
         .map_err(|_| format!("line {}: bad angle k: {}", line_num + 1, rest[0]))?;
     let theta_deg: f64 = rest[1]
         .parse()
         .map_err(|_| format!("line {}: bad angle theta: {}", line_num + 1, rest[1]))?;
-    let theta0 = (theta_deg * std::f64::consts::PI / 180.0) as f32;
+    let theta0 = theta_deg * std::f64::consts::PI / 180.0;
     ff.angle_params.push((types.0, types.1, types.2, AngleParams { theta0, k }));
     Ok(())
 }
@@ -165,8 +165,8 @@ fn parse_dihe_line(
         .parse()
         .map_err(|_| format!("line {}: bad dihedral periodicity: {}", line_num + 1, rest[3]))?;
 
-    let k = if divider.abs() > 1e-12 { (barrier / divider) as f32 } else { barrier as f32 };
-    let delta = (phase_deg * std::f64::consts::PI / 180.0) as f32;
+    let k = if divider.abs() > 1e-12 { barrier / divider } else { barrier };
+    let delta = phase_deg * std::f64::consts::PI / 180.0;
     let n = periodicity.abs() as u8;
 
     ff.dihedral_params.push((types.0, types.1, types.2, types.3, DihedralParams { k, n, delta }));
@@ -325,7 +325,7 @@ O     1.661    0.2100
         assert!((ct_ct_n.k - 80.0).abs() < 1e-6);
         // 109.7 degrees in radians
         let expected = 109.7_f64 * std::f64::consts::PI / 180.0;
-        assert!((ct_ct_n.theta0 as f64 - expected).abs() < 1e-3);
+        assert!((ct_ct_n.theta0 - expected).abs() < 1e-3);
     }
 
     #[test]

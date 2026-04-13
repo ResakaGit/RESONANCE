@@ -325,20 +325,19 @@ impl SolvatedWorld {
     fn measure_phi_psi(&self) -> (f64, f64) {
         let phi_idx = peptide_vacuum::PHI_ATOMS;
         let psi_idx = peptide_vacuum::PSI_ATOMS;
-        let to_f32 = |p: [f64; 3]| -> [f32; 3] { [p[0] as f32, p[1] as f32, p[2] as f32] };
 
         let phi = bonded::dihedral_from_positions_3d(
-            to_f32(self.positions[phi_idx[0]]),
-            to_f32(self.positions[phi_idx[1]]),
-            to_f32(self.positions[phi_idx[2]]),
-            to_f32(self.positions[phi_idx[3]]),
-        ) as f64;
+            self.positions[phi_idx[0]],
+            self.positions[phi_idx[1]],
+            self.positions[phi_idx[2]],
+            self.positions[phi_idx[3]],
+        );
         let psi = bonded::dihedral_from_positions_3d(
-            to_f32(self.positions[psi_idx[0]]),
-            to_f32(self.positions[psi_idx[1]]),
-            to_f32(self.positions[psi_idx[2]]),
-            to_f32(self.positions[psi_idx[3]]),
-        ) as f64;
+            self.positions[psi_idx[0]],
+            self.positions[psi_idx[1]],
+            self.positions[psi_idx[2]],
+            self.positions[psi_idx[3]],
+        );
         (phi, psi)
     }
 
@@ -356,7 +355,7 @@ impl SolvatedWorld {
                 d_sq += dk * dk;
             }
             let d = d_sq.sqrt();
-            let dev = (d - params.r0 as f64).abs();
+            let dev = (d - params.r0).abs();
             if dev > max_dev {
                 max_dev = dev;
             }

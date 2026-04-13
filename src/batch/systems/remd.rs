@@ -170,18 +170,11 @@ fn go_forces(
         }
     }
 
-    // Non-native repulsion (simplified: all pairs |i-j|>=3 not in contact map)
-    let mut is_native = vec![false; n * n];
-    for &(ci, cj, _) in &topo.native_contacts {
-        let (i, j) = (ci as usize, cj as usize);
-        is_native[i * n + j] = true;
-        is_native[j * n + i] = true;
-    }
-
+    // Non-native repulsion — uses pre-computed mask from GoTopology (no alloc per step)
     let rep_sigma = topo.bond_length * 0.8;
     for i in 0..n {
         for j in (i + 3)..n {
-            if is_native[i * n + j] { continue; }
+            if topo.native_mask[i * n + j] { continue; }
             let mut d = [0.0; 3];
             for k in 0..3 { d[k] = positions[i][k] - positions[j][k]; }
             let r_sq = d[0]*d[0] + d[1]*d[1] + d[2]*d[2];

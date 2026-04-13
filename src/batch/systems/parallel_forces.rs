@@ -71,7 +71,7 @@ pub fn go_forces_parallel(
     }
 
     // Non-native repulsion — parallel over outer index
-    let is_native = build_native_mask(n, &topo.native_contacts);
+    let is_native = &topo.native_mask;
     let rep_sigma = topo.bond_length * 0.8;
 
     let chunk_results: Vec<(Vec<[f64; 3]>, f64)> = (0..n).into_par_iter().map(|i| {
@@ -165,7 +165,7 @@ fn go_forces_serial(
         }
     }
 
-    let is_native = build_native_mask(n, &topo.native_contacts);
+    let is_native = &topo.native_mask;
     let rep_sigma = topo.bond_length * 0.8;
     for i in 0..n {
         for j in (i + 3)..n {
@@ -187,15 +187,7 @@ fn go_forces_serial(
     (forces, pe)
 }
 
-fn build_native_mask(n: usize, contacts: &[(u16, u16, f64)]) -> Vec<bool> {
-    let mut mask = vec![false; n * n];
-    for &(i, j, _) in contacts {
-        let (i, j) = (i as usize, j as usize);
-        mask[i * n + j] = true;
-        mask[j * n + i] = true;
-    }
-    mask
-}
+
 
 // ─── Tests ────────────────────────────────────────────────────────────────
 

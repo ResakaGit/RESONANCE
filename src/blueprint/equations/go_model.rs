@@ -155,7 +155,10 @@ pub fn amino_acid_frequency(aa_type: u8) -> f64 {
         17 => 175.0,  //  TRP
         18 => 180.0,  //  TYR
         19 => 185.0,  //  VAL
-         _ => 100.0,  //  unknown → ALA default
+         _ => {
+            debug_assert!(aa_type < 20, "unknown amino acid type: {aa_type}, defaulting to ALA");
+            100.0
+        }
     }
 }
 
@@ -352,6 +355,8 @@ pub struct GoTopology {
     pub bond_k: f64,
     pub epsilon: f64,
     pub epsilon_repel: f64,
+    /// Pre-computed native contact mask (N×N flat bool). Built once, avoids O(N²) alloc per step.
+    pub native_mask: Vec<bool>,
 }
 
 /// Build Go topology from C-alpha positions and sequence.
@@ -379,6 +384,14 @@ pub fn build_go_topology(
     }
     let bond_length = if n > 1 { sum_bl / (n - 1) as f64 } else { 3.8 };
 
+    // Pre-compute native mask (built once, reused every step)
+    let mut native_mask = vec![false; n * n];
+    for &(i, j, _) in &contacts {
+        let (i, j) = (i as usize, j as usize);
+        native_mask[i * n + j] = true;
+        native_mask[j * n + i] = true;
+    }
+
     GoTopology {
         n_residues: n,
         sequence: sequence.to_vec(),
@@ -388,6 +401,7 @@ pub fn build_go_topology(
         bond_k,
         epsilon,
         epsilon_repel: epsilon * 0.5,
+        native_mask,
     }
 }
 

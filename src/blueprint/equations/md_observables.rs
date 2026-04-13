@@ -198,7 +198,7 @@ pub fn lj_force_reduced(dx: f32, dy: f32, r_cut: f32) -> [f32; 2] {
     let sr6 = sr2 * sr2 * sr2;
     let sr12 = sr6 * sr6;
     let f_radial = 24.0 * (2.0 * sr12 - sr6) / r_sq_safe.sqrt();
-    let f_on_i = (-f_radial).clamp(-1000.0, 1000.0);
+    let f_on_i = -f_radial;
     let ux = dx as f64 / r;
     let uy = dy as f64 / r;
     [(f_on_i * ux) as f32, (f_on_i * uy) as f32]
@@ -222,7 +222,7 @@ pub fn lj_force_reduced_3d(d: [f64; 3], r_cut: f64) -> [f64; 3] {
     let sr6 = sr2 * sr2 * sr2;
     let sr12 = sr6 * sr6;
     let f_radial = 24.0 * (2.0 * sr12 - sr6) / r_sq_safe.sqrt();
-    let f_on_i = (-f_radial).clamp(-1000.0, 1000.0);
+    let f_on_i = -f_radial;
     [f_on_i * d[0] / r, f_on_i * d[1] / r, f_on_i * d[2] / r]
 }
 
@@ -434,8 +434,7 @@ pub fn lj_force_3d_params(d: [f64; 3], sigma: f64, epsilon: f64, r_cut: f64) -> 
     let sr6 = sr2 * sr2 * sr2;
     let sr12 = sr6 * sr6;
     let f_radial = 24.0 * epsilon * (2.0 * sr12 - sr6) / r_sq_safe.sqrt();
-    let cap = 1000.0 * epsilon;
-    let f_on_i = (-f_radial).clamp(-cap, cap);
+    let f_on_i = -f_radial;
     [f_on_i * d[0] / r, f_on_i * d[1] / r, f_on_i * d[2] / r]
 }
 

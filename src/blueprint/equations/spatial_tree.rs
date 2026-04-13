@@ -220,7 +220,8 @@ impl QuadTree {
             let quad = Self::quadrant(node.bx, node.by, old_p.position[0], old_p.position[1]);
             let new_half = node.half * 0.5;
             if new_half < 1e-6 {
-                // Too small to subdivide — keep as multi-particle leaf
+                // Too small to subdivide — co-located particles, keep as multi-leaf
+                self.nodes[ni].count += 1;
                 self.update_aggregate(ni, p);
                 return;
             }

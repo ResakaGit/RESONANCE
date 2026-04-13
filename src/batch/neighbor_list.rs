@@ -172,9 +172,7 @@ impl CellList3D {
             let cy = ((positions[i][1] / cs[1]).floor() as usize).min(ny - 1);
             let cz = ((positions[i][2] / cs[2]).floor() as usize).min(nz - 1);
             let cell = cz * ny * nx + cy * nx + cx;
-            next[i] = head[cell];
-            head[i as u16 as usize] = head[cell]; // fix: use proper linking
-            // Linked list: insert at head
+            // Linked list: insert at head of cell chain
             next[i] = head[cell];
             head[cell] = i as u16;
         }

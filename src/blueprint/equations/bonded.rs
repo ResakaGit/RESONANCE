@@ -10,7 +10,7 @@
 
 /// Harmonic bond potential: V(r) = 0.5 * k * (r - r0)^2.
 #[inline]
-pub fn harmonic_bond_energy(r: f32, r0: f32, k: f32) -> f32 {
+pub fn harmonic_bond_energy(r: f64, r0: f64, k: f64) -> f64 {
     let dr = r - r0;
     0.5 * k * dr * dr
 }
@@ -22,7 +22,7 @@ pub fn harmonic_bond_energy(r: f32, r0: f32, k: f32) -> f32 {
 ///
 /// Convention: positive along dx = toward j (attractive when stretched).
 /// At r > r0: pulls i toward j. At r < r0: pushes i away from j.
-pub fn harmonic_bond_force(dx: f32, dy: f32, r0: f32, k: f32) -> [f32; 2] {
+pub fn harmonic_bond_force(dx: f64, dy: f64, r0: f64, k: f64) -> [f64; 2] {
     let r_sq = dx * dx + dy * dy;
     if r_sq < 1e-20 {
         return [0.0, 0.0];
@@ -38,7 +38,7 @@ pub fn harmonic_bond_force(dx: f32, dy: f32, r0: f32, k: f32) -> [f32; 2] {
 /// Angle between vectors ba and bc (at vertex b), in radians.
 ///
 /// Returns angle in [0, pi]. Uses atan2 for numerical stability.
-pub fn angle_from_vectors_2d(ba: [f32; 2], bc: [f32; 2]) -> f32 {
+pub fn angle_from_vectors_2d(ba: [f64; 2], bc: [f64; 2]) -> f64 {
     let dot = ba[0] * bc[0] + ba[1] * bc[1];
     let cross = ba[0] * bc[1] - ba[1] * bc[0];
     cross.atan2(dot).abs()
@@ -46,7 +46,7 @@ pub fn angle_from_vectors_2d(ba: [f32; 2], bc: [f32; 2]) -> f32 {
 
 /// Harmonic angle potential: V(theta) = 0.5 * k * (theta - theta0)^2.
 #[inline]
-pub fn harmonic_angle_energy(theta: f32, theta0: f32, k: f32) -> f32 {
+pub fn harmonic_angle_energy(theta: f64, theta0: f64, k: f64) -> f64 {
     let dt = theta - theta0;
     0.5 * k * dt * dt
 }
@@ -56,15 +56,15 @@ pub fn harmonic_angle_energy(theta: f32, theta0: f32, k: f32) -> f32 {
 /// Returns [f_a, f_b, f_c]. Newton 3: f_a + f_b + f_c = 0.
 /// Uses numerical gradient (central differences) for robustness.
 pub fn harmonic_angle_forces_2d(
-    a: [f32; 2],
-    b: [f32; 2],
-    c: [f32; 2],
-    theta0: f32,
-    k: f32,
-) -> [[f32; 2]; 3] {
-    let h = 1e-4_f32;
+    a: [f64; 2],
+    b: [f64; 2],
+    c: [f64; 2],
+    theta0: f64,
+    k: f64,
+) -> [[f64; 2]; 3] {
+    let h = super::special_functions::NUMERICAL_GRAD_STEP as f64;
     let positions = [a, b, c];
-    let mut forces = [[0.0f32; 2]; 3];
+    let mut forces = [[0.0f64; 2]; 3];
 
     for atom in 0..3 {
         for dim in 0..2 {
@@ -93,7 +93,7 @@ pub fn harmonic_angle_forces_2d(
 ///
 /// `dx, dy, dz`: displacement from i to j (j.pos - i.pos).
 /// Returns force ON i. Newton 3: force on j = negated.
-pub fn harmonic_bond_force_3d(dx: f32, dy: f32, dz: f32, r0: f32, k: f32) -> [f32; 3] {
+pub fn harmonic_bond_force_3d(dx: f64, dy: f64, dz: f64, r0: f64, k: f64) -> [f64; 3] {
     let r_sq = dx * dx + dy * dy + dz * dz;
     if r_sq < 1e-20 {
         return [0.0; 3];
@@ -106,7 +106,7 @@ pub fn harmonic_bond_force_3d(dx: f32, dy: f32, dz: f32, r0: f32, k: f32) -> [f3
 // ─── 3D Harmonic Angle ────────────────────────────────────────────────────
 
 /// Angle between vectors ba and bc (at vertex b) in 3D, in radians [0, pi].
-pub fn angle_from_vectors_3d(ba: [f32; 3], bc: [f32; 3]) -> f32 {
+pub fn angle_from_vectors_3d(ba: [f64; 3], bc: [f64; 3]) -> f64 {
     let cross = cross_3d(ba, bc);
     let cross_mag = mag_3d(cross);
     let dot = dot_3d(ba, bc);
@@ -118,15 +118,15 @@ pub fn angle_from_vectors_3d(ba: [f32; 3], bc: [f32; 3]) -> f32 {
 /// Returns [f_a, f_b, f_c]. Newton 3: sum = 0.
 /// Uses numerical gradient (central differences) for robustness.
 pub fn harmonic_angle_forces_3d(
-    a: [f32; 3],
-    b: [f32; 3],
-    c: [f32; 3],
-    theta0: f32,
-    k: f32,
-) -> [[f32; 3]; 3] {
-    let h = 1e-4_f32;
+    a: [f64; 3],
+    b: [f64; 3],
+    c: [f64; 3],
+    theta0: f64,
+    k: f64,
+) -> [[f64; 3]; 3] {
+    let h = super::special_functions::NUMERICAL_GRAD_STEP as f64;
     let positions = [a, b, c];
-    let mut forces = [[0.0f32; 3]; 3];
+    let mut forces = [[0.0f64; 3]; 3];
 
     for atom in 0..3 {
         for dim in 0..3 {
@@ -153,7 +153,7 @@ pub fn harmonic_angle_forces_3d(
 
 /// Cross product of two 3D vectors.
 #[inline]
-fn cross_3d(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
+fn cross_3d(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
     [
         a[1] * b[2] - a[2] * b[1],
         a[2] * b[0] - a[0] * b[2],
@@ -163,19 +163,19 @@ fn cross_3d(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
 
 /// Dot product of two 3D vectors.
 #[inline]
-fn dot_3d(a: [f32; 3], b: [f32; 3]) -> f32 {
+fn dot_3d(a: [f64; 3], b: [f64; 3]) -> f64 {
     a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
 }
 
 /// Magnitude of a 3D vector.
 #[inline]
-fn mag_3d(v: [f32; 3]) -> f32 {
+fn mag_3d(v: [f64; 3]) -> f64 {
     dot_3d(v, v).sqrt()
 }
 
 /// Subtract two 3D vectors: a - b.
 #[inline]
-fn sub_3d(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
+fn sub_3d(a: [f64; 3], b: [f64; 3]) -> [f64; 3] {
     [a[0] - b[0], a[1] - b[1], a[2] - b[2]]
 }
 
@@ -185,11 +185,11 @@ fn sub_3d(a: [f32; 3], b: [f32; 3]) -> [f32; 3] {
 /// phi = atan2((b1 x b2) . b0/|b0|, b1 . b2)
 /// where b0 = b-a, b1 = c-b, b2 = d-c.
 pub fn dihedral_from_positions_3d(
-    a: [f32; 3],
-    b: [f32; 3],
-    c: [f32; 3],
-    d: [f32; 3],
-) -> f32 {
+    a: [f64; 3],
+    b: [f64; 3],
+    c: [f64; 3],
+    d: [f64; 3],
+) -> f64 {
     let b0 = sub_3d(b, a);
     let b1 = sub_3d(c, b);
     let b2 = sub_3d(d, c);
@@ -209,8 +209,8 @@ pub fn dihedral_from_positions_3d(
 ///
 /// `n`: periodicity (1, 2, 3...). `delta`: phase offset.
 #[inline]
-pub fn dihedral_energy(phi: f32, k: f32, n: u8, delta: f32) -> f32 {
-    k * (1.0 + (n as f32 * phi - delta).cos())
+pub fn dihedral_energy(phi: f64, k: f64, n: u8, delta: f64) -> f64 {
+    k * (1.0 + (n as f64 * phi - delta).cos())
 }
 
 /// Proper dihedral forces on particles a, b, c, d (3D).
@@ -220,17 +220,17 @@ pub fn dihedral_energy(phi: f32, k: f32, n: u8, delta: f32) -> f32 {
 /// Analytical gradient is complex and error-prone; numerical is sufficient
 /// for the Go model use case (MD-15).
 pub fn dihedral_forces_3d(
-    a: [f32; 3],
-    b: [f32; 3],
-    c: [f32; 3],
-    d: [f32; 3],
-    k: f32,
+    a: [f64; 3],
+    b: [f64; 3],
+    c: [f64; 3],
+    d: [f64; 3],
+    k: f64,
     n: u8,
-    delta: f32,
-) -> [[f32; 3]; 4] {
-    let h = 1e-4_f32;
+    delta: f64,
+) -> [[f64; 3]; 4] {
+    let h = super::special_functions::NUMERICAL_GRAD_STEP as f64;
     let positions = [a, b, c, d];
-    let mut forces = [[0.0f32; 3]; 4];
+    let mut forces = [[0.0f64; 3]; 4];
 
     for atom in 0..4 {
         for dim in 0..3 {
@@ -314,18 +314,18 @@ mod tests {
     fn bond_oscillation_period() {
         // Two particles connected by spring: omega = sqrt(k/mu), mu = m/2.
         // Use Velocity Verlet for accurate period measurement.
-        let k = 100.0_f32;
-        let m = 1.0_f32;
+        let k = 100.0_f64;
+        let m = 1.0_f64;
         let mu = m * m / (m + m); // 0.5
         let omega = (k / mu).sqrt();
-        let expected_period = 2.0 * std::f32::consts::PI / omega;
-        let dt = 0.0001_f32;
+        let expected_period = 2.0 * std::f64::consts::PI / omega;
+        let dt = 0.0001_f64;
 
-        let r0 = 1.5_f32;
-        let mut xi = 0.0_f32;
+        let r0 = 1.5_f64;
+        let mut xi = 0.0_f64;
         let mut xj = r0 + 0.1;
-        let mut vi = 0.0_f32;
-        let mut vj = 0.0_f32;
+        let mut vi = 0.0_f64;
+        let mut vj = 0.0_f64;
         // Initial acceleration
         let f0 = harmonic_bond_force(xj - xi, 0.0, r0, k);
         let mut ai = f0[0] / m;
@@ -334,7 +334,7 @@ mod tests {
         let mut prev_stretch = xj - xi - r0;
         let mut crossings = 0u32;
         let mut first_crossing_step = 0u32;
-        let mut measured_period = 0.0_f32;
+        let mut measured_period = 0.0_f64;
 
         for step in 0..200_000 {
             // Verlet position step
@@ -357,7 +357,7 @@ mod tests {
                     first_crossing_step = step;
                 } else if crossings == 2 {
                     // Period = time between two consecutive same-direction crossings
-                    measured_period = (step - first_crossing_step) as f32 * dt;
+                    measured_period = (step - first_crossing_step) as f64 * dt;
                     break;
                 }
             }
@@ -378,7 +378,7 @@ mod tests {
         let bc = [0.0, 1.0];
         let theta = angle_from_vectors_2d(ba, bc);
         assert!(
-            (theta - std::f32::consts::FRAC_PI_2).abs() < 1e-5,
+            (theta - std::f64::consts::FRAC_PI_2).abs() < 1e-5,
             "90 degrees: {theta}",
         );
     }
@@ -389,14 +389,14 @@ mod tests {
         let bc = [-1.0, 0.0];
         let theta = angle_from_vectors_2d(ba, bc);
         assert!(
-            (theta - std::f32::consts::PI).abs() < 1e-4,
+            (theta - std::f64::consts::PI).abs() < 1e-4,
             "180 degrees: {theta}",
         );
     }
 
     #[test]
     fn angle_energy_zero_at_equilibrium() {
-        let theta0 = std::f32::consts::FRAC_PI_2;
+        let theta0 = std::f64::consts::FRAC_PI_2;
         assert_eq!(harmonic_angle_energy(theta0, theta0, 50.0), 0.0);
     }
 
@@ -439,7 +439,7 @@ mod tests {
         let ba_new = [pa[0] - b[0], pa[1] - b[1]];
         let bc_new = [pc[0] - b[0], pc[1] - b[1]];
         let theta_new = angle_from_vectors_2d(ba_new, bc_new);
-        let theta_old = std::f32::consts::FRAC_PI_2;
+        let theta_old = std::f64::consts::FRAC_PI_2;
         assert!(
             (theta_new - theta0).abs() < (theta_old - theta0).abs(),
             "angle should move toward equilibrium: old={theta_old:.3}, new={theta_new:.3}, target={theta0:.3}",
@@ -478,7 +478,7 @@ mod tests {
         let bc = [0.0, 1.0, 0.0];
         let theta = angle_from_vectors_3d(ba, bc);
         assert!(
-            (theta - std::f32::consts::FRAC_PI_2).abs() < 1e-5,
+            (theta - std::f64::consts::FRAC_PI_2).abs() < 1e-5,
             "90 degrees: {theta}",
         );
     }
@@ -489,7 +489,7 @@ mod tests {
         let bc = [-1.0, 0.0, 0.0];
         let theta = angle_from_vectors_3d(ba, bc);
         assert!(
-            (theta - std::f32::consts::PI).abs() < 1e-4,
+            (theta - std::f64::consts::PI).abs() < 1e-4,
             "180 degrees: {theta}",
         );
     }
@@ -501,7 +501,7 @@ mod tests {
         let c = [0.0, 1.0, 0.5];
         let theta0 = 1.0;
         let forces = harmonic_angle_forces_3d(a, b, c, theta0, 50.0);
-        let sum: [f32; 3] = [
+        let sum: [f64; 3] = [
             forces[0][0] + forces[1][0] + forces[2][0],
             forces[0][1] + forces[1][1] + forces[2][1],
             forces[0][2] + forces[1][2] + forces[2][2],
@@ -524,7 +524,7 @@ mod tests {
         let d = [0.5, 1.0, 0.0]; // same side as a relative to b-c
         let phi = dihedral_from_positions_3d(a, b, c, d);
         // This should be close to 0 (cis) since a and d are on same side
-        assert!(phi.abs() < 0.5 || (phi.abs() - std::f32::consts::PI).abs() < 0.5,
+        assert!(phi.abs() < 0.5 || (phi.abs() - std::f64::consts::PI).abs() < 0.5,
             "phi={phi:.3}");
     }
 
@@ -535,7 +535,7 @@ mod tests {
         let n = 3u8;
         let delta = 0.0;
         let v1 = dihedral_energy(phi, k, n, delta);
-        let v2 = dihedral_energy(phi + 2.0 * std::f32::consts::PI / n as f32, k, n, delta);
+        let v2 = dihedral_energy(phi + 2.0 * std::f64::consts::PI / n as f64, k, n, delta);
         assert!(
             (v1 - v2).abs() < 1e-4,
             "V(phi) = V(phi + 2pi/n): {v1} vs {v2}",
@@ -549,7 +549,7 @@ mod tests {
         let c = [1.5, 1.0, 0.0];
         let d = [2.5, 1.0, 0.5];
         let forces = dihedral_forces_3d(a, b, c, d, 2.0, 3, 0.0);
-        let sum: [f32; 3] = [
+        let sum: [f64; 3] = [
             forces[0][0] + forces[1][0] + forces[2][0] + forces[3][0],
             forces[0][1] + forces[1][1] + forces[2][1] + forces[3][1],
             forces[0][2] + forces[1][2] + forces[2][2] + forces[3][2],

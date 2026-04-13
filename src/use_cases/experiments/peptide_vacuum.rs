@@ -212,12 +212,12 @@ pub fn build_alanine_dipeptide(phi: f64, psi: f64) -> (Vec<[f64; 3]>, Topology) 
     topo.add_residue(ResidueInfo { name: *b"NME\0", first_atom: 16, atom_count: 6 });
 
     // Bond parameters (AMBER-like, reduced units)
-    let b_cc = BondParams { r0: CC as f32, k: 3000.0 };
-    let b_cn_pep = BondParams { r0: CN_PEP as f32, k: 4000.0 };
-    let b_cn_ami = BondParams { r0: CN_AMI as f32, k: 3000.0 };
-    let b_co = BondParams { r0: CO as f32, k: 5000.0 };
-    let b_nh = BondParams { r0: NH as f32, k: 2500.0 };
-    let b_ch = BondParams { r0: CH as f32, k: 2500.0 };
+    let b_cc = BondParams { r0: CC, k: 3000.0 };
+    let b_cn_pep = BondParams { r0: CN_PEP, k: 4000.0 };
+    let b_cn_ami = BondParams { r0: CN_AMI, k: 3000.0 };
+    let b_co = BondParams { r0: CO, k: 5000.0 };
+    let b_nh = BondParams { r0: NH, k: 2500.0 };
+    let b_ch = BondParams { r0: CH, k: 2500.0 };
 
     // ACE bonds
     topo.add_bond(0, 1, b_ch);
@@ -248,14 +248,14 @@ pub fn build_alanine_dipeptide(phi: f64, psi: f64) -> (Vec<[f64; 3]>, Topology) 
     // Total: 21 bonds ✓
 
     // Infer angles with sp3 default, override sp2 at carbonyl C and peptide N
-    let sp3_angle = AngleParams { theta0: SP3 as f32, k: 100.0 };
+    let sp3_angle = AngleParams { theta0: SP3, k: 100.0 };
     topo.infer_angles_from_bonds(sp3_angle);
 
     // Override sp2 angles at planar centers
     let sp2_vertices: &[u16] = &[4, 6, 14, 16];
     for angle in &mut topo.angles {
         if sp2_vertices.contains(&angle.1) {
-            angle.3.theta0 = SP2 as f32;
+            angle.3.theta0 = SP2;
         }
     }
 
@@ -274,7 +274,7 @@ pub fn build_alanine_dipeptide(phi: f64, psi: f64) -> (Vec<[f64; 3]>, Topology) 
         if is_peptide {
             dih.4.k = 10.0;
             dih.4.n = 2;
-            dih.4.delta = core::f32::consts::PI;
+            dih.4.delta = core::f64::consts::PI;
         }
     }
 
@@ -420,28 +420,19 @@ impl PeptideWorld {
 
     /// Measure current phi and psi backbone dihedrals.
     fn measure_phi_psi(&self) -> (f32, f32) {
-        let phi_pos: Vec<[f32; 3]> = PHI_ATOMS.iter()
-            .map(|&i| [
-                self.positions[i][0] as f32,
-                self.positions[i][1] as f32,
-                self.positions[i][2] as f32,
-            ])
-            .collect();
-        let psi_pos: Vec<[f32; 3]> = PSI_ATOMS.iter()
-            .map(|&i| [
-                self.positions[i][0] as f32,
-                self.positions[i][1] as f32,
-                self.positions[i][2] as f32,
-            ])
-            .collect();
-
         let phi = bonded::dihedral_from_positions_3d(
-            phi_pos[0], phi_pos[1], phi_pos[2], phi_pos[3],
+            self.positions[PHI_ATOMS[0]],
+            self.positions[PHI_ATOMS[1]],
+            self.positions[PHI_ATOMS[2]],
+            self.positions[PHI_ATOMS[3]],
         );
         let psi = bonded::dihedral_from_positions_3d(
-            psi_pos[0], psi_pos[1], psi_pos[2], psi_pos[3],
+            self.positions[PSI_ATOMS[0]],
+            self.positions[PSI_ATOMS[1]],
+            self.positions[PSI_ATOMS[2]],
+            self.positions[PSI_ATOMS[3]],
         );
-        (phi, psi)
+        (phi as f32, psi as f32)
     }
 
     /// Max bond deviation: max(|r - r0| / r0) over all bonds.
@@ -454,7 +445,7 @@ impl PeptideWorld {
                 self.positions[j as usize][2] - self.positions[i as usize][2],
             ];
             let r = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt();
-            let dev = ((r - params.r0 as f64) / params.r0 as f64).abs();
+            let dev = ((r - params.r0) / params.r0).abs();
             if dev > max_dev {
                 max_dev = dev;
             }
@@ -568,7 +559,7 @@ mod tests {
                 pos[j as usize][2] - pos[i as usize][2],
             ];
             let r = (d[0] * d[0] + d[1] * d[1] + d[2] * d[2]).sqrt();
-            let dev = ((r - params.r0 as f64) / params.r0 as f64).abs();
+            let dev = ((r - params.r0) / params.r0).abs();
             assert!(
                 dev < 0.05,
                 "bond {}-{}: r={r:.4}, r0={:.4}, dev={dev:.4}",
@@ -606,14 +597,11 @@ mod tests {
     #[test]
     fn phi_psi_measurable() {
         let (pos, _) = build_alanine_dipeptide(-2.4, 2.4);
-        let phi_pos: Vec<[f32; 3]> = PHI_ATOMS.iter()
-            .map(|&i| [pos[i][0] as f32, pos[i][1] as f32, pos[i][2] as f32])
-            .collect();
         let phi = bonded::dihedral_from_positions_3d(
-            phi_pos[0], phi_pos[1], phi_pos[2], phi_pos[3],
+            pos[PHI_ATOMS[0]], pos[PHI_ATOMS[1]], pos[PHI_ATOMS[2]], pos[PHI_ATOMS[3]],
         );
         assert!(phi.is_finite(), "phi should be finite: {phi}");
-        assert!(phi.abs() <= core::f32::consts::PI + 0.01, "phi in [-pi,pi]: {phi}");
+        assert!(phi.abs() <= core::f64::consts::PI + 0.01, "phi in [-pi,pi]: {phi}");
     }
 
     #[test]

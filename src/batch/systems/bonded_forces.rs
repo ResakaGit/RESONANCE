@@ -24,15 +24,15 @@ pub fn compute_bonded_forces_2d(
         if ii >= positions.len() || jj >= positions.len() {
             continue;
         }
-        let dx = positions[jj][0] - positions[ii][0];
-        let dy = positions[jj][1] - positions[ii][1];
+        let dx = (positions[jj][0] - positions[ii][0]) as f64;
+        let dy = (positions[jj][1] - positions[ii][1]) as f64;
         let f = bonded::harmonic_bond_force(dx, dy, params.r0, params.k);
         // Force on i
-        forces[ii][0] += f[0] as f64;
-        forces[ii][1] += f[1] as f64;
+        forces[ii][0] += f[0];
+        forces[ii][1] += f[1];
         // Newton 3: force on j
-        forces[jj][0] -= f[0] as f64;
-        forces[jj][1] -= f[1] as f64;
+        forces[jj][0] -= f[0];
+        forces[jj][1] -= f[1];
     }
 
     // ── Angles: harmonic ───────────────────────────────────────────────────
@@ -43,17 +43,20 @@ pub fn compute_bonded_forces_2d(
         if aa >= positions.len() || bb >= positions.len() || cc >= positions.len() {
             continue;
         }
+        let pa = [positions[aa][0] as f64, positions[aa][1] as f64];
+        let pb = [positions[bb][0] as f64, positions[bb][1] as f64];
+        let pc = [positions[cc][0] as f64, positions[cc][1] as f64];
         let f = bonded::harmonic_angle_forces_2d(
-            positions[aa],
-            positions[bb],
-            positions[cc],
+            pa,
+            pb,
+            pc,
             params.theta0,
             params.k,
         );
         for dim in 0..2 {
-            forces[aa][dim] += f[0][dim] as f64;
-            forces[bb][dim] += f[1][dim] as f64;
-            forces[cc][dim] += f[2][dim] as f64;
+            forces[aa][dim] += f[0][dim];
+            forces[bb][dim] += f[1][dim];
+            forces[cc][dim] += f[2][dim];
         }
     }
 }
@@ -63,23 +66,23 @@ pub fn bonded_potential_energy_2d(positions: &[[f32; 2]], topology: &Topology) -
     let mut energy = 0.0_f64;
 
     for &(i, j, ref params) in &topology.bonds {
-        let dx = positions[j as usize][0] - positions[i as usize][0];
-        let dy = positions[j as usize][1] - positions[i as usize][1];
+        let dx = (positions[j as usize][0] - positions[i as usize][0]) as f64;
+        let dy = (positions[j as usize][1] - positions[i as usize][1]) as f64;
         let r = (dx * dx + dy * dy).sqrt();
-        energy += bonded::harmonic_bond_energy(r, params.r0, params.k) as f64;
+        energy += bonded::harmonic_bond_energy(r, params.r0, params.k);
     }
 
     for &(a, b, c, ref params) in &topology.angles {
         let ba = [
-            positions[a as usize][0] - positions[b as usize][0],
-            positions[a as usize][1] - positions[b as usize][1],
+            (positions[a as usize][0] - positions[b as usize][0]) as f64,
+            (positions[a as usize][1] - positions[b as usize][1]) as f64,
         ];
         let bc = [
-            positions[c as usize][0] - positions[b as usize][0],
-            positions[c as usize][1] - positions[b as usize][1],
+            (positions[c as usize][0] - positions[b as usize][0]) as f64,
+            (positions[c as usize][1] - positions[b as usize][1]) as f64,
         ];
         let theta = bonded::angle_from_vectors_2d(ba, bc);
-        energy += bonded::harmonic_angle_energy(theta, params.theta0, params.k) as f64;
+        energy += bonded::harmonic_angle_energy(theta, params.theta0, params.k);
     }
 
     energy
@@ -87,7 +90,7 @@ pub fn bonded_potential_energy_2d(positions: &[[f32; 2]], topology: &Topology) -
 
 /// Accumulate bonded forces (bonds + angles + dihedrals) into 3D f64 force array.
 ///
-/// Positions are f64 (MD-7). Math functions use f32 internally.
+/// Positions are f64 (MD-7). Math functions use f64.
 /// Newton 3: Σ forces = 0.
 pub fn compute_bonded_forces_3d(
     positions: &[[f64; 3]],
@@ -101,13 +104,13 @@ pub fn compute_bonded_forces_3d(
         if ii >= positions.len() || jj >= positions.len() {
             continue;
         }
-        let dx = (positions[jj][0] - positions[ii][0]) as f32;
-        let dy = (positions[jj][1] - positions[ii][1]) as f32;
-        let dz = (positions[jj][2] - positions[ii][2]) as f32;
+        let dx = positions[jj][0] - positions[ii][0];
+        let dy = positions[jj][1] - positions[ii][1];
+        let dz = positions[jj][2] - positions[ii][2];
         let f = bonded::harmonic_bond_force_3d(dx, dy, dz, params.r0, params.k);
         for d in 0..3 {
-            forces[ii][d] += f[d] as f64;
-            forces[jj][d] -= f[d] as f64;
+            forces[ii][d] += f[d];
+            forces[jj][d] -= f[d];
         }
     }
 
@@ -119,14 +122,14 @@ pub fn compute_bonded_forces_3d(
         if aa >= positions.len() || bb >= positions.len() || cc >= positions.len() {
             continue;
         }
-        let pa = [positions[aa][0] as f32, positions[aa][1] as f32, positions[aa][2] as f32];
-        let pb = [positions[bb][0] as f32, positions[bb][1] as f32, positions[bb][2] as f32];
-        let pc = [positions[cc][0] as f32, positions[cc][1] as f32, positions[cc][2] as f32];
+        let pa = positions[aa];
+        let pb = positions[bb];
+        let pc = positions[cc];
         let f = bonded::harmonic_angle_forces_3d(pa, pb, pc, params.theta0, params.k);
         for d in 0..3 {
-            forces[aa][d] += f[0][d] as f64;
-            forces[bb][d] += f[1][d] as f64;
-            forces[cc][d] += f[2][d] as f64;
+            forces[aa][d] += f[0][d];
+            forces[bb][d] += f[1][d];
+            forces[cc][d] += f[2][d];
         }
     }
 
@@ -141,16 +144,16 @@ pub fn compute_bonded_forces_3d(
         {
             continue;
         }
-        let pa = [positions[ai][0] as f32, positions[ai][1] as f32, positions[ai][2] as f32];
-        let pb = [positions[bi][0] as f32, positions[bi][1] as f32, positions[bi][2] as f32];
-        let pc = [positions[ci][0] as f32, positions[ci][1] as f32, positions[ci][2] as f32];
-        let pd = [positions[di][0] as f32, positions[di][1] as f32, positions[di][2] as f32];
+        let pa = positions[ai];
+        let pb = positions[bi];
+        let pc = positions[ci];
+        let pd = positions[di];
         let f = bonded::dihedral_forces_3d(pa, pb, pc, pd, params.k, params.n, params.delta);
         for dim in 0..3 {
-            forces[ai][dim] += f[0][dim] as f64;
-            forces[bi][dim] += f[1][dim] as f64;
-            forces[ci][dim] += f[2][dim] as f64;
-            forces[di][dim] += f[3][dim] as f64;
+            forces[ai][dim] += f[0][dim];
+            forces[bi][dim] += f[1][dim];
+            forces[ci][dim] += f[2][dim];
+            forces[di][dim] += f[3][dim];
         }
     }
 }
@@ -163,32 +166,32 @@ pub fn bonded_potential_energy_3d(positions: &[[f64; 3]], topology: &Topology) -
         let dx = positions[j as usize][0] - positions[i as usize][0];
         let dy = positions[j as usize][1] - positions[i as usize][1];
         let dz = positions[j as usize][2] - positions[i as usize][2];
-        let r = (dx * dx + dy * dy + dz * dz).sqrt() as f32;
-        energy += bonded::harmonic_bond_energy(r, params.r0, params.k) as f64;
+        let r = (dx * dx + dy * dy + dz * dz).sqrt();
+        energy += bonded::harmonic_bond_energy(r, params.r0, params.k);
     }
 
     for &(a, b, c, ref params) in &topology.angles {
         let ba = [
-            (positions[a as usize][0] - positions[b as usize][0]) as f32,
-            (positions[a as usize][1] - positions[b as usize][1]) as f32,
-            (positions[a as usize][2] - positions[b as usize][2]) as f32,
+            positions[a as usize][0] - positions[b as usize][0],
+            positions[a as usize][1] - positions[b as usize][1],
+            positions[a as usize][2] - positions[b as usize][2],
         ];
         let bc = [
-            (positions[c as usize][0] - positions[b as usize][0]) as f32,
-            (positions[c as usize][1] - positions[b as usize][1]) as f32,
-            (positions[c as usize][2] - positions[b as usize][2]) as f32,
+            positions[c as usize][0] - positions[b as usize][0],
+            positions[c as usize][1] - positions[b as usize][1],
+            positions[c as usize][2] - positions[b as usize][2],
         ];
         let theta = bonded::angle_from_vectors_3d(ba, bc);
-        energy += bonded::harmonic_angle_energy(theta, params.theta0, params.k) as f64;
+        energy += bonded::harmonic_angle_energy(theta, params.theta0, params.k);
     }
 
     for &(a, b, c, d, ref params) in &topology.dihedrals {
-        let pa = [positions[a as usize][0] as f32, positions[a as usize][1] as f32, positions[a as usize][2] as f32];
-        let pb = [positions[b as usize][0] as f32, positions[b as usize][1] as f32, positions[b as usize][2] as f32];
-        let pc = [positions[c as usize][0] as f32, positions[c as usize][1] as f32, positions[c as usize][2] as f32];
-        let pd = [positions[d as usize][0] as f32, positions[d as usize][1] as f32, positions[d as usize][2] as f32];
+        let pa = positions[a as usize];
+        let pb = positions[b as usize];
+        let pc = positions[c as usize];
+        let pd = positions[d as usize];
         let phi = bonded::dihedral_from_positions_3d(pa, pb, pc, pd);
-        energy += bonded::dihedral_energy(phi, params.k, params.n, params.delta) as f64;
+        energy += bonded::dihedral_energy(phi, params.k, params.n, params.delta);
     }
 
     energy
@@ -228,7 +231,7 @@ mod tests {
     fn angle_forces_with_topology() {
         let mut topo = Topology::linear_chain(3, BondParams { r0: 1.0, k: 100.0 });
         topo.infer_angles_from_bonds(AngleParams {
-            theta0: std::f32::consts::PI, // 180 degrees
+            theta0: std::f64::consts::PI, // 180 degrees
             k: 50.0,
         });
         assert_eq!(topo.angles.len(), 1);
@@ -299,7 +302,7 @@ mod tests {
         let k = 200.0;
         let mut topo = Topology::linear_chain(5, BondParams { r0, k });
         topo.infer_angles_from_bonds(AngleParams {
-            theta0: std::f32::consts::PI,
+            theta0: std::f64::consts::PI,
             k: 20.0,
         });
 
@@ -335,7 +338,7 @@ mod tests {
             let dy = pos[i + 1][1] - pos[i][1];
             let r = (dx * dx + dy * dy).sqrt();
             assert!(
-                (r - r0).abs() < 0.1,
+                (r - r0 as f32).abs() < 0.1,
                 "bond {i}-{}: r={r:.3}, expected ~{r0}",
                 i + 1,
             );
