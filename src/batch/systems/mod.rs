@@ -4,6 +4,7 @@
 //! Organized by pipeline phase, mirroring `simulation/pipeline.rs` ordering.
 
 mod atomic;
+pub mod bonded_forces;
 mod chemical;
 mod input;
 mod internal_field;
@@ -11,8 +12,11 @@ mod metabolic;
 mod metabolic_graph;
 mod morphological;
 mod multicellular;
+pub mod parallel_forces;
 mod particle_forces;
 mod protein;
+pub mod remd;
+mod thermostat;
 mod thermodynamic;
 
 // Phase::Input
@@ -23,8 +27,9 @@ pub use thermodynamic::{engine_processing, grid_cell, irradiance_update};
 
 // Phase::AtomicLayer
 pub use atomic::{
-    collision, containment_check, dissipation, entrainment, locomotion_drain, movement_integrate,
-    tension_field_apply, velocity_cap, will_to_velocity,
+    collision, containment_check, dissipation, entrainment, locomotion_drain,
+    tension_field_apply, velocity_cap, verlet_position_step, verlet_velocity_finish,
+    will_to_velocity, wrap_positions,
 };
 
 // Phase::ChemicalLayer
@@ -40,6 +45,7 @@ pub use metabolic::{
 pub use metabolic_graph::metabolic_graph_infer;
 pub use multicellular::multicellular_step;
 pub use particle_forces::{count_molecules, detect_particle_bonds, particle_forces};
+pub use thermostat::langevin_thermostat;
 pub use protein::protein_fold_infer;
 
 // Phase::MorphologicalLayer (internal field)

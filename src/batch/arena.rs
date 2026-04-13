@@ -94,6 +94,17 @@ pub struct EntitySlot {
     pub charge: f32,
     pub particle_mass: f32,
 
+    // ── MD-0 Verlet state ─────────────────
+    pub old_acceleration: [f32; 2],
+
+    // ── MD-7 3D f64 state (molecular dynamics)
+    #[cfg(feature = "md_3d")]
+    pub position_3d: [f64; 3],
+    #[cfg(feature = "md_3d")]
+    pub velocity_3d: [f64; 3],
+    #[cfg(feature = "md_3d")]
+    pub old_acceleration_3d: [f64; 3],
+
     // ── Flags (packed) ─────────────────────
     pub alive: bool,
     pub archetype: u8,
@@ -140,6 +151,13 @@ impl Default for EntitySlot {
             freq_field: [[0.0; RADIAL]; AXIAL],
             charge: 0.0,
             particle_mass: 1.0,
+            old_acceleration: [0.0; 2],
+            #[cfg(feature = "md_3d")]
+            position_3d: [0.0; 3],
+            #[cfg(feature = "md_3d")]
+            velocity_3d: [0.0; 3],
+            #[cfg(feature = "md_3d")]
+            old_acceleration_3d: [0.0; 3],
             alive: false,
             archetype: 0,
             matter_state: 0,
@@ -181,6 +199,22 @@ pub struct SimWorldFlat {
     pub nutrient_grid: [f32; GRID_CELLS],
     pub irradiance_grid: [f32; GRID_CELLS],
     pub events: EventBuffer,
+    /// MD-2: periodic box dimensions [Lx, Ly]. None = free-space (no PBC).
+    /// When set, positions wrap at box edges and forces use minimum image.
+    pub sim_box: Option<[f32; 2]>,
+    /// MD-7: 3D periodic box [Lx, Ly, Lz] in f64. None = free-space.
+    #[cfg(feature = "md_3d")]
+    pub sim_box_3d: Option<[f64; 3]>,
+    /// MD-1: thermostat enabled. Off = NVE (energy conserved). On = NVT (temperature controlled).
+    pub thermostat_enabled: bool,
+    /// MD-1: target thermal energy k_B * T (energy units). Default 1.0.
+    pub thermostat_target_kb_t: f64,
+    /// MD-1: Langevin friction coefficient (1/time). Derived: DISSIPATION_LIQUID * 10 = 0.2.
+    pub thermostat_gamma: f64,
+    /// MD-1: energy removed by thermostat friction (Axiom 4 accounting).
+    pub thermostat_energy_dissipated: f64,
+    /// MD-1: energy injected by thermostat noise (heat bath coupling).
+    pub thermostat_energy_injected: f64,
 }
 
 impl SimWorldFlat {
@@ -202,6 +236,14 @@ impl SimWorldFlat {
             nutrient_grid: [0.0; GRID_CELLS],
             irradiance_grid: [0.0; GRID_CELLS],
             events: EventBuffer::new(),
+            sim_box: None,
+            #[cfg(feature = "md_3d")]
+            sim_box_3d: None,
+            thermostat_enabled: false,
+            thermostat_target_kb_t: 1.0,
+            thermostat_gamma: 0.2,
+            thermostat_energy_dissipated: 0.0,
+            thermostat_energy_injected: 0.0,
         }
     }
 
@@ -306,6 +348,10 @@ mod tests {
     #[test]
     fn entity_slot_size_is_reasonable() {
         let size = std::mem::size_of::<EntitySlot>();
+        // MD-7: +72 bytes when md_3d enabled (3 × [f64; 3] + repr(C) alignment).
+        #[cfg(feature = "md_3d")]
+        assert!(size <= 1280, "EntitySlot too large: {size} bytes");
+        #[cfg(not(feature = "md_3d"))]
         assert!(size <= 1200, "EntitySlot too large: {size} bytes");
         assert!(
             size >= 100,

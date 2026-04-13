@@ -11,13 +11,16 @@ pub mod bridge;
 pub mod census;
 pub mod constants;
 pub mod events;
+pub mod ff;
 pub mod genome;
 pub mod harness;
 pub mod lineage;
+pub mod neighbor_list;
 pub mod pipeline;
 pub mod scratch;
 pub mod systems;
 pub mod telescope;
+pub mod topology;
 
 pub use arena::{EntitySlot, SimWorldFlat};
 pub use batch::{BatchConfig, WorldBatch};

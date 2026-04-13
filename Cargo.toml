@@ -14,6 +14,7 @@ v6_fixed_tick = []
 v6_collision_backend_3d = []
 v7_worldgen = []
 pixel_viewer = ["dep:minifb"]
+md_3d = []
 
 [dependencies]
 bevy = { version = "0.15", features = ["serialize"] }
