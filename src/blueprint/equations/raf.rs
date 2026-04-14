@@ -497,7 +497,7 @@ mod tests {
             let mut total = 0.0_f32;
             for _ in 0..ticks {
                 total += step_grid_reactions(g, net, BW, DT);
-                diffuse_species(g, &mut scratch, SPECIES_DIFFUSION_RATE, DT);
+                diffuse_species(g, &mut scratch, SPECIES_DIFFUSION_RATE, DT, None);
             }
             total
         }

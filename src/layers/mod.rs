@@ -140,6 +140,10 @@ pub use reaction_network::{
 pub use species_grid::{SpeciesCell, SpeciesGrid};
 pub use closure::{CLOSURE_HISTORY_LEN, ClosureHistory, ClosureMetrics};
 
+// AUTOPOIESIS track (AP-3, ADR-038) — emergent membrane mask (bridge AP-1→AP-3).
+pub mod closure_membrane_mask;
+pub use closure_membrane_mask::ClosureMembraneMask;
+
 // Ops — SystemParam adapters
 pub use derived::PhysicsOps;
 pub use energy::EnergyOps;

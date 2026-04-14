@@ -198,5 +198,11 @@ pub use raf::{
     raf_closures,
 };
 
+// AUTOPOIESIS track (AP-3) — emergent membrane pure fns (ADR-038).
+pub mod membrane;
+pub use membrane::{
+    compute_membrane_field, damped_flux_factor, local_gradient, membrane_strength,
+};
+
 #[cfg(test)]
 mod tests;

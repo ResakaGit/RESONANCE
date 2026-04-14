@@ -186,11 +186,18 @@ pub fn step_grid_reactions(
 /// `scratch` es un buffer reutilizable (patrón `ScratchPad`); se rellena desde
 /// el grid y se descarta — sin heap churn por tick si el caller lo mantiene.
 /// `rate × dt` se clampa a `DIFFUSION_CFL_MAX = 0.25` (estabilidad CFL).
+///
+/// **AP-3 (ADR-038):** `damping` opcional.  `None` ⇒ comportamiento original
+/// (regresión exacta).  `Some(field)` con `field.len() == grid.len()` ⇒ cada
+/// arista `(c,n)` se atenúa por `min(field[c], field[n])` ∈ [MIN_RATIO, 1].
+/// El damping es simétrico por arista, por lo que la conservación de masa
+/// (Axiom 2) se preserva — lo que no fluye queda en la celda.
 pub fn diffuse_species(
     grid: &mut SpeciesGrid,
     scratch: &mut Vec<SpeciesCell>,
     rate: f32,
     dt: f32,
+    damping: Option<&[f32]>,
 ) {
     let r = (rate * dt).clamp(0.0, DIFFUSION_CFL_MAX);
     if r <= 0.0 || grid.is_empty() { return; }
@@ -198,19 +205,34 @@ pub fn diffuse_species(
     scratch.clear();
     scratch.extend_from_slice(grid.cells());
 
+    // Pre-validación del damping: si tamaño no concuerda, ignoramos (no-op) en
+    // vez de panicar — la alternativa es corromper silenciosamente el flujo.
+    let damp = damping.filter(|d| d.len() == grid.len());
+
     let w = grid.width();
     let h = grid.height();
     for (i, out) in grid.cells_mut().iter_mut().enumerate() {
         let y = i / w;
         let x = i % w;
         let c = &scratch[i];
-        let xm = if x > 0     { &scratch[i - 1] } else { c };
-        let xp = if x + 1 < w { &scratch[i + 1] } else { c };
-        let ym = if y > 0     { &scratch[i - w] } else { c };
-        let yp = if y + 1 < h { &scratch[i + w] } else { c };
+        let (xm_i, xm) = if x > 0     { (i - 1, &scratch[i - 1]) } else { (i, c) };
+        let (xp_i, xp) = if x + 1 < w { (i + 1, &scratch[i + 1]) } else { (i, c) };
+        let (ym_i, ym) = if y > 0     { (i - w, &scratch[i - w]) } else { (i, c) };
+        let (yp_i, yp) = if y + 1 < h { (i + w, &scratch[i + w]) } else { (i, c) };
+
+        let (m_xm, m_xp, m_ym, m_yp) = match damp {
+            None => (1.0, 1.0, 1.0, 1.0),
+            Some(f) => {
+                let fc = f[i];
+                (fc.min(f[xm_i]), fc.min(f[xp_i]), fc.min(f[ym_i]), fc.min(f[yp_i]))
+            }
+        };
+
         for s in 0..MAX_SPECIES {
-            let lap = xm.species[s] + xp.species[s] + ym.species[s] + yp.species[s]
-                    - 4.0 * c.species[s];
+            let lap = m_xm * (xm.species[s] - c.species[s])
+                    + m_xp * (xp.species[s] - c.species[s])
+                    + m_ym * (ym.species[s] - c.species[s])
+                    + m_yp * (yp.species[s] - c.species[s]);
             out.species[s] = c.species[s] + r * lap;
         }
         // freq no difunde — propiedad ambiental fija.
@@ -384,7 +406,7 @@ mod tests {
         let pre = g.total_qe();
         let mut scratch = Vec::new();
         for _ in 0..20 {
-            diffuse_species(&mut g, &mut scratch, 0.1, 1.0);
+            diffuse_species(&mut g, &mut scratch, 0.1, 1.0, None);
         }
         assert!((pre - g.total_qe()).abs() < 1e-4);
     }
@@ -400,7 +422,7 @@ mod tests {
         };
         let v_before = variance(&g);
         let mut scratch = Vec::new();
-        for _ in 0..30 { diffuse_species(&mut g, &mut scratch, 0.1, 1.0); }
+        for _ in 0..30 { diffuse_species(&mut g, &mut scratch, 0.1, 1.0, None); }
         let v_after = variance(&g);
         assert!(v_after < v_before);
     }
@@ -411,7 +433,7 @@ mod tests {
         g.seed(1, 1, SpeciesId::new(0).unwrap(), 5.0);
         let snapshot: Vec<f32> = g.cells().iter().map(|c| c.species[0]).collect();
         let mut scratch = Vec::new();
-        diffuse_species(&mut g, &mut scratch, 0.0, 1.0);
+        diffuse_species(&mut g, &mut scratch, 0.0, 1.0, None);
         let after: Vec<f32> = g.cells().iter().map(|c| c.species[0]).collect();
         assert_eq!(snapshot, after);
     }
@@ -421,7 +443,7 @@ mod tests {
         let mut g = SpeciesGrid::new(3, 3, 0.0);
         g.seed(1, 1, SpeciesId::new(0).unwrap(), 1.0);
         let mut scratch = Vec::new();
-        diffuse_species(&mut g, &mut scratch, 1000.0, 1000.0);
+        diffuse_species(&mut g, &mut scratch, 1000.0, 1000.0, None);
         for c in g.cells() { assert!(c.species[0].is_finite()); }
     }
 
@@ -431,9 +453,97 @@ mod tests {
         g.seed(1, 1, SpeciesId::new(0).unwrap(), 3.0);
         let mut scratch = Vec::new();
         for _ in 0..5 {
-            diffuse_species(&mut g, &mut scratch, 0.1, 1.0);
+            diffuse_species(&mut g, &mut scratch, 0.1, 1.0, None);
             // El buffer se rellena cada vez — capacidad ≥ n_cells tras primer uso.
             assert!(scratch.len() == g.len() || scratch.is_empty() == false);
         }
+    }
+
+    // ── AP-3: damping membrana-aware ───────────────────────────────────────
+
+    #[test]
+    fn diffuse_damping_all_ones_matches_undamped() {
+        // Regresión: field = [1; n] ⇒ resultado idéntico a damping=None.
+        let mut g_a = SpeciesGrid::new(4, 4, 0.0);
+        let mut g_b = SpeciesGrid::new(4, 4, 0.0);
+        g_a.seed(1, 2, SpeciesId::new(0).unwrap(), 10.0);
+        g_b.seed(1, 2, SpeciesId::new(0).unwrap(), 10.0);
+
+        let field = vec![1.0_f32; g_a.len()];
+        let mut sa = Vec::new();
+        let mut sb = Vec::new();
+        for _ in 0..10 {
+            diffuse_species(&mut g_a, &mut sa, 0.15, 1.0, None);
+            diffuse_species(&mut g_b, &mut sb, 0.15, 1.0, Some(&field));
+        }
+        for (a, b) in g_a.cells().iter().zip(g_b.cells()) {
+            assert!((a.species[0] - b.species[0]).abs() < 1e-5);
+        }
+    }
+
+    #[test]
+    fn diffuse_damping_preserves_conservation() {
+        // Axiom 2: damping reduce flux pero NO destruye qe.
+        let mut g = SpeciesGrid::new(5, 5, 0.0);
+        g.seed(2, 2, SpeciesId::new(0).unwrap(), 20.0);
+        // Campo heterogéneo, valores legales ∈ [0.01, 1].
+        let field: Vec<f32> = (0..g.len())
+            .map(|i| if i % 3 == 0 { 0.1 } else { 1.0 })
+            .collect();
+        let pre = g.total_qe();
+        let mut scratch = Vec::new();
+        for _ in 0..50 {
+            diffuse_species(&mut g, &mut scratch, 0.15, 1.0, Some(&field));
+        }
+        assert!((pre - g.total_qe()).abs() < 1e-3, "pre={pre} post={}", g.total_qe());
+    }
+
+    #[test]
+    fn diffuse_damping_slows_spread_in_sealed_region() {
+        // Blob central con damping muy bajo afuera (simula membrana cerrada).
+        // Tras N ticks, la concentración central debe sostenerse mejor que sin damping.
+        let w = 7;
+        let seed_val = 10.0_f32;
+
+        let mut g_free = SpeciesGrid::new(w, w, 0.0);
+        let mut g_damp = SpeciesGrid::new(w, w, 0.0);
+        g_free.seed(w / 2, w / 2, SpeciesId::new(0).unwrap(), seed_val);
+        g_damp.seed(w / 2, w / 2, SpeciesId::new(0).unwrap(), seed_val);
+
+        // field: 1.0 dentro de anillo central, 0.02 afuera ⇒ barrera fuerte.
+        let mut field = vec![0.02_f32; w * w];
+        let cx = w as i32 / 2;
+        for y in 0..w as i32 {
+            for x in 0..w as i32 {
+                if (x - cx).abs() <= 1 && (y - cx).abs() <= 1 {
+                    field[(y as usize) * w + (x as usize)] = 1.0;
+                }
+            }
+        }
+        let mut sa = Vec::new();
+        let mut sb = Vec::new();
+        for _ in 0..20 {
+            diffuse_species(&mut g_free, &mut sa, 0.2, 1.0, None);
+            diffuse_species(&mut g_damp, &mut sb, 0.2, 1.0, Some(&field));
+        }
+        let center_free = g_free.cell(w / 2, w / 2).species[0];
+        let center_damp = g_damp.cell(w / 2, w / 2).species[0];
+        assert!(
+            center_damp > center_free,
+            "damped center should retain more qe: damp={center_damp} free={center_free}"
+        );
+    }
+
+    #[test]
+    fn diffuse_damping_ignores_length_mismatch() {
+        // Field con longitud incorrecta ⇒ silenciosamente tratado como None.
+        let mut g = SpeciesGrid::new(3, 3, 0.0);
+        g.seed(1, 1, SpeciesId::new(0).unwrap(), 5.0);
+        let field_wrong = vec![0.01_f32; 2]; // demasiado corto
+        let mut scratch = Vec::new();
+        let pre = g.total_qe();
+        diffuse_species(&mut g, &mut scratch, 0.1, 1.0, Some(&field_wrong));
+        // Masa conservada (path cae en None-like por filter).
+        assert!((pre - g.total_qe()).abs() < 1e-5);
     }
 }

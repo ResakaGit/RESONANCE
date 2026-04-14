@@ -65,7 +65,18 @@ pub const KINETIC_STABILITY_PERSISTENT: f32 = 1.0;
 /// Escalar adimensional — no tiene derivación física.
 pub const KINETIC_STABILITY_EPSILON: f32 = 1e-9;
 
-// ── Membrane + fission (reservado AP-3/4) ──────────────────────────────────
+// ── Membrane (AP-3, ADR-038) ────────────────────────────────────────────────
+
+/// Ganancia exponencial del damping de flux por gradiente de productos.
+/// `= 1.0 / DISSIPATION_LIQUID`.  Axiom 7: atenuación proporcional a la cohesión
+/// del borde, derivada de la escala canónica de difusión líquida (no calibrada).
+pub const MEMBRANE_DAMPING: f32 = 1.0 / DISSIPATION_LIQUID;
+
+/// Cota inferior del factor de flux (R1 de ADR-038): garantiza Axiom 4 estricto.
+/// Ninguna celda queda perfectamente sellada — siempre escapa ≥ 1 % del flux.
+pub const MEMBRANE_MIN_FLUX_RATIO: f32 = 0.01;
+
+// ── Fission (reservado AP-4) ────────────────────────────────────────────────
 
 /// Ratio de presión para disparar fisión.  `= DISSIPATION_PLASMA / DISSIPATION_SOLID`.
 /// Expuesto aquí para coherencia de la cadena completa.
@@ -78,6 +89,11 @@ const _: () = assert!(SPECIES_ID_NONE as usize >= MAX_SPECIES, "sentinel not col
 const _: () = assert!(SPECIES_DIFFUSION_RATE <= DIFFUSION_CFL_MAX, "CFL stable");
 const _: () = assert!(REACTION_EFFICIENCY > 0.0 && REACTION_EFFICIENCY < 1.0, "0 < eff < 1");
 const _: () = assert!(RAF_MIN_CLOSURE_REACTIONS >= 2, "trivial closures filtered out");
+const _: () = assert!(MEMBRANE_DAMPING > 1.0, "damping amplifies gradient");
+const _: () = assert!(
+    MEMBRANE_MIN_FLUX_RATIO > 0.0 && MEMBRANE_MIN_FLUX_RATIO < 1.0,
+    "strict escape floor",
+);
 
 #[cfg(test)]
 mod tests {
@@ -98,6 +114,18 @@ mod tests {
     #[test]
     fn fission_ratio_is_plasma_over_solid() {
         assert!((FISSION_PRESSURE_RATIO - 50.0).abs() < 1e-3);
+    }
+
+    #[test]
+    fn membrane_damping_is_inverse_liquid_dissipation() {
+        let expected = 1.0 / DISSIPATION_LIQUID;
+        assert!((MEMBRANE_DAMPING - expected).abs() < 1e-3);
+    }
+
+    #[test]
+    fn membrane_min_flux_ratio_strictly_allows_escape() {
+        assert!(MEMBRANE_MIN_FLUX_RATIO > 0.0);
+        assert!(MEMBRANE_MIN_FLUX_RATIO < 1.0);
     }
 
     #[test]
