@@ -186,5 +186,17 @@ pub use subterranean_morphology::*;
 mod cross_transfer;
 pub use cross_transfer::*;
 
+// AUTOPOIESIS track (AP-0/1/2) — kinetics + RAF detection + Pross metric.
+pub mod reaction_kinetics;
+pub mod raf;
+pub use reaction_kinetics::{
+    ReactionOutcome, apply_reaction, diffuse_species, frequency_alignment, mass_action_rate,
+    step_cell_reactions, step_grid_reactions,
+};
+pub use raf::{
+    Closure, closure_hash, find_raf, food_mask, food_set_from_totals, kinetic_stability,
+    raf_closures,
+};
+
 #[cfg(test)]
 mod tests;

@@ -127,6 +127,19 @@ pub use timescale::TimescaleAdapter;
 pub mod organ_energy_slots;
 pub use organ_energy_slots::OrganEnergySlots;
 
+// AUTOPOIESIS track (AP-0/1/2) — chemistry substrate.
+pub mod reaction;
+pub mod reaction_network;
+pub mod species_grid;
+pub mod closure;
+pub use reaction::{Reaction, SpeciesId, StoichEntry};
+pub use reaction_network::{
+    ReactionId, ReactionNetwork, ReactionNetworkError, ReactionNetworkSpec, ReactionSpec,
+    StoichSpec,
+};
+pub use species_grid::{SpeciesCell, SpeciesGrid};
+pub use closure::{CLOSURE_HISTORY_LEN, ClosureHistory, ClosureMetrics};
+
 // Ops — SystemParam adapters
 pub use derived::PhysicsOps;
 pub use energy::EnergyOps;

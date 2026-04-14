@@ -1,0 +1,16 @@
+// Minimal RAF (Reflexively Autocatalytic, Food-generated) network — AP-0/1.
+// Species: 0 = A, 1 = B, 2 = C, 3 = D.  Food set: {A, B}.
+//
+//   r0:  A + B  → C            (consume food, produce intermediate)
+//   r1:  C      → A + D        (regenerate food A, create D)
+//   r2:  D + B  → B + C        (B cataliza; cierra el ciclo A→C→D→C)
+//
+// Ciclo cerrado food-generable — base para tests de AP-1 (closure detector)
+// y benchmarks de AP-2 (kinetic stability).
+(
+    reactions: [
+        (reactants: [(0, 1), (1, 1)], products: [(2, 1)],         k: 1.0, freq: 50.0),
+        (reactants: [(2, 1)],         products: [(0, 1), (3, 1)], k: 0.5, freq: 50.0),
+        (reactants: [(3, 1), (1, 1)], products: [(1, 1), (2, 1)], k: 0.8, freq: 50.0),
+    ],
+)

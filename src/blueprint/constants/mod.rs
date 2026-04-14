@@ -171,3 +171,6 @@ pub use morphogenesis_track::morphogenesis;
 
 pub mod plant_physiology;
 pub use plant_physiology::*;
+
+// AUTOPOIESIS track (AP-0/1/2) — chemistry constants.
+pub mod chemistry;
