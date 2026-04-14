@@ -46,8 +46,10 @@ Sin esto, el simulador puede formar moléculas pero no demuestra autopoiesis. Co
 
 | Sprint | Nombre | Esfuerzo | Bloqueado por | Entregable |
 |--------|--------|----------|---------------|------------|
-| [AP-5](SPRINT_AP5_PERSISTENCE_PROPTEST.md) | Persistence Property Test | 1 sem | AP-4 | proptest: closure persiste ⟺ se replicó o sostuvo producción ≥ decay |
-| [AP-6](SPRINT_AP6_AUTOPOIETIC_LAB.md) | `autopoietic_lab` Binary | 1.5 sem | AP-5 | Viz 2D + headless CI; reporta TTFC, fission_rate, mean_persistence |
+| [AP-5](SPRINT_AP5_PERSISTENCE_PROPTEST.md) ✅ | Persistence Property Test | 1 sem | AP-4 | proptest: closure persiste ⟺ se replicó o sostuvo producción ≥ decay |
+| [AP-6a](SPRINT_AP6_AUTOPOIETIC_LAB.md) ✅ | `autopoietic_lab` headless + DOT | 0.5 sem | AP-5 | CLI stdlib, `SoupReport` JSON + `to_dot()` Graphviz |
+| AP-6b (designed) | Asset library RON loader | 0.5 sem | AP-6a | `assets/reactions/*.ron` + loader (formose, GARD, random seeds) |
+| AP-6c (designed) | Viz 2D Bevy + egui | 1 sem | AP-6b | Heatmap species + membrane + lineage tree UI |
 
 **Total:** 7 sprints · ~8 semanas · ~2,000 LOC · ~150 tests · 3 ADRs.
 
@@ -57,7 +59,7 @@ Sin esto, el simulador puede formar moléculas pero no demuestra autopoiesis. Co
 
 ```
 AP-0 ──┬── AP-1 ── AP-2
-       └── AP-3 ── AP-4 ── AP-5 ── AP-6
+       └── AP-3 ── AP-4 ── AP-5 ── AP-6a ── AP-6b ── AP-6c
 ```
 
 AP-1/AP-2 paralelos con AP-3/AP-4 una vez AP-0 cierra.

@@ -149,6 +149,34 @@ impl SoupReport {
     pub fn to_json(&self) -> serde_json::Result<String> {
         serde_json::to_string(self)
     }
+
+    /// Exporta el snapshot de closures como grafo DOT (Graphviz).
+    /// Exports the closure snapshot as a DOT (Graphviz) graph.
+    ///
+    /// Nodo por `ClosureFate`.  Color verde = sobrevivió, rojo = murió.
+    /// Label: `h=<hash8> k=<kstab> p=<pressure>`.  Sin edges (la relación
+    /// padre↔hijo por fission no está rastreada en `SoupReport` — futuro AP-6b).
+    pub fn to_dot(&self) -> String {
+        let mut out = String::with_capacity(128 + self.fates.len() * 96);
+        out.push_str("digraph autopoiesis {\n");
+        out.push_str("  rankdir=LR;\n");
+        out.push_str("  node [shape=circle, style=filled, fontname=\"monospace\"];\n");
+        out.push_str(&format!(
+            "  label=\"seed={} ticks={} dissipated={:.3}\\ninitial={} final={}\";\n",
+            self.seed, self.n_ticks, self.total_dissipated,
+            self.n_closures_initial, self.n_closures_final,
+        ));
+        for fate in &self.fates {
+            let color = if fate.survived { "palegreen" } else { "lightcoral" };
+            out.push_str(&format!(
+                "  c{:016x} [fillcolor={}, label=\"h={:08x}\\nk={:.2}\\np={}\"];\n",
+                fate.hash, color, (fate.hash & 0xFFFF_FFFF) as u32,
+                fate.k_stability_mean_last, fate.pressure_events,
+            ));
+        }
+        out.push_str("}\n");
+        out
+    }
 }
 
 // ── Harness (Tier C — orquestación pura, cero Bevy) ────────────────────────
@@ -474,5 +502,49 @@ mod tests {
         let r = run_soup(&c);
         assert_eq!(r.n_closures_initial, 0);
         assert!(r.fates.is_empty());
+    }
+
+    // ── to_dot (AP-6a) ─────────────────────────────────────────────────────
+
+    #[test]
+    fn dot_export_empty_report_is_well_formed() {
+        let r = SoupReport::default();
+        let dot = r.to_dot();
+        assert!(dot.starts_with("digraph autopoiesis {"));
+        assert!(dot.trim_end().ends_with('}'));
+        assert!(dot.contains("seed=0"));
+        // Sin nodos de closures (fates vacía).
+        assert!(!dot.contains("fillcolor="));
+    }
+
+    #[test]
+    fn dot_export_colors_nodes_by_survival() {
+        let r = SoupReport {
+            seed: 7, n_ticks: 100, n_closures_initial: 2, n_closures_final: 1,
+            total_dissipated: 1.5,
+            fates: vec![
+                ClosureFate { hash: 0xABCD, survived: true,  pressure_events: 2, k_stability_mean_last: 1.3 },
+                ClosureFate { hash: 0x1234, survived: false, pressure_events: 0, k_stability_mean_last: 0.4 },
+            ],
+        };
+        let dot = r.to_dot();
+        assert!(dot.contains("c000000000000abcd"));
+        assert!(dot.contains("c0000000000001234"));
+        assert!(dot.contains("palegreen"));
+        assert!(dot.contains("lightcoral"));
+        assert!(dot.contains("k=1.30"));
+        assert!(dot.contains("p=2"));
+    }
+
+    #[test]
+    fn dot_export_from_run_soup_is_nonempty_and_balanced() {
+        let c = fast_config(123);
+        let r = run_soup(&c);
+        let dot = r.to_dot();
+        // Graph es válido independientemente de si hubo closures.
+        let opens = dot.matches('{').count();
+        let closes = dot.matches('}').count();
+        assert_eq!(opens, closes);
+        assert!(dot.contains(&format!("seed={}", c.seed)));
     }
 }

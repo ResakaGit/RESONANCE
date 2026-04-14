@@ -132,6 +132,10 @@ required-features = ["experimental_bins"]
 name = "paper_validation"
 path = "src/bin/paper_validation.rs"
 
+[[bin]]
+name = "autopoietic_lab"
+path = "src/bin/autopoietic_lab.rs"
+
 [[bench]]
 name = "worldgen_field_perf"
 harness = false
