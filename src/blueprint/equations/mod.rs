@@ -201,7 +201,17 @@ pub use raf::{
 // AUTOPOIESIS track (AP-3) — emergent membrane pure fns (ADR-038).
 pub mod membrane;
 pub use membrane::{
-    compute_membrane_field, damped_flux_factor, local_gradient, membrane_strength,
+    compute_membrane_field, compute_strength_field, damped_flux_factor, local_gradient,
+    membrane_strength,
+};
+
+// AUTOPOIESIS track (AP-4) — blob topology + fission criterion (ADR-039).
+pub mod blob_topology;
+pub use blob_topology::{BlobIndex, centroid, find_blobs, perimeter};
+pub mod fission;
+pub use fission::{
+    FissionOutcome, apply_fission, child_lineage, cohesion_capacity, internal_production,
+    mean_membrane_strength, pinch_axis, pressure_ratio,
 };
 
 #[cfg(test)]

@@ -104,6 +104,26 @@ pub fn compute_membrane_field(
     }
 }
 
+/// Rellena `out` con el campo escalar de `membrane_strength` por celda
+/// (longitud = `grid.len()`).  Gemelo de `compute_membrane_field` pero
+/// retornando la fuerza *antes* de la exp-damping — es la cantidad natural
+/// para AP-4 (flood-fill de blobs por `strength > threshold`).
+pub fn compute_strength_field(
+    grid: &SpeciesGrid,
+    mask: &[bool; MAX_SPECIES],
+    bond_energy_avg: f32,
+    out: &mut Vec<f32>,
+) {
+    out.clear();
+    out.reserve(grid.len());
+    for y in 0..grid.height() {
+        for x in 0..grid.width() {
+            let g = local_gradient(grid, x, y, mask).length();
+            out.push(membrane_strength(g, bond_energy_avg));
+        }
+    }
+}
+
 // ── Tests ───────────────────────────────────────────────────────────────────
 
 #[cfg(test)]
@@ -249,6 +269,33 @@ mod tests {
         let mut field = Vec::new();
         compute_membrane_field(&g, &mask_only_s0(), 1.0, &mut field);
         assert_eq!(field.len(), 20);
+    }
+
+    #[test]
+    fn strength_field_length_matches_grid() {
+        let g = SpeciesGrid::new(5, 4, 50.0);
+        let mut f = Vec::new();
+        compute_strength_field(&g, &mask_only_s0(), 1.0, &mut f);
+        assert_eq!(f.len(), 20);
+    }
+
+    #[test]
+    fn strength_field_zero_when_mask_empty() {
+        let mut g = SpeciesGrid::new(3, 3, 50.0);
+        g.seed(1, 1, s0(), 100.0);
+        let mut f = Vec::new();
+        compute_strength_field(&g, &[false; MAX_SPECIES], 1.0, &mut f);
+        assert!(f.iter().all(|&v| v == 0.0));
+    }
+
+    #[test]
+    fn strength_field_positive_near_peak() {
+        let mut g = SpeciesGrid::new(3, 3, 50.0);
+        g.seed(1, 1, s0(), 100.0);
+        let mut f = Vec::new();
+        compute_strength_field(&g, &mask_only_s0(), 1.0, &mut f);
+        let max = f.iter().cloned().fold(0.0_f32, f32::max);
+        assert!(max > 0.0, "peak should generate positive strength");
     }
 
     #[test]

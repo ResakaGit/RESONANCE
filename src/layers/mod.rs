@@ -144,6 +144,10 @@ pub use closure::{CLOSURE_HISTORY_LEN, ClosureHistory, ClosureMetrics};
 pub mod closure_membrane_mask;
 pub use closure_membrane_mask::ClosureMembraneMask;
 
+// AUTOPOIESIS track (AP-4, ADR-039) — lineage genealogy registry.
+pub mod lineage_registry;
+pub use lineage_registry::{LineageRecord, LineageRegistry};
+
 // Ops — SystemParam adapters
 pub use derived::PhysicsOps;
 pub use energy::EnergyOps;
