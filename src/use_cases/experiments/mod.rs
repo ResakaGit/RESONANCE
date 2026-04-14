@@ -3,6 +3,7 @@
 //! Every experiment: config in → data out. No side effects.
 //! Composable with any Presenter.
 
+pub mod autopoiesis;
 pub mod cambrian;
 pub mod cancer_therapy;
 pub mod convergence;

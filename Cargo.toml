@@ -15,6 +15,9 @@ v6_collision_backend_3d = []
 v7_worldgen = []
 pixel_viewer = ["dep:minifb"]
 md_3d = []
+# Bins en migración a la API actual de Bevy 0.15 — gated para no romper
+# `cargo test`/`cargo check` por defecto. Habilitar con `--features experimental_bins`.
+experimental_bins = []
 
 [dependencies]
 bevy = { version = "0.15", features = ["serialize"] }
@@ -113,10 +116,17 @@ path = "src/bin/cancer_therapy.rs"
 [[bin]]
 name = "planet_viewer"
 path = "src/bin/planet_viewer.rs"
+required-features = ["experimental_bins"]
 
 [[bin]]
 name = "earth_telescope"
 path = "src/bin/earth_telescope.rs"
+required-features = ["experimental_bins"]
+
+[[bin]]
+name = "survival"
+path = "src/bin/survival.rs"
+required-features = ["experimental_bins"]
 
 [[bin]]
 name = "paper_validation"

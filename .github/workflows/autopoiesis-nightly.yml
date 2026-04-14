@@ -1,0 +1,97 @@
+name: AP-5 Autopoiesis Property Test
+
+# Operacionalización del cap. 10 del paper:
+# > "Lo que persiste es aquello que encontró una forma de copiarse antes de disiparse."
+#
+# - PR / push: 100 cases (gate rápido, < 60s).
+# - Nightly:   1000 cases (validación extensiva, < 600s).
+# - manual:    cases configurable via workflow_dispatch input.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/use_cases/experiments/autopoiesis.rs'
+      - 'src/blueprint/equations/raf.rs'
+      - 'src/blueprint/equations/reaction_kinetics.rs'
+      - 'src/blueprint/equations/membrane.rs'
+      - 'src/blueprint/equations/blob_topology.rs'
+      - 'src/blueprint/equations/fission.rs'
+      - 'src/layers/reaction_network.rs'
+      - 'src/layers/species_grid.rs'
+      - 'src/layers/closure.rs'
+      - 'tests/property_autopoiesis.rs'
+      - '.github/workflows/autopoiesis-nightly.yml'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/use_cases/experiments/autopoiesis.rs'
+      - 'src/blueprint/equations/raf.rs'
+      - 'src/blueprint/equations/reaction_kinetics.rs'
+      - 'src/blueprint/equations/membrane.rs'
+      - 'src/blueprint/equations/blob_topology.rs'
+      - 'src/blueprint/equations/fission.rs'
+      - 'src/layers/reaction_network.rs'
+      - 'src/layers/species_grid.rs'
+      - 'src/layers/closure.rs'
+      - 'tests/property_autopoiesis.rs'
+  schedule:
+    # 03:17 UTC daily — off-peak, off-minute para no saturar runners.
+    - cron: '17 3 * * *'
+  workflow_dispatch:
+    inputs:
+      cases:
+        description: 'Número de proptest cases'
+        required: false
+        default: '1000'
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  proptest:
+    name: AP-5 Proptest
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: sudo apt-get update && sudo apt-get install -y libasound2-dev libudev-dev libwayland-dev libxkbcommon-dev
+
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Determine PROPTEST_CASES
+        id: cases
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "value=1000" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "value=${{ github.event.inputs.cases }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=100" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build proptest target (lib + test only)
+        run: cargo test --no-run --lib --test property_autopoiesis
+
+      - name: Run AP-5 lib unit tests
+        run: cargo test --lib autopoiesis::
+
+      - name: Run AP-5 persistence proptest
+        env:
+          PROPTEST_CASES: ${{ steps.cases.outputs.value }}
+        run: cargo test --test property_autopoiesis -- --nocapture
+
+      - name: Upload proptest regressions (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: proptest-regressions-${{ github.run_id }}
+          path: |
+            proptest-regressions/
+            tests/proptest-regressions/
+          if-no-files-found: ignore
+          retention-days: 30
