@@ -1,0 +1,36 @@
+// Formose reaction — canonical autocatalytic sugar synthesis.
+//
+// Refs:
+//   - Butlerov A.M. (1861), Liebigs Ann. Chem. 120:295 — discovery.
+//   - Breslow R. (1959), Tetrahedron Lett. 1(21):22-26 — mechanistic
+//     cycle (enediol rearrangement), the form encoded here.
+//   - Kauffman S. (1986), J. Theor. Biol. 119:1-24 — formose as
+//     textbook autocatalytic set (RAF) example.
+//
+// Species (abstracted, no explicit H/O balance — mass-action reactive form):
+//   0 = HCHO        (formaldehyde, food)
+//   1 = C2          (glycolaldehyde)       C₂H₄O₂
+//   2 = C3          (glyceraldehyde / DHA) C₃H₆O₃
+//   3 = C4          (tetrose)              C₄H₈O₄
+//
+// Reactions (Breslow cycle):
+//   r0:  2·HCHO   → C2            (non-autocatalytic initiation, slow)
+//   r1:  C2 + HCHO → C3           (aldol addition)
+//   r2:  C3 + HCHO → C4           (aldol addition, includes isomerization)
+//   r3:  C4       → 2·C2          (retro-aldol cleavage — AUTOCATALYTIC
+//                                   DOUBLING; source of exponential growth)
+//
+// Food set for run_soup_with_network: {HCHO} (i.e. --food 1 --species 4).
+// Expected behavior: C2 accumulates via slow init, then r3 kicks in and
+// doubles it — RAF closure {r1, r2, r3} with C2 as catalyst-like seed.
+//
+// k values: r0 slow (0.02), r1-r2 medium (0.5-0.8), r3 fastest (1.2).
+// freq: all 50 Hz (single resonance band — no frequency selectivity here).
+(
+    reactions: [
+        (reactants: [(0, 2)],         products: [(1, 1)],         k: 0.02, freq: 50.0),
+        (reactants: [(1, 1), (0, 1)], products: [(2, 1)],         k: 0.5,  freq: 50.0),
+        (reactants: [(2, 1), (0, 1)], products: [(3, 1)],         k: 0.8,  freq: 50.0),
+        (reactants: [(3, 1)],         products: [(1, 2)],         k: 1.2,  freq: 50.0),
+    ],
+)

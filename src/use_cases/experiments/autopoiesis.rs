@@ -546,6 +546,69 @@ mod tests {
         assert!(dot.contains("p=2"));
     }
 
+    // ── AP-6b2: canonical asset RONs ──────────────────────────────────────
+
+    fn load_asset(path: &str) -> ReactionNetwork {
+        let text = std::fs::read_to_string(path)
+            .unwrap_or_else(|e| panic!("asset {path}: {e}"));
+        ReactionNetwork::from_ron_str(&text)
+            .unwrap_or_else(|e| panic!("parse {path}: {e:?}"))
+    }
+
+    #[test]
+    fn asset_formose_loads_with_four_reactions() {
+        let net = load_asset("assets/reactions/formose.ron");
+        assert_eq!(net.len(), 4, "Breslow 1959 cycle has 4 reactions");
+        assert!(net.reactions().iter().all(|r| r.is_well_formed()));
+        // r3 es el paso autocatalítico: 1 reactivo (tetrose), 1 producto
+        // (glycolaldehyde) con coef 2.  Verificamos la duplicación.
+        let r3 = &net.reactions()[3];
+        let prods: Vec<u8> = r3.products.iter()
+            .filter(|e| e.is_active()).map(|e| e.count).collect();
+        assert!(prods.contains(&2), "r3 must double glycolaldehyde (coef=2)");
+    }
+
+    #[test]
+    fn asset_hypercycle_loads_with_four_closing_reactions() {
+        let net = load_asset("assets/reactions/hypercycle.ron");
+        assert_eq!(net.len(), 4, "4-member Eigen-Schuster hypercycle");
+        assert!(net.reactions().iter().all(|r| r.is_well_formed()));
+        // Todas las k iguales (no rate-bias).
+        let k0 = net.reactions()[0].k;
+        assert!(net.reactions().iter().all(|r| (r.k - k0).abs() < 1e-6));
+    }
+
+    #[test]
+    fn asset_raf_minimal_still_loads() {
+        // Regresión: el asset legacy de AP-0 sigue parseando.
+        let net = load_asset("assets/reactions/raf_minimal.ron");
+        assert_eq!(net.len(), 3);
+    }
+
+    #[test]
+    fn formose_runs_without_panic_via_run_soup_with_network() {
+        let net = load_asset("assets/reactions/formose.ron");
+        let cfg = SoupConfig {
+            seed: 42, n_species: 4, food_size: 1,
+            ticks: 200, grid: (6, 6), ..SoupConfig::default()
+        };
+        let r = run_soup_with_network(&cfg, net);
+        assert_eq!(r.n_ticks, 200);
+        assert!(r.total_dissipated >= 0.0);
+    }
+
+    #[test]
+    fn hypercycle_runs_without_panic_via_run_soup_with_network() {
+        let net = load_asset("assets/reactions/hypercycle.ron");
+        let cfg = SoupConfig {
+            seed: 7, n_species: 5, food_size: 1,
+            ticks: 200, grid: (6, 6), ..SoupConfig::default()
+        };
+        let r = run_soup_with_network(&cfg, net);
+        assert_eq!(r.n_ticks, 200);
+        assert!(r.total_dissipated >= 0.0);
+    }
+
     #[test]
     fn dot_export_from_run_soup_is_nonempty_and_balanced() {
         let c = fast_config(123);

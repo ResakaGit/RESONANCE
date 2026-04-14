@@ -1,0 +1,41 @@
+// Hypercycle — minimal 4-member cyclic catalytic set.
+//
+// Refs:
+//   - Eigen M. (1971), Naturwissenschaften 58:465-523 — "Selforganization
+//     of Matter and the Evolution of Biological Macromolecules" (origin
+//     of quasispecies + hypercycle concept).
+//   - Eigen M., Schuster P. (1977), Naturwissenschaften 64:541-565 — "The
+//     Hypercycle: A Principle of Natural Self-Organization", part A:
+//     emergence of the hypercycle.
+//   - Eigen M., Schuster P. (1979), "The Hypercycle" (Springer monograph).
+//
+// Substituted here for GARD (Segré-Lancet 2000) because GARD is a
+// compositional/statistical vesicle model, not a mass-action reaction
+// network — encoding it here would mislabel the benchmark.  Hypercycle
+// fits our primitives 1:1 and carries the same "cyclic catalytic closure"
+// signal that GARD is used to test.
+//
+// Species:
+//   0 = F          (food monomer, only reactant never produced alone)
+//   1 = S1, 2 = S2, 3 = S3, 4 = S4  (four replicator templates)
+//
+// Topology: S_i catalyzes production of S_{(i mod 4)+1} from food.
+// Encoded here via "S_i + F → S_i + S_{next}" — S_i acts as catalyst
+// (conserved across the reaction); this is the minimal mass-action form
+// of catalysis in our system (no distinct catalyst slot).
+//
+//   r0:  S1 + F → S1 + S2
+//   r1:  S2 + F → S2 + S3
+//   r2:  S3 + F → S3 + S4
+//   r3:  S4 + F → S4 + S1     (closes the cycle)
+//
+// All k equal (no species wins by kinetic advantage — tests that closure
+// detection is topological, not rate-biased).  freq all 50 Hz.
+(
+    reactions: [
+        (reactants: [(1, 1), (0, 1)], products: [(1, 1), (2, 1)], k: 0.6, freq: 50.0),
+        (reactants: [(2, 1), (0, 1)], products: [(2, 1), (3, 1)], k: 0.6, freq: 50.0),
+        (reactants: [(3, 1), (0, 1)], products: [(3, 1), (4, 1)], k: 0.6, freq: 50.0),
+        (reactants: [(4, 1), (0, 1)], products: [(4, 1), (1, 1)], k: 0.6, freq: 50.0),
+    ],
+)

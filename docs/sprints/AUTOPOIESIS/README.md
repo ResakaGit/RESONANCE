@@ -49,7 +49,7 @@ Sin esto, el simulador puede formar moléculas pero no demuestra autopoiesis. Co
 | [AP-5](SPRINT_AP5_PERSISTENCE_PROPTEST.md) ✅ | Persistence Property Test | 1 sem | AP-4 | proptest: closure persiste ⟺ se replicó o sostuvo producción ≥ decay |
 | [AP-6a](SPRINT_AP6_AUTOPOIETIC_LAB.md) ✅ | `autopoietic_lab` headless + DOT | 0.5 sem | AP-5 | CLI stdlib, `SoupReport` JSON + `to_dot()` Graphviz |
 | AP-6b ✅ | `--network <ron>` loader + `run_soup_with_network` | 0.25 sem | AP-6a | `raf_minimal.ron` wired; formose/GARD deferred a AP-6b2 (requieren citas) |
-| AP-6b2 (designed) | formose + GARD canonical networks | 0.25 sem | AP-6b | Butlerov/Kauffman 1986 + Lancet 2018 con citas |
+| AP-6b2 ✅ | formose + hypercycle canonical networks | 0.25 sem | AP-6b | Breslow 1959 / Kauffman 1986 + Eigen-Schuster 1977 con citas. GARD diferido (no mass-action). |
 | AP-6c (designed) | Viz 2D Bevy + egui | 1 sem | AP-6b | Heatmap species + membrane + lineage tree UI |
 
 **Total:** 7 sprints · ~8 semanas · ~2,000 LOC · ~150 tests · 3 ADRs.
