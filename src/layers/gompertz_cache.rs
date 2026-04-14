@@ -110,4 +110,35 @@ mod tests {
         let c = GompertzCache::from_senescence(0, 0.02, 0.02, 200);
         assert!(!c.should_die(0), "should survive at tick 0");
     }
+
+    // ── BS-5: Integration — cache matches exact formula ────────────────
+
+    #[test]
+    fn bs5_cache_matches_exact_death_tick() {
+        let cases = [
+            (0u64, 0.02f32, 0.02f32, 200u64),
+            (100, 0.01, 0.05, 500),
+            (0, dt::senescence_coeff_fauna(), dt::senescence_coeff_fauna(), dt::max_age_fauna()),
+        ];
+        for (birth, base, coeff, max_age) in cases {
+            let cache = GompertzCache::from_senescence(birth, base, coeff, max_age);
+            let exact =
+                crate::blueprint::equations::exact_cache::exact_death_tick(birth, base, coeff, max_age);
+            assert_eq!(
+                cache.death_tick(), exact,
+                "BS-5: GompertzCache diverged: birth={birth} base={base} coeff={coeff}"
+            );
+        }
+    }
+
+    #[test]
+    fn bs5_boundary_alive_before_dead_at() {
+        let cache = GompertzCache::from_senescence(0, 0.02, 0.02, 200);
+        let dt = cache.death_tick();
+        if dt > 1 {
+            assert!(!cache.should_die(dt - 1), "BS-5: alive before death tick");
+        }
+        assert!(cache.should_die(dt), "BS-5: dead at death tick");
+        assert!(cache.should_die(dt + 100), "BS-5: dead after death tick");
+    }
 }

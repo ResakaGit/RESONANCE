@@ -58,31 +58,69 @@ pub fn lennard_jones_force(distance: f32) -> f32 {
     f.clamp(-MAX_FORCE, MAX_FORCE)
 }
 
-/// Net force vector between two charged particles. Axiom 5+7.
+/// Coulomb + LJ force from a displacement vector. Shared core.
 ///
-/// Combines Coulomb (long-range) + Lennard-Jones (short-range).
-/// Returns force vector ON particle A (Newton 3: force on B = -force on A).
-pub fn net_force(a: &ChargedParticle, b: &ChargedParticle) -> [f32; 2] {
-    let dx = b.position[0] - a.position[0];
-    let dy = b.position[1] - a.position[1];
+/// `dx`, `dy`: displacement from A to B (possibly minimum-image adjusted).
+/// Returns force ON A. Newton 3: force on B = negated.
+/// Public for cell-list integration (MD-3).
+pub fn force_from_displacement(dx: f32, dy: f32, q1: f32, q2: f32) -> [f32; 2] {
     let dist = (dx * dx + dy * dy).sqrt();
     if dist < 1e-10 {
         return [0.0, 0.0];
-    } // coincident
-
-    // Coulomb: q1×q2 > 0 → repulsion (push away). q1×q2 < 0 → attraction (pull toward).
-    // Negate because coulomb_force returns potential sign, we need force direction.
-    let f_coulomb = -coulomb_force(a.charge, b.charge, dist);
+    }
+    let f_coulomb = -coulomb_force(q1, q2, dist);
     let f_lj = lennard_jones_force(dist);
     let f_total = f_coulomb + f_lj;
-
-    // Direction: unit vector from A to B
     let ux = dx / dist;
     let uy = dy / dist;
     [f_total * ux, f_total * uy]
 }
 
+/// Net force vector between two charged particles. Axiom 5+7.
+///
+/// Combines Coulomb (long-range) + Lennard-Jones (short-range).
+/// Returns force vector ON particle A (Newton 3: force on B = -force on A).
+/// Free-space variant (no periodic boundaries).
+pub fn net_force(a: &ChargedParticle, b: &ChargedParticle) -> [f32; 2] {
+    let dx = b.position[0] - a.position[0];
+    let dy = b.position[1] - a.position[1];
+    force_from_displacement(dx, dy, a.charge, b.charge)
+}
+
+/// Net force with periodic boundary conditions (MD-2).
+///
+/// Uses minimum image convention: each particle interacts with the
+/// closest periodic image. Axiom 7 holds on the torus manifold.
+pub fn net_force_pbc(
+    a: &ChargedParticle,
+    b: &ChargedParticle,
+    box_lengths: [f32; 2],
+) -> [f32; 2] {
+    let d = super::pbc::minimum_image_2d(a.position, b.position, box_lengths);
+    force_from_displacement(d[0], d[1], a.charge, b.charge)
+}
+
 // ─── PC-5: Emergent bonding ────────────────────────────────────────────────
+
+/// Potential energy from displacement. Shared core for free-space / PBC.
+fn potential_from_displacement(
+    dx: f32,
+    dy: f32,
+    a: &ChargedParticle,
+    b: &ChargedParticle,
+) -> f32 {
+    let dist = (dx * dx + dy * dy).sqrt();
+    if dist < 1e-10 {
+        return 0.0;
+    }
+    let v_coulomb = COULOMB_SCALE * a.charge * b.charge / dist.max(FORCE_SOFTENING);
+    let r = dist.max(FORCE_SOFTENING);
+    let sr = LJ_SIGMA / r;
+    let sr6 = sr * sr * sr * sr * sr * sr;
+    let v_lj = 4.0 * LJ_EPSILON * (sr6 * sr6 - sr6);
+    let freq_mod = gaussian_frequency_alignment(a.frequency, b.frequency, 50.0);
+    (v_coulomb + v_lj) * (0.5 + 0.5 * freq_mod)
+}
 
 /// Bond energy between two particles. Axiom 4: bound state has LESS energy than free.
 ///
@@ -91,24 +129,17 @@ pub fn net_force(a: &ChargedParticle, b: &ChargedParticle) -> [f32; 2] {
 pub fn bond_energy(a: &ChargedParticle, b: &ChargedParticle) -> f32 {
     let dx = b.position[0] - a.position[0];
     let dy = b.position[1] - a.position[1];
-    let dist = (dx * dx + dy * dy).sqrt();
-    if dist < 1e-10 {
-        return 0.0;
-    }
+    potential_from_displacement(dx, dy, a, b)
+}
 
-    // Coulomb potential: V = k × q1 × q2 / r
-    let v_coulomb = COULOMB_SCALE * a.charge * b.charge / dist.max(FORCE_SOFTENING);
-
-    // LJ potential: V = 4ε × [(σ/r)¹² - (σ/r)⁶]
-    let r = dist.max(FORCE_SOFTENING);
-    let sr = LJ_SIGMA / r;
-    let sr6 = sr * sr * sr * sr * sr * sr;
-    let v_lj = 4.0 * LJ_EPSILON * (sr6 * sr6 - sr6);
-
-    // Frequency alignment modulates bond strength (Axiom 8)
-    let freq_mod = gaussian_frequency_alignment(a.frequency, b.frequency, 50.0);
-
-    (v_coulomb + v_lj) * (0.5 + 0.5 * freq_mod) // freq alignment boosts binding
+/// Bond energy with periodic boundary conditions (MD-2).
+pub fn bond_energy_pbc(
+    a: &ChargedParticle,
+    b: &ChargedParticle,
+    box_lengths: [f32; 2],
+) -> f32 {
+    let d = super::pbc::minimum_image_2d(a.position, b.position, box_lengths);
+    potential_from_displacement(d[0], d[1], a, b)
 }
 
 /// Is this pair stably bound? Pure predicate.
@@ -226,23 +257,25 @@ pub fn count_element_types(signatures: &[MoleculeSignature], count: usize) -> u8
 
 /// Accumulate all pairwise forces on each particle. Pure HOF: particles → forces.
 ///
-/// O(N²). Returns force vector per particle. Axiom 5: Newton 3 respected
-/// (force on A = -force on B, net Σ = 0).
-pub fn accumulate_forces(particles: &[ChargedParticle], count: usize) -> [[f32; 2]; 128] {
-    let mut forces = [[0.0f32; 2]; 128];
-    let n = count.min(particles.len()).min(128);
+/// Adaptive dispatch: O(N²) brute-force for small N, O(N log N) Barnes-Hut for large N.
+/// Internal accumulation in f64 for precision. Axiom 5: Newton 3 respected.
+/// `box_lengths`: periodic box dimensions. None = free-space.
+pub fn accumulate_forces(
+    particles: &[ChargedParticle],
+    count: usize,
+    box_lengths: Option<[f32; 2]>,
+) -> Vec<[f32; 2]> {
+    super::spatial_tree::accumulate_forces_adaptive(particles, count, box_lengths)
+}
 
-    for i in 0..n {
-        for j in (i + 1)..n {
-            let f = net_force(&particles[i], &particles[j]);
-            // Newton 3: equal and opposite
-            forces[i][0] += f[0];
-            forces[i][1] += f[1];
-            forces[j][0] -= f[0];
-            forces[j][1] -= f[1];
-        }
-    }
-    forces
+/// Legacy fixed-size accumulator for batch pipeline compatibility (MAX_ENTITIES=128).
+/// Calls adaptive implementation, copies into fixed array.
+pub fn accumulate_forces_fixed(particles: &[ChargedParticle], count: usize) -> [[f32; 2]; 128] {
+    let mut out = [[0.0f32; 2]; 128];
+    let forces = accumulate_forces(particles, count, None);
+    let n = forces.len().min(128);
+    out[..n].copy_from_slice(&forces[..n]);
+    out
 }
 
 // ─── Tests (BDD) ────────────────────────────────────────────────────────────
@@ -266,7 +299,7 @@ mod tests {
     #[test]
     fn isolated_particle_zero_force() {
         let a = particle(1.0, 400.0, 0.0, 0.0);
-        let forces = accumulate_forces(&[a], 1);
+        let forces = accumulate_forces(&[a], 1, None);
         assert_eq!(forces[0], [0.0, 0.0], "isolated particle has no force");
     }
 
@@ -368,7 +401,7 @@ mod tests {
             particle(-1.0, 300.0, 1.0, 0.0),
             particle(0.5, 500.0, 0.0, 1.0),
         ];
-        let forces = accumulate_forces(&particles, 3);
+        let forces = accumulate_forces(&particles, 3, None);
         let sum_x: f32 = forces[..3].iter().map(|f| f[0]).sum();
         let sum_y: f32 = forces[..3].iter().map(|f| f[1]).sum();
         assert!(sum_x.abs() < 1e-4, "Axiom 5: Σfx = 0: {sum_x}");
@@ -539,7 +572,7 @@ mod tests {
             particle(0.5, 500.0, 0.5, 1.0),
         ];
         let charge_before: f32 = particles.iter().map(|p| p.charge).sum();
-        let _ = accumulate_forces(&particles, 3); // forces don't change charge
+        let _ = accumulate_forces(&particles, 3, None); // forces don't change charge
         let charge_after: f32 = particles.iter().map(|p| p.charge).sum();
         assert_eq!(charge_before, charge_after, "Axiom 5: charge conserved");
     }
@@ -552,8 +585,8 @@ mod tests {
             particle(1.0, 400.0, 0.0, 0.0),
             particle(-1.0, 300.0, 1.0, 0.0),
         ];
-        let a = accumulate_forces(&p, 2);
-        let b = accumulate_forces(&p, 2);
+        let a = accumulate_forces(&p, 2, None);
+        let b = accumulate_forces(&p, 2, None);
         assert_eq!(a[0][0].to_bits(), b[0][0].to_bits());
     }
 }

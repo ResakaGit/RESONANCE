@@ -11,6 +11,8 @@ use bevy::prelude::*;
 use crate::blueprint::{ElementId, equations};
 use crate::entities::builder::EntityBuilder;
 use crate::events::DeathCause;
+use crate::layers::gompertz_cache::GompertzCache;
+use crate::layers::kleiber_cache::KleiberCache;
 use crate::layers::organ::LifecycleStageCache;
 use crate::layers::senescence::SenescenceProfile;
 use crate::layers::{
@@ -195,6 +197,8 @@ pub fn reproduction_spawn_system(
                 .at(child_pos)
                 .spawn(&mut commands);
 
+            let sen_coeff = crate::blueprint::constants::senescence_coeff_fauna();
+            let sen_max = crate::blueprint::constants::senescence_max_age_fauna();
             commands.entity(child).insert((
                 child_profile,
                 *caps,
@@ -217,10 +221,12 @@ pub fn reproduction_spawn_system(
                 },
                 SenescenceProfile {
                     tick_birth: clock.tick_id,
-                    senescence_coeff: crate::blueprint::constants::senescence_coeff_fauna(),
-                    max_viable_age: crate::blueprint::constants::senescence_max_age_fauna(),
+                    senescence_coeff: sen_coeff,
+                    max_viable_age: sen_max,
                     strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
                 },
+                KleiberCache::default(),
+                GompertzCache::from_senescence(clock.tick_id, sen_coeff, sen_coeff, sen_max),
             ));
             // Cultural inheritance: copy parent's memes to offspring (Axiom 6).
             if let Ok(parent_culture) = culture_query.get(entity) {

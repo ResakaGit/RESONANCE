@@ -73,6 +73,14 @@ impl EnergyFieldGrid {
         self.chunk_dirty.fill(0);
     }
 
+    /// Reset all cells to default (zero qe, zero freq). Preserves grid dimensions.
+    pub fn reset_cells(&mut self) {
+        self.cells.iter_mut().for_each(|c| *c = EnergyCell::default());
+        self.generation = 0;
+        self.dirty_words.fill(!0); // mark all dirty
+        self.chunk_dirty.fill(1);
+    }
+
     /// Marca celda dirty y el chunk que la contiene.
     pub fn mark_cell_dirty(&mut self, x: u32, y: u32) {
         let Some(idx) = self.index_of(x, y) else {

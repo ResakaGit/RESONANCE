@@ -28,15 +28,22 @@ impl SimWorldFlat {
         systems::irradiance_update(self);
         systems::containment_check(self, scratch);
 
-        // Phase::ParticleForces (before Atomic — forces modify velocity)
+        // Phase::AtomicLayer — MD-0 Velocity Verlet + MD-2 PBC
+        // 1. Position half-step (uses old_acceleration from previous tick)
+        systems::verlet_position_step(self);
+        // 2. Wrap into periodic box (no-op if sim_box is None)
+        systems::wrap_positions(self);
+        // 3. Forces at new positions (minimum image when PBC active)
         systems::particle_forces(self, self.force_strategy, self.dt);
-
-        // Phase::AtomicLayer
+        // 3. Other velocity-modifying systems
         systems::dissipation(self);
         systems::will_to_velocity(self);
         systems::velocity_cap(self);
         systems::locomotion_drain(self);
-        systems::movement_integrate(self);
+        // 4. Velocity finish (Verlet gravity averaging + store a_new)
+        systems::verlet_velocity_finish(self);
+        // 5. Langevin thermostat: friction + noise (no-op if disabled)
+        systems::langevin_thermostat(self);
         systems::collision(self, scratch);
         systems::entrainment(self, scratch);
         systems::tension_field_apply(self, scratch);
@@ -131,14 +138,21 @@ impl SimWorldFlat {
                         total_ticks,
                     );
                 }
-                // Position: integrate with gravity
+                // Position: Verlet integration with gravity (MD-0)
                 for _ in 0..total_ticks {
-                    e.velocity[1] -= GRAVITY_ACCELERATION * self.dt;
-                    e.position[0] += e.velocity[0] * self.dt;
-                    e.position[1] += e.velocity[1] * self.dt;
+                    use crate::blueprint::equations::verlet;
+                    let ax = e.old_acceleration[0];
+                    let ay = e.old_acceleration[1];
+                    e.position[0] = verlet::position_step(e.position[0], e.velocity[0], ax, self.dt);
+                    e.position[1] = verlet::position_step(e.position[1], e.velocity[1], ay, self.dt);
+                    let a_new_y = -GRAVITY_ACCELERATION;
+                    e.velocity[0] = verlet::velocity_step(e.velocity[0], ax, 0.0, self.dt);
+                    e.velocity[1] = verlet::velocity_step(e.velocity[1], ay, a_new_y, self.dt);
+                    e.old_acceleration = [0.0, a_new_y];
                     if e.position[1] < 0.0 {
                         e.position[1] = 0.0;
                         e.velocity[1] = 0.0;
+                        e.old_acceleration[1] = 0.0;
                     }
                 }
                 // Mark field for re-convergence (qe changed)

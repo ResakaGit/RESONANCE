@@ -10,8 +10,8 @@ use resonance::use_cases::experiments::particle_lab::{self, ParticleLabConfig};
 fn main() {
     let args: Vec<String> = std::env::args().collect();
     let config = ParticleLabConfig {
-        positive_count: parse_arg(&args, "--positive", 15) as u8,
-        negative_count: parse_arg(&args, "--negative", 15) as u8,
+        positive_count: parse_arg(&args, "--positive", 15) as u16,
+        negative_count: parse_arg(&args, "--negative", 15) as u16,
         freq_spread: parse_arg(&args, "--freq-spread", 100) as f32,
         arena_size: parse_arg(&args, "--arena", 10) as f32,
         ticks_per_snapshot: parse_arg(&args, "--ticks", 20) as u32,

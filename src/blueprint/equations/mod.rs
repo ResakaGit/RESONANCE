@@ -23,6 +23,8 @@ mod combat_will;
 mod contact;
 mod core_physics;
 pub mod constraints;
+pub mod coarsening;
+pub mod cosmic_gravity;
 pub mod coulomb;
 mod culture;
 pub mod derived_thresholds;
@@ -67,14 +69,19 @@ pub mod pbc;
 mod phenology;
 pub mod planetary_formation;
 pub mod planetary_rotation;
+pub mod planetary_system;
 mod population;
 pub mod protein_fold;
+pub mod proteome_inference;
 mod quantized_color;
 pub mod radial_field;
 mod radiation_pressure;
 pub mod respa;
+pub mod scale_inference;
+pub mod scale_temporal;
 pub mod sensitivity;
 pub mod special_functions;
+pub mod stellar_dynamics;
 mod sensory;
 mod signal_propagation;
 mod simulation_quality;
@@ -161,6 +168,23 @@ pub use crate::blueprint::morphogenesis::{
     inferred_surface_rugosity, irradiance_effective_for_albedo, rugosity_to_detail_multiplier,
     shape_cost, surface_dissipation_power, vascular_transport_cost,
 };
+
+mod organ_energy;
+pub use organ_energy::*;
+
+mod spectral_absorption;
+pub use spectral_absorption::*;
+mod phototropism;
+pub use phototropism::*;
+
+mod tissue_growth;
+pub use tissue_growth::*;
+mod volatile_emission;
+pub use volatile_emission::*;
+mod subterranean_morphology;
+pub use subterranean_morphology::*;
+mod cross_transfer;
+pub use cross_transfer::*;
 
 #[cfg(test)]
 mod tests;

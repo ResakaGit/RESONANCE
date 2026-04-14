@@ -1,5 +1,46 @@
 # Changelog
 
+## [Unreleased] — 2026-04-13
+
+### Added — Cosmic Telescope Track (CT-0 through CT-9)
+
+Multi-scale observational collapse system: S0 Cosmological → S1 Stellar → S2 Planetary → S3 Ecological → S4 Molecular. ADR-036. Sprint archived at `docs/sprints/archive/COSMIC_TELESCOPE/`.
+
+- **New module `src/cosmic/`** (~2,400 LOC, 100 tests):
+  - `constants.rs` — `ALL_SCALES`, `scale_short`/`scale_label` (`const fn`), `scale_camera_distance`, Big Bang defaults, bridge bounds, probe temperatures — single source of truth
+  - `scale_manager.rs` — `CosmicEntity` (f64/3D), `CosmicWorld`, `ScaleInstance` with per-scale `ScaleTelescope`
+  - `zoom.rs` — `collapse_parent`/`aggregate_child` + `ZoomInEvent`/`ZoomOutEvent` systems (CT-1)
+  - `observer.rs` — shared viewer/headless API: `seed_universe`, `zoom_via_bridge`(`_with_seed`), `rebranch_observed`, `stationary_entity` helper (CT-8/CT-9)
+  - `multiverse.rs` — `BranchSnapshot`, `MultiverseLog` with emergent `life_probability` (CT-9)
+  - `bridges/` — cosmo→stellar (IMF Salpeter), stellar→planetary (Titius-Bode), planetary→ecological (Hill/Kleiber), ecological→molecular (proteome inference)
+  - `scales/` — cosmological (N-body + Big Bang), stellar (nucleosynthesis), coarsening (k^distance geometric cadence, MAX_DISTANCE_FROZEN=4)
+
+- **New binaries (3):**
+  - `cosmic_telescope` — 3D viewer with orbit camera, fade transitions (no teleport), 5 per-scale visual styles, click zoom-in, clickable breadcrumb bar, comparison panel (C key), multiverse branching (Tab)
+  - `cosmic_telescope_headless` — CI validation traversing S0→S4→S0 deterministically
+  - `cosmic_bigbang` — CT-2 cluster formation diagnostic
+
+- **Refactors (performance + centralization):**
+  - Centralized constants — eliminated 9 magic numbers across observer + viewer
+  - Eliminated 3 duplicated `scale_short`/`scale_label` functions (viewer, headless, inline) → single `const fn`
+  - Boilerplate `CosmicEntity { .., velocity:[0;3], age:0, alive:true }` replaced by `stationary_entity` helper (3 call sites)
+  - `.unwrap_or(Ordering::Equal)` → `.total_cmp()`
+  - Hardcoded dissipations (0.02, 0.005) → `DISSIPATION_LIQUID`/`DISSIPATION_SOLID` from `derived_thresholds` (canonical physics)
+  - `scale_map` HUD string: `format!`+`push_str` → `write!` + `String::with_capacity` (fewer allocs)
+
+- **CLAUDE.md:** binaries count 27→30 (added Cosmic line); sprints 57→58 archived (CT entry added).
+
+### Stats (CT track only)
+- Cosmic module LOC: 0 → **~2,400**
+- Cosmic binary LOC: 0 → **~1,350** (viewer + headless + bigbang)
+- Cosmic tests: 0 → **100** (0 regressions)
+- Centralized constants module: 0 → 1 (`cosmic/constants.rs`)
+
+### Mixed — unrelated accumulated WIP (not from this session)
+This commit also bundles previously pending work on other tracks (Molecular Dynamics sprint archival, Regulatory Documentation/Infrastructure archive moves, Plant Physiology sprint scaffolding, ADRs 022-025 and 033-036, particle charge sprints, scale temporal/inference equations, etc.). Each track has its own prior CHANGELOG entries — see below for detail.
+
+---
+
 ## [Unreleased] — 2026-04-02
 
 ### Added — Regulatory Documentation Track (RD-1 through RD-7)

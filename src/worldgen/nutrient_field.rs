@@ -131,6 +131,11 @@ impl NutrientFieldGrid {
         self.cells.get_mut(idx)
     }
 
+    /// Reset all cells to default (zero nutrients). Preserves grid dimensions.
+    pub fn reset_cells(&mut self) {
+        self.cells.iter_mut().for_each(|c| *c = NutrientCell::default());
+    }
+
     /// Seeds all cells with uniform nutrient values.
     /// Used for Big Bang: initial nutrient substrate enables faster recycling.
     pub fn seed_uniform(&mut self, carbon: f32, nitrogen: f32, phosphorus: f32, water: f32) {

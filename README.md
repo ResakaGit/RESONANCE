@@ -190,6 +190,81 @@ Can 4 numbers reproduce all 6 phenomena without manual tuning? Every parameter d
 | 8 | Multicellularity | Union-Find, differential expression | 33 |
 | 9 | Social emergence | Theory of mind, coalitions, culture | 40+ |
 
+## From Particle to Cure — Mechanistic Pipeline
+
+How organs, tumors, and therapeutic strategies emerge from the same 8 axioms without scripting or templates.
+
+### Level 0: Minimal Entity
+
+Every entity starts as `qe` (energy) + `frequency` (identity). Existence requires `qe > 0`. No cell type, no labels — just physics.
+
+### Level 1: Organ Inference
+
+Organs are never declared — they emerge from physics:
+
+```
+Energy + Volume + Biomass → Lifecycle Stage (Dormant → Emerging → Growing → Mature → Reproductive → Declining)
+    → InferenceProfile (growth_bias, branching_bias) × Environment Viability
+    → OrganManifest (up to 12 slots: Stem, Root, Leaf, Thorn, Shell, Limb, Fin...)
+    → BodyPlanLayout (bilateral or thermodynamic optimization)
+    → GF1 Mesh (torso + organ sub-meshes, merged)
+```
+
+Changing temperature shifts `branching_bias` (Bergmann/Allen rules) and reorganizes organs automatically.
+
+### Level 2: Tumor Emergence
+
+A tumor emerges from **frequency and trophic class**, not from a "cancer" label:
+
+| Cell type | Frequency | Trophic | Metabolism |
+|-----------|----------|---------|------------|
+| Normal | ~250 Hz | Producer | Photosynthesis (freq-aligned) |
+| Cancer | ~400 Hz | Detritivore | Direct nutrient scavenge |
+| Quiescent stem | ~200 Hz | Detritivore | Dormant (growth_bias ~0.01) |
+
+Cancer cells outcompete because their frequency doesn't align with photosynthetic machinery — they scavenge nutrients directly, growing faster in vascularized environments.
+
+### Level 3: Drug Mechanism (Frequency-Selective)
+
+```
+alignment  = exp(-df^2 / (2 * bandwidth^2))              -- Gaussian (Axiom 8)
+response   = potency * alignment^n / (EC50^n + alignment^n)  -- Hill n=2
+drain      = response * 0.5 qe/tick                        -- applied post-uptake, pre-death
+```
+
+Bandwidth controls selectivity: narrow = antibody-like, broad = alkylating agent. Drug targets 400 Hz — kills cancer (alignment ~1.0), spares normal cells at 250 Hz (alignment ~0).
+
+### Level 4: Three Resistance Layers (All Emergent)
+
+| Layer | Mechanism | Timescale | Axioms |
+|-------|-----------|-----------|--------|
+| **Frequency escape** | Population tail survives drug bandwidth; clonal expansion shifts mean frequency | ~10-20 gen | 3, 8 |
+| **Quiescent persistence** | Dormant stems at offset frequency; reactivate when niche empties | Indefinite → relapse | 6, 7, 8 |
+| **Metabolic compensation** | Alternative pathway rerouting + epigenetic silencing reduces inhibitor load | Continuous | 4, 6 |
+
+None require random mutation — all emerge from frequency distributions, energy constraints, and competitive dynamics.
+
+### Level 5: Therapeutic Strategies
+
+| Strategy | Why it works (in the model) | Validated against |
+|----------|----------------------------|-------------------|
+| Combo > Mono | Two frequencies cover more of the resistance spectrum | Bozic 2013 |
+| Adaptive > Continuous | Drug holidays let sensitive cells recover and re-suppress resistant | Zhang 2022 |
+| Pulsed therapy | Reduced selection pressure slows frequency drift | Foo & Michor 2009 |
+
+### Derived Constants (Zero Manual Calibration)
+
+All therapy parameters derive algebraically from the 4 fundamentals:
+
+| Parameter | Derivation | Value |
+|-----------|-----------|-------|
+| Drug potency | DISSIPATION_LIQUID / DISSIPATION_SOLID | 4.0 |
+| Tumor frequency | 8 * COHERENCE_BANDWIDTH | 400 Hz |
+| Resistant offset | 3 * BANDWIDTH | 150 Hz |
+| Resistance fitness cost | DISSIPATION_LIQUID / DISSIPATION_GAS | 0.25 |
+
+See `blueprint/equations/derived_thresholds.rs` for the full derivation chain.
+
 ## Quick Start
 
 ```bash

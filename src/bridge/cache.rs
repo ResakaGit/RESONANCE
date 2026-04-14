@@ -1,9 +1,9 @@
-//! Cache genérica por tipo de puente — Resource descartable (sin efecto en resultados si se borra).
-//! Ver `docs/sprints/BRIDGE_OPTIMIZER/README.md` y `docs/design/BRIDGE_OPTIMIZER.md` §5.3.
+//! Generic per-bridge cache — dispensable Resource (no effect on results if cleared).
+//! See `docs/sprints/BRIDGE_OPTIMIZER/README.md` and `docs/design/BRIDGE_OPTIMIZER.md` §5.3.
 //!
-//! **B2:** evicción = LRU por contador `last_used` únicamente. `CachePolicy::Lfu` se persiste para
-//! presets (B8) pero **no altera** insert/lookup hasta un sprint que defina LFU.
-//! **B7:** `eviction_enabled` (fase Filling) desactiva evicción al insertar con cache llena.
+//! **B2:** eviction = LRU by `last_used` counter only.
+//! `ContextFill` disables eviction during warmup (B7).
+//! **B7:** `eviction_enabled` (Filling phase) disables eviction when inserting into a full cache.
 
 use core::marker::PhantomData;
 
@@ -13,7 +13,7 @@ use fxhash::FxHashMap;
 use crate::bridge::config::{BridgeKind, CachePolicy};
 use crate::layers::MatterState;
 
-/// Salida cacheada por ecuación — unión de tipos usados en bridges de física/interferencia.
+/// Cached output per equation — union of types used in physics/interference bridges.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum CachedValue {
     Scalar(f32),
@@ -30,7 +30,7 @@ struct CacheEntry {
     last_used: u64,
 }
 
-/// Backend interno: Vec lineal (N ≤ 256) o mapa (N > 256). Misma semántica LRU por `last_used`.
+/// Internal backend: linear Vec (N ≤ 256) or map (N > 256). Same LRU semantics via `last_used`.
 #[derive(Debug)]
 enum CacheBackend {
     Small { entries: Vec<CacheEntry> },
@@ -71,7 +71,7 @@ impl CacheBackend {
         }
     }
 
-    /// Índice o clave del candidato con `last_used` mínimo (evicción LRU).
+    /// Index or key of the candidate with minimum `last_used` (LRU eviction).
     fn eviction_victim(&self) -> Option<Victim> {
         match self {
             CacheBackend::Small { entries } => entries
@@ -124,7 +124,7 @@ enum Victim {
     Large(u64),
 }
 
-/// Estadísticas de uso — la cache es descartable: borrarla no cambia resultados del pipeline.
+/// Usage statistics — cache is dispensable: clearing it does not change pipeline results.
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct CacheStats {
     pub hits: u64,
@@ -143,7 +143,7 @@ pub struct BridgeCache<B: BridgeKind> {
     /// Si es `false`, no se evicta al insertar con cache llena (fase Filling, sprint B7).
     eviction_enabled: bool,
     backend: CacheBackend,
-    /// Contador monotónico para LRU por marca temporal (no confundir con tick de simulación).
+    /// Monotonic counter for LRU timestamp (not the simulation tick).
     clock: u64,
     hits: u64,
     misses: u64,
@@ -176,7 +176,7 @@ impl<B: BridgeKind> BridgeCache<B> {
         self.eviction_enabled
     }
 
-    /// Expuesto para tests de selección Small/Large (capacity threshold 256).
+    /// Exposed for Small/Large selection tests (capacity threshold 256).
     #[cfg(test)]
     pub(crate) fn backend_kind(&self) -> &'static str {
         match &self.backend {
@@ -225,7 +225,7 @@ impl<B: BridgeKind> BridgeCache<B> {
         }
 
         if !self.eviction_enabled && self.backend.len() >= self.capacity {
-            // Sin evicción y llena: no añadir claves nuevas (solo updates arriba).
+            // No eviction and full: do not insert new keys (only updates above).
             return;
         }
 
@@ -261,7 +261,7 @@ impl<B: BridgeKind> BridgeCache<B> {
         }
     }
 
-    /// Reinicia contadores del periodo (hits/misses/evictions) sin vaciar entradas — ventana para métricas B9.
+    /// Resets period counters (hits/misses/evictions) without clearing entries — windowed metrics (B9).
     pub fn reset_usage_counters(&mut self) {
         self.hits = 0;
         self.misses = 0;
@@ -273,7 +273,7 @@ impl<B: BridgeKind> BridgeCache<B> {
     }
 }
 
-/// Inserta `BridgeCache<B>` como Resource. Si no se registra, `ResMut`/`Res` fallará en runtime (Bevy).
+/// Inserts `BridgeCache<B>` as a Resource. If not registered, `ResMut`/`Res` will panic at runtime (Bevy).
 pub fn register_bridge_cache<B: BridgeKind>(app: &mut App, capacity: usize, policy: CachePolicy) {
     app.insert_resource(BridgeCache::<B>::new(capacity, policy));
 }
@@ -327,7 +327,7 @@ mod tests {
         let mut c = BridgeCache::<DensityBridge>::new(2, CachePolicy::Lru);
         c.insert(10, CachedValue::Scalar(1.0));
         c.insert(20, CachedValue::Scalar(2.0));
-        // Llena; la víctima es la entrada con last_used mínimo (10).
+        // Full; victim is the entry with minimum last_used (10).
         c.insert(30, CachedValue::Scalar(3.0));
         assert_eq!(c.lookup(10), None);
         assert_eq!(c.lookup(20), Some(CachedValue::Scalar(2.0)));

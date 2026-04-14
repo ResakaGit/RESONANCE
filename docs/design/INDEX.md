@@ -8,6 +8,13 @@ The canonical architecture document is [`docs/ARCHITECTURE.md`](../ARCHITECTURE.
 
 The files below are **historical design specs** from earlier development phases. They remain as reference but may contain outdated metrics or superseded designs. When in conflict, ARCHITECTURE.md and CLAUDE.md are the sources of truth.
 
+## Active Design Contracts
+
+| Document | Topic | Status |
+|----------|-------|--------|
+| [CACHE_PERFORMANCE_DOD.md](CACHE_PERFORMANCE_DOD.md) | Caching & performance DoD (6 rules) | **Active** |
+| [BRIDGE_OPTIMIZER.md](BRIDGE_OPTIMIZER.md) | BridgeCache design (B1–B9 sprints) | Active |
+
 ## Historical Design Specs
 
 | Document | Topic | Status |

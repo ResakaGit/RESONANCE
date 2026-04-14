@@ -210,12 +210,21 @@ pub fn spawn_nuclei_from_map_config_system(
 
 pub fn worldgen_warmup_system(world: &mut World) {
     let ticks = world.resource::<WorldgenWarmupConfig>().ticks;
+    run_warmup_loop(world, ticks);
+    // DC-3: Signal completion — simulation decides when to transition to Active.
+    world.insert_resource(crate::worldgen::WorldgenReady {
+        completed_at_tick: ticks as u64,
+    });
+}
+
+/// Propagation + dissipation + materialization loop. Reusable from startup and reset.
+/// Exclusive world access — blocks 1 frame during warmup (~50-200ms typical).
+pub fn run_warmup_loop(world: &mut World, ticks: u32) {
     let step = Duration::from_secs_f32(1.0 / 60.0);
     if !world.contains_resource::<PropagationWriteBudget>() {
         world.insert_resource(PropagationWriteBudget::default());
     }
     for _ in 0..ticks {
-        // Cada paso de warmup debe ver un dt > 0 (mismo contrato que un tick de simulación).
         if let Some(mut time) = world.get_resource_mut::<Time>() {
             time.advance_by(step);
         }
@@ -232,14 +241,7 @@ pub fn worldgen_warmup_system(world: &mut World) {
             warn!("warmup: derive_cell_state_system failed: {err:?}");
         }
     }
-
     materialization_full_world(world);
-
-    // DC-3: Signal completion — simulation decides when to transition to Active.
-    let completed_at = ticks as u64;
-    world.insert_resource(crate::worldgen::WorldgenReady {
-        completed_at_tick: completed_at,
-    });
 }
 
 fn materialization_full_world(world: &mut World) {

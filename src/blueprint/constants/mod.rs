@@ -168,3 +168,6 @@ pub use morphogenesis::{
     SHAPE_OPTIMIZER_EPSILON, SHAPE_OPTIMIZER_MAX_ITER, SPECIFIC_HEAT_FACTOR, STEFAN_BOLTZMANN,
 };
 pub use morphogenesis_track::morphogenesis;
+
+pub mod plant_physiology;
+pub use plant_physiology::*;

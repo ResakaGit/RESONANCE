@@ -7,8 +7,7 @@
 //! Axiom 1: charge = energy polarity. Axiom 7: F∝1/r². Axiom 8: freq modulates bonds.
 
 use crate::blueprint::equations::coulomb::{
-    self, ChargedParticle, MoleculeSignature, accumulate_forces, classify_molecule,
-    count_element_types, detect_bonds,
+    self, ChargedParticle, MoleculeSignature, classify_molecule, count_element_types, detect_bonds,
 };
 use crate::blueprint::equations::determinism;
 use std::time::Instant;
@@ -17,10 +16,10 @@ use std::time::Instant;
 
 #[derive(Debug, Clone)]
 pub struct ParticleLabConfig {
-    /// Number of positive particles.
-    pub positive_count: u8,
-    /// Number of negative particles.
-    pub negative_count: u8,
+    /// Number of positive particles (up to 512).
+    pub positive_count: u16,
+    /// Number of negative particles (up to 512).
+    pub negative_count: u16,
     /// Charge magnitude for positive particles.
     pub positive_charge: f32,
     /// Charge magnitude for negative particles (stored as positive, applied as negative).
@@ -92,11 +91,13 @@ fn physics_tick(particles: &mut [ChargedParticle], count: usize, dt: f32, arena:
         return;
     }
 
-    // Forces (pure HOF)
-    let forces = accumulate_forces(particles, count);
+    // Forces (adaptive: brute O(N²) for small N, tree O(N log N) for large N)
+    let forces =
+        crate::blueprint::equations::spatial_tree::accumulate_forces_adaptive(particles, count, None);
 
     // Apply + move + dissipate + bounce
-    let damping = 0.005; // Axiom 4: small energy loss per tick
+    // Axiom 4: dissipation per tick. Derived: DISSIPATION_SOLID = 0.005.
+    let damping = crate::blueprint::equations::derived_thresholds::DISSIPATION_SOLID;
     for i in 0..count {
         let mass = particles[i].mass.max(0.01);
         // F = ma → Δv = (F/m) × dt
@@ -187,14 +188,17 @@ pub fn run(config: &ParticleLabConfig) -> ParticleLabReport {
     let start = Instant::now();
     let total = (config.positive_count + config.negative_count) as usize;
 
-    // Spawn particles
-    let mut particles = [ChargedParticle {
-        charge: 0.0,
-        mass: 1.0,
-        frequency: 0.0,
-        position: [0.0; 2],
-        velocity: [0.0; 2],
-    }; 128];
+    // Spawn particles (supports up to 1024 via Vec — no SimWorldFlat dependency)
+    let mut particles = vec![
+        ChargedParticle {
+            charge: 0.0,
+            mass: 1.0,
+            frequency: 0.0,
+            position: [0.0; 2],
+            velocity: [0.0; 2],
+        };
+        total
+    ];
 
     let mut s = config.seed;
     for i in 0..config.positive_count as usize {

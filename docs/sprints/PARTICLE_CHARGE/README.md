@@ -8,13 +8,13 @@ Pre-requisito: scale (>64 entities) + spatial acceleration + continuous forces.
 
 ---
 
-## Pre-requisitos (infraestructura)
+## Pre-requisitos (infraestructura) — ADR-020
 
-| Sprint | Nombre | Esfuerzo | Entregable |
-|--------|--------|----------|------------|
-| [PC-0](SPRINT_PC0_SCALE.md) | Entity Scale | 2 sem | alive_mask u64→bitset, MAX_ENTITIES 64→1024 |
-| [PC-1](SPRINT_PC1_SPATIAL_TREE.md) | Spatial Acceleration | 2 sem | Barnes-Hut O(N log N) en `equations/spatial_tree.rs` |
-| [PC-2](SPRINT_PC2_CONTINUOUS_FORCES.md) | Continuous Forces | 1 sem | Force accumulator per entity, applied cada tick |
+| Sprint | Nombre | Esfuerzo | Entregable | Estado |
+|--------|--------|----------|------------|--------|
+| [PC-0](SPRINT_PC0_SCALE.md) | Entity Scale | 2 sem | AliveMask bitset [u64;16], MAX_ENTITIES 128→1024, entity_count u16 | Diseñado |
+| [PC-1](SPRINT_PC1_SPATIAL_TREE.md) | Spatial Acceleration | 2 sem | Barnes-Hut quadtree O(N log N) en `equations/spatial_tree.rs` | Diseñado |
+| [PC-2](SPRINT_PC2_CONTINUOUS_FORCES.md) | Continuous Forces | 1 sem | Force accumulator slot-indexed, tree/brute dispatch | Diseñado |
 
 ## Core (partículas)
 

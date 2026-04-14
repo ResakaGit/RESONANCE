@@ -2,9 +2,9 @@
 
 **Objetivo:** Desacoplar normalización de atención en el Bridge Optimizer. Cache exacto sin pérdida de precisión. TDD coherente.
 
-**Estado:** ACTIVO (2026-03-30) — 2/7 completados, 5 pendientes.
+**Estado:** ✅ COMPLETADO (2026-04-13) — 3/7 completados, 4 cancelados. ADR-017.
 **Bloqueado por:** Nada (track independiente)
-**Desbloquea:** Percepciones metafísicas, LOD por entidad, cache adaptativo
+**Desbloquea:** Performance (powf/exp elimination), convergence skip (epigenetics, shape)
 
 ---
 
@@ -17,20 +17,26 @@
 
 ---
 
-## Pendiente
+## Reestructurado (ADR-017, 2026-04-12)
 
-| Sprint | Descripción | Esfuerzo | Bloqueado por |
-|--------|-------------|----------|---------------|
-| BS-1 | NormStrategy enum + desacople | M | — |
-| BS-4 | 6 bridges nuevos (basal, senescence, awakening, rad, shape, epi) | L | BS-1 |
-| BS-5 | TDD: tests unitarios + integración tier 1 | L | BS-4 |
-| BS-6 | HOF composition (NormPipeline) | M | BS-1 |
-| BS-7 | RON presets para estrategias + validación keys | S | BS-6 |
+CACHE_STRATEGY_DESIGN_V2 demostró que solo 1/8 bloques se beneficia del bridge cache.
+Los otros 7 se optimizan con dirty flags, precompute y convergence detection directos.
+
+| Sprint | Estado | Razón |
+|--------|--------|-------|
+| BS-1 | **Cancelado** | `BridgeConfig.enabled` ya cubre Passthrough vs Concentration |
+| BS-4 | **Cancelado** | Reemplazado por integración directa (ADR-017: 4 cambios) |
+| BS-5 | **Completado** | 5 tests de integración (kleiber×radii, gompertz×exact, gompertz×boundary, converged×invalidation, converged×edge) |
+| BS-6 | **Cancelado** | NormPipeline sin razón de ser — V2 eliminó variantes |
+| BS-7 | **Cancelado** | Dependía de BS-6 |
+
+### ADR-017: 4 cambios concretos
 
 ```
-BS-1 ──→ BS-4 ──→ BS-5
-  │
-  └──→ BS-6 ──→ BS-7
+1. KleiberCache  → basal_drain_system     (elimina powf per-tick)
+2. GompertzCache → senescence_death_system (elimina exp per-tick)
+3. Converged<EpigeneticState>  → epigenetic_adaptation_system (skip 85%)
+4. Converged<ShapeParams>      → shape_optimization_system    (skip 90%)
 ```
 
 ---

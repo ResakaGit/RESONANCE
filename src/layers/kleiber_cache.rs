@@ -118,4 +118,24 @@ mod tests {
         c.update(2.0);
         assert_eq!(c, c, "initialized cache should eq itself");
     }
+
+    // ── BS-5: Integration — cache matches uncached across radii ────────
+
+    #[test]
+    fn bs5_cache_matches_uncached_powf_across_radii() {
+        let radii = [0.01, 0.1, 0.5, 1.0, 2.0, 5.0, 10.0, 50.0, 100.0];
+        let mut cache = KleiberCache::default();
+        for &r in &radii {
+            cache.update(r);
+            let cached = cache.vol_factor();
+            let uncached = r.max(0.01).powf(
+                crate::blueprint::equations::derived_thresholds::KLEIBER_EXPONENT,
+            );
+            let delta = (cached - uncached).abs();
+            assert!(
+                delta < 1e-6,
+                "BS-5: KleiberCache diverged at r={r}: cached={cached} uncached={uncached}"
+            );
+        }
+    }
 }

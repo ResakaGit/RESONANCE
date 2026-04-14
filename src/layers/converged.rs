@@ -110,4 +110,22 @@ mod tests {
     fn hash_pos_different_positions_differ() {
         assert_ne!(hash_pos(1.0, 2.0), hash_pos(2.0, 1.0));
     }
+
+    // ── BS-5: Integration — invalidation on env change ─────────────────
+
+    #[test]
+    fn bs5_converged_valid_then_invalidated() {
+        let hash_a = 12345u64;
+        let hash_b = 67890u64;
+        let conv = Converged::<MockProcess>::new(hash_a);
+        assert!(conv.is_valid(hash_a), "BS-5: same hash should be valid");
+        assert!(!conv.is_valid(hash_b), "BS-5: different hash should invalidate");
+    }
+
+    #[test]
+    fn bs5_converged_zero_hash_edge_case() {
+        let conv = Converged::<MockProcess>::new(0);
+        assert!(conv.is_valid(0), "BS-5: zero hash valid");
+        assert!(!conv.is_valid(1), "BS-5: zero vs 1 invalid");
+    }
 }

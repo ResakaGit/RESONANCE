@@ -29,7 +29,7 @@ pub fn lod_level_from_k(telescope_k: u32) -> u32 {
     LOD_LEVELS.iter()
         .copied()
         .filter(|&level| level <= telescope_k)
-        .last()
+        .next_back()
         .unwrap_or(LOD_LEVELS[0])
 }
 

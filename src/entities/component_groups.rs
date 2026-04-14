@@ -18,6 +18,8 @@ use crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY;
 use crate::blueprint::equations::{
     bond_from_energy, conductivity_from_state, dissipation_from_state, matter_state_from_density,
 };
+use crate::layers::gompertz_cache::GompertzCache;
+use crate::layers::kleiber_cache::KleiberCache;
 use crate::layers::organ::LifecycleStageCache;
 use crate::layers::senescence::SenescenceProfile;
 use crate::layers::{
@@ -101,7 +103,7 @@ pub fn trophic_components(
 
 // ─── Lifecycle: aging + morphology ───────────────────────────────────────────
 
-/// Senescence + shape inference + morphology params.
+/// Senescence + shape inference + morphology params + exact caches.
 /// `is_mobile`: true = fauna (shorter life, faster turnover), false = flora/terrain.
 pub fn lifecycle_components(
     tick_birth: u64,
@@ -112,6 +114,8 @@ pub fn lifecycle_components(
     LifecycleStageCache,
     MorphogenesisShapeParams,
     PerformanceCachePolicy,
+    KleiberCache,
+    GompertzCache,
 ) {
     let coeff = if is_mobile {
         crate::blueprint::constants::senescence_coeff_fauna()
@@ -139,6 +143,8 @@ pub fn lifecycle_components(
             version_tag: 1,
             dependency_signature: 0,
         },
+        KleiberCache::default(),
+        GompertzCache::from_senescence(tick_birth, coeff, coeff, max_age),
     )
 }
 
@@ -160,14 +166,22 @@ pub fn motor_components(
 
 // ─── Terrain: materialized tile senescence ───────────────────────────────────
 
-/// Senescence for terrain tiles (longer life, slower metabolism).
-pub fn terrain_senescence(tick_birth: u64) -> SenescenceProfile {
-    SenescenceProfile {
-        tick_birth,
-        senescence_coeff: crate::blueprint::constants::senescence_coeff_materialized(),
-        max_viable_age: crate::blueprint::constants::senescence_max_age_materialized(),
-        strategy: SENESCENCE_DEFAULT_STRATEGY,
-    }
+/// Senescence for terrain tiles (longer life, slower metabolism) + exact caches.
+pub fn terrain_senescence(
+    tick_birth: u64,
+) -> (SenescenceProfile, KleiberCache, GompertzCache) {
+    let coeff = crate::blueprint::constants::senescence_coeff_materialized();
+    let max_age = crate::blueprint::constants::senescence_max_age_materialized();
+    (
+        SenescenceProfile {
+            tick_birth,
+            senescence_coeff: coeff,
+            max_viable_age: max_age,
+            strategy: SENESCENCE_DEFAULT_STRATEGY,
+        },
+        KleiberCache::default(),
+        GompertzCache::from_senescence(tick_birth, coeff, coeff, max_age),
+    )
 }
 
 #[cfg(test)]
@@ -191,16 +205,30 @@ mod tests {
 
     #[test]
     fn lifecycle_fauna_shorter_than_flora() {
-        let (fauna_sen, _, _, _, _) = lifecycle_components(0, true);
-        let (flora_sen, _, _, _, _) = lifecycle_components(0, false);
+        let (fauna_sen, _, _, _, _, _, _) = lifecycle_components(0, true);
+        let (flora_sen, _, _, _, _, _, _) = lifecycle_components(0, false);
         assert!(fauna_sen.max_viable_age < flora_sen.max_viable_age);
     }
 
     #[test]
     fn terrain_senescence_longest() {
-        let terrain = terrain_senescence(0);
-        let (fauna, _, _, _, _) = lifecycle_components(0, true);
+        let (terrain, _, _) = terrain_senescence(0);
+        let (fauna, _, _, _, _, _, _) = lifecycle_components(0, true);
         assert!(terrain.max_viable_age > fauna.max_viable_age);
+    }
+
+    #[test]
+    fn lifecycle_includes_gompertz_cache() {
+        let (sen, _, _, _, _, _, gompertz) = lifecycle_components(100, true);
+        assert!(gompertz.death_tick() >= 100);
+        assert!(gompertz.death_tick() <= 100 + sen.max_viable_age);
+    }
+
+    #[test]
+    fn terrain_senescence_includes_gompertz_cache() {
+        let (sen, _, gompertz) = terrain_senescence(50);
+        assert!(gompertz.death_tick() >= 50);
+        assert!(gompertz.death_tick() <= 50 + sen.max_viable_age);
     }
 
     #[test]

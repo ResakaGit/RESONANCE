@@ -30,27 +30,80 @@ pub fn dissipation(world: &mut SimWorldFlat) {
     }
 }
 
-/// L3→Position: integrate velocity into position.
+/// MD-0 Verlet position half-step: x += v*dt + 0.5*a_old*dt².
 ///
-/// `position += velocity × dt` + gravity toward y=0.
+/// Uses stored `old_acceleration` from previous tick (gravity + external forces).
+/// Runs BEFORE force systems so forces are evaluated at the new position.
 ///
 /// Axiom 7: gravitational pull = distance attenuation from ground.
-/// Axiom 4: impact with ground dissipates kinetic energy.
-pub fn movement_integrate(world: &mut SimWorldFlat) {
+/// Axiom 4: ground collision dissipates kinetic energy.
+pub fn verlet_position_step(world: &mut SimWorldFlat) {
     let dt = world.dt;
     let mut mask = world.alive_mask;
     while mask != 0 {
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
         let e = &mut world.entities[i];
-        // Gravity: constant pull toward y=0
-        e.velocity[1] -= GRAVITY_ACCELERATION * dt;
-        // Integrate position
-        e.position[0] += e.velocity[0] * dt;
-        e.position[1] += e.velocity[1] * dt;
-        // Ground collision: floor at y=0
-        if e.position[1] < 0.0 {
+        e.position[0] =
+            equations::verlet::position_step(e.position[0], e.velocity[0], e.old_acceleration[0], dt);
+        e.position[1] =
+            equations::verlet::position_step(e.position[1], e.velocity[1], e.old_acceleration[1], dt);
+        // Ground collision: floor at y=0 (free-space only — PBC has no floor)
+        if world.sim_box.is_none() && e.position[1] < 0.0 {
             e.position[1] = 0.0;
+            e.velocity[1] = 0.0;
+            e.old_acceleration[1] = 0.0;
+        }
+    }
+}
+
+/// MD-2: wrap positions into periodic box [0, L). No-op if sim_box is None.
+///
+/// Runs after verlet_position_step. Torus topology: particle leaving one
+/// edge reappears on the opposite side. Axiom 7 holds on the torus.
+pub fn wrap_positions(world: &mut SimWorldFlat) {
+    let Some(bl) = world.sim_box else { return };
+    let mut mask = world.alive_mask;
+    while mask != 0 {
+        let i = mask.trailing_zeros() as usize;
+        mask &= mask - 1;
+        let e = &mut world.entities[i];
+        e.position[0] = equations::pbc::wrap(e.position[0], bl[0]);
+        e.position[1] = equations::pbc::wrap(e.position[1], bl[1]);
+    }
+}
+
+/// MD-0 Verlet velocity finish: v += 0.5*(a_old + a_new)*dt.
+///
+/// Runs AFTER force systems. Applies gravity via Verlet averaging.
+/// Stores `a_new` into `old_acceleration` for the next tick's position step.
+/// Gravity disabled under PBC (no floor, no preferred direction).
+///
+/// Particle forces (Coulomb/LJ) contribute Euler kicks to velocity between
+/// position_step and velocity_finish — acceptable hybrid for MD-0.
+/// Full force-accumulator Verlet deferred to MD-2.
+pub fn verlet_velocity_finish(world: &mut SimWorldFlat) {
+    let dt = world.dt;
+    let has_pbc = world.sim_box.is_some();
+    let mut mask = world.alive_mask;
+    while mask != 0 {
+        let i = mask.trailing_zeros() as usize;
+        mask &= mask - 1;
+        let e = &mut world.entities[i];
+        // PBC: no gravity (no preferred direction on torus).
+        // Free-space: gravity toward y=0.
+        let a_new = if has_pbc {
+            [0.0_f32, 0.0]
+        } else {
+            [0.0_f32, -GRAVITY_ACCELERATION]
+        };
+        e.velocity[0] =
+            equations::verlet::velocity_step(e.velocity[0], e.old_acceleration[0], a_new[0], dt);
+        e.velocity[1] =
+            equations::verlet::velocity_step(e.velocity[1], e.old_acceleration[1], a_new[1], dt);
+        e.old_acceleration = a_new;
+        // Ground: entity on floor cannot acquire downward velocity (free-space only)
+        if !has_pbc && e.position[1] <= 0.0 && e.velocity[1] < 0.0 {
             e.velocity[1] = 0.0;
         }
     }
@@ -387,56 +440,88 @@ mod tests {
         assert!(w.entities[idx].qe >= 0.0);
     }
 
-    // ── movement_integrate ──────────────────────────────────────────────────
+    // ── verlet_position_step + verlet_velocity_finish ─────────────────────
+
+    /// Helper: run full Verlet step (position + velocity) for tests without
+    /// intermediate force recomputation.
+    fn verlet_full(w: &mut SimWorldFlat) {
+        verlet_position_step(w);
+        verlet_velocity_finish(w);
+    }
 
     #[test]
-    fn movement_displaces_position_with_gravity() {
+    fn verlet_displaces_position_with_gravity() {
         let mut w = SimWorldFlat::new(0, 0.05);
-        let idx = spawn_entity(&mut w, 100.0, 0.0, 5.0, 1.0); // start above ground
+        let idx = spawn_entity(&mut w, 100.0, 0.0, 5.0, 1.0);
         w.entities[idx].velocity = [10.0, 20.0];
-        movement_integrate(&mut w);
+        verlet_full(&mut w);
+        // x: v*dt + 0.5*0*dt² = 10*0.05 = 0.5 (old_acceleration starts at 0)
         assert!(
             (w.entities[idx].position[0] - 0.5).abs() < 1e-3,
-            "x = vx * dt"
+            "x ~ vx * dt, got {}",
+            w.entities[idx].position[0],
         );
-        // y affected by gravity: vel reduced then integrated
+        // y: upward velocity should move up (gravity partially counteracts)
         assert!(
             w.entities[idx].position[1] > 5.0,
-            "upward velocity should move up"
+            "upward velocity should move up",
         );
     }
 
     #[test]
-    fn movement_skips_dead_entities() {
+    fn verlet_skips_dead_entities() {
         let mut w = SimWorldFlat::new(0, 0.05);
         let idx = spawn_entity(&mut w, 100.0, 5.0, 5.0, 1.0);
         w.entities[idx].velocity = [10.0, 10.0];
         w.kill(idx);
-        movement_integrate(&mut w);
-        // Dead entity default position is 0.0, not displaced
+        verlet_full(&mut w);
         assert_eq!(w.entities[idx].position[0], 0.0);
     }
 
     #[test]
-    fn movement_zero_velocity_falls() {
+    fn verlet_zero_velocity_falls() {
         let mut w = SimWorldFlat::new(0, 0.05);
         spawn_entity(&mut w, 100.0, 3.0, 7.0, 1.0);
-        movement_integrate(&mut w);
+        // Tick 1: old_acceleration=[0,0] → position stays, velocity acquires -g/2*dt
+        // Tick 2: old_acceleration=[0,-g] → position advances downward
+        verlet_full(&mut w);
+        verlet_full(&mut w);
         assert!(
             (w.entities[0].position[0] - 3.0).abs() < 1e-5,
-            "x unchanged"
+            "x unchanged",
         );
         assert!(w.entities[0].position[1] < 7.0, "gravity should pull down");
     }
 
     #[test]
-    fn movement_floor_collision() {
+    fn verlet_floor_collision() {
         let mut w = SimWorldFlat::new(0, 0.05);
-        let idx = spawn_entity(&mut w, 100.0, 3.0, 0.01, 1.0); // near ground
-        w.entities[idx].velocity = [0.0, -10.0]; // falling fast
-        movement_integrate(&mut w);
+        let idx = spawn_entity(&mut w, 100.0, 3.0, 0.01, 1.0);
+        w.entities[idx].velocity = [0.0, -10.0];
+        verlet_full(&mut w);
         assert_eq!(w.entities[idx].position[1], 0.0, "should stop at floor");
         assert_eq!(w.entities[idx].velocity[1], 0.0, "vertical velocity zeroed");
+    }
+
+    #[test]
+    fn verlet_energy_drift_harmonic_1k() {
+        // Harmonic oscillator via Verlet: energy drift must be bounded.
+        let k = 1.0_f32;
+        let dt = 0.01_f32;
+        let (mut x, mut v) = (1.0_f32, 0.0_f32);
+        let e0 = 0.5 * k * x * x + 0.5 * v * v;
+        let mut max_drift: f32 = 0.0;
+        for _ in 0..1_000 {
+            let a_old = -k * x;
+            x = equations::verlet::position_step(x, v, a_old, dt);
+            let a_new = -k * x;
+            v = equations::verlet::velocity_step(v, a_old, a_new, dt);
+            let drift = ((0.5 * k * x * x + 0.5 * v * v - e0) / e0).abs();
+            if drift > max_drift {
+                max_drift = drift;
+            }
+        }
+        assert!(max_drift < 1e-4, "energy drift {max_drift} exceeds 1e-4");
     }
 
     // ── collision ───────────────────────────────────────────────────────────

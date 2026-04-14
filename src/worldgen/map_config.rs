@@ -189,6 +189,15 @@ pub fn selected_map_path_from_env() -> PathBuf {
     PathBuf::from(format!("{MAPS_DIR}/{map_name}.ron"))
 }
 
+/// Carga MapConfig desde slug (sin leer env var). Pura.
+/// Load MapConfig from slug (no env var). Pure.
+pub fn load_map_config_from_slug(slug: &str) -> Result<MapConfig, String> {
+    let path = PathBuf::from(format!("{MAPS_DIR}/{slug}.ron"));
+    let contents = fs::read_to_string(&path)
+        .map_err(|err| format!("Failed to read '{}': {err}", path.display()))?;
+    parse_map_config(&contents)
+}
+
 pub fn parse_map_config(contents: &str) -> Result<MapConfig, String> {
     let options =
         ron::Options::default().with_default_extension(ron::extensions::Extensions::IMPLICIT_SOME);

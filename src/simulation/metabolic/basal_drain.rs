@@ -7,21 +7,29 @@
 use bevy::prelude::*;
 
 use crate::blueprint::equations::emergence::senescence::age_dependent_dissipation;
-use crate::layers::{BaseEnergy, EnergyOps, SenescenceProfile, SpatialVolume};
+use crate::layers::{BaseEnergy, EnergyOps, KleiberCache, SenescenceProfile, SpatialVolume};
 use crate::runtime_platform::simulation_tick::SimulationClock;
 
 use crate::blueprint::equations::derived_thresholds as dt;
 
 /// Passive energy drain — the cost of being alive.
+///
+/// Uses `KleiberCache` dirty-flag to avoid `powf(0.75)` per-tick (ADR-017).
+/// Fallback to inline `powf` for entities spawned without cache (transition safety).
 pub fn basal_drain_system(
     mut ops: EnergyOps,
-    query: Query<
-        (Entity, &SpatialVolume, Option<&SenescenceProfile>),
+    mut query: Query<
+        (
+            Entity,
+            &SpatialVolume,
+            Option<&SenescenceProfile>,
+            Option<&mut KleiberCache>,
+        ),
         (With<BaseEnergy>, Without<crate::worldgen::EnergyNucleus>),
     >,
     clock: Res<SimulationClock>,
 ) {
-    for (entity, volume, senescence) in &query {
+    for (entity, volume, senescence, kleiber) in &mut query {
         let Some(qe) = ops.qe(entity) else { continue };
         if qe <= 0.0 {
             continue;
@@ -29,7 +37,12 @@ pub fn basal_drain_system(
         let age_ticks = senescence.map(|s| s.age(clock.tick_id)).unwrap_or(0);
         let senescence_coeff = senescence.map(|s| s.senescence_coeff).unwrap_or(0.0);
         let age_factor = age_dependent_dissipation(1.0, age_ticks, senescence_coeff);
-        let vol_factor = volume.radius.max(0.01).powf(dt::KLEIBER_EXPONENT);
+        let vol_factor = if let Some(mut cache) = kleiber {
+            cache.update(volume.radius);
+            cache.vol_factor()
+        } else {
+            volume.radius.max(0.01).powf(dt::KLEIBER_EXPONENT)
+        };
         let drain = dt::basal_drain_rate() * vol_factor * age_factor;
         if drain > 0.0 {
             ops.drain(entity, drain, crate::events::DeathCause::Dissipation);

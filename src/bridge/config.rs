@@ -1,17 +1,17 @@
-//! Configuración del Bridge Optimizer: bandas, políticas y validación.
-//! `Resource` por genérico `B` para inyección `Res<BridgeConfig<B>>` (sprint B8).
+//! Bridge Optimizer configuration: bands, policies and validation.
+//! Generic `Resource` over `B` for `Res<BridgeConfig<B>>` injection (sprint B8).
 
 use core::marker::PhantomData;
 
 use bevy::prelude::Resource;
 use serde::{Deserialize, Serialize};
 
-/// Marcador de tipo por ecuación/puente — aislamiento en compile time para `BridgeConfig<B>` / `BridgeCache<B>`.
-/// El trait de decorador con ecuación es `crate::bridge::Bridgeable` (`bridge/decorator.rs`, sprint B3).
+/// Type marker per equation/bridge — compile-time isolation for `BridgeConfig<B>` / `BridgeCache<B>`.
+/// Decorator trait with equation: `crate::bridge::Bridgeable` (`bridge/decorator.rs`, sprint B3).
 pub trait BridgeKind: Send + Sync + 'static {}
 
-/// Marcadores por ecuación — routing compile-time de `BridgeConfig<B>` / `BridgeCache<B>`.
-/// Ver `docs/arquitectura/blueprint_layer_bridge_optimizer.md` §13 y sprint B8.
+/// Per-equation markers — compile-time routing of `BridgeConfig<B>` / `BridgeCache<B>`.
+/// See `docs/arquitectura/blueprint_layer_bridge_optimizer.md` §13 and sprint B8.
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash)]
 pub struct DensityBridge;
@@ -130,18 +130,18 @@ impl BridgeKind for SymbolBridge {}
 pub struct SelfModelBridge;
 impl BridgeKind for SelfModelBridge {}
 
-/// Definición de una banda de normalización: rango half-open salvo la última (cerrada en `max`).
+/// Normalization band definition: half-open range except the last (closed at `max`).
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct BandDef {
     pub min: f32,
     pub max: f32,
-    /// Valor representativo para cache / cómputo cuantizado.
+    /// Representative value for cache / quantized computation.
     pub canonical: f32,
-    /// Banda de equilibrio (afecta políticas de sesgo en capas superiores).
+    /// Equilibrium band (affects bias policies in upper layers).
     pub stable: bool,
 }
 
-/// Rigidez predefinida — tuning rápido antes de RON completo (sprint B8).
+/// Predefined rigidity — quick tuning before full RON (sprint B8).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Rigidity {
@@ -152,17 +152,16 @@ pub enum Rigidity {
     Transparent,
 }
 
-/// Política de evicción / llenado de cache (implementación en sprint B2/B7).
+/// Eviction / fill policy for bridge caches (B2/B7 sprints).
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CachePolicy {
     #[default]
     Lru,
-    Lfu,
     ContextFill,
 }
 
-/// Nombre usado en blueprints (`EvictionPolicy`); mismo tipo que `CachePolicy`.
+/// Alias used in blueprints (`EvictionPolicy`); same type as `CachePolicy`.
 pub type EvictionPolicy = CachePolicy;
 
 /// Error al validar bandas antes de usar `BridgeConfig`.
@@ -185,7 +184,7 @@ pub enum BandValidationError {
     },
 }
 
-/// Configuración por ecuación — genérica sobre el puente (`B`).
+/// Per-equation configuration — generic over the bridge (`B`).
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(bound(serialize = "", deserialize = ""))]
 pub struct BridgeConfig<B: BridgeKind> {
@@ -223,8 +222,8 @@ impl<B: BridgeKind> BridgeConfig<B> {
     }
 }
 
-/// Requisitos: `min` no decreciente; cada banda `min <= max`; contigüidad half-open:
-/// para `i < n-1` se exige `max_i == min_{i+1}` (sin solapes ni huecos).
+/// Requirements: non-decreasing `min`; each band `min <= max`; half-open contiguity:
+/// for `i < n-1`, `max_i == min_{i+1}` (no overlaps, no gaps).
 pub fn validate_bands(bands: &[BandDef]) -> Result<(), BandValidationError> {
     if bands.is_empty() {
         return Err(BandValidationError::Empty);

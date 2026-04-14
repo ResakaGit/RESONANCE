@@ -36,7 +36,8 @@ pub use field_grid::EnergyFieldGrid;
 pub use map_config::{
     ActiveMapName, AmbientPressureConfig, MapConfig, ROUND_WORLD_ROSA_MAP_SLUG, ValidationError,
     active_map_slug_from_env, load_default_map_asset, load_map_config_from_env,
-    load_map_config_from_env_result, resolve_nuclei_for_spawn, validate_map_config,
+    load_map_config_from_env_result, load_map_config_from_slug, resolve_nuclei_for_spawn,
+    validate_map_config,
 };
 pub use materialization_rules::{
     boundary_marker_cache_tag, boundary_visual_from_marker, boundary_world_archetype,
@@ -91,4 +92,4 @@ pub use systems::performance::{
     VisualDerivationFrameState, WorldgenLodContext, WorldgenPerfSettings,
 };
 pub use systems::phenology_visual::phenology_visual_apply_system;
-pub use systems::startup::{StartupNucleus, WorldgenWarmupConfig};
+pub use systems::startup::{StartupNucleus, WorldgenWarmupConfig, run_warmup_loop};

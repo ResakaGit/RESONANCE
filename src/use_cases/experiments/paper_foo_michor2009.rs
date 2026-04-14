@@ -196,7 +196,8 @@ fn experiment_tick(
     systems::will_to_velocity(world);
     systems::velocity_cap(world);
     systems::locomotion_drain(world);
-    systems::movement_integrate(world);
+    systems::verlet_position_step(world);
+    systems::verlet_velocity_finish(world);
     systems::collision(world, scratch);
     systems::nutrient_uptake(world);
     systems::photosynthesis(world);

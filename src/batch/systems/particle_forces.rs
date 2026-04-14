@@ -8,7 +8,11 @@
 //! Axiom 7: all forces decay with distance.
 
 use crate::batch::arena::{ForceStrategy, SimWorldFlat};
+use crate::batch::neighbor_list::CellList;
 use crate::blueprint::equations::coulomb::{self, ChargedParticle};
+
+/// Threshold: use cell list for N >= this (below, brute force is faster).
+const CELL_LIST_THRESHOLD: usize = 64;
 
 // ─── System ─────────────────────────────────────────────────────────────────
 
@@ -18,6 +22,7 @@ use crate::blueprint::equations::coulomb::{self, ChargedParticle};
 /// Writes: velocity (force / mass → acceleration → velocity delta).
 ///
 /// Strategy::Disabled → no-op (zero cost for non-particle simulations).
+/// MD-3: dispatches to cell list for N >= 64 with PBC (O(N) vs O(N²)).
 pub fn particle_forces(world: &mut SimWorldFlat, strategy: ForceStrategy, dt: f32) {
     if strategy == ForceStrategy::Disabled {
         return;
@@ -29,8 +34,16 @@ pub fn particle_forces(world: &mut SimWorldFlat, strategy: ForceStrategy, dt: f3
         return;
     }
 
-    // 2. Accumulate forces (pure HOF, Newton 3 guaranteed)
-    let forces = coulomb::accumulate_forces(&particles, count);
+    // 2. Accumulate forces: cell list (PBC + large N) or brute/tree (fallback)
+    let forces = if let Some(bl) = world.sim_box {
+        if count >= CELL_LIST_THRESHOLD {
+            accumulate_via_cell_list(&particles, count, bl)
+        } else {
+            coulomb::accumulate_forces(&particles, count, Some(bl))
+        }
+    } else {
+        coulomb::accumulate_forces(&particles, count, None)
+    };
 
     // 3. Apply: force / mass → acceleration → velocity delta
     let mut mask = world.alive_mask;
@@ -39,12 +52,10 @@ pub fn particle_forces(world: &mut SimWorldFlat, strategy: ForceStrategy, dt: f3
         let i = mask.trailing_zeros() as usize;
         mask &= mask - 1;
 
-        if idx >= count {
+        if idx >= forces.len() {
             break;
         }
         let mass = world.entities[i].particle_mass.max(0.01);
-
-        // Only apply LJ component if Full strategy
         let fx = forces[idx][0];
         let fy = forces[idx][1];
 
@@ -54,6 +65,45 @@ pub fn particle_forces(world: &mut SimWorldFlat, strategy: ForceStrategy, dt: f3
 
         idx += 1;
     }
+}
+
+/// MD-3: Force accumulation via cell list. O(N * avg_neighbors).
+///
+/// r_cut = 2.5 × LJ_SIGMA (standard). Falls back to brute force if box too small.
+/// Newton 3 symmetric: f64 internal precision.
+fn accumulate_via_cell_list(
+    particles: &[ChargedParticle],
+    count: usize,
+    box_lengths: [f32; 2],
+) -> Vec<[f32; 2]> {
+    use crate::blueprint::constants::LJ_SIGMA;
+    let r_cut = 2.5 * LJ_SIGMA;
+
+    // Extract positions for cell list
+    let mut positions = [[0.0f32; 2]; 128];
+    for i in 0..count.min(128) {
+        positions[i] = particles[i].position;
+    }
+
+    // Build cell list. Falls back to brute force if box too small.
+    let Some(cl) = CellList::build(&positions[..count], count, box_lengths, r_cut) else {
+        return coulomb::accumulate_forces(particles, count, Some(box_lengths));
+    };
+
+    // Accumulate in f64 for precision. Newton 3 symmetric.
+    let mut forces = vec![[0.0f64; 2]; count];
+    cl.for_each_pair(&positions[..count], |i, j, dx, dy| {
+        let f = coulomb::force_from_displacement(dx, dy, particles[i].charge, particles[j].charge);
+        forces[i][0] += f[0] as f64;
+        forces[i][1] += f[1] as f64;
+        forces[j][0] -= f[0] as f64;
+        forces[j][1] -= f[1] as f64;
+    });
+
+    forces
+        .iter()
+        .map(|&[x, y]| [x as f32, y as f32])
+        .collect()
 }
 
 // ─── Bond detection system ──────────────────────────────────────────────────

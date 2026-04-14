@@ -20,6 +20,8 @@ use crate::blueprint::constants::{
     METABOLIC_MIN_FLOW, METABOLIC_STARVATION_THRESHOLD, METABOLIC_STEP_EPSILON,
 };
 use crate::blueprint::equations;
+use crate::blueprint::equations::exact_cache::hash_shape_inputs;
+use crate::layers::converged::Converged;
 use crate::layers::{
     AmbientPressure, BaseEnergy, EntropyLedger, FlowVector, InferredAlbedo, IrradianceReceiver,
     METABOLIC_GRAPH_MAX_EDGES, METABOLIC_GRAPH_MAX_NODES, MetabolicGraph, MorphogenesisShapeParams,
@@ -475,21 +477,39 @@ fn graph_vascular_cost(graph: &MetabolicGraph) -> f32 {
 }
 
 /// Ajusta fineness_ratio minimizando shape_cost por descenso acotado (MG-4).
+///
+/// Uses `Converged<MorphogenesisShapeParams>` to skip entities whose shape converged
+/// and whose inputs (density, velocity, radius, vasc_cost) haven't changed (~90% skip). ADR-017.
 pub fn shape_optimization_system(
+    mut commands: Commands,
     mut query: Query<(
+        Entity,
         &MetabolicGraph,
         &FlowVector,
         &AmbientPressure,
         &SpatialVolume,
         &mut MorphogenesisShapeParams,
+        Option<&Converged<MorphogenesisShapeParams>>,
     )>,
 ) {
-    for (graph, flow, pressure, volume, mut shape) in &mut query {
+    for (entity, graph, flow, pressure, volume, mut shape, converged) in &mut query {
         let velocity = flow.speed();
         let density = pressure.terrain_viscosity;
         let radius = volume.radius;
-        let proj_area = equations::projected_circle_area(radius);
         let vasc_cost = graph_vascular_cost(graph);
+        let input_hash = hash_shape_inputs(density, velocity, radius, vasc_cost);
+
+        // Skip converged entities whose inputs haven't changed.
+        if let Some(conv) = converged {
+            if conv.is_valid(input_hash) {
+                continue;
+            }
+            commands
+                .entity(entity)
+                .remove::<Converged<MorphogenesisShapeParams>>();
+        }
+
+        let proj_area = equations::projected_circle_area(radius);
 
         let new_fineness = equations::bounded_fineness_descent(
             shape.fineness_ratio(),
@@ -510,7 +530,14 @@ pub fn shape_optimization_system(
             vasc_cost,
         );
 
+        let delta = (new_fineness - shape.fineness_ratio()).abs();
         shape.update(new_fineness, diameter, new_cost);
+
+        if delta < 0.01 {
+            commands
+                .entity(entity)
+                .insert(Converged::<MorphogenesisShapeParams>::new(input_hash));
+        }
     }
 }
 

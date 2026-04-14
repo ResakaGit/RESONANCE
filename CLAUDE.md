@@ -2,625 +2,199 @@
 
 ## Project
 
-Resonance is an emergent life simulation engine in Rust/Bevy 0.15 where everything is energy (qe). 14 orthogonal ECS layers define all entities by composition. All behavior is 100% emergent from energy interactions — no scripted behavior, no templates.
+Emergent life simulation in Rust/Bevy 0.15. Everything is energy (qe). 14 orthogonal ECS layers. 100% emergent behavior — no scripts, no templates.
 
-**Paper:** https://zenodo.org/records/19342036 — "Emergent Life from Four Constants: An Axiomatic Simulation Engine"
-**Repo:** https://github.com/ResakaGit/RESONANCE | **License:** AGPL-3.0 | **Tests:** ~3,166 | **LOC:** 113K
-
-## Architecture
-
-- **14 layers** (L0 BaseEnergy → L13 StructuralLink). See `layers/` (+ aux: nutrient, irradiance, inference, vision_fog, growth, …).
-- **Pipeline:** `FixedUpdate` + `Time<Fixed>` / `SimulationTickPlugin`. Phases = `SystemSet`s in `simulation/pipeline.rs`:
-  `SimulationClockSet` → `Phase::Input` → `Phase::ThermodynamicLayer` → `Phase::AtomicLayer` → `Phase::ChemicalLayer` → `Phase::MetabolicLayer` → `Phase::MorphologicalLayer`.
-- **Pure math** in `blueprint/equations/` (`mod.rs` + domains). NEVER inline formulas in systems.
-- **Constants** in `{module}/constants.rs` or `{module}/constants/mod.rs` (+ domain shards).
-- **Stateless-first:** Pure functions + Resources. Components hold state, systems transform it.
-- **Pattern: Layered ECS with Vertical Slices.** NOT hexagonal. Components = domain, systems = use cases, Bevy = infrastructure. No ports/adapters.
+**Paper:** https://zenodo.org/records/19342036 | **Repo:** https://github.com/ResakaGit/RESONANCE | **License:** AGPL-3.0
 
 ## Stack (Hard Constraints)
 
-| Layer | Technology | Version | Notes |
-|-------|-----------|---------|-------|
-| Language | Rust | stable 2024 edition | MSRV 1.85 |
-| Engine | Bevy | 0.15.x | ECS + rendering + input |
-| Math | glam 0.29 (direct) | `math_types.rs` | Vec2, Vec3, f32 ops — decoupled from bevy::math |
-| Async | None | — | Bevy schedule only, no tokio/async-std |
+| Layer | Tech | Version |
+|-------|------|---------|
+| Language | Rust | stable 2024, MSRV 1.85 |
+| Engine | Bevy | 0.15.x |
+| Math | glam 0.29 | `math_types.rs` (decoupled from bevy::math) |
+| Async | None | Bevy schedule only |
 
-## Module Map (`src/lib.rs`)
+## Architecture
 
-```
-math_types.rs       → Engine-agnostic glam re-exports (Vec2, Vec3, Quat). All non-ECS code imports from here.
-batch/              → Batch simulator: millions of worlds without Bevy (rayon parallel)
-  telescope/        → Temporal Telescope: dual-timeline speculative execution (ADR-015/016, 10 modules, 205 tests)
-  arena.rs          → EntitySlot (flat entity, repr(C)), SimWorldFlat (64 slots + grids)
-  systems/          → 33 stateless systems (6 phases), call blueprint/equations/ for math
-  genome.rs         → GenomeBlob (DNA: 4 biases + archetype), mutate, crossover
-  harness.rs        → GeneticHarness (evaluate → select → reproduce), FitnessReport
-  bridge.rs         → GenomeBlob ↔ Bevy components (lossless round-trip), save/load binary
-  batch.rs          → WorldBatch (N worlds), BatchConfig, rayon par_iter_mut
-  lineage.rs        → LineageId (deterministic ancestry), TrackedGenome (genome + parent_id)
-  census.rs         → EntitySnapshot (per-entity state), PopulationCensus (per-gen capture, HOF distribution/mean)
-blueprint/          → Types, equations/, constants/, almanac/, abilities, recipes, ids, validator, morphogenesis
-  equations/        → Pure math facade (45+ domain files). Key domains:
-    abiogenesis/    → Legacy potential + axiomatic.rs (coherence-driven, axiom-derived)
-    batch_fitness.rs → composite_fitness, tournament_select, crossover_uniform
-    core_physics/   → interference, density, dissipation, state transitions
-    determinism.rs  → hash_f32_slice, next_u64, unit_f32, range_f32, gaussian_f32
-    entity_shape.rs → GF1 influence, constructal optimizer, organ_slot_scale(mobility)
-    radiation_pressure.rs → Frequency-coherent outward push (Axiom 8)
-    awakening.rs      → Awakening potential (coherence vs dissipation threshold)
-    derived_thresholds.rs → ALL lifecycle constants from 4 fundamentals (12 tests)
-  morphogenesis/    → Constructal (shape_cost, drag, fineness), surface (rugosity, albedo), thermodynamics
-bridge/             → Cache optimizer (BridgeCache<B>, 11 equation kinds) + constants.rs
-eco/                → Eco-boundaries, zones, climate + systems.rs
-entities/           → EntityBuilder (.wave_from_hz for axiomatic), archetypes (spawn_*), composition
-events.rs           → Event contracts (cast, catalysis, path, death, worldgen, …); see bootstrap.rs
-geometry_flow/      → GF1 flora-tube (branching stateless), merge_meshes (canonical), deformation
-layers/             → 14 ECS layers + auxiliaries (24+ files)
-plugins/            → SimulationPlugin, LayersPlugin, DebugPlugin, MorphologicalPlugin
-rendering/          → quantized_color (+ QuantizedColorPlugin in main.rs)
-runtime_platform/   → 17 sub-modules: compat_2d3d, tick, input, camera, HUD, fog_overlay, …
-simulation/         → pipeline, bootstrap, pathfinding, fog, growth, photosynthesis, …
-  abiogenesis/      → Axiomatic abiogenesis: coherence_gain > dissipation → spawn (any frequency band)
-  emergence/        → ET systems: theory_of_mind, symbiosis_effect, epigenetic_adaptation, niche_adaptation,
-                      culture, entrainment, coalitions (+ stubs: infrastructure, institutions, etc.)
-  lifecycle/        → constructal_body_plan, entity_shape_inference (compound mesh), body_plan_layout
-  awakening.rs      → Inert entities gain BehavioralAgent when coherence > threshold (axiom-derived)
-  metabolic/        → basal_drain (passive qe cost), senescence_death (age-based mortality),
-                      trophic (herbivore/carnivore/decomposer), growth_budget, metabolic_stress
-  reproduction/     → Flora seed dispersal + fauna offspring (inherits mutated InferenceProfile incl. mobility_bias)
-topology/           → Terrain: noise, slope, drainage, classifier, hydraulics, mutations, config
-world/              → SpatialIndex, demos, presets; maps = assets/maps/*.ron
-worldgen/           → V7: field_grid, nucleus (+NucleusReservoir), propagation, materialization, shape_inference, nutrient_field
-  systems/          → startup, prephysics, propagation, materialization, terrain, visual, performance,
-                      radiation_pressure (non-linear outward push), nucleus_recycling (nutrient→new nucleus)
-```
+- **Layered ECS with Vertical Slices.** Components = domain, systems = use cases, Bevy = infrastructure. NOT hexagonal.
+- **Pipeline:** `FixedUpdate` phases in `simulation/pipeline.rs`: `SimulationClockSet` → `Input` → `ThermodynamicLayer` → `AtomicLayer` → `ChemicalLayer` → `MetabolicLayer` → `MorphologicalLayer`.
+- **Pure math** in `blueprint/equations/`. NEVER inline formulas in systems.
+- **Constants** in `{module}/constants.rs`. All derived from 4 fundamentals via `blueprint/equations/derived_thresholds.rs`.
+- **Stateless-first:** Pure functions + Resources. Components hold state, systems transform it.
 
-**Maps:** `RESONANCE_MAP` → `assets/maps/{name}.ron` (`worldgen/map_config.rs`).
-**Headless:** `cargo run --bin headless_sim -- --ticks 10000 --scale 8 --out world.ppm` (sim → PPM image, no GPU).
-**Events:** `simulation/bootstrap.rs` — 15 `Event` types (incl. `TerrainMutationEvent`); `PathRequestEvent` in `Compat2d3dPlugin`.
-**Docs:** `docs/ARCHITECTURE.md` (canonical). Design specs: `docs/design/`. Module contracts: `docs/arquitectura/`.
+## The 8 Axioms (INVIOLABLE)
 
-## The 8 Foundational Axioms
+No change may contradict, bypass, or weaken ANY axiom. If a change conflicts with an axiom, the change is WRONG. No exceptions. No DEBT. No "temporary" violations.
 
-**⚠️ INVIOLABLE: No change, feature, refactor, or optimization may contradict, bypass, or weaken ANY of the 8 axioms or 4 fundamental constants. If a proposed change conflicts with an axiom, the change is WRONG — not the axiom. This is the constitution of the project. No exceptions. No DEBT. No "temporary" violations.**
-
-All simulation behavior MUST derive from these. No arbitrary constants, no per-element special cases.
-
-### Primitive axioms (independent, irreducible)
+### Primitive (independent, irreducible)
 
 1. **Everything is Energy** — All entities are qe. No separate HP/mana/stats.
-2. **Pool Invariant** — `Σ energy(children) ≤ energy(parent)`. Conservation absolute.
-4. **Dissipation (2nd Law)** — All processes lose energy. `loss ≥ qe × rate`. No 100% efficiency.
-7. **Distance Attenuation** — `interaction_intensity` monotonically decreasing in distance.
-8. **Oscillatory Nature** — Every concentration oscillates at frequency f. Interaction modulated by `cos(Δf × t + Δφ)`.
+2. **Pool Invariant** — `sum(children) <= parent`. Conservation absolute.
+4. **Dissipation** — All processes lose energy. No 100% efficiency.
+7. **Distance Attenuation** — Interaction intensity monotonically decreasing in distance.
+8. **Oscillatory Nature** — Every concentration oscillates at frequency f. Interaction modulated by `cos(df*t + dphi)`.
 
-### Derived axioms (consequences of primitives, elevated for clarity)
+### Derived (guard rails, zero simulation effect)
 
-3. **Competition as Primitive** — `magnitude = base × interference_factor`. *Derived from Axiom 8 applied to energy transfer. Kept as axiom because it's the most cited design constraint.*
-5. **Conservation** — Energy never created, only transferred/dissipated. Total qe monotonically decreases. *Derived from Axiom 2 + Axiom 4. Kept as axiom because INV-7 (SimWorld) enforces it explicitly.*
-6. **Emergence at Scale** — Behavior at scale N = consequence of interactions at scale N-1. No top-down programming. *Meta-rule constraining the developer, not the physics. Kept as axiom because it prevents hardcoded trophic classes, faction tags, and behavior scripts.*
-
-> **Note:** The 3 derived axioms produce zero additional simulation behavior. Removing them from the list would not change a single tick of simulation output. They exist as guard rails for design decisions, not as physics laws.
-
-**Cross-axiom compositions:** `docs/design/AXIOMATIC_CLOSURE.md`. Runtime contracts: `docs/arquitectura/blueprint_axiomatic_closure.md`.
+3. **Competition** — From Axiom 8 applied to energy transfer.
+5. **Conservation** — From Axiom 2 + 4. Total qe monotonically decreases.
+6. **Emergence at Scale** — Behavior at scale N = consequence of N-1. No top-down programming.
 
 ## The 4 Fundamental Constants
 
-The 8 axioms define the **rules**. These 4 constants are the **parameters** — the only numeric values that cannot be derived further. Everything else is computed algebraically from these via `blueprint/equations/derived_thresholds.rs`.
+Everything else is algebraically derived from these. See `blueprint/equations/derived_thresholds.rs`.
 
-### Truly fundamental (physics)
+| Constant | Value | Type |
+|----------|-------|------|
+| `KLEIBER_EXPONENT` | 0.75 | Physics (metabolic scaling) |
+| `DISSIPATION_{SOLID,LIQUID,GAS,PLASMA}` | 0.005, 0.02, 0.08, 0.25 | Physics (2nd Law rates, ratio 1:4:16:50) |
+| `COHERENCE_BANDWIDTH` | 50.0 Hz | Calibration (frequency window) |
+| `DENSITY_SCALE` | 20.0 | Calibration (spatial normalization) |
 
-| Constant | Value | Axiom | Justification |
-|----------|-------|-------|---------------|
-| `KLEIBER_EXPONENT` | 0.75 | Axiom 4 | Biological universal: metabolic rate ∝ mass^0.75 (validated across 27 orders of magnitude) |
-| `DISSIPATION_{SOLID,LIQUID,GAS,PLASMA}` | 0.005, 0.02, 0.08, 0.25 | Axiom 4 | Second Law dissipation rate per matter state. Ratios 1:4:16:50 — physically motivated (~4× per phase transition), not calibrated to a specific system. |
-
-### Grid/game calibration (not derivable from physics, but constrained by axioms)
-
-| Constant | Value | Axiom | Justification |
-|----------|-------|-------|---------------|
-| `COHERENCE_BANDWIDTH` | 50.0 Hz | Axiom 8 | Observation window for frequency interference. Defines elemental band width. Circular with game design (Terra band = 85-110 Hz). |
-| `DENSITY_SCALE` | 20.0 | Axiom 1 | Spatial normalization factor. Depends on grid cell_size. Artefact of spatial resolution, not physics. |
-
-> **Note:** KLEIBER + DISSIPATION_RATIOS are physics. BANDWIDTH + DENSITY_SCALE are grid/game calibration. If you change cell_size or frequency bands, recalibrate these two — but never touch KLEIBER or the dissipation ratios for calibration purposes.
-
-**Derivation chain** (computed, not hardcoded):
-```
-Fundamentals (4)
-├── KLEIBER + DISSIPATION ratios → matter state thresholds (Solid→Liquid→Gas→Plasma)
-├── DISSIPATION_SOLID → basal_drain_rate, senescence_coeff_materialized, bond_energy_scale
-├── DISSIPATION_LIQUID → senescence_coeff_fauna, nutrient_retention_water
-├── DISSIPATION_GAS → radiation_pressure_threshold, radiation_pressure_transfer_rate
-├── Threshold ratios → move_density_min/max, sense_coherence_min, branch_qe_min
-├── 1/coeff → max_viable_age (Gompertz inverse)
-├── exp(-2) → survival_probability_threshold (Gompertz 1/e² point)
-├── DENSITY_SCALE → self_sustaining_qe_min (1 normalized density unit)
-└── Axiom 2 (Pool Invariant) → spawn_potential_threshold = 1/3
-    (parent retains min + child receives min → qe=2min, net=min, potential=min/(min+2min)=1/3)
-```
-
-**Cosmological anchor:** `SelfSustainingQeMin` (Resource, default = DENSITY_SCALE = 20.0). Runtime-tunable for calibration experiments. All lifecycle thresholds scale from this single value.
-
-See `docs/sprints/AXIOMATIC_INFERENCE/` for full sprint docs. Implementation: `src/blueprint/equations/derived_thresholds.rs` (17 tests).
-
-## Morphogenesis Pipeline
-
-Shapes emerge from energy composition, not templates. Full pipeline:
-
-```
-FixedUpdate / MorphologicalLayer:
-  shape_optimization_system    → MorphogenesisShapeParams.fineness_ratio (bounded_fineness_descent)
-  surface_rugosity_system      → MorphogenesisSurface.rugosity (inferred_surface_rugosity)
-  albedo_inference_system      → InferredAlbedo.albedo (inferred_albedo)
-  epigenetic_adaptation_system → EpigeneticState.expression_mask (env → gene silencing)
-  constructal_body_plan_system → BodyPlanLayout (optimal_appendage_count → N limbs)
-
-Update / after sync_visual:
-  entity_shape_inference_system:
-    torso = build_flow_spine → build_flow_mesh (main GF1 tube)
-    organs = for each slot in BodyPlanLayout:
-             organ_slot_scale(slot, count, mobility_bias) → sub-influence → sub-mesh
-    final = merge_meshes([torso, organs...]) → V6VisualRoot.Mesh3d
-```
-
-**Key equations:** `optimal_appendage_count` (drag × thrust_efficiency + maintenance), `organ_slot_scale` (front/rear asymmetry from mobility_bias), `frequency_alignment` (Gaussian coherence).
-
-**Constructal optimization:** `blueprint/morphogenesis/constructal.rs` — `shape_cost` = ½ρv²C_D×A + Hagen-Poiseuille vascular cost. `bounded_fineness_descent` minimizes total cost via gradient descent. `entity_shape.rs` applies optimized parameters to mesh geometry.
-
-## Axiomatic Abiogenesis
-
-Life emerges where `coherence_gain(neighbors) > dissipation_loss(local)`. Frequency-agnostic — any band can produce life.
-
-**Model:** Sigmoid viability potential — ratio of free surplus to total energy. NOT a Prigogine dissipative-structure model (no far-from-equilibrium dynamics). Simpler: if coherence gain > dissipation cost, the local energy field can sustain a self-maintaining pattern.
-
-```
-Axiom 8: neighbor coherence = Σ qe_i × alignment(f_center, f_i) × attenuation(d_i)
-Axiom 4: dissipation cost = cell_qe × dissipation_rate(matter_state)
-Axiom 1: matter_state = f(energy_density), capabilities = f(density, coherence)
-→ potential = (coherence - dissipation) / (coherence - dissipation + qe)  [sigmoid ∈ [0,1]]
-→ spawn if potential > 1/3  (derived from Axiom 2: Pool Invariant)
-```
-
-Entity properties derived from energy state: matter_state_from_density, capabilities_from_energy, inference_profile_from_energy. No per-band constants.
-
-## Particle Physics (Molecular Bonding)
-
-Classical potentials with constants derived from 4 fundamentals. No bond tables, no molecule templates.
-
-```
-Coulomb:  F = k_C × q1 × q2 / (r² + ε²)      k_C = 1/DENSITY_SCALE = 0.05
-LJ:      V = 4ε_LJ × [(σ/r)¹² - (σ/r)⁶]      σ = 1/DENSITY_SCALE, ε_LJ = DISSIPATION_SOLID × 100
-Bond:    E_bond = V_coulomb + V_lj              stable when |E_bond| > threshold (negative = bound)
-Axiom 8: bond strength × alignment(f1, f2)      frequency-compatible particles bond stronger
-```
-
-26 tests verify: inverse-square law, LJ zero-crossing at r = 2^(1/6)σ, Newton 3, charge conservation, bond energy negative for opposite charges, bit-exact determinism. Implementation: `blueprint/equations/coulomb.rs`, `batch/systems/particle_forces.rs`.
-
-## Drug Models (Two Levels + Bozic Validation)
-
-### Level 1: Cytotoxic (cancer_therapy)
-
-Drug drains qe directly (kills cells). Frequency-selective via Axiom 8 + Hill pharmacokinetics (n=2). Quiescent stem cells escape chemo.
-
-**Key files:** `use_cases/experiments/cancer_therapy.rs`, `bin/cancer_therapy.rs`.
-
-### Level 2: Pathway Inhibitor (pathway_inhibitor)
-
-Drug binds to protein active site via frequency alignment (Axiom 8), reduces metabolic node efficiency without killing. Three inhibition modes (Competitive/Noncompetitive/Uncompetitive). Off-target via frequency proximity. Bliss independence for drug combinations. Destructive interference for coherence disruption (PI-9). Escape frequency prediction.
-
-Reproduction + death enabled — population evolves under drug pressure.
-
-```
-Inhibitor(freq=400, target=Root, Ki=0.5, mode=Competitive, conc=0.8)
-  → binding_affinity(drug_freq, cell_freq) via gaussian_frequency_alignment
-  → occupancy = hill(conc × affinity, Ki, n=2)
-  → inhibit_node: Competitive raises E_a, reduces η
-  → dissipation feedback: efficiency_loss × DEFAULT_KI × base_dissipation
-  → effective_node_params feeds into competitive_flow_distribution
-```
-
-**Key files:** `blueprint/equations/pathway_inhibitor.rs` (11 pure fns, 32 tests), `blueprint/constants/pathway_inhibitor.rs` (7 derived constants, 3 tests), `use_cases/experiments/pathway_inhibitor_exp.rs` (experiment + HOFs + Bozic validation, 18 tests), `bin/pathway_inhibitor.rs`, `bin/bozic_validation.rs`.
-
-### Bozic 2013 Validation — CONFIRMED
-
-5-arm experiment reproducing Bozic et al. 2013 (eLife) prediction: combination therapy has exponential advantage over monotherapy.
-
-```
-no_drug:    eff=1.000  (baseline)
-mono_A:     eff=0.481  (51.9% suppression)
-mono_B:     eff=0.635  (36.5% suppression)
-combo_AB:   eff=0.435  (56.5% suppression)  ← combo > mono ✓
-double_A:   eff=0.466  (53.4% suppression)  ← combo > double ✓
-```
-
-**Robustness:** Validated across 10 independent seeds (10/10 confirm, ≥80% threshold). Result is structural, not stochastic. `cargo run --release --bin bozic_validation` (~95 sec).
-
-### Honest scope (all levels)
-
-Theoretical models for exploring resistance dynamics. Abstract qe units (not molar concentrations). No molecular targets (no EGFR/BCR-ABL). No tumor microenvironment. Not validated against patient-level data. NOT clinical tools. Bozic comparison is qualitative (suppression %, not absolute cell counts or time-to-resistance in weeks).
-
-## Energy Cycle (Closed Loop)
-
-```
-Nucleus (finite reservoir) → emits to field → diffusion + radiation pressure
-    ↓                                                    ↓
-Reservoir depletes (→0)                    Entities materialize (SenescenceProfile)
-    ↓                                                    ↓
-Zone cools down                            Live (basal_drain) → die (senescence/starvation)
-    ↓                                                    ↓
-                        Nutrients return to grid (nutrient_return_on_death_system)
-                                     ↓
-                        Threshold reached → nucleus_recycling_system → new finite nucleus
-                                     ↓
-                                 Cycle restarts
-```
-
-**Key systems:**
-- `NucleusReservoir` (SparseSet): finite fuel, drained per tick by `propagate_nuclei_system`
-- `basal_drain_system` (MetabolicLayer): passive qe cost ∝ radius^0.75 × age_factor (Kleiber)
-- `senescence_death_system` (MetabolicLayer): hard age limit + Gompertz hazard
-- `radiation_pressure_system` (ThermodynamicLayer): frequency-modulated surplus redistribution — stellar radiation pressure analogy (Axiom 8)
-- `nucleus_recycling_system` (MorphologicalLayer): nutrients accumulate → spawn new nucleus
-- `awakening_system` (MorphologicalLayer): inert entities gain BehavioralAgent when coherence > threshold
-
-**Axiom-derived constants:** `blueprint/equations/derived_thresholds.rs` — ALL lifecycle constants computed from 4 fundamentals:
-- `KLEIBER_EXPONENT` (0.75), `DISSIPATION_{SOLID,LIQUID,GAS,PLASMA}`, `COHERENCE_BANDWIDTH`, `DENSITY_SCALE`
-- Sprint `AXIOMATIC_INFERENCE` ✅ ARCHIVED (7/7 sprints) — see `docs/sprints/archive/AXIOMATIC_INFERENCE/`
-- Visual calibration (rendering tuning, not physics): `src/worldgen/visual_calibration.rs`
-
-## Evolution & Emergence Pipeline
-
-Reproduction, mutation, selection, and group behavior — all axiom-derived.
-
-```
-reproduction_spawn_system (MorphologicalLayer):
-  Flora: BRANCH cap → seed with mutated InferenceProfile (growth, mobility, branching, resilience)
-  Fauna: MOVE + REPRODUCE caps + qe > 200 → offspring with full behavior stack + mutated profile
-  Conservation: parent drained, offspring qe ≤ drained amount (Axiom 5)
-  Mutation: deterministic from entity index (no RNG crate), all 4 biases mutate
-
-Emergence systems — REGISTERED (9 systems active in runtime):
-  Phase::Input:
-    theory_of_mind_update_system    → OtherModelSet predictions from observed neighbors (ET-2)
-    cultural_transmission_system    → meme spread by oscillatory affinity (ET-3/AC-3)
-  Phase::AtomicLayer:
-    entrainment_system              → Kuramoto frequency sync between neighbors (AC-2)
-  Phase::MetabolicLayer:
-    infrastructure_update_system    → persistent field modification (ET-4)
-    infrastructure_intake_bonus_system → amplified intake in high-infra cells (ET-4)
-    cooperation_evaluation_system   → Nash alliance detection (AC-5)
-    symbiosis_effect_system         → mutualism/parasitism drain/benefit on SymbiosisLink (ET-5)
-    niche_adaptation_system         → character displacement under competitive pressure (ET-9)
-  Phase::MorphologicalLayer:
-    epigenetic_adaptation_system    → environment modulates expression_mask (ET-6)
-
-Emergence systems — IMPLEMENTED, NOT REGISTERED (no plugin wires them):
-  coalition_stability_system (ET-8)       → code complete, 0 consumers
-  coalition_intake_bonus_system (ET-8)    → code complete, 0 consumers
-  institution_stability_system (ET-14)    → code complete, 0 consumers
-  institution_distribution_system (ET-14) → code complete, 0 consumers
-  tectonic_drift_system (ET-12)           → code complete, 0 consumers
-  multiscale_aggregation_system (ET-11)   → code complete, 0 consumers
-  geological_lod_update_system (ET-13)    → code complete, 0 consumers
-```
-
-**Stellar archetypes:** `spawn_star` (L0 high qe + L11 InverseSquare + EnergyNucleus) + `spawn_planet` (orbital velocity + surface conditions). Map: `stellar_system.ron`.
-
-## The 14 Orthogonal Layers
-
-```
-L0  BaseEnergy           (existence — qe)
-L1  SpatialVolume        (spatial volume — radius)
-L2  OscillatorySignature (wave signature — frequency, phase)
-L3  FlowVector           (flow — velocity, dissipation)
-L4  MatterCoherence      (structural integrity — state, bond energy)
-L5  AlchemicalEngine     (mana processor — buffer, valves)
-L6  AmbientPressure      (terrain — delta_qe, viscosity)
-L7  WillActuator         (will — intent, channeling)
-L8  AlchemicalInjector   (spell payload — projected qe, forced freq)
-L9  MobaIdentity         (game rules — faction, tags, crit)
-L10 ResonanceLink        (buff/debuff — effect → target)
-L11 TensionField         (gravity/magnetic force at distance)
-L12 Homeostasis          (frequency adaptation with qe cost)
-L13 StructuralLink       (spring joint between entities)
-```
+Never touch KLEIBER or dissipation ratios for calibration. Only BANDWIDTH + DENSITY_SCALE are tunable.
 
 ## Coding Rules
 
-1. **English identifiers only.** Linter translates Spanish→English.
-2. **Max 4 fields per component.** More = split into layers.
-3. **One system, one transformation.** No god-systems (>5 component types).
-4. **`SparseSet`** for transient components (buffs, markers, one-shot flags).
-5. **Guard change detection.** `if val != new { val = new; }` or `set_if_neq`.
-6. **Chain events.** Producer `.before()` or `.chain()` with consumer. Never unordered.
-7. **Phase assignment required.** Every gameplay system → `.in_set(Phase::X)`.
-8. **Math in `blueprint/equations/`.** Systems call pure fns, don't inline formulas.
-9. **Component group factories** for spawning (`entities/component_groups.rs`). Pure functions returning tuples, composable via nested bundles. `EntityBuilder` for legacy; prefer factories for new code.
-10. **Constants in constants.** Tuning values centralized per module. Algorithmic arrays stay in-file.
-11. **`With<T>`/`Without<T>`** over `Option<&T>` for filter-only queries.
-12. **Minimal query width.** Only request components you read/write.
-13. **No `Vec<T>` in components** unless genuinely variable-length.
-14. **`#[derive(Component, Reflect, Debug, Clone)]`** on every component. Register: `app.register_type::<T>()`.
+1. English identifiers only
+2. Max 4 fields per component — split into layers if more
+3. One system, one transformation — no god-systems (>5 component types)
+4. `SparseSet` for transient components
+5. Guard change detection: `if val != new { val = new; }` or `set_if_neq`
+6. Chain events: `.before()` or `.chain()`. Never unordered
+7. Phase assignment required for every gameplay system
+8. Math in `blueprint/equations/` — systems call pure fns
+9. Component group factories for spawning (prefer over EntityBuilder)
+10. Constants centralized per module
+11. `With<T>`/`Without<T>` over `Option<&T>` for filter-only queries
+12. Minimal query width — only request components you read/write
+13. No `Vec<T>` in components unless genuinely variable-length
+14. `#[derive(Component, Reflect, Debug, Clone)]` + `app.register_type::<T>()`
 
-## Hard Blocks (Defaults, Not Laws)
-
-Rules are strong defaults. Violating one is allowed **if and only if** you document the justification inline with `// DEBT: <reason>`. Unjustified violations are still zero tolerance.
+## Hard Blocks
 
 **Absolute (never violate):**
-1. **NO `unsafe`** — zero tolerance. No exceptions.
-2. **NO external crates** without approval — only what's in Cargo.toml.
-3. **NO `async`/`await`** — Bevy schedule only.
-4. **NO `Arc<Mutex<T>>`** — use `Resource` or `Local`.
-5. **NO shared mutable state outside Resources** — no `static mut`, no `lazy_static! { Mutex }`.
+1. NO `unsafe`
+2. NO external crates without approval
+3. NO `async`/`await`
+4. NO `Arc<Mutex<T>>` — use `Resource` or `Local`
+5. NO shared mutable state outside Resources
 
-**Strong defaults (violate with `// DEBT:` justification):**
-6. **NO `HashMap` in hot paths** — sorted `Vec` or Entity indexing. *Prove it's hot before optimizing; benchmark first.*
-7. **NO `String` in components** — enums, `u32` IDs, or `&'static str`.
-8. **NO `Box<dyn Trait>`** in components — enums for closed sets.
-9. **NO `#[derive(Bundle)]`** — Bevy 0.15 uses tuples or `#[require(...)]`.
-10. **NO `ResMut` when `Res` suffices** — minimize write locks.
-11. **NO `unwrap()`/`expect()`/`panic!()` in systems** — `let-else` or `if-let`. Tests OK. *If a spawn invariant guarantees Some, `// DEBT: invariant held by spawn_X` + unwrap is acceptable.*
-12. **NO inline formulas** in systems — all math in `blueprint/equations/`.
-13. **NO storing derived values** as components — compute at point of use.
-14. **NO trait objects for game logic** — components + systems.
-15. **NO component methods with side effects** — pure `&self` only, systems do work.
-16. **NO `Entity` as persistent/network ID** — strong newtype IDs.
-17. **NO systems in `Update` for gameplay** — `FixedUpdate` + `Phase` (except visual derivation).
-
-## Bevy 0.15 Patterns
-
-```rust
-commands.spawn((CompA::new(), CompB::new()));                    // Tuple spawn (no Bundle)
-app.add_systems(FixedUpdate, sys.in_set(Phase::MetabolicLayer)); // System registration
-for (entity, mut energy, vol) in &mut query { ... }             // Query iteration
-commands.spawn(Camera2d);                                        // Camera
-app.register_type::<MyComp>();                                   // Reflect registration
-
-#[require(BaseEnergy)]                                           // Component dependencies
-#[component(storage = "SparseSet")]                              // Transient components
-StateScoped(GameState::Playing)                                  // Auto-cleanup on state exit
-
-if target.field != new_val { target.field = new_val; }          // Guard mutation
-target.set_if_neq(new_val);                                     // Guard shorthand
-Query<&Comp, Changed<Comp>>                                     // Skip unchanged archetypes
-Query<&Energy, (With<Alive>, Without<Dead>)>                    // Filter without data access
-OnAdd, OnRemove                                                  // Entity lifecycle observers
-```
-
-## Rust 2024 Edition Idioms
-
-```rust
-// Let chains
-if let Some(e) = energy_q.get(id) && let Some(v) = vol_q.get(id) && e.qe > 0.0 { ... }
-
-// Let-else
-let Some(target) = query.get(entity) else { return; };
-
-// Exhaustive match — NO _ wildcard on enums (compiler catches new variants)
-match state { MatterState::Solid => .., Liquid => .., Gas => .., Plasma => .. }
-
-// Iterator chains over index loops
-let total: f32 = query.iter().filter(|(_, e)| !e.is_dead()).map(|(_, e)| e.qe).sum();
-
-// Stack over heap: [f32; 3] not Vec | f32 not f64 | const fn where possible
-```
-
-## Code Aesthetic (Yanagi)
-
-1. **Dense but readable** — one empty line between blocks, never two.
-2. **Vertical alignment** — align similar patterns in columns.
-3. **Let types speak** — skip comments when type is clear.
-4. **Functional over imperative** — iterator chains, `map`, `filter`. No index loops.
-5. **Early return** — guard clauses top, happy path unindented.
-6. **`///` doc comments** on public fns — one line max. Include equation for math fns.
-7. **Inline comments** only for non-obvious math or invariants.
-8. **Imports grouped:** bevy → crate → super.
-9. **Naming:** `SCREAMING_SNAKE` constants, `PascalCase` types, `snake_case` fns. Domain abbreviations OK: `qe`, `eb`, `freq`, `dt`.
-10. **Bilingual comments** — All `///` doc comments must have both Spanish and English, one line each. Spanish first, English below. Minimalist: one sentence per language. Inline `//` comments can be single-language if trivial.
-
-## Design Templates
-
-```rust
-// === System ===
-use bevy::prelude::*;
-use crate::layers::*;
-use crate::blueprint::{constants, equations};
-
-/// [What this system transforms and why].
-pub fn my_system(
-    mut query: Query<(&mut Target, &Source), Without<Dead>>,
-    config: Res<MyConfig>,
-) {
-    for (mut target, source) in &mut query {
-        let result = equations::some_calc(source.field, config.param);
-        if target.field != result { target.field = result; }
-    }
-}
-
-// === Component ===
-/// Layer [N]: [Name] — [one-line purpose].
-#[derive(Component, Reflect, Debug, Clone)]
-#[reflect(Component)]
-pub struct MyComp {
-    field_a: f32,  // max 4 fields
-    field_b: f32,
-}
-impl MyComp {
-    pub fn new(a: f32, b: f32) -> Self { Self { field_a: a.max(0.0), field_b: b } }
-    pub fn field_a(&self) -> f32 { self.field_a }
-    pub fn set_field_a(&mut self, v: f32) { self.field_a = v.max(0.0); }
-}
-```
-
-## Checklists
-
-### New Feature
-```
-1. New data?      → Component in layers/ (max 4 fields)
-2. New behavior?  → System in simulation/ or domain module
-3. Cross phase?   → Event in events.rs
-4. Needs math?    → Pure fn in blueprint/equations/
-5. Preset entity? → spawn_* in entities/archetypes.rs
-6. Wire up        → Register in appropriate Plugin
-7. Transient?     → #[component(storage = "SparseSet")]
-```
-
-### New Layer (L14+) — 5-Test
-1. Can it be derived from existing layers?
-2. Is it orthogonal to all existing layers?
-3. Does it have its own update rule?
-4. Does removing it change behavior for entities without it?
-5. Does it interact with 2+ other layers?
-
-## Testing
-
-- **Unit** (pure math): `#[cfg(test)] mod tests` in `blueprint/equations/`. Test edge cases (`qe=0`, `radius=0`), invariants, boundaries. No mocks.
-- **Integration** (systems): `MinimalPlugins` app, spawn only needed components, ONE update, assert delta.
-- **Skip**: schedule ordering, rendering, keyboard input.
-- **Naming**: `<function>_<condition>_<expected>` — e.g. `density_zero_radius_returns_zero`.
-- **Property** (proptest): `tests/property_conservation.rs` — fuzzes conservation + pool equations with arbitrary inputs.
-- **Batch** (headless): tests in `src/batch/` modules. 156 tests covering 33 systems, arena, genome, harness, bridge. Zero Bevy dependency.
-- **Headless sim**: `cargo run --bin headless_sim -- --ticks N --scale S --out file.ppm` — full sim → PPM image, no GPU.
-- **Run**: `cargo test` (~3,166 tests). `cargo bench --bench batch_benchmark` for performance.
-- **Maps**: `RESONANCE_MAP={name} cargo run` (genesis_validation, visual_showcase, proving_grounds, four_flowers, demo_animal).
-
-## Roles
-
-| Role | When | Focus |
-|------|------|-------|
-| **Alquimista** | Writing code | Respect 14 layers, Phase, equations. Output: impact → code → plugin registration |
-| **Observador** | Reviewing | DOD violations, math correctness, pipeline ordering, performance, Bevy 0.15 compliance |
-| **Planificador** | Planning | Decompose into layers, validate orthogonality, interaction matrix. Output: data → systems → events → equations → archetypes → risks |
-| **Verificador** | PR review | 1) contract 2) math 3) DOD 4) determinism 5) perf 6) tests. Verdict: PASS/WARN/BLOCK. Math or determinism doubt → BLOCK |
+**Strong defaults (violate only with `// DEBT: <reason>`):**
+6. NO `HashMap` in hot paths — sorted `Vec` or Entity indexing
+7. NO `String` in components — enums, `u32` IDs, or `&'static str`
+8. NO `Box<dyn Trait>` in components
+9. NO `#[derive(Bundle)]` — Bevy 0.15 uses tuples or `#[require(...)]`
+10. NO `ResMut` when `Res` suffices
+11. NO `unwrap()`/`expect()`/`panic!()` in systems — `let-else` or `if-let`
+12. NO inline formulas in systems
+13. NO storing derived values as components
+14. NO trait objects for game logic
+15. NO component methods with side effects
+16. NO `Entity` as persistent/network ID
+17. NO systems in `Update` for gameplay — `FixedUpdate` + `Phase` only
 
 ## Communication
 
-- **Tone:** Peer-to-peer, direct, professional. Spanish default. English tech terms inline.
-- **Auditor stance:** Flag DOD violations, wrong math, component bloat, system scope creep.
-- **Format:** Answer first → explain → code → reference layers ("L3 FlowVector", not "the velocity component").
+- **Spanish default.** English tech terms inline.
+- **Tone:** Peer-to-peer, direct, professional. Answer first, explain second.
 - **Brevity:** If it fits in 3 lines, don't use 10.
+- **Reference layers by ID:** "L3 FlowVector", not "the velocity component".
+- **Roles:** Alquimista (code), Observador (review), Planificador (planning), Verificador (PR — PASS/WARN/BLOCK).
 
-## Inference Protocol (Strict)
+## Inference Protocol
 
-Every response MUST follow this protocol. No exceptions.
+### Critique first
+Before implementing, evaluate: Is this the right thing? Is there a simpler alternative? What does it cost? What breaks?
 
-### 1. Critique First, Validate Second
-Before implementing or agreeing with any request, evaluate it critically:
-- **Is this the right thing to build?** Question the premise, not just the implementation.
-- **Is there a simpler alternative?** If yes, present it before proceeding.
-- **What does this cost?** Every feature has maintenance cost, complexity cost, and opportunity cost. Name them.
-- **What breaks?** Identify what the change destabilizes — even if the user didn't ask.
+### Propose alternatives
+For non-trivial decisions: Option A (what was asked + tradeoffs), Option B (recommended alternative), Option C (don't do it at all).
 
-### 2. Propose Alternatives
-Never present a single path. For any non-trivial decision:
-- **Option A:** What the user asked for, with honest tradeoffs.
-- **Option B:** The alternative you'd recommend, with reasoning.
-- **Option C (if applicable):** The radical simplification — what if we don't do this at all?
+### Auto-trigger pushback on
+- Premature abstraction
+- Scope creep disguised as architecture
+- Perfectionism loops over shipping
+- Claims of "emergence" without test/demo evidence
+- Orphan components no system reads/writes
 
-### 3. Challenge Assumptions
-- If a design decision seems driven by aesthetic preference over gameplay need, say so.
-- If a layer/system/component exists but has no consumer, flag it as dead weight.
-- If complexity is growing faster than functionality, raise the alarm.
-- If the architecture is beautiful but the game isn't playable, that's a bug.
+### Priority hierarchy
+1. Playable/fun (highest)
+2. Simulation correctness
+3. Architecture respect
+4. Coding rules (lowest)
 
-### 4. Red Lines — Auto-Trigger Critique
-Automatically push back when detecting:
-- **Premature abstraction:** Code preparing for scenarios that don't exist yet.
-- **Scope creep disguised as architecture:** New layers/tiers/systems without gameplay justification.
-- **Perfectionism loops:** Refactoring working code for purity instead of shipping features.
-- **Missing gameplay evidence:** Any claim about "emergent behavior" without a test or demo proving it.
-- **Orphan components:** Structs with Default that no system reads or writes.
+## Testing
 
-### 5. Judgment Hierarchy
-When in conflict, prioritize in this order:
-1. **Does it make the game playable/fun?** (highest)
-2. **Does it preserve simulation correctness?**
-3. **Does it respect the architecture?**
-4. **Does it follow the coding rules?** (lowest)
+```
+cargo test                                          # ~3,166 tests
+cargo bench --bench batch_benchmark                 # performance
+cargo run --bin headless_sim -- --ticks N --out x.ppm  # headless (no GPU)
+RESONANCE_MAP={name} cargo run                      # named maps
+cargo run --release --bin bozic_validation          # drug validation (~95s)
+cargo run --release --bin paper_validation           # 6 papers + PV-6
+```
 
-If following a coding rule makes the game worse, break the rule and explain why.
+- **Unit:** `#[cfg(test)]` in `blueprint/equations/`. Name: `fn_condition_expected`.
+- **Integration:** `MinimalPlugins`, spawn minimal components, ONE update, assert delta.
+- **Property:** `tests/property_conservation.rs` (proptest).
 
-## Easy vs Simple
+## Binaries (30) — `cargo run --release --bin <name>`
 
-- **Easy** = familiar, quick, often entangled. Tech debt.
-- **Simple** = no entanglement (simplex), clear boundaries. More upfront cost.
-- **Rule:** Validation → may favor easy. Core/simulation → always simple. Domain must be bulletproof.
+**Viz:** `lab` (15 exp, 25 maps) · `headless_sim --ticks N --out x.ppm` · `sim_viewer` · `planet_viewer` · `earth_telescope` · `museum` · `petri_dish` · `fossil_record` · `mesh_export` (→OBJ) · `ecosystem_music` (→WAV) · `survival` (WASD)
+**Evo:** `evolve` · `evolve_and_view` · `fermi`(B1) · `speciation`(B2) · `cambrian`(B3) · `debate`(B4) · `convergence`(D2) · `personal_universe`(D1) · `universe_lab`(A2) · `versus`(A1)
+**Drug:** `cancer_therapy` · `pathway_inhibitor` · `adaptive_therapy` · `bozic_validation` · `paper_validation`(PV-1→6)
+**MD:** `lj_fluid`(MD-4) · `peptide_vacuum`(MD-9) · `peptide_solvated`(MD-14) · `fold_go`(MD-17 REMD) · `particle_lab`
+**Cosmic:** `cosmic_telescope` (CT-8 3D viewer S0→S4, click zoom, multiverse bar) · `cosmic_telescope_headless` (CT-8 CI validation) · `cosmic_bigbang` (CT-2 cluster formation)
 
-## Key Files
+## Experiments (`src/use_cases/experiments/`) — Config→Report, pure fns
 
-- `src/simulation/pipeline.rs` — scheduling + phase ordering
-- `src/simulation/mod.rs` — `Phase`, `InputChannelSet`
-- `src/layers/mod.rs` — layer re-exports
-- `src/blueprint/equations/mod.rs` — pure math facade (45+ domain re-exports)
-- `src/blueprint/equations/batch_fitness.rs` — composite_fitness, tournament_select, crossover
-- `src/blueprint/equations/determinism.rs` — hashing + RNG (next_u64, gaussian_f32)
-- `src/blueprint/constants/mod.rs` — physics constants facade
-- `src/entities/archetypes/catalog.rs` — spawn functions (celula, virus, planta, animal)
-- `src/entities/builder.rs` — EntityBuilder API (incl. `wave_from_hz`)
-- `src/simulation/bootstrap.rs` — events + init resources
-- `src/simulation/metabolic/basal_drain.rs` — passive energy drain (cost of living)
-- `src/simulation/metabolic/senescence_death.rs` — age-based mortality
-- `src/sim_world.rs` — SimWorld boundary (tick, snapshot, determinism)
-- `src/math_types.rs` — glam re-exports (Bevy-free math types)
-- `src/bin/headless_sim.rs` — headless simulation → PPM image
-- `src/worldgen/nucleus.rs` — EnergyNucleus + NucleusReservoir (finite fuel)
-- `src/worldgen/systems/radiation_pressure.rs` — frequency-coherent energy redistribution (Axiom 8)
-- `src/worldgen/systems/nucleus_recycling.rs` — nutrient → new nucleus cycle
-- `src/simulation/awakening.rs` — inert entities gain BehavioralAgent when coherence threshold met
-- `src/blueprint/equations/derived_thresholds.rs` — ALL lifecycle constants from 4 fundamentals
-- `src/blueprint/equations/awakening.rs` — awakening potential (coherence vs dissipation)
-- `src/blueprint/equations/radiation_pressure.rs` — frequency-modulated surplus redistribution (stellar pressure analogy)
-- `src/blueprint/constants/nucleus_lifecycle.rs` — depletion, pressure, recycling constants
-- `src/blueprint/constants/senescence.rs` — age/death constants (materialized, flora, fauna)
-- `src/batch/mod.rs` — batch simulator entry point (19 files, 33 systems)
-- `src/batch/arena.rs` — EntitySlot (flat entity) + SimWorldFlat (world)
-- `src/batch/harness.rs` — GeneticHarness (evolutionary loop)
-- `src/batch/bridge.rs` — GenomeBlob ↔ Bevy components round-trip
-- `src/batch/lineage.rs` — LineageId (deterministic ancestry) + TrackedGenome
-- `src/batch/census.rs` — EntitySnapshot + PopulationCensus (per-gen HOF capture)
-- `src/blueprint/equations/exact_cache.rs` — zero-loss precompute (kleiber_volume_factor, exact_death_tick, frequency_alignment_exact)
-- `src/use_cases/export.rs` — CSV/JSON stateless adapters (zero IO, String output)
-- `src/use_cases/orchestrators.rs` — HOF composition (ablate, ensemble, sweep)
-- `src/runtime_platform/dashboard_bridge.rs` — SimTickSummary, SimTimeSeries, RingBuffer, ViewConfig, DashboardBridgePlugin
-- `src/simulation/reproduction/mod.rs` — flora seed + fauna offspring (with mutation)
-- `src/simulation/emergence/` — theory_of_mind, symbiosis_effect, epigenetic_adaptation, niche_adaptation
-- `src/blueprint/constants/stellar.rs` — stellar-scale constants (star/planet gravity, radii, emission)
-- `src/blueprint/equations/variable_genome.rs` — VariableGenome (4-32 genes), duplication/deletion, Kleiber cost, epigenetic gating (62 tests)
-- `src/blueprint/equations/metabolic_genome.rs` — gene→ExergyNode, topology inference, graph from genome, competition, Hebb, catalysis (80 tests)
-- `src/blueprint/equations/protein_fold.rs` — HP lattice fold, contact map, active sites, catalytic function (27 tests)
-- `src/blueprint/equations/codon_genome.rs` — CodonGenome (tripletes), CodonTable, translation, silent mutations (28 tests)
-- `src/blueprint/equations/multicellular.rs` — cell adhesion, colony detection (Union-Find), differential expression (27 tests)
-- `src/use_cases/mod.rs` — evolve_with() HOF, ExperimentReport, 13 use cases
-- `src/use_cases/cli.rs` — shared CLI utilities (parse_arg, archetype_label, resolve_preset)
-- `src/blueprint/equations/coulomb.rs` — Coulomb + Lennard-Jones potentials, bond detection, all constants derived (26 tests)
-- `src/batch/systems/particle_forces.rs` — particle force accumulation, bond detection in batch simulator
-- `src/use_cases/experiments/cancer_therapy.rs` — drug resistance experiment (Hill pharmacology, quiescent stem cells)
-- `src/use_cases/experiments/paper_zhang2022.rs` — Zhang 2022 adaptive therapy (Lotka-Volterra, 3 subpops)
-- `src/use_cases/experiments/paper_sharma2010.rs` — Sharma 2010 drug-tolerant persisters
-- `src/use_cases/experiments/paper_hill_ccle.rs` — GDSC/CCLE Hill slope validation (pure statistics)
-- `src/use_cases/experiments/paper_foo_michor2009.rs` — Foo & Michor 2009 continuous vs pulsed therapy
-- `src/use_cases/experiments/paper_michor2005.rs` — Michor 2005 biphasic CML decline
-- `src/use_cases/experiments/paper_unified_axioms.rs` — PV-6: all 6 phenomena from 4 constants (zero calibration, 4/6 PASS)
-- `src/bin/paper_validation.rs` — unified runner: 6 papers + PV-6, PASS/FAIL per test
-- `src/blueprint/equations/temporal_telescope.rs` — Temporal Telescope math: sliding stats, Hurst DFA, projection normalizers, speculative visibility (Englert D²+V²≤1), conservation-bounded projection (61 tests)
-- `src/blueprint/constants/temporal_telescope.rs` — Telescope constants derived from 4 fundamentals + calibration
-- `src/batch/telescope/` — 10-module Temporal Telescope: diff engine, cascade propagator, calibration bridge, projection engine, dual-timeline pipeline, multi-level stack (ADR-015/016, 205 tests)
-- `src/batch/telescope/stack.rs` — Multi-Telescope stack: collapse + re-emanation (quantum-inspired, ADR-016)
-- `src/bin/earth_telescope.rs` — Earth Telescope Demo: 3D planet + telescope metrics (day/night, seasons, abiogenesis)
-- `docs/paper/resonance_arxiv.tex` — arXiv paper source (7 experiments, 12 references)
+| Module | ID | Validates | Source |
+|--------|----|-----------|--------|
+| `paper_zhang2022` | PV-1 | Adaptive therapy prostate (Lotka-Volterra) | Zhang 2022 eLife |
+| `paper_sharma2010` | PV-2 | Drug-tolerant persisters ~0.3% | Sharma 2010 Cell |
+| `paper_hill_ccle` | PV-3 | Hill n=2 vs GDSC/CCLE | Garnett+Barretina 2012 |
+| `paper_foo_michor2009` | PV-4 | Continuous vs pulsed therapy | Foo&Michor 2009 PLoS |
+| `paper_michor2005` | PV-5 | Biphasic CML imatinib | Michor 2005 Nature |
+| `paper_unified_axioms` | PV-6 | All from 4 fundamentals (4/6 pass) | Internal boundary |
+| `cancer_therapy` | — | Freq drift + quiescent stem resistance | L1 cytotoxic |
+| `pathway_inhibitor_exp` | — | Metabolic compensation resistance | L3 inhibitor |
+| `lj_fluid` | MD-4 | 2D LJ thermodynamics | Toxvaerd77+Smit91 |
+| `peptide_vacuum` | MD-9 | Ramachandran phi/psi | AMBER-like |
+| `peptide_solvated` | MD-14 | Solvated RDF+stability | TIP3P+SHAKE+Ewald |
+| `particle_lab` | — | Coulomb+LJ→molecules | Ax 1,7,8 |
+| `fermi`/`speciation`/`cambrian`/`debate`/`convergence` | B1-4,D2 | Evo dynamics | — |
+| `fossil`/`mesh_export`/`sonification` | C1,C4,D3 | Viz export (timeline,OBJ,WAV) | — |
+| `lab`/`versus`/`personal` | A1-2,D1 | Sandbox wrappers | — |
 
-## Documentation
+## 14 ECS Layers (`src/layers/`)
 
-**Canonical:** `docs/ARCHITECTURE.md` — axioms, constants, module map, drug pipeline, Bozic validation, adaptive controller, emergence status, limitations.
+L0 `BaseEnergy` qe:f32 · L1 `SpatialVolume` radius:f32 · L2 `OscillatorySignature` freq,phase:f32 · L3 `FlowVector` vel:Vec2,diss:f32 · L4 `MatterCoherence` state,bond_e,cond · L5 `AlchemicalEngine` buffer,in_v,out_v · L6 `AmbientPressure` delta_qe,viscosity · L7 `WillActuator` dir,channel_t · L8 `AlchemicalInjector` proj_qe,freq,rad · L9 `MobaIdentity` faction,tags · L10 `ResonanceLink` target,mult · L11 `TensionField` strength,falloff · L12 `Homeostasis` target_f,cost · L13 `StructuralLink` rest_l,k,break_s
 
-**Design specs (code-referenced only):**
-`docs/design/` — `TOPOLOGY.md` | `ECO_BOUNDARIES.md` | `BRIDGE_OPTIMIZER.md` | `AXIOMATIC_CLOSURE.md` | `SIMULATION_CORE_DECOUPLING.md` | `TERRAIN_MESHER.md` | `QUANTIZED_COLOR_ENGINE.md` | `FOLDER_STRUCTURE.md` | `EARTH_TELESCOPE_DEMO.md`
+## Caches
 
-**Module contracts (code-referenced only):**
-`docs/arquitectura/` — `blueprint_batch_simulator.md` | `blueprint_layer_bridge_optimizer.md` | `blueprint_axiomatic_closure.md` | `blueprint_blueprint_math.md`
+- `KleiberCache` (SparseSet) — `r^0.75`, dirty on L1 change
+- `GompertzCache` (SparseSet) — exact death tick u64, dirty on L0/L2
+- `Converged<T>` (SparseSet) — iterative convergence flag
+- `exact_cache` (`blueprint/equations/`) — Kleiber+Gompertz+alignment pure fns
+- Bridge cache — `Vec` (N≤256) or `FxHashMap` (N>256), LRU/LFU/ARC
 
-**Regulatory documentation:**
-`docs/regulatory/` — 43 documents + master audit checklist (IEC 62304, ISO 14971, ISO 13485, ASME V&V 40, FDA CMS 2023, 21 CFR Part 11, IMDRF SaMD, GAMP 5). Index: `docs/regulatory/AUDIT_CHECKLIST.md`. Classification: Safety Class A (research tool). Sprint plan: `docs/sprints/REGULATORY_DOCUMENTATION/`.
+## Bridges (`src/bridge/`, 29)
 
-**Paper:** `docs/paper/resonance_arxiv.tex` — arXiv source (3 experiments, 11 references).
+**Physics(13):** Density Temperature PhaseTransition Interference Dissipation Drag Engine Will Catalysis CollisionTransfer Osmosis EvolutionSurrogate CompetitionNorm
+**Emergence(11):** AssociativeMemory OtherModel MemeSpread FieldMod Symbiosis Epigenetic Senescence Coalition NicheOverlap Timescale AggSignal
+**Advanced(5):** Tectonic LODPhysics Institution Symbol SelfModel
+
+## Telescope (`src/batch/telescope/`, ADR-015) — dual-timeline: Anchor(truth) + K-tick projection
+
+`mod`=state machine (Project→Reconcile→Correct→Idle) · `activation`=regime metrics+LOD · `pipeline`=`tick_telescope_sync` · `projection`=analytic forward (entity,world,grids) · `diff`=classify(Perfect/Local/Systemic) · `cascade`=correction · `calibration_bridge`=diff→weights · `stack`=K hierarchy [1,10,100,1000]
+
+## Sprints (9 active + 58 archived)
+
+PV(5) pending: paper benchmarks · GS(6) wave2: MOBA · PC(7) designed: emergent atoms · NS(4) designed: signals · EI(3) designed: prediction · TU(4) designed: tools · EL(4) designed: language · CV(4) designed: civilization · **PP(9) designed: plant physiology (pigment, curvature, volatiles, phototropism, phenology, organ senescence, pollination) — ADR-033/034/035** · MD(19) **done**: protein folding · R(6ph) planned: PME/SETTLE/r-RESPA · LR(4) **done**: lab UI · BS(3/7) **done**: cache decoupling · **CT(10) done**: cosmic telescope S0→S4 (ADR-036, `src/cosmic/`) · 58 archived tracks
+
+## Key References
+
+- `docs/ARCHITECTURE.md` — canonical architecture doc
+- `docs/design/AXIOMATIC_CLOSURE.md` — cross-axiom compositions
+- `docs/design/` — design specs | `docs/arquitectura/` — module contracts (32 ADRs)
+- `docs/regulatory/AUDIT_CHECKLIST.md` — regulatory index (IEC 62304, ISO 14971, etc.)

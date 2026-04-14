@@ -78,6 +78,23 @@ pub fn frequency_alignment_exact(freq_a: f32, freq_b: f32, bandwidth: f32) -> f3
     (-delta * delta / sigma_sq).exp()
 }
 
+// ─── Shape optimization input hash (for Converged<MorphogenesisShapeParams>) ──
+
+/// Hash determinista de los inputs de shape optimization para convergence detection.
+/// Deterministic hash of shape optimization inputs for convergence detection.
+///
+/// Knuth multiplicative hash sobre bits exactos de f32. Zero allocation.
+/// Colisión cuando dos conjuntos de inputs distintos producen el mismo u64 — rate < 1/2^32.
+#[inline]
+pub fn hash_shape_inputs(density: f32, velocity: f32, radius: f32, vasc_cost: f32) -> u64 {
+    use crate::layers::converged::hash_f32;
+    const KNUTH_PHI: u64 = 2_654_435_761;
+    let mut h = hash_f32(density);
+    h = h.wrapping_mul(KNUTH_PHI).wrapping_add(hash_f32(velocity));
+    h = h.wrapping_mul(KNUTH_PHI).wrapping_add(hash_f32(radius));
+    h.wrapping_mul(KNUTH_PHI).wrapping_add(hash_f32(vasc_cost))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -253,5 +270,28 @@ mod tests {
     #[test]
     fn frequency_alignment_inf_freq_returns_zero() {
         assert_eq!(frequency_alignment_exact(f32::INFINITY, 100.0, 50.0), 0.0);
+    }
+
+    // ── hash_shape_inputs ──
+
+    #[test]
+    fn hash_shape_inputs_deterministic() {
+        let a = hash_shape_inputs(1.0, 2.0, 3.0, 4.0);
+        let b = hash_shape_inputs(1.0, 2.0, 3.0, 4.0);
+        assert_eq!(a, b);
+    }
+
+    #[test]
+    fn hash_shape_inputs_different_inputs_differ() {
+        let a = hash_shape_inputs(1.0, 2.0, 3.0, 4.0);
+        let b = hash_shape_inputs(1.0, 2.0, 3.0, 4.1);
+        assert_ne!(a, b);
+    }
+
+    #[test]
+    fn hash_shape_inputs_order_matters() {
+        let a = hash_shape_inputs(1.0, 2.0, 3.0, 4.0);
+        let b = hash_shape_inputs(4.0, 3.0, 2.0, 1.0);
+        assert_ne!(a, b);
     }
 }

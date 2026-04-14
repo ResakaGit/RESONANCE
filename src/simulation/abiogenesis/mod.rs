@@ -13,7 +13,9 @@ use bevy::prelude::*;
 use crate::blueprint::constants::*;
 use crate::blueprint::{ElementId, equations};
 use crate::entities::builder::EntityBuilder;
+use crate::layers::gompertz_cache::GompertzCache;
 use crate::layers::has_inferred_shape::HasInferredShape;
+use crate::layers::kleiber_cache::KleiberCache;
 use crate::layers::organ::LifecycleStageCache;
 use crate::layers::senescence::SenescenceProfile;
 use crate::layers::shape_params::MorphogenesisShapeParams;
@@ -216,15 +218,19 @@ fn try_spawn_emergent_at_cell(
         .at(world_pos)
         .spawn(commands);
 
+    let sen_coeff = crate::blueprint::constants::senescence_coeff_flora();
+    let sen_max = crate::blueprint::constants::senescence_max_age_flora();
     commands.entity(entity).insert((
         InferenceProfile::new(growth_bias, mobility_bias, branching_bias, resilience),
         CapabilitySet::new(caps),
         SenescenceProfile {
             tick_birth,
-            senescence_coeff: crate::blueprint::constants::senescence_coeff_flora(),
-            max_viable_age: crate::blueprint::constants::senescence_max_age_flora(),
+            senescence_coeff: sen_coeff,
+            max_viable_age: sen_max,
             strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
         },
+        KleiberCache::default(),
+        GompertzCache::from_senescence(tick_birth, sen_coeff, sen_coeff, sen_max),
     ));
 
     if let Some(cell_mut) = energy.cell_xy_mut(cx, cy) {
@@ -357,6 +363,8 @@ fn try_spawn_fauna_at_cell(
         .at(world_pos)
         .spawn(commands);
 
+    let sen_coeff = crate::blueprint::constants::senescence_coeff_fauna();
+    let sen_max = crate::blueprint::constants::senescence_max_age_fauna();
     commands.entity(entity).insert((
         BehavioralAgent,
         BehaviorIntent::default(),
@@ -376,10 +384,12 @@ fn try_spawn_fauna_at_cell(
         },
         SenescenceProfile {
             tick_birth,
-            senescence_coeff: crate::blueprint::constants::senescence_coeff_fauna(),
-            max_viable_age: crate::blueprint::constants::senescence_max_age_fauna(),
+            senescence_coeff: sen_coeff,
+            max_viable_age: sen_max,
             strategy: crate::blueprint::constants::SENESCENCE_DEFAULT_STRATEGY,
         },
+        KleiberCache::default(),
+        GompertzCache::from_senescence(tick_birth, sen_coeff, sen_coeff, sen_max),
     ));
 
     if let Some(cell_mut) = energy.cell_xy_mut(cx, cy) {

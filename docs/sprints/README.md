@@ -10,10 +10,10 @@ High-level design: [`docs/design/INDEX.md`](../design/INDEX.md). Runtime contrac
 
 | Métrica | Valor |
 |---------|-------|
-| Sprints pendientes | **44** (39 prev + 5 PV) |
-| Tracks activos | **9** |
-| Oleadas restantes | **4** |
-| Tracks archivados | **53** (51 prev + TT ✅ + MT ✅) |
+| Sprints pendientes | **48** (39 prev + 9 PP) |
+| Tracks activos | **10** (9 prev + PLANT_PHYSIOLOGY) |
+| Oleadas restantes | **4** (+PP independiente) |
+| Tracks archivados | **57** (56 prev + BSD ✅) |
 | Tests | **3,324** |
 | LOC | **~117K** |
 | Binarios | **26** |
@@ -52,19 +52,19 @@ Track README: [archive/MULTI_TELESCOPE/](archive/MULTI_TELESCOPE/)
 
 ---
 
-### REGULATORY_INFRASTRUCTURE ✅ COMPLETADO (2026-04-02)
+### REGULATORY_INFRASTRUCTURE ✅ COMPLETADO (2026-04-02) — ARCHIVADO
 
 3 sprints: RI-1 (CI/CD + branch protection), RI-2 (approval workflow + validation script), RI-3 (CCB + training matrix + issue templates + quarterly review). 8 ADRs en [`docs/arquitectura/ADR/`](../arquitectura/ADR/).
 
-Track README: [REGULATORY_INFRASTRUCTURE/](REGULATORY_INFRASTRUCTURE/)
+Track README: [archive/REGULATORY_INFRASTRUCTURE/](archive/REGULATORY_INFRASTRUCTURE/)
 
 ---
 
-### REGULATORY_DOCUMENTATION ✅ COMPLETADO (2026-04-02)
+### REGULATORY_DOCUMENTATION ✅ COMPLETADO (2026-04-02) — ARCHIVADO
 
 43 documentos + 1 índice en `docs/regulatory/` (~15,400 líneas). 50/50 ítems del checklist externo cubiertos. 8 gaps estructurales → track RI.
 
-Track README: [REGULATORY_DOCUMENTATION/](REGULATORY_DOCUMENTATION/) — Sprint docs: RD-1 through RD-7 ✅
+Track README: [archive/REGULATORY_DOCUMENTATION/](archive/REGULATORY_DOCUMENTATION/) — Sprint docs: RD-1 through RD-7 ✅
 
 ---
 
@@ -173,19 +173,29 @@ Track README: [CIVILIZATION/](CIVILIZATION/)
 
 ---
 
-### BRIDGE_STRATEGY_DECOUPLING (5 sprints pendientes)
+### PLANT_PHYSIOLOGY (9 sprints — propiedades materiales emergentes de flujos de energía) — NEW
 
 | Sprint | Descripción | Esfuerzo | Bloqueado por |
 |--------|-------------|----------|---------------|
-| BS-1 | NormStrategy enum + desacople normalización | Medio | — |
-| BS-4 | 6 bridges nuevos (basal, senescence, awakening, rad, shape, epi) | Alto | BS-1 |
-| BS-5 | TDD: tests unitarios + integración tier 1 | Alto | BS-4 |
-| BS-6 | HOF composition (NormPipeline) | Medio | BS-1 |
-| BS-7 | RON presets para estrategias + validación keys | Bajo | BS-6 |
+| [PP-0](PLANT_PHYSIOLOGY/SPRINT_PP0_ORGAN_SUBPOOLS.md) | Organ Sub-Pools (`[f32; 12]`, pool invariant) | 1 sem | — |
+| [PP-1](PLANT_PHYSIOLOGY/SPRINT_PP1_SPECTRAL_PIGMENT.md) | Spectral Pigmentation (color = freq reflejada) | 1 sem | PP-0 |
+| [PP-2](PLANT_PHYSIOLOGY/SPRINT_PP2_PHOTOTROPISM.md) | Phototropism (spine sigue irradiancia) | 1 sem | — |
+| [PP-3](PLANT_PHYSIOLOGY/SPRINT_PP3_PHENOLOGY.md) | Phenology Wiring (floración estacional) | 0.5 sem | — |
+| [PP-4](PLANT_PHYSIOLOGY/SPRINT_PP4_TISSUE_CURVATURE.md) | Tissue Curvature (crecimiento diferencial) | 1.5 sem | PP-0 |
+| [PP-5](PLANT_PHYSIOLOGY/SPRINT_PP5_ORGAN_SENESCENCE.md) | Organ Senescence (Gompertz per-organ) | 1 sem | PP-0 |
+| [PP-6](PLANT_PHYSIOLOGY/SPRINT_PP6_VOLATILE_EMISSION.md) | Volatile Emission (fragancia → field grid) | 1 sem | PP-0 |
+| [PP-7](PLANT_PHYSIOLOGY/SPRINT_PP7_ROOT_DIFFERENTIATION.md) | Root Differentiation (constructal underground) | 1 sem | PP-0 |
+| [PP-8](PLANT_PHYSIOLOGY/SPRINT_PP8_POLLINATION.md) | Cross-Pollination (flora↔fauna reproduction) | 2 sem | PP-6 |
 
-Sprints archivados del track: BS-2 ✅ (bug fixes), BS-3 parcial ✅ (exact cache components)
+PP-2 y PP-3 independientes (paralelos con todo). PP-0 es fundación. ADRs: [ADR-033](../arquitectura/ADR/ADR-033-organ-sub-pools.md), [ADR-034](../arquitectura/ADR/ADR-034-spectral-absorption-model.md), [ADR-035](../arquitectura/ADR/ADR-035-volatile-field-protocol.md). Track README: [PLANT_PHYSIOLOGY/](PLANT_PHYSIOLOGY/)
 
-Track README: [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
+---
+
+### BRIDGE_STRATEGY_DECOUPLING ✅ COMPLETADO (2026-04-13) — ARCHIVADO
+
+BS-2/3/5 ✅, BS-1/4/6/7 cancelados (ADR-017). 5 tests de integración BS-5.
+
+Track README: [archive/BRIDGE_STRATEGY_DECOUPLING/](archive/BRIDGE_STRATEGY_DECOUPLING/)
 
 ---
 
@@ -275,20 +285,22 @@ Track README: [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
 | **TU** | 4 | TOOL_USE | 2 serie + 2 paralelo | ⏳ Diseñado | EI |
 | **EL** | 4 | EMERGENT_LANGUAGE | 4 serie | ⏳ Diseñado | NS |
 | **CV** | 4 | CIVILIZATION | 4 serie | ⏳ Diseñado | TU + EL |
+| **PP** | 9 | PLANT_PHYSIOLOGY | 2 indep + 1 fundación → 6 paralelo | ⏳ Diseñado | — (independiente) |
 | **TT** | 10 | TEMPORAL_TELESCOPE | 4 paralelo → 6 serie | ✅ COMPLETA | — (independiente) |
 | **MT** | 5 | MULTI_TELESCOPE | 5 serie | ✅ COMPLETA | TT ✅ |
-| **BSD** | 7 | BRIDGE_STRATEGY_DECOUPLING | 2 ✅ → 5 pendiente | ⏳ BS-2/3 done | — (independiente) |
+| **BSD** | 7 | BRIDGE_STRATEGY_DECOUPLING | 3 ✅ + 4 cancelados | ✅ COMPLETA | — (independiente) |
+| **LR** | 4 | LAB_UI_REFACTOR | 4 ✅ | ✅ COMPLETA | — (independiente) |
 | **SO** | 5 | SCIENTIFIC_OBSERVABILITY | 5 ✅ | ✅ ARCHIVADA | — |
-| **RI** | 3 | REGULATORY_INFRASTRUCTURE | 1 → 2 paralelo | ⏳ Diseñado | RD ✅ |
-| **RD** | 7 | REGULATORY_DOCUMENTATION | 4 oleadas | ✅ COMPLETA | — |
-| **Total** | **115** | — | — | 77 ✅ · 40 ⏳ · 1 🔒 | |
+| **RI** | 3 | REGULATORY_INFRASTRUCTURE | 1 → 2 paralelo | ✅ ARCHIVADA | RD ✅ |
+| **RD** | 7 | REGULATORY_DOCUMENTATION | 4 oleadas | ✅ ARCHIVADA | — |
+| **Total** | **119** | — | — | 81 ✅ · 40 ⏳ · 1 🔒 | |
 
 ### Tracks por estado
 
 | Estado | Tracks | Sprints |
 |--------|--------|---------|
-| ✅ Archivados | 53 tracks (incl. RD ✅, RI ✅, TT ✅, MT ✅) | 103 sprints |
-| ⏳ Activos | GS(6), PC(7), NS(4), EI(3), TU(4), EL(4), CV(4), BSD(5) | 37 sprints |
+| ✅ Archivados | 57 tracks (incl. RD ✅, RI ✅, TT ✅, MT ✅, LR ✅, BSD ✅) | 118 sprints |
+| ⏳ Activos | GS(6), PC(7), NS(4), EI(3), TU(4), EL(4), CV(4), PV(5), MD(~10) | 47+ sprints |
 | 🔒 Bloqueados | DEMO (1) | 1 sprint |
 
 ---
@@ -297,8 +309,10 @@ Track README: [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
 
 Implementation in `src/`, contracts in `docs/design/` and `docs/arquitectura/`. Full list in [`archive/README.md`](archive/README.md):
 
+- **LAB_UI_REFACTOR** — LR-1–LR-4 ✅: State machine, per-experiment controls (15 experiments, 4 categorías), Live 2D controls (pause, speed 0.25x–4x, reset, map selector con 25 mapas). ADR-018, ADR-019. (2026-04-12) — [archive/LAB_UI_REFACTOR/](archive/LAB_UI_REFACTOR/)
 - **TEMPORAL_TELESCOPE** — TT-1–TT-10 ✅: Dual-timeline speculative execution (ADR-015). Ancla (ground truth tick-a-tick) + Telescopio (proyección analítica) + Puente de Calibración (feedback loop). 9 archivos, 179 tests, 0 hardcoded values. Axiomas 4/5/7 verificados con property tests. sliding_variance, Hurst DFA, Fisher information, RegimeMetrics, NormalizerWeights, DiffReport, cascade propagator, calibration bridge, dual pipeline sync. (2026-04-04) — [archive/TEMPORAL_TELESCOPE/](archive/TEMPORAL_TELESCOPE/)
-- **BRIDGE_STRATEGY_DECOUPLING (parcial)** — BS-2 ✅: CompetitionNormBridge wired + hot reload fix. BS-3 parcial ✅: exact_cache (KleiberCache, GompertzCache, Converged\<T\>), shape_cache_signature extraction. 52 tests (2026-03-30) — [BRIDGE_STRATEGY_DECOUPLING/](BRIDGE_STRATEGY_DECOUPLING/)
+- **BRIDGE_STRATEGY_DECOUPLING** — BS-2/3/5 ✅ (exact_cache, KleiberCache, GompertzCache, Converged\<T\>, 5 integration tests). BS-1/4/6/7 cancelados por ADR-017. 57 tests. (2026-04-13) — [archive/BRIDGE_STRATEGY_DECOUPLING/](archive/BRIDGE_STRATEGY_DECOUPLING/)
+- **MOLECULAR_DYNAMICS** — MD-0–MD-19 ✅: Velocity Verlet, Langevin thermostat, PBC, neighbor lists, LJ fluid, bonded potentials, topology, 3D/f64, cutoff, peptide vacuum, TIP3P water, SHAKE, Ewald, FF loader, solvated peptide, Go model, REMD, folding validation, analysis suite, rayon-parallel forces. (2026-04-13) — [archive/MOLECULAR_DYNAMICS/](archive/MOLECULAR_DYNAMICS/)
 - **SCIENTIFIC_OBSERVABILITY** — SO-1–SO-5 ✅: lineage, census, CSV/JSON export, HOF orchestrators, CSV in binaries. 32 tests (2026-03-30) — [archive/SCIENTIFIC_OBSERVABILITY/](archive/SCIENTIFIC_OBSERVABILITY/)
 - **PROTO_DNA** — PD-1–PD-5: CodonGenome (tripletes), CodonTable (64→8 amino, evolucionable), translate_genome, silent mutations, neutral drift, batch wiring. 28 tests (2026-03-30) — [archive/PROTO_DNA/](archive/PROTO_DNA/)
 - **MULTICELLULARITY** — MC-1–MC-5: cell adhesion (freq×distance), colony detection (Union-Find), positional signaling, differential expression (borde=defensa, interior=metabolismo), batch wiring. 33 tests (2026-03-30) — [archive/MULTICELLULARITY/](archive/MULTICELLULARITY/)
@@ -336,5 +350,7 @@ Implementation in `src/`, contracts in `docs/design/` and `docs/arquitectura/`. 
 - **TOPOLOGY** — T1–T10: terrain generation
 - **MIGRATION** — M1–M5: folder structure
 - **CHEMICAL_REFACTOR** — C1–C4: MatterLense, catalytic pipeline
+- **REGULATORY_DOCUMENTATION** — RD-1–RD-7 ✅: 43 documentos regulatorios + índice maestro en `docs/regulatory/` (~15,400 líneas). IEC 62304, ISO 14971, ASME V&V 40, FDA CMS. 50/50 checklist items. (2026-04-02) — [archive/REGULATORY_DOCUMENTATION/](archive/REGULATORY_DOCUMENTATION/)
+- **REGULATORY_INFRASTRUCTURE** — RI-1–RI-3 ✅: CI/CD pipeline, approval workflow, CCB charter, training matrix, issue templates, quarterly review. 8 ADRs. (2026-04-02) — [archive/REGULATORY_INFRASTRUCTURE/](archive/REGULATORY_INFRASTRUCTURE/)
 - **BRIDGE_OPTIMIZER** — B1–B10: 11 equation kinds
 - **BLUEPRINT_V4/V5/V6** — Layers L11–L13, determinism+cache, 2D/3D platform
