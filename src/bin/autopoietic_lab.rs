@@ -1,4 +1,4 @@
-//! AP-6a: `autopoietic_lab` headless CLI.
+//! AP-6a/b: `autopoietic_lab` headless CLI.
 //!
 //! Corre una sopa determinística y exporta `SoupReport` en JSON + DOT opcional.
 //! Sin Bevy, sin GPU.  Stdlib-only CLI (sin `clap`) para respetar el hard block
@@ -17,10 +17,13 @@ use std::fs;
 use std::path::PathBuf;
 use std::process::ExitCode;
 
-use resonance::use_cases::experiments::autopoiesis::{SoupConfig, run_soup};
+use resonance::layers::reaction_network::ReactionNetwork;
+use resonance::use_cases::experiments::autopoiesis::{
+    SoupConfig, run_soup, run_soup_with_network,
+};
 
 const HELP: &str = "\
-autopoietic_lab — AP-6a headless runner
+autopoietic_lab — AP-6a/b headless runner
 
 USAGE:
     autopoietic_lab [OPTIONS]
@@ -32,6 +35,8 @@ OPTIONS:
     --species <N>      Species count, 2..=32 (default: 8)
     --reactions <N>    Reaction count (default: 16)
     --food <N>         Initial food species count (default: 3)
+    --network <path>   Load reaction network from RON file
+                       (overrides --reactions; food set still uses --seed)
     --out <path>       JSON report path (default: report.json)
     --dot <path>       Optional DOT lineage path (default: none)
     --quiet            Suppress progress output
@@ -41,6 +46,7 @@ OPTIONS:
 #[derive(Debug)]
 struct Cli {
     config: SoupConfig,
+    network: Option<PathBuf>,
     out_json: PathBuf,
     out_dot: Option<PathBuf>,
     quiet: bool,
@@ -51,6 +57,7 @@ impl Cli {
         let mut cfg = SoupConfig { seed: 42, ..SoupConfig::default() };
         let mut out_json = PathBuf::from("report.json");
         let mut out_dot: Option<PathBuf> = None;
+        let mut network: Option<PathBuf> = None;
         let mut quiet = false;
 
         let mut args = argv.into_iter();
@@ -65,12 +72,13 @@ impl Cli {
                 "--reactions" => cfg.n_reactions = take_val(&mut args, &a)?.parse().map_err(|e| format!("{a}: {e}"))?,
                 "--food"      => cfg.food_size   = take_val(&mut args, &a)?.parse().map_err(|e| format!("{a}: {e}"))?,
                 "--grid"      => cfg.grid = parse_grid(&take_val(&mut args, &a)?)?,
+                "--network"   => network  = Some(PathBuf::from(take_val(&mut args, &a)?)),
                 "--out"       => out_json = PathBuf::from(take_val(&mut args, &a)?),
                 "--dot"       => out_dot  = Some(PathBuf::from(take_val(&mut args, &a)?)),
                 other => return Err(format!("unknown flag: {other}")),
             }
         }
-        Ok(Self { config: cfg, out_json, out_dot, quiet })
+        Ok(Self { config: cfg, network, out_json, out_dot, quiet })
     }
 }
 
@@ -98,14 +106,26 @@ fn run() -> Result<(), String> {
     let cli = Cli::parse(env::args())?;
 
     if !cli.quiet {
+        let net_label = cli.network.as_ref()
+            .map(|p| format!("network={p:?}"))
+            .unwrap_or_else(|| format!("reactions={}", cli.config.n_reactions));
         eprintln!(
-            "autopoietic_lab: seed={} ticks={} grid={}x{} species={} reactions={} food={}",
+            "autopoietic_lab: seed={} ticks={} grid={}x{} species={} {net_label} food={}",
             cli.config.seed, cli.config.ticks, cli.config.grid.0, cli.config.grid.1,
-            cli.config.n_species, cli.config.n_reactions, cli.config.food_size,
+            cli.config.n_species, cli.config.food_size,
         );
     }
 
-    let report = run_soup(&cli.config);
+    let report = match &cli.network {
+        Some(path) => {
+            let text = fs::read_to_string(path)
+                .map_err(|e| format!("read {path:?}: {e}"))?;
+            let net = ReactionNetwork::from_ron_str(&text)
+                .map_err(|e| format!("parse {path:?}: {e:?}"))?;
+            run_soup_with_network(&cli.config, net)
+        }
+        None => run_soup(&cli.config),
+    };
     let json = report.to_json().map_err(|e| format!("json serialize: {e}"))?;
     fs::write(&cli.out_json, json).map_err(|e| format!("write {:?}: {e}", cli.out_json))?;
 
@@ -179,6 +199,53 @@ mod tests {
     fn parse_missing_value_errors_cleanly() {
         let e = Cli::parse(argv(&["--seed"])).unwrap_err();
         assert!(e.contains("--seed"));
+    }
+
+    // ── AP-6b: --network flag ──────────────────────────────────────────────
+
+    #[test]
+    fn parse_network_flag_stores_path() {
+        let cli = Cli::parse(argv(&["--network", "assets/reactions/raf_minimal.ron"])).unwrap();
+        assert_eq!(cli.network, Some(PathBuf::from("assets/reactions/raf_minimal.ron")));
+    }
+
+    #[test]
+    fn network_flag_defaults_to_none() {
+        let cli = Cli::parse(argv(&["--seed", "99"])).unwrap();
+        assert!(cli.network.is_none());
+    }
+
+    #[test]
+    fn raf_minimal_ron_loads_and_runs_via_run_soup_with_network() {
+        let text = fs::read_to_string("assets/reactions/raf_minimal.ron")
+            .expect("asset must exist");
+        let net = ReactionNetwork::from_ron_str(&text).expect("valid RON");
+        assert_eq!(net.len(), 3, "raf_minimal has 3 reactions");
+
+        let cfg = SoupConfig {
+            seed: 42, n_species: 4, food_size: 2,
+            ticks: 150, grid: (6, 6), ..SoupConfig::default()
+        };
+        let report = run_soup_with_network(&cfg, net);
+        assert_eq!(report.seed, 42);
+        assert_eq!(report.n_ticks, 150);
+        assert!(report.total_dissipated >= 0.0);
+        // Food set con 2 species + 3 reacciones ⟹ posible detectar closures,
+        // pero no lo afirmamos — solo que el harness no panic.
+    }
+
+    #[test]
+    fn network_flag_rejects_nonexistent_file() {
+        let cli = Cli::parse(argv(&["--network", "no_such_file.ron", "--quiet"])).unwrap();
+        // Emula lo que hace run(): fs::read_to_string debe fallar.
+        let err = fs::read_to_string(cli.network.as_ref().unwrap()).unwrap_err();
+        assert!(matches!(err.kind(), std::io::ErrorKind::NotFound));
+    }
+
+    #[test]
+    fn malformed_ron_is_rejected_by_from_ron_str() {
+        let bad = "(reactions: [(this is not valid RON";
+        assert!(ReactionNetwork::from_ron_str(bad).is_err());
     }
 
     #[test]

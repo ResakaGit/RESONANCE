@@ -220,8 +220,8 @@ impl Default for SoupConfig {
     }
 }
 
-/// Ejecuta una sopa determinística y reporta el destino de sus closures
-/// iniciales (post-equilibración).  Pure fn: mismas entradas ⇒ mismo output.
+/// Ejecuta una sopa determinística con red generada aleatoriamente a partir
+/// de `config.seed`.  Pure fn: mismas entradas ⇒ mismo output.
 pub fn run_soup(config: &SoupConfig) -> SoupReport {
     let net = random_reaction_network(
         config.seed,
@@ -230,6 +230,16 @@ pub fn run_soup(config: &SoupConfig) -> SoupReport {
         MAX_REACTANTS_PER_REACTION as u8,
         MAX_PRODUCTS_PER_REACTION as u8,
     );
+    run_soup_with_network(config, net)
+}
+
+/// Variante de `run_soup` que recibe una `ReactionNetwork` pre-construida
+/// (p. ej. cargada desde un RON via `ReactionNetwork::from_ron_str`).
+/// El food set se sigue derivando determinísticamente de `config.seed`.
+///
+/// AP-6b: desacopla la generación de red del harness para permitir validar
+/// redes canónicas (RAF mínima, formose, GARD) y sopas reproducibles.
+pub fn run_soup_with_network(config: &SoupConfig, net: ReactionNetwork) -> SoupReport {
     let food = random_food_set(config.seed, config.n_species, config.food_size);
 
     let (w, h) = config.grid;
