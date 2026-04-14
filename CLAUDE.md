@@ -198,3 +198,10 @@ PV(5) pending: paper benchmarks · GS(6) wave2: MOBA · PC(7) designed: emergent
 - `docs/design/AXIOMATIC_CLOSURE.md` — cross-axiom compositions
 - `docs/design/` — design specs | `docs/arquitectura/` — module contracts (32 ADRs)
 - `docs/regulatory/AUDIT_CHECKLIST.md` — regulatory index (IEC 62304, ISO 14971, etc.)
+
+## Workflow Skills (`~/.claude/skills/`)
+
+- `/create-sprint` — new sprint doc under `docs/sprints/<TRACK>/`. Gates Stages 0-2 (ready) before accepting items; Stages 3-7 run-time.
+- `/create-adr` — new ADR under `docs/arquitectura/ADR/`. Explores repo first, cites `file:line`, flags `[ASSUMPTION]` when unverified.
+- `/implement-sprint-item` — execution standard: ready-check → tier A/B/C/D/E → tier-testing → 15-60min cycles → in-cycle refactor → Step-6 fix protocol (L1 symptom → L5 one-sentence) → non-negotiable merge checklist.
+Chain: `create-sprint` → (arch-significant item?) `create-adr` → `implement-sprint-item`.
