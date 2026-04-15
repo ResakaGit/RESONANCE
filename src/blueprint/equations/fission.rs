@@ -13,7 +13,9 @@
 //! Axiom 6: criterio emergente, no decretado.
 //! Axiom 7: `pinch_axis` = eje principal de la covarianza espacial (PCA 2D).
 
-use crate::blueprint::constants::chemistry::{KINETIC_STABILITY_EPSILON, MAX_SPECIES};
+use crate::blueprint::constants::chemistry::{
+    KINETIC_STABILITY_EPSILON, MAX_SPECIES, SPECIES_DIFFUSION_RATE,
+};
 use crate::blueprint::equations::blob_topology::{BlobIndex, centroid, perimeter};
 use crate::blueprint::equations::derived_thresholds::DISSIPATION_PLASMA;
 use crate::blueprint::equations::reaction_kinetics::mass_action_rate;
@@ -44,60 +46,56 @@ pub fn internal_production(
     total
 }
 
-// ── Cohesión (perímetro × fuerza media) ─────────────────────────────────────
+// ── Decay diffusivo del blob (Axiom 4 + 7) ──────────────────────────────────
 
-/// Media de `strength_field` sobre celdas del blob.  Vacío ⇒ 0.
-pub fn mean_membrane_strength(
+/// Suma de concentraciones de producto dentro del blob × `SPECIES_DIFFUSION_RATE`.
+/// Unidad: `[qe · T⁻¹]`.  Es la tasa a la que el blob pierde masa por difusión
+/// bajo Axiom 4 (dissipation) + Axiom 7 (distance attenuation — difusión es su
+/// forma infinitesimal).  Mismo patrón que `raf::kinetic_stability` denominator,
+/// aplicado espacialmente en lugar de per-cell.
+///
+/// `product_mask[s] = true` ⇔ la species `s` es producto de alguna reacción de
+/// la closure activa sobre el blob.  Celdas fuera del grid se ignoran.
+pub fn decay_rate(
     blob: &BlobIndex,
-    strength_field: &[f32],
-    width: usize,
-    height: usize,
+    grid: &SpeciesGrid,
+    product_mask: &[bool; MAX_SPECIES],
 ) -> f32 {
-    if blob.is_empty() || width == 0 || height == 0 { return 0.0; }
-    let n_expected = width * height;
-    if strength_field.len() != n_expected { return 0.0; }
-    let mut sum = 0.0_f32;
-    let mut count = 0_u32;
+    let (w, h) = (grid.width(), grid.height());
+    let mut total = 0.0_f32;
     for &(x, y) in &blob.cells {
         let (xu, yu) = (x as usize, y as usize);
-        if xu >= width || yu >= height { continue; }
-        let v = strength_field[yu * width + xu];
-        if v.is_finite() {
-            sum += v;
-            count += 1;
+        if xu >= w || yu >= h { continue; }
+        let cell = grid.cell(xu, yu);
+        for s in 0..MAX_SPECIES {
+            if product_mask[s] { total += cell.species[s]; }
         }
     }
-    if count == 0 { 0.0 } else { sum / count as f32 }
+    total * SPECIES_DIFFUSION_RATE
 }
 
-/// Capacidad de contención: `perímetro × fuerza_media_de_membrana`.
-#[inline]
-pub fn cohesion_capacity(
-    blob: &BlobIndex,
-    strength_field: &[f32],
-    width: usize,
-    height: usize,
-) -> f32 {
-    let p = perimeter(blob, width, height) as f32;
-    p * mean_membrane_strength(blob, strength_field, width, height)
-}
+// ── Pressure ratio (criterio de fisión — adimensional, Pross) ───────────────
 
-// ── Pressure ratio (criterio de fisión) ─────────────────────────────────────
-
-/// Razón de presión interna sobre cohesión de membrana.
-/// `ratio > FISSION_PRESSURE_RATIO` ⇒ el blob debe dividirse (trigger en AP-6).
-/// Cohesión nula ⇒ retorna `0.0` (sin membrana no hay tensión que vencer,
-/// el blob se disuelve por difusión; no es fisión — es muerte).
+/// Razón adimensional de producción interna sobre decay diffusivo.
+/// `ratio > FISSION_PRESSURE_RATIO` ⇒ el blob se divide (trigger en `soup_sim`).
+/// Espejo espacial de `raf::kinetic_stability`: ambos comparten
+/// `[qe·T⁻¹] / [qe·T⁻¹]`, consistente con Pross "reconstruction ≥ decay".
+///
+/// **Dimensional.** Numerador y denominador en `[qe·T⁻¹]`; el ratio es
+/// timestep-invariante (Axiom 6: el criterio no depende de la discretización).
+///
+/// Decay nulo ⇒ `0.0`: sin productos no hay qué sostener; el blob se
+/// evaporó o nunca existió.  No es fisión — es ausencia de materia.
 pub fn pressure_ratio(
     blob: &BlobIndex,
     grid: &SpeciesGrid,
     network: &ReactionNetwork,
-    strength_field: &[f32],
+    product_mask: &[bool; MAX_SPECIES],
     bandwidth: f32,
 ) -> f32 {
-    let cohesion = cohesion_capacity(blob, strength_field, grid.width(), grid.height());
-    if cohesion <= KINETIC_STABILITY_EPSILON { return 0.0; }
-    internal_production(blob, grid, network, bandwidth) / cohesion
+    let decay = decay_rate(blob, grid, product_mask);
+    if decay <= KINETIC_STABILITY_EPSILON { return 0.0; }
+    internal_production(blob, grid, network, bandwidth) / decay
 }
 
 // ── Pinch axis (PCA 2D, closed-form) ────────────────────────────────────────
@@ -314,43 +312,88 @@ mod tests {
         assert!((p_big - 4.0 * p_small).abs() < 1e-4, "linear in cell count");
     }
 
-    // ── cohesion_capacity ──────────────────────────────────────────────────
+    // ── decay_rate ─────────────────────────────────────────────────────────
+
+    fn mask_of(species: &[u8]) -> [bool; MAX_SPECIES] {
+        let mut m = [false; MAX_SPECIES];
+        for &s in species { m[s as usize] = true; }
+        m
+    }
 
     #[test]
-    fn cohesion_is_zero_on_zero_strength_field() {
+    fn decay_rate_is_zero_on_empty_grid() {
         let grid = SpeciesGrid::new(4, 4, 50.0);
         let b = blob_rect(1, 1, 2, 2);
-        let field = vec![0.0_f32; grid.len()];
-        assert_eq!(cohesion_capacity(&b, &field, grid.width(), grid.height()), 0.0);
+        let mask = mask_of(&[2, 3]);
+        assert_eq!(decay_rate(&b, &grid, &mask), 0.0);
     }
 
     #[test]
-    fn cohesion_uses_perimeter_and_mean_strength() {
-        let grid = SpeciesGrid::new(4, 4, 50.0);
-        let b = blob_rect(1, 1, 2, 2); // 2×2 ⇒ perimeter = 8
-        let field = vec![0.5_f32; grid.len()];
-        let c = cohesion_capacity(&b, &field, grid.width(), grid.height());
-        assert!((c - 8.0 * 0.5).abs() < 1e-5);
-    }
-
-    #[test]
-    fn cohesion_guards_field_length_mismatch() {
-        let b = blob_rect(0, 0, 1, 1);
-        let field = vec![1.0_f32; 3]; // demasiado corto para 4×4
-        assert_eq!(cohesion_capacity(&b, &field, 4, 4), 0.0);
+    fn decay_rate_sums_masked_products_scaled_by_diffusion() {
+        let mut grid = SpeciesGrid::new(4, 4, 50.0);
+        for y in 1..=2 { for x in 1..=2 {
+            grid.seed(x, y, SpeciesId::new(2).unwrap(), 3.0); // producto
+            grid.seed(x, y, SpeciesId::new(0).unwrap(), 9.0); // fuera de mask
+        }}
+        let b = blob_rect(1, 1, 2, 2);
+        let mask = mask_of(&[2]);
+        let expected = 4.0 * 3.0 * SPECIES_DIFFUSION_RATE; // 4 celdas × 3.0 × DL
+        assert!((decay_rate(&b, &grid, &mask) - expected).abs() < 1e-5);
     }
 
     // ── pressure_ratio ─────────────────────────────────────────────────────
 
     #[test]
-    fn pressure_ratio_is_zero_when_cohesion_zero() {
+    fn pressure_ratio_is_zero_when_no_products_to_decay() {
+        // Sin productos enmascarados en el blob, `decay_rate = 0` ⇒ ratio = 0
+        // (blob sin materia que sostener — no es fisión, es ausencia).
         let net = raf_net();
         let mut grid = SpeciesGrid::new(4, 4, 50.0);
         grid.seed(1, 1, SpeciesId::new(0).unwrap(), 10.0);
         grid.seed(1, 1, SpeciesId::new(1).unwrap(), 10.0);
         let b = blob_rect(1, 1, 2, 2);
-        let zero_field = vec![0.0_f32; grid.len()];
-        assert_eq!(pressure_ratio(&b, &grid, &net, &zero_field, BW), 0.0);
+        let empty_mask = [false; MAX_SPECIES];
+        assert_eq!(pressure_ratio(&b, &grid, &net, &empty_mask, BW), 0.0);
+    }
+
+    #[test]
+    fn pressure_ratio_is_size_invariant_for_uniform_blobs() {
+        // Extensive/extensive ⇒ ratio intensive (timestep- y size-invariante).
+        // Mismo estado químico por-celda ⇒ mismo ratio, cualquier tamaño.
+        let net = raf_net();
+        let mut grid = SpeciesGrid::new(6, 6, 50.0);
+        for y in 0..6 { for x in 0..6 {
+            grid.seed(x, y, SpeciesId::new(0).unwrap(), 2.0);
+            grid.seed(x, y, SpeciesId::new(1).unwrap(), 2.0);
+            grid.seed(x, y, SpeciesId::new(2).unwrap(), 1.0);
+        }}
+        let mask = mask_of(&[2, 3]);
+        let small = blob_rect(1, 1, 1, 1);
+        let big   = blob_rect(1, 1, 4, 4);
+        let r_small = pressure_ratio(&small, &grid, &net, &mask, BW);
+        let r_big   = pressure_ratio(&big,   &grid, &net, &mask, BW);
+        assert!((r_small - r_big).abs() < 1e-4, "r_small={r_small} r_big={r_big}");
+    }
+
+    #[test]
+    fn pressure_ratio_is_dimensionless_and_crosses_fission_threshold_under_overdrive() {
+        // Escenario constructivo: producción alta + productos bajos ⇒
+        // ratio dimensionless supera 50.  Validación directa que la
+        // fórmula adimensional es alcanzable (contrasta con el gap 200×
+        // de la versión rota dimensionalmente, ver SPRINT_AP6 F-1).
+        let net = raf_net();
+        let mut grid = SpeciesGrid::new(4, 4, 50.0);
+        // Mucho reactante (alimenta mass_action) + poco producto (poco decay).
+        for y in 1..=2 { for x in 1..=2 {
+            grid.seed(x, y, SpeciesId::new(0).unwrap(), 50.0);
+            grid.seed(x, y, SpeciesId::new(1).unwrap(), 50.0);
+            grid.seed(x, y, SpeciesId::new(2).unwrap(), 0.1);  // producto residual
+        }}
+        let b = blob_rect(1, 1, 2, 2);
+        let mask = mask_of(&[2, 3]);
+        let r = pressure_ratio(&b, &grid, &net, &mask, BW);
+        assert!(r > 50.0,
+            "overdriven ratio must exceed FISSION_PRESSURE_RATIO=50, got {r}");
     }
 
     #[test]
@@ -361,14 +404,16 @@ mod tests {
         for y in 1..=2 { for x in 1..=2 {
             grid_lo.seed(x, y, SpeciesId::new(0).unwrap(), 1.0);
             grid_lo.seed(x, y, SpeciesId::new(1).unwrap(), 1.0);
+            grid_lo.seed(x, y, SpeciesId::new(2).unwrap(), 1.0);
             grid_hi.seed(x, y, SpeciesId::new(0).unwrap(), 10.0);
             grid_hi.seed(x, y, SpeciesId::new(1).unwrap(), 10.0);
+            grid_hi.seed(x, y, SpeciesId::new(2).unwrap(), 1.0);
         }}
         let b = blob_rect(1, 1, 2, 2);
-        let field = vec![0.3_f32; grid_lo.len()];
-        let r_lo = pressure_ratio(&b, &grid_lo, &net, &field, BW);
-        let r_hi = pressure_ratio(&b, &grid_hi, &net, &field, BW);
-        assert!(r_hi > r_lo);
+        let mask = mask_of(&[2, 3]);
+        let r_lo = pressure_ratio(&b, &grid_lo, &net, &mask, BW);
+        let r_hi = pressure_ratio(&b, &grid_hi, &net, &mask, BW);
+        assert!(r_hi > r_lo, "r_lo={r_lo} r_hi={r_hi}");
     }
 
     // ── pinch_axis (PCA) ───────────────────────────────────────────────────

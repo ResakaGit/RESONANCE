@@ -20,34 +20,55 @@ Ninguna respuesta es trivial — la elección define qué tipo de vida emerge.
 
 ## Decision
 
-**Opción B: presión interna vs cohesión de membrana.**
+**Opción B: presión interna vs decay diffusivo (Pross rate/rate).**
+
+> **Revisión 2026-04-14 (AP-6d fix).**  La formulación original
+> (`production_extensive / cohesion_capacity`) era dimensionalmente
+> inconsistente: numerador `[qe·T⁻¹]`, denominador `[qe]`, ratio `[T⁻¹]`,
+> umbral adimensional.  El ratio empírico topaba en ~0.23 sobre formose
+> vs. umbral 50 (gap 200×), y dependía del timestep (violación sutil de
+> Axiom 6).  La corrección espeja `raf::kinetic_stability`: el decay se
+> computa como `DISSIPATION_LIQUID × Σ productos_en_blob`, ambos lados
+> del ratio viven en `[qe·T⁻¹]`, el resultado es adimensional y
+> timestep-invariante.
 
 ```rust
 // src/blueprint/equations/fission.rs
 
-pub fn pressure_ratio(
+pub fn decay_rate(
     blob: &BlobIndex,
-    grid: &[CellState],
-    network: &ReactionNetwork,
+    grid: &SpeciesGrid,
+    product_mask: &[bool; MAX_SPECIES],
 ) -> f32 {
-    let internal_production: f32 = blob.cells.iter()
-        .map(|c| sum_of_rates(grid[idx(c)], network))
-        .sum();
-
-    let cohesion_capacity: f32 = blob.perimeter()
-        * mean_membrane_strength(blob, grid);
-
-    internal_production / cohesion_capacity.max(EPSILON)
+    // Σ (productos enmascarados en celdas del blob) × SPECIES_DIFFUSION_RATE
+    // Espejo espacial de `kinetic_stability` denominator.  Unidad: [qe·T⁻¹].
 }
 
-// Trigger:
-if pressure_ratio(blob) > FISSION_PRESSURE_RATIO {
-    let axis = pinch_axis(&blob.cells);  // PCA 2D principal eigenvector
+pub fn pressure_ratio(
+    blob: &BlobIndex,
+    grid: &SpeciesGrid,
+    network: &ReactionNetwork,
+    product_mask: &[bool; MAX_SPECIES],
+    bandwidth: f32,
+) -> f32 {
+    let decay = decay_rate(blob, grid, product_mask);
+    if decay <= KINETIC_STABILITY_EPSILON { return 0.0; }
+    internal_production(blob, grid, network, bandwidth) / decay
+}
+
+// Trigger (sin cambios):
+if pressure_ratio(blob, …) > FISSION_PRESSURE_RATIO {
+    let axis = pinch_axis(&blob.cells);
     apply_fission(grid, blob, axis, lineage_parent);
 }
 ```
 
-Donde `FISSION_PRESSURE_RATIO = DISSIPATION_PLASMA / DISSIPATION_SOLID = 50.0` — derivado de las 4 fundamentales, no calibrado.
+Donde `FISSION_PRESSURE_RATIO = DISSIPATION_PLASMA / DISSIPATION_SOLID = 50.0` — derivado de las 4 fundamentales, no calibrado.  La membrana sigue
+regulando la **detección** del blob (`find_blobs` via `strength_field`) y la
+**retención** de flux (`damped_flux_factor` en `diffuse_species`), pero el
+criterio de fisión ya no compara producción contra energía de pared sino
+contra la tasa de disipación natural del blob — equivalente físico pero
+dimensionalmente correcto.
 
 ### Justificación
 
@@ -76,11 +97,11 @@ Decoherencia es elegante pero introduce un mecanismo nuevo (campo de fase per-ce
 | 1 | Energía conservada en fisión (redistribución, no creación). |
 | 2 | Pool invariant: `Σ qe pre = Σ qe post`. |
 | 3 | Closures compiten por food → fisión depende de producción → emerge selección. |
-| 4 | `apply_fission` no es gratis: tax `DISSIPATION_PLASMA × qe_blob` por evento. |
+| 4 | Revisión 2026-04-14: decay explícitamente `DISSIPATION_LIQUID × Σ productos` — aplicación directa de Axiom 4, no sólo tax post-fisión. `apply_fission` sigue cobrando `DISSIPATION_PLASMA × qe_blob`. |
 | 5 | Conservación local con disipación. |
-| 6 | **Crítico.** Threshold derivado, no decretado. Volumen NO entra en el criterio. |
-| 7 | Pinch axis es físicamente coherente con la geometría del blob. |
-| 8 | Compatible con extensión Opción C en el futuro. |
+| 6 | **Crítico.** Threshold derivado, no decretado. Volumen NO entra en el criterio.  Revisión 2026-04-14: ratio adimensional ⇒ timestep-invariante (fórmula anterior tenía dependencia implícita de `dt`, violación sutil). |
+| 7 | Pinch axis es físicamente coherente con la geometría del blob. `SPECIES_DIFFUSION_RATE` en el decay es la forma infinitesimal de Axiom 7 sobre productos. |
+| 8 | Compatible con extensión Opción C en el futuro. `mass_action_rate` en la producción sigue incluyendo `frequency_alignment`. |
 
 ## Costos
 

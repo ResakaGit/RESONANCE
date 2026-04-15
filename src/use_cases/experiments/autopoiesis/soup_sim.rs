@@ -234,7 +234,7 @@ impl SoupSim {
                 let blobs = find_blobs(&self.strength_field, w, h, thr);
                 for blob in &blobs {
                     let ratio = pressure_ratio(
-                        blob, &self.grid, &self.net, &self.strength_field, bw,
+                        blob, &self.grid, &self.net, self.mask.as_array(), bw,
                     );
                     if ratio > FISSION_PRESSURE_RATIO {
                         pressure_crossed = true;
@@ -575,7 +575,7 @@ mod tests {
                         let blobs = find_blobs(&strength, g, g, thr);
                         for b in &blobs {
                             max_blob_size = max_blob_size.max(b.cells.len());
-                            let r = pressure_ratio(b, sim.grid(), sim.network(), &strength, 50.0);
+                            let r = pressure_ratio(b, sim.grid(), sim.network(), mask.as_array(), 50.0);
                             if r > max_ratio { max_ratio = r; }
                         }
                     }

@@ -210,8 +210,8 @@ pub mod blob_topology;
 pub use blob_topology::{BlobIndex, centroid, find_blobs, perimeter};
 pub mod fission;
 pub use fission::{
-    FissionOutcome, apply_fission, child_lineage, cohesion_capacity, internal_production,
-    mean_membrane_strength, pinch_axis, pressure_ratio,
+    FissionOutcome, apply_fission, child_lineage, decay_rate, internal_production,
+    pinch_axis, pressure_ratio,
 };
 
 #[cfg(test)]

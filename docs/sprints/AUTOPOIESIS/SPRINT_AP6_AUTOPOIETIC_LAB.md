@@ -96,43 +96,56 @@ El sprint original se dividió en sub-ítems durante la ejecución.  Ver
 
 ## Findings del sprint
 
-### F-1 · Fissions empíricamente inalcanzables bajo constantes actuales
+### F-1 · Bug dimensional en `pressure_ratio` — RESUELTO 2026-04-14 (AP-6d)
 
-**Evidencia.** Sweep exhaustivo en `soup_sim.rs::tests::sweep_canonical_finds_fission_fixture`
-(`#[ignore]`, preservado como récord):
+**Síntoma original.** Sweep exhaustivo sobre formose+hypercycle × 576 combos
+daba `max pressure_ratio ≈ 0.23`, umbral 50 inalcanzable (gap 200×).
 
-- Asset × seed × food × grid × qe × spot_radius = **576 combos**
-- formose + hypercycle
-- Resultado: `max pressure_ratio ≈ 0.23`, umbral `FISSION_PRESSURE_RATIO = 50`
-- Gap: **~200×**, independiente de `initial_food_qe` (numerador y
-  denominador escalan en fase).
+**Causa raíz.** La fórmula `internal_production / cohesion_capacity` mezclaba
+unidades: numerador `[qe · T⁻¹]`, denominador `[qe]`, ratio `[T⁻¹]` comparado
+contra un umbral adimensional.  Además era timestep-dependiente (violación
+sutil de Axioma 6 — el criterio no debe depender de la discretización).
 
-**Causa raíz.** Dos problemas ortogonales:
+**Fix.** Reescritura de `pressure_ratio` como `internal_production / decay_rate`,
+ambos `[qe · T⁻¹]`, ratio adimensional.  Espeja `raf::kinetic_stability`
+(mismo patrón Pross reconstruction/decay aplicado al blob) — no introduce
+primitivas nuevas, reutiliza el patrón ya probado del codebase.
 
-1. *Siembra uniforme ⇒ gradiente cero*.  El harness legacy siembra food
-   homogéneamente en todo el grid.  Bajo invariancia traslacional,
-   `compute_strength_field` retorna ≡ 0 y `find_blobs` retorna vacío —
-   ningún blob puede formarse, ninguna fisión puede dispararse.
-   **Solución entregada:** `SoupConfig::food_spot_radius: Option<usize>`
-   (agregado en este sprint) + CLI `--spot R`.  Test de regresión
-   `spot_seeded_formose_produces_nonzero_membrane_gradient` confirma.
+- `decay_rate(blob, grid, product_mask) = DISSIPATION_LIQUID × Σ productos_en_blob`
+- `pressure_ratio = internal_production / decay_rate`
+- Tests añadidos en `equations/fission.rs`:
+  - `decay_rate_sums_masked_products_scaled_by_diffusion`
+  - `pressure_ratio_is_size_invariant_for_uniform_blobs`
+  - `pressure_ratio_is_dimensionless_and_crosses_fission_threshold_under_overdrive`
+    (validación directa: overdrive → ratio > 50)
 
-2. *Calibración de `pressure_ratio` vs `FISSION_PRESSURE_RATIO`*.  Aún con
-   siembra localizada, el ratio empírico con kinetica mass-action (k ≤ 1.5)
-   topa en ~0.23.  El criterio derivado `DISSIPATION_PLASMA / DISSIPATION_SOLID = 50`
-   no se alcanza con la fórmula actual de `pressure_ratio`
-   (`internal_production / cohesion_capacity` en `equations/fission.rs:91`).
+**Efecto medido.** `max_ratio` pasó de **0.23 → 13.3** en steady-state
+formose spot-seeded (mismo input, nueva fórmula).  El criterio ahora es
+físicamente alcanzable; ADR-039 actualizado con §Revisión 2026-04-14.
 
-**Implicación.** Los criterios del doc "árbol de linaje ≥3 fissions" y del
-track "≥1 fission a 100k ticks" **no son alcanzables con los parámetros
-actuales**, ni siquiera usando `--spot`.  No es tuning — es un gap de
-calibración entre la fórmula (`fission.rs`) y la derivación del umbral
-(`chemistry.rs:83`).
+### F-1a · Gap kinético residual en sistema cerrado — deferred
 
-**Follow-up propuesto (AP-6d o revisión ADR-039).**  Recalibrar
-`pressure_ratio` para que la escala física coincida con el umbral derivado
-— o redefinir el umbral.  Ambos caminos requieren ADR-039 revisit.
-Bloquea: criterio "≥1 fission" del track + PV-7 (Hordijk-Steel).
+**Síntoma.** Aún con fórmula corregida, formose+hypercycle en sopa cerrada
+(food único seeded al t=0, sin replenishment) converge a K ≈ 13.  El umbral
+50 exige un régimen 4× más overdriven del que la kinética del sustrato
+sostiene sin input externo.  Gap 4× ≠ 200× — órdenes de magnitud distintos.
+
+**Causa.** Kauffman RAF + Pross asumen food continuo o forzamiento
+termodinámico externo.  Nuestro harness siembra food una vez; concentraciones
+cruzan el régimen de overdrive sólo transientemente.
+
+**Opciones follow-up** (AP-6e propuesto, fuera de scope AP-6):
+- Food replenishment constante en el spot (nuevo `SoupConfig::food_flux: f32`)
+- Kinetics canónicas más agresivas (revisar k values de `formose.ron` vs.
+  Breslow 1959 rate constants literales)
+- Threshold alternativo derivado (e.g. `DISSIPATION_GAS/DISSIPATION_LIQUID = 4`
+  — transición gas→líquido en vez de plasma→sólido; requiere justificación
+  física en ADR-039 §threshold)
+
+**Implicación sprint.** Item 2/3 originales ("≥3 fissions", "≥1 fission en
+100k ticks") siguen sin evidencia ejecutable.  El bug que los hacía
+literalmente imposibles (F-1) está resuelto; queda una calibración
+empírica que pertenece a un sprint de continuación.
 
 ### F-2 · AP-5 proptest falla en seed=9 (pre-existing)
 
