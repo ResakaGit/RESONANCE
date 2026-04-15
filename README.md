@@ -10,6 +10,8 @@ Simulation engine where life, evolution, and therapeutic strategies emerge from 
 
 Preprint (not peer-reviewed): https://zenodo.org/records/19342036 | Repo: https://github.com/ResakaGit/RESONANCE
 
+> 👉 **New here?** Three demos in 5 minutes: [`docs/DEMOS.md`](./docs/DEMOS.md)
+
 ## What It Does
 
 Define the laws of physics. Press play. Watch life emerge. Design therapeutic strategies from first principles.
