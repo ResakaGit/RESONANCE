@@ -31,3 +31,22 @@ Key design decisions for the RESONANCE project. ADR-001 through ADR-008 cover re
 |-----|-------|--------|------|
 | [015](ADR-015-temporal-telescope.md) | Temporal Telescope — Dual-Timeline Speculative Execution with Reconciliation | Accepted | 2026-04-04 |
 | [016](ADR-016-multi-telescope.md) | Multi-Telescope — Quantum-Inspired Hierarchical Speculative Execution | Accepted | 2026-04-04 |
+
+## Autopoiesis (ADR-037+)
+
+| ADR | Title | Status | Date |
+|-----|-------|--------|------|
+| [037](ADR-037-reaction-network-substrate.md) | Reaction Network Substrate (SpeciesGrid SoA) | Accepted | 2026-04-10 |
+| [038](ADR-038-emergent-membrane.md) | Emergent Membrane via Product Density Gradient | Accepted | 2026-04-10 |
+| [039](ADR-039-fission-criterion.md) | Fission Criterion — Pressure vs Decay (revisado 2026-04-15) | Accepted | 2026-04-10 |
+| [040](ADR-040-streaming-soup-sim.md) | Streaming `SoupSim` — incremental stepper | Accepted | 2026-04-14 |
+| [041](ADR-041-lineage-in-soup-report.md) | Lineage Tracking in SoupReport | Accepted | 2026-04-14 |
+| [042](ADR-042-bevy-viz-layout.md) | Bevy Viz Layout for Autopoietic Lab | Propuesto | 2026-04-14 |
+
+## Autopoiesis Integration (ADR-043+)
+
+| ADR | Title | Status | Date |
+|-----|-------|--------|------|
+| [043](ADR-043-species-grid-as-resource.md) | `SpeciesGrid` como Resource ECS + puente a `AlchemicalInjector` | Propuesto | 2026-04-15 |
+| [044](ADR-044-protocell-to-entity-spawn.md) | Protocell → Entity ECS · `FissionEvent` Observer | Propuesto | 2026-04-15 |
+| [045](ADR-045-chemistry-canonical-choice.md) | Elección canónica · alchemical vs mass-action | Propuesto | 2026-04-15 |

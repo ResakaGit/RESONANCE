@@ -51,6 +51,15 @@ Sin esto, el simulador puede formar moléculas pero no demuestra autopoiesis. Co
 | AP-6b ✅ | `--network <ron>` loader + `run_soup_with_network` | 0.25 sem | AP-6a | `raf_minimal.ron` wired; formose/GARD deferred a AP-6b2 (requieren citas) |
 | AP-6b2 ✅ | formose + hypercycle canonical networks | 0.25 sem | AP-6b | Breslow 1959 / Kauffman 1986 + Eigen-Schuster 1977 con citas. GARD diferido (no mass-action). |
 | AP-6c (designed) | Viz 2D Bevy + egui | 1 sem | AP-6b | Heatmap species + membrane + lineage tree UI |
+| AP-6d ✅ | Pressure_ratio dimensional fix + threshold gas/liquid=4 | 0.5 día | AP-6 | `pressure_ratio` adimensional + fission empírica reproducible |
+
+### Onda D — Integración (Sprint AI, ADR-043/044/045)
+
+| Sprint | Nombre | Esfuerzo | Bloqueado por | Entregable |
+|--------|--------|----------|---------------|------------|
+| [AI-1](SPRINT_AI_INTEGRATION.md) | Puente química — SpeciesGrid como Resource | 1 sem | AP-6d | `SpeciesGridResource` + system de inyección qe via Ax 8 |
+| [AI-2](SPRINT_AI_INTEGRATION.md) | Puente protocell → célula ECS | 1 sem | AI-1 | `FissionEvent` bus + Observer spawn + `LineageTag` component |
+| [AI-3](SPRINT_AI_INTEGRATION.md) | Calibración alchemical vs mass-action | 3-5 días | AI-2 | Benchmark + ADR-045 con veredicto canónico |
 
 **Total:** 7 sprints · ~8 semanas · ~2,000 LOC · ~150 tests · 3 ADRs.
 
