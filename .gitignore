@@ -9,3 +9,9 @@
 CLAUDE.md
 memory/
 docs/outreach/
+
+# Simulation output artifacts (root-level from headless_sim / dev runs)
+/sim.ppm
+/sim.json
+/sim.dot
+/sim_t*.ppm
