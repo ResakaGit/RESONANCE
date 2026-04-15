@@ -98,6 +98,17 @@ pub const FISSION_PRESSURE_RATIO: f32 = DISSIPATION_GAS / DISSIPATION_LIQUID;
 /// numérico de la inferencia de membrana sin cortar estructuras reales.
 pub const BLOB_STRENGTH_FRACTION: f32 = 0.05;
 
+// ── Autopoiesis Integration (AI-1, ADR-043) ────────────────────────────────
+
+/// Fracción de `species_qe` que se proyecta a qe del `EnergyFieldGrid` por tick.
+/// `= DISSIPATION_LIQUID`.
+///
+/// Derivación: la misma tasa a la que los productos difunden lateralmente
+/// en el grid (Ax 7, `SPECIES_DIFFUSION_RATE = DL`) es la tasa a la que se
+/// "pierden" como qe inyectable al campo global.  Conservación local
+/// (Ax 5): nada inyectado al campo se queda también en species.
+pub const SPECIES_TO_QE_COUPLING: f32 = DISSIPATION_LIQUID;
+
 // ── Compile-time sanity ─────────────────────────────────────────────────────
 
 const _: () = assert!(MAX_SPECIES <= 255, "SpeciesId fits in u8");
@@ -132,6 +143,13 @@ mod tests {
         // AP-6d: transición gas→líquido (régimen fluido, donde vesículas viven).
         // 0.08 / 0.02 = 4.0 exacto.
         assert!((FISSION_PRESSURE_RATIO - 4.0).abs() < 1e-5);
+    }
+
+    #[test]
+    fn species_to_qe_coupling_equals_dissipation_liquid() {
+        // ADR-043 §3: bridge species → qe opera a la tasa de difusión líquida.
+        assert_eq!(SPECIES_TO_QE_COUPLING, DISSIPATION_LIQUID);
+        assert!((SPECIES_TO_QE_COUPLING - 0.02).abs() < 1e-6);
     }
 
     #[test]

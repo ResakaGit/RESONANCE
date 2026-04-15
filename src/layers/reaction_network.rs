@@ -83,6 +83,35 @@ impl ReactionNetwork {
         }
         (max_id + 1).max(0) as u8
     }
+
+    /// Frecuencia promedio de las reacciones que producen species presentes
+    /// en `species`, ponderada por la concentración del producto.  Devuelve
+    /// `0.0` si ninguna species enmascarada tiene concentración > 0.
+    ///
+    /// Usado por el bridge AI-1 (ADR-043 §3) para derivar la frecuencia
+    /// efectiva del qe inyectado: cuanto más producto de una reacción está
+    /// presente, más pesa su `freq` en el promedio.
+    ///
+    /// Pure fn — `(self, species[]) → f32`.  Determinista.
+    pub fn mean_product_frequency(
+        &self,
+        species: &[f32; crate::blueprint::constants::chemistry::MAX_SPECIES],
+    ) -> f32 {
+        let mut weighted_sum = 0.0_f32;
+        let mut total_weight = 0.0_f32;
+        for r in &self.reactions {
+            let mut w = 0.0_f32;
+            for e in r.products_active() {
+                let c = species[e.species.index()];
+                if c.is_finite() && c > 0.0 { w += c; }
+            }
+            if w > 0.0 {
+                weighted_sum += r.freq * w;
+                total_weight += w;
+            }
+        }
+        if total_weight > 0.0 { weighted_sum / total_weight } else { 0.0 }
+    }
 }
 
 // ── RON spec (human-friendly) ───────────────────────────────────────────────

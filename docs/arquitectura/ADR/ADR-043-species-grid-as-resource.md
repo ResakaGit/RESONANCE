@@ -45,48 +45,44 @@ Se necesita un puente direccional (species → qe) que:
 
 ### Estructura
 
-```rust
-// src/layers/species_grid.rs (append)
-#[derive(Resource)]
-pub struct SpeciesGridResource(pub SpeciesGrid);
+**Revisión durante implementación (2026-04-15):** `SpeciesGrid` y
+`ReactionNetwork` ya derivan `Resource` desde AP-0.  Los wrappers
+propuestos eran redundantes — usamos los structs directamente.  No
+introduce indirección extra ni cambia la signatura del system.
 
-// src/layers/reaction_network.rs (append)
-#[derive(Resource)]
-pub struct ReactionNetworkResource(pub ReactionNetwork);
+```rust
+// Sin wrappers: usar directamente como Resource.
+// (SpeciesGrid en src/layers/species_grid.rs:39, ReactionNetwork en
+//  src/layers/reaction_network.rs:33 — ambos ya `#[derive(Resource)]`.)
 ```
 
 ### Sistema de inyección
 
-```rust
-// src/simulation/chemical/species_to_qe.rs (nuevo)
+Implementado en `src/simulation/species_to_qe.rs` (no `chemical/` subdir
+porque el patrón actual del simulador es `simulation/<module>.rs` plano).
 
-/// Proyecta Σ species_qe por celda → injection al EnergyFieldGrid.
-/// Axiom 8: la frecuencia agregada de los productos alinea con el bandwidth
-/// del injector — sólo especies en resonancia con el campo local aportan.
+```rust
+pub fn inject_species_to_field(
+    species: &SpeciesGrid,
+    network: &ReactionNetwork,
+    field: &mut EnergyFieldGrid,
+    dt: f32,
+) { /* pure fn — testeable sin Bevy */ }
+
 pub fn species_to_qe_injection_system(
-    species: Res<SpeciesGridResource>,
-    network: Res<ReactionNetworkResource>,
-    mut field: ResMut<EnergyFieldGrid>,
-    clock: Res<SimulationClock>,
+    species: Option<Res<SpeciesGrid>>,
+    network: Option<Res<ReactionNetwork>>,
+    field: Option<ResMut<EnergyFieldGrid>>,
+    fixed_time: Res<Time<Fixed>>,
 ) {
-    let grid = &species.0;
-    let (w, h) = (grid.width(), grid.height());
-    let dt = clock.dt();
-    for y in 0..h {
-        for x in 0..w {
-            let cell = grid.cell(x, y);
-            let cell_qe: f32 = cell.species.iter().sum();
-            if cell_qe <= 0.0 { continue; }
-            let mean_freq = network.0.mean_product_frequency(&cell.species);
-            let alignment = frequency_alignment(
-                mean_freq, field.freq_at(x, y),
-                REACTION_FREQ_BANDWIDTH_DEFAULT,
-            );
-            field.add_qe(x, y, cell_qe * alignment * SPECIES_TO_QE_COUPLING * dt);
-        }
-    }
+    // No-op si cualquier resource ausente — preserva tracks sin AP-*
 }
 ```
+
+Decisión 2026-04-15: extraer `inject_species_to_field` como pure fn
+permite tests determinísticos sin construir un `App` Bevy.  El system
+es trivial wrapper.  `Option<Res<>>` para todos los inputs hace al
+puente opt-in sin features condicionales.
 
 ### Constante de acoplamiento
 
@@ -102,7 +98,7 @@ pub const SPECIES_TO_QE_COUPLING: f32 = DISSIPATION_LIQUID;
 ### Registro en pipeline
 
 ```rust
-// src/plugins/layers.rs
+// src/plugins/chemical_plugin.rs (donde ya viven los systems de Phase::ChemicalLayer)
 app.add_systems(
     FixedUpdate,
     species_to_qe_injection_system.in_set(Phase::ChemicalLayer),

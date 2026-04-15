@@ -65,6 +65,7 @@ pub mod pipeline;
 pub mod player_controlled;
 pub mod post;
 pub mod reactions;
+pub mod species_to_qe;
 #[cfg(test)]
 mod regression;
 pub mod reproduction;
