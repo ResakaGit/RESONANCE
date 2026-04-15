@@ -138,13 +138,14 @@ cargo run --release --bin paper_validation           # 6 papers + PV-6
 - **Integration:** `MinimalPlugins`, spawn minimal components, ONE update, assert delta.
 - **Property:** `tests/property_conservation.rs` (proptest).
 
-## Binaries (30) — `cargo run --release --bin <name>`
+## Binaries (26 post-cleanup 2026-04-15) — `cargo run --release --bin <name>`
 
 **Viz:** `lab` (15 exp, 25 maps) · `headless_sim --ticks N --out x.ppm` · `planet_viewer` · `earth_telescope` · `survival` (WASD)
 **Evo:** `evolve` · `fermi`(B1) · `speciation`(B2) · `cambrian`(B3) · `debate`(B4) · `convergence`(D2) · `versus`(A1)
 **Drug:** `cancer_therapy` · `pathway_inhibitor` · `adaptive_therapy` · `bozic_validation` · `paper_validation`(PV-1→6)
 **MD:** `lj_fluid`(MD-4) · `peptide_vacuum`(MD-9) · `peptide_solvated`(MD-14) · `fold_go`(MD-17 REMD) · `particle_lab`
 **Cosmic:** `cosmic_telescope` (CT-8 3D viewer S0→S4, click zoom, multiverse bar) · `cosmic_telescope_headless` (CT-8 CI validation) · `cosmic_bigbang` (CT-2 cluster formation)
+**Autopoiesis:** `autopoietic_lab` (AP-6 mass-action chemistry, formose/hypercycle, `--live` ANSI render, `--ppm` heatmap, `--out-dir` artifacts)
 
 ## Experiments (`src/use_cases/experiments/`) — Config→Report, pure fns
 
@@ -156,6 +157,7 @@ cargo run --release --bin paper_validation           # 6 papers + PV-6
 | `paper_foo_michor2009` | PV-4 | Continuous vs pulsed therapy | Foo&Michor 2009 PLoS |
 | `paper_michor2005` | PV-5 | Biphasic CML imatinib | Michor 2005 Nature |
 | `paper_unified_axioms` | PV-6 | All from 4 fundamentals (4/6 pass) | Internal boundary |
+| `autopoiesis` | AP-0..6d | Mass-action RAF + emergent membrane + fission (gas/liquid threshold) | Kauffman/Pross/Breslow/Eigen |
 | `cancer_therapy` | — | Freq drift + quiescent stem resistance | L1 cytotoxic |
 | `pathway_inhibitor_exp` | — | Metabolic compensation resistance | L3 inhibitor |
 | `lj_fluid` | MD-4 | 2D LJ thermodynamics | Toxvaerd77+Smit91 |
@@ -168,6 +170,14 @@ cargo run --release --bin paper_validation           # 6 papers + PV-6
 ## 14 ECS Layers (`src/layers/`)
 
 L0 `BaseEnergy` qe:f32 · L1 `SpatialVolume` radius:f32 · L2 `OscillatorySignature` freq,phase:f32 · L3 `FlowVector` vel:Vec2,diss:f32 · L4 `MatterCoherence` state,bond_e,cond · L5 `AlchemicalEngine` buffer,in_v,out_v · L6 `AmbientPressure` delta_qe,viscosity · L7 `WillActuator` dir,channel_t · L8 `AlchemicalInjector` proj_qe,freq,rad · L9 `MobaIdentity` faction,tags · L10 `ResonanceLink` target,mult · L11 `TensionField` strength,falloff · L12 `Homeostasis` target_f,cost · L13 `StructuralLink` rest_l,k,break_s
+
+**Two coexisting chemistries (ADR-045 Camino 1 — coexistencia 2026-04-15):**
+- **L4/L5/L8** modelan química emergente Ax 8 (resonancia de frecuencias) — canónica para escalas planetaria+ (`planet_viewer`, `lab`, `earth_telescope`).
+- **AP-* mass-action** (`SpeciesGrid`, `ReactionNetwork`) provee química explícita con estequiometría — canónica para autopoiesis (`autopoietic_lab`) + validación contra papers (Breslow, Eigen, Kauffman).
+- **Bridge AI** (ADR-043, ADR-044) acopla ambas: cuando `SoupSim` está cargado, sus species emiten qe al `EnergyFieldGrid` via `species_to_qe_injection_system` (Phase::ChemicalLayer) y sus fisiones spawnean entities ECS con `BaseEnergy + OscillatorySignature + LineageTag` via `on_fission_spawn_entity`.
+
+**Components AI-* (autopoiesis integration):**
+- `LineageTag(u64)` — identidad de linaje per-entity (ADR-044). `is_primordial()` ⇔ `0` (sopa pre-fisión).
 
 ## Caches
 
@@ -183,13 +193,19 @@ L0 `BaseEnergy` qe:f32 · L1 `SpatialVolume` radius:f32 · L2 `OscillatorySignat
 **Emergence(11):** AssociativeMemory OtherModel MemeSpread FieldMod Symbiosis Epigenetic Senescence Coalition NicheOverlap Timescale AggSignal
 **Advanced(5):** Tectonic LODPhysics Institution Symbol SelfModel
 
+**Autopoiesis Integration (`src/simulation/`, ADR-043+044+045, 2 systems + 1 bridge module):**
+- `species_to_qe.rs` — AI-1 bridge: `SpeciesGrid` → `EnergyFieldGrid` qe injection (Ax 8 alignment). `SPECIES_TO_QE_COUPLING = DISSIPATION_LIQUID` derivado.
+- `autopoiesis_bridge.rs` — AI-2: `SoupSimResource` + `FissionEventCursor` + 3 systems (`step_soup_sim_system`, `emit_fission_events_system`, `on_fission_spawn_entity`). Cap `MAX_FISSION_EVENTS_PER_TICK = 4`.
+- `events.rs` — `FissionEvent` event con tick/parent/children/centroid/mean_freq/qe_per_child.
+- Pipeline chain: `step_soup_sim → species_to_qe → emit_events → spawn` en `Phase::ChemicalLayer`. Opt-in via `Option<Res<SoupSim>>` — sin sopa AP cargada, no-op silencioso.
+
 ## Telescope (`src/batch/telescope/`, ADR-015) — dual-timeline: Anchor(truth) + K-tick projection
 
 `mod`=state machine (Project→Reconcile→Correct→Idle) · `activation`=regime metrics+LOD · `pipeline`=`tick_telescope_sync` · `projection`=analytic forward (entity,world,grids) · `diff`=classify(Perfect/Local/Systemic) · `cascade`=correction · `calibration_bridge`=diff→weights · `stack`=K hierarchy [1,10,100,1000]
 
 ## Sprints (9 active + 58 archived)
 
-PV(5) pending: paper benchmarks · GS(6) wave2: MOBA · PC(7) designed: emergent atoms · NS(4) designed: signals · EI(3) designed: prediction · TU(4) designed: tools · EL(4) designed: language · CV(4) designed: civilization · **PP(9) designed: plant physiology (pigment, curvature, volatiles, phototropism, phenology, organ senescence, pollination) — ADR-033/034/035** · MD(19) **done**: protein folding · R(6ph) planned: PME/SETTLE/r-RESPA · LR(4) **done**: lab UI · BS(3/7) **done**: cache decoupling · **CT(10) done**: cosmic telescope S0→S4 (ADR-036, `src/cosmic/`) · 58 archived tracks
+PV(5) pending: paper benchmarks · GS(6) wave2: MOBA · PC(7) designed: emergent atoms · NS(4) designed: signals · EI(3) designed: prediction · TU(4) designed: tools · EL(4) designed: language · CV(4) designed: civilization · **PP(9) designed: plant physiology (pigment, curvature, volatiles, phototropism, phenology, organ senescence, pollination) — ADR-033/034/035** · MD(19) **done**: protein folding · R(6ph) planned: PME/SETTLE/r-RESPA · LR(4) **done**: lab UI · BS(3/7) **done**: cache decoupling · **CT(10) done**: cosmic telescope S0→S4 (ADR-036, `src/cosmic/`) · **AP(7) done**: autopoiesis (ADR-037→041 + ADR-039 revisión 2026-04-15-b gas/liquid threshold) · **AI(3) done 2026-04-15**: integration AP↔main sim (ADR-043 species→qe bridge, ADR-044 fission→entity spawn, ADR-045 Camino 1 coexistencia) · 58 archived tracks
 
 ## Key References
 
