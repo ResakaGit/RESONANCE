@@ -31,6 +31,7 @@ fn fast_soup(seed: u64) -> SoupConfig {
         last_window_ticks: 200,
         initial_food_qe: 2.0,
         dt: 0.1,
+        food_spot_radius: None,
     }
 }
 
