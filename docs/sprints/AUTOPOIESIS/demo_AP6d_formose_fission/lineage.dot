@@ -1,0 +1,10 @@
+digraph autopoiesis {
+  rankdir=LR;
+  node [shape=circle, style=filled, fontname="monospace"];
+  label="seed=0 ticks=2000 dissipated=462.661\ninitial=1 final=1 fissions=1";
+  c47a519c16d6359bd [fillcolor=palegreen, label="h=6d6359bd\nk=0.00\np=0"];
+  c81d23fd7003c2305 [fillcolor=lightblue, label="h=003c2305\nborn@t0"];
+  c0000000000000000 -> c81d23fd7003c2305 [label="t0"];
+  c62d778cdf54cd8e4 [fillcolor=lightblue, label="h=f54cd8e4\nborn@t0"];
+  c0000000000000000 -> c62d778cdf54cd8e4 [label="t0"];
+}

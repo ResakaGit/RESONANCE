@@ -1,0 +1,9 @@
+file 'grid_t000500.ppm'
+duration 0.5
+file 'grid_t001000.ppm'
+duration 0.5
+file 'grid_t001500.ppm'
+duration 0.5
+file 'grid_t002000.ppm'
+duration 0.5
+file 'grid_t002000.ppm'
