@@ -372,3 +372,31 @@ pub struct AllianceDefectEvent {
     /// Temptation value — how much the defector expected to gain solo.
     pub defection_temptation: f32,
 }
+
+// ── Autopoiesis Integration (AI-2, ADR-044) ────────────────────────────────
+
+/// Fisión protocelular detectada por la química mass-action AP-*.
+///
+/// **Emits:** `emit_fission_events_system` (`Phase::ChemicalLayer`,
+/// `simulation::autopoiesis_bridge`).  Lee `SoupSim::fission_events()`
+/// y emite los nuevos records desde el cursor.
+///
+/// **Consumes:** `on_fission_spawn_entity` (`Phase::ChemicalLayer`).  Spawnea
+/// dos entities con `BaseEnergy + OscillatorySignature + LineageTag`.
+///
+/// Conservación (ADR-039 §5): `qe_per_child = (Σ qe_blob × (1-DISSIPATION_PLASMA)) / 2`.
+#[derive(Event, Debug, Clone, Copy, Reflect)]
+pub struct FissionEvent {
+    /// Tick AP-* en el que ocurrió la fisión.
+    pub tick: u64,
+    /// Linaje del padre (`0` ⇔ sopa primordial sin linaje, ADR-041 §3).
+    pub parent_lineage: u64,
+    /// Linajes de los dos hijos generados por `child_lineage(parent, tick, side)`.
+    pub children_lineages: [u64; 2],
+    /// Centroide del blob en coordenadas de celda del `SpeciesGrid`.
+    pub centroid: crate::math_types::Vec2,
+    /// Frecuencia promedio de los productos en el blob (Hz).
+    pub mean_freq: f32,
+    /// qe heredado por cada hijo tras el tax plasma.
+    pub qe_per_child: f32,
+}

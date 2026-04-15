@@ -144,12 +144,22 @@ pub(crate) struct FateTrack {
 /// `parent == 0` ⇒ el blob que fisionó era sopa primordial (ningún linaje lo
 /// dominaba).  `children` contiene los dos linajes hijos generados por
 /// `apply_fission`, siempre en orden `[side=0, side=1]`.
+///
+/// AI-2 (ADR-044) extiende con `centroid` + `qe_per_child` — datos derivables
+/// sólo al momento de la fisión (post-fisión, las celdas son del hijo, no
+/// del blob padre).  `#[serde(default)]` preserva compat con reports pre-AI-2.
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq)]
 pub struct FissionEventRecord {
     pub tick: u64,
     pub parent: u64,
     pub children: [u64; 2],
     pub dissipated_qe: f32,
+    /// Centroide del blob padre en coords de celda `(x, y)`.
+    #[serde(default)]
+    pub centroid: (f32, f32),
+    /// qe heredado por cada hijo: `(pre_qe × (1-DISSIPATION_PLASMA)) / 2`.
+    #[serde(default)]
+    pub qe_per_child: f32,
 }
 
 /// Reporte agregado de una simulación completa.
@@ -387,6 +397,8 @@ mod tests {
                 parent: 0xAAAA,
                 children: [0xBBBB, 0xCCCC],
                 dissipated_qe: 0.75,
+                centroid: (8.0, 8.0),
+                qe_per_child: 1.125,
             }],
         };
         let json = r.to_json().unwrap();

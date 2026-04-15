@@ -152,6 +152,10 @@ pub use lineage_registry::{LineageRecord, LineageRegistry};
 pub mod lineage_grid;
 pub use lineage_grid::LineageGrid;
 
+// AUTOPOIESIS Integration (AI-2, ADR-044) — protocell→entity component tag.
+pub mod lineage_tag;
+pub use lineage_tag::LineageTag;
+
 // Ops — SystemParam adapters
 pub use derived::PhysicsOps;
 pub use energy::EnergyOps;

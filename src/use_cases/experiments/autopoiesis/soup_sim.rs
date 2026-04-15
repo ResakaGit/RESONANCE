@@ -242,16 +242,27 @@ impl SoupSim {
                         // los dos lados y registrar el evento.
                         let axis = pinch_axis(blob);
                         let parent = self.lineage_grid.dominant_lineage(&blob.cells);
+                        // AI-2: capturar centroide PRE-fisión (post-fisión los blobs
+                        // se redistribuyen) + qe_per_child derivado del tax plasma.
+                        let blob_centroid = crate::blueprint::equations::blob_topology::centroid(blob);
                         let outcome = apply_fission(
                             &mut self.grid, blob, axis, parent, tick_now,
                         );
                         self.lineage_grid.stamp(&outcome.cells_a, outcome.lineage_a);
                         self.lineage_grid.stamp(&outcome.cells_b, outcome.lineage_b);
+                        // qe_per_child = (pre_qe × (1-DP)) / 2
+                        // outcome.dissipated_qe = pre_qe × DP  ⇒  pre_qe = dissipated / DP
+                        let dp = crate::blueprint::equations::derived_thresholds::DISSIPATION_PLASMA;
+                        let qe_per_child = if dp > 0.0 {
+                            outcome.dissipated_qe * (1.0 - dp) / dp / 2.0
+                        } else { 0.0 };
                         self.fission_events.push(FissionEventRecord {
                             tick: tick_now,
                             parent,
                             children: [outcome.lineage_a, outcome.lineage_b],
                             dissipated_qe: outcome.dissipated_qe,
+                            centroid: (blob_centroid.x, blob_centroid.y),
+                            qe_per_child,
                         });
                         // Tax de dissipation (ADR-039 Axiom 4) — `apply_fission`
                         // ya redujo cada celda por `1 - DISSIPATION_PLASMA`, la

@@ -42,6 +42,13 @@ Necesitamos:
 
 **Opción A — Event bus + Observer, con bridge resource para transportar records entre `SoupSim` y el world ECS.**
 
+> **Revisión durante implementación 2026-04-15.**
+> - `FissionEventRecord` enriquecido con `centroid: (f32, f32)` y `qe_per_child: f32` (computados en `SoupSim::step` antes de fisión, cuando el blob aún existe).  Backward-compatible vía `#[serde(default)]`.
+> - El bridge vive en `src/simulation/autopoiesis_bridge.rs` (no `chemical/fission_bridge.rs`) — patrón flat consistente con `species_to_qe.rs` de AI-1.
+> - `ReactionNetworkResource` / `SpeciesGridResource` / `SoupSimResource` wrappers no necesarios para los dos primeros (ya derivan `Resource`).  Solo `SoupSimResource(pub SoupSim)` se introduce.
+> - `Cap MAX_FISSION_EVENTS_PER_TICK = 4` (8 entities/tick max) protege contra cascadas patológicas, con `warn!` log si se satura.
+> - `step_soup_sim_system` agregado al chain — necesario para que el sim avance dentro del pipeline ECS (fuera del binario standalone).
+
 ### Bridge: `PendingFissionEvents` resource
 
 `SoupSim` sigue siendo Bevy-free (ADR-040 §2).  Un sistema adaptador

@@ -78,6 +78,18 @@ impl SpeciesGrid {
     #[inline] pub fn cells(&self) -> &[SpeciesCell] { &self.cells }
     #[inline] pub fn cells_mut(&mut self) -> &mut [SpeciesCell] { &mut self.cells }
 
+    /// Acceso a celda con coords flotantes (centroides PCA, etc.).
+    /// Devuelve `None` si las coords (truncadas a `usize`) caen fuera del grid.
+    /// AI-2 (ADR-044): usado por `build_fission_event` con centroide PCA del blob.
+    #[inline]
+    pub fn cell_xy_clamped(&self, x: f32, y: f32) -> Option<&SpeciesCell> {
+        if !x.is_finite() || !y.is_finite() || x < 0.0 || y < 0.0 { return None; }
+        let xu = x as usize;
+        let yu = y as usize;
+        if xu >= self.width || yu >= self.height { return None; }
+        Some(&self.cells[yu * self.width + xu])
+    }
+
     /// Suma global de una especie en el grid.  `NONE` → `0.0`.
     pub fn total_for_species(&self, s: SpeciesId) -> f32 {
         if s.is_none() { return 0.0; }
