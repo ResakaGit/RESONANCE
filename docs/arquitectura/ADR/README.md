@@ -49,4 +49,4 @@ Key design decisions for the RESONANCE project. ADR-001 through ADR-008 cover re
 |-----|-------|--------|------|
 | [043](ADR-043-species-grid-as-resource.md) | `SpeciesGrid` como Resource ECS + puente a `AlchemicalInjector` | Propuesto | 2026-04-15 |
 | [044](ADR-044-protocell-to-entity-spawn.md) | Protocell → Entity ECS · `FissionEvent` Observer | Propuesto | 2026-04-15 |
-| [045](ADR-045-chemistry-canonical-choice.md) | Elección canónica · alchemical vs mass-action | Propuesto | 2026-04-15 |
+| [045](ADR-045-chemistry-canonical-choice.md) | Elección canónica · alchemical vs mass-action | Aceptado (Camino 1) | 2026-04-15 |

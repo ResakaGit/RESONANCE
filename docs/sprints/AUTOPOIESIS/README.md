@@ -57,9 +57,9 @@ Sin esto, el simulador puede formar moléculas pero no demuestra autopoiesis. Co
 
 | Sprint | Nombre | Esfuerzo | Bloqueado por | Entregable |
 |--------|--------|----------|---------------|------------|
-| [AI-1](SPRINT_AI_INTEGRATION.md) | Puente química — SpeciesGrid como Resource | 1 sem | AP-6d | `SpeciesGridResource` + system de inyección qe via Ax 8 |
-| [AI-2](SPRINT_AI_INTEGRATION.md) | Puente protocell → célula ECS | 1 sem | AI-1 | `FissionEvent` bus + Observer spawn + `LineageTag` component |
-| [AI-3](SPRINT_AI_INTEGRATION.md) | Calibración alchemical vs mass-action | 3-5 días | AI-2 | Benchmark + ADR-045 con veredicto canónico |
+| [AI-1](SPRINT_AI_INTEGRATION.md) ✅ | Puente química — SpeciesGrid + AlchemicalInjector | 1 sem | AP-6d | `species_to_qe_injection_system` (commit `bcb5c64`) |
+| [AI-2](SPRINT_AI_INTEGRATION.md) ✅ | Puente protocell → célula ECS | 1 sem | AI-1 | `FissionEvent` bus + Observer spawn + `LineageTag` (commit `b2883b8`) |
+| [AI-3](SPRINT_AI_INTEGRATION.md) ✅ | Calibración alchemical vs mass-action | 1 día | AI-2 | Camino 1 (coexistencia) — ADR-045 cerrado, CSV `target/ai3_dissipation_curve.csv` |
 
 **Total:** 7 sprints · ~8 semanas · ~2,000 LOC · ~150 tests · 3 ADRs.
 
