@@ -45,6 +45,8 @@ PER-SUBCOMMAND OPTIONS:
     kleiber      --seed N            (default 42)
                  --n N               (default 256)
                  --noise X           (default 0.05)
+                 --csv <path>        Emit (mass,metabolic_rate) CSV
+                 --svg <path>        Emit log-log scatter SVG (no deps)
 ";
 
 fn main() -> ExitCode {
@@ -147,6 +149,18 @@ fn run_kleiber(rest: &[String]) -> Result<(), String> {
         else { "slope deviates >2% — investigate noise / sample size" });
     println!("\ndensity preview ({} log-mass bins):", LOG_BINS);
     print_density_histogram(&report.points);
+
+    // Optional artifact emission — pure I/O, decoupled from orchestration.
+    if let Some(path) = find_value(rest, "--csv") {
+        std::fs::write(path, report.to_csv())
+            .map_err(|e| format!("--csv {path}: {e}"))?;
+        println!("\nWrote CSV: {path}");
+    }
+    if let Some(path) = find_value(rest, "--svg") {
+        std::fs::write(path, report.to_svg(800, 600))
+            .map_err(|e| format!("--svg {path}: {e}"))?;
+        println!("Wrote SVG: {path}");
+    }
     Ok(())
 }
 

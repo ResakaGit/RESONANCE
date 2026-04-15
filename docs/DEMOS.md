@@ -144,6 +144,17 @@ density preview (20 log-mass bins):
   ...
 ```
 
+For a publishable plot, emit the SVG (built-in, no Python) or the CSV
+(for matplotlib via the bonus `tools/plot_kleiber.py`):
+
+```bash
+cargo run --release --bin demos -- kleiber --n 256 \
+    --csv docs/kleiber.csv --svg docs/kleiber.svg
+# inspect docs/kleiber.svg in any browser; CSV → plot_kleiber.py for PNG
+```
+
+A pre-rendered sample lives at [`docs/kleiber.svg`](./kleiber.svg).
+
 **What it proves** — Kleiber's empirical law (B ∝ M^0.75 across 27 orders
 of magnitude in nature) is hardcoded as a fundamental constant in
 `KLEIBER_EXPONENT`. The demo recovers the exponent from a regression on a
