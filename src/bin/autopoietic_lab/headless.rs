@@ -40,7 +40,7 @@ pub(crate) fn execute(cli: &Cli) -> Result<(), String> {
     if let Some(p) = &cli.out_dot { ensure_parent_dir(p)?; }
     if let Some(p) = &cli.out_ppm { ensure_parent_dir(p)?; }
 
-    let report = if cli.out_ppm.is_some() {
+    let report = if cli.out_ppm.is_some() || cli.live {
         execute_streaming(cli)?
     } else {
         execute_fast(cli)?
@@ -91,19 +91,35 @@ fn execute_streaming(cli: &Cli) -> Result<resonance::use_cases::experiments::aut
             )
         }
     };
-    let ppm_path = cli.out_ppm.as_ref().expect("streaming path requires --ppm");
     let mut sim = SoupSim::new(cli.config.clone(), net);
+    if cli.live { print!("\x1b[2J"); } // clear screen una sola vez
     while !sim.is_done() {
         sim.step();
         if let Some(every) = cli.ppm_every {
             if every > 0 && sim.tick() % every == 0 {
-                let frame = frame_path(ppm_path, sim.tick());
-                write_ppm(&frame, sim.grid(), cli.ppm_scale, cli.config.initial_food_qe)?;
+                if let Some(base) = &cli.out_ppm {
+                    let frame = frame_path(base, sim.tick());
+                    write_ppm(&frame, sim.grid(), cli.ppm_scale, cli.config.initial_food_qe)?;
+                }
+            }
+        }
+        if cli.live && sim.tick() % cli.live_every == 0 {
+            render_ansi(sim.grid(), cli.config.initial_food_qe, sim.tick(),
+                        sim.fission_events().len());
+            if cli.live_delay_ms > 0 {
+                std::thread::sleep(std::time::Duration::from_millis(cli.live_delay_ms));
             }
         }
     }
-    // Snapshot final (siempre, aunque haya frames intermedios).
-    write_ppm(ppm_path, sim.grid(), cli.ppm_scale, cli.config.initial_food_qe)?;
+    // Snapshot final PPM si se pidió.
+    if let Some(ppm_path) = &cli.out_ppm {
+        write_ppm(ppm_path, sim.grid(), cli.ppm_scale, cli.config.initial_food_qe)?;
+    }
+    // Última frame ANSI (asegura estado final visible).
+    if cli.live {
+        render_ansi(sim.grid(), cli.config.initial_food_qe, sim.tick(),
+                    sim.fission_events().len());
+    }
     Ok(sim.finish())
 }
 
@@ -179,6 +195,43 @@ fn write_ppm(
     buf.extend_from_slice(&pixels);
     fs::write(path, &buf).map_err(|e| format!("write {path:?}: {e}"))?;
     Ok(())
+}
+
+/// Renderiza grid a stdout con ANSI 24-bit color (dos caracteres por celda
+/// para aspect ratio cuadrado).  Mismo mapeo que `write_ppm`: C2→R, C3→G,
+/// C4→B, HCHO como brillo blanco aditivo.  Usa cursor-home `\x1b[H` para
+/// repintar sobre el frame anterior sin scroll.
+fn render_ansi(grid: &SpeciesGrid, max_conc_ref: f32, tick: u64, n_fissions: usize) {
+    use std::io::Write;
+    let stdout = std::io::stdout();
+    let mut out = stdout.lock();
+    let (w, h) = (grid.width(), grid.height());
+    let denom = max_conc_ref.max(1e-6);
+
+    // Cursor home, sin clear (evita flicker — se repinta encima).
+    let _ = write!(out, "\x1b[H");
+    let _ = writeln!(out,
+        "autopoietic_lab · tick={tick:>6} · fissions={n_fissions}  (Ctrl+C to stop)       ");
+    let _ = writeln!(out, "  legend: R=C2  G=C3  B=C4  brightness=HCHO food                    ");
+
+    for y in 0..h {
+        let _ = write!(out, "  ");
+        for x in 0..w {
+            let cell = grid.cell(x, y);
+            let r = channel(cell.species[1], denom);
+            let g = channel(cell.species[2], denom);
+            let b = channel(cell.species[3], denom);
+            let food = (cell.species[0] / denom).clamp(0.0, 1.0);
+            let boost = (food * 96.0) as u16;
+            let r = (r as u16 + boost).min(255) as u8;
+            let g = (g as u16 + boost).min(255) as u8;
+            let b = (b as u16 + boost).min(255) as u8;
+            // Dos espacios con bg-color = pixel "cuadrado".
+            let _ = write!(out, "\x1b[48;2;{r};{g};{b}m  ");
+        }
+        let _ = writeln!(out, "\x1b[0m");
+    }
+    let _ = out.flush();
 }
 
 #[inline]

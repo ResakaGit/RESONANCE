@@ -51,6 +51,11 @@ OPTIONS:
     --ppm-every <N>    Animar: también escribe `{path}_t{tick:06}.ppm`
                        cada N ticks.  Combinable con --ppm.
     --ppm-scale <N>    Upscale nearest-neighbor (default: 16).
+    --live             Render grid to terminal (ANSI 24-bit color) cada
+                       `--live-every` ticks.  Requiere Windows Terminal /
+                       PowerShell 7 / terminal moderna para colores.
+    --live-every <N>   Frecuencia de render (default: 20 ticks).
+    --live-delay <MS>  Pausa entre renders en milisegundos (default: 80).
     --quiet            Suppress progress output
     --help             Show this help
 ";
@@ -64,6 +69,9 @@ pub(crate) struct Cli {
     pub(crate) out_ppm: Option<PathBuf>,
     pub(crate) ppm_every: Option<u64>,
     pub(crate) ppm_scale: usize,
+    pub(crate) live: bool,
+    pub(crate) live_every: u64,
+    pub(crate) live_delay_ms: u64,
     pub(crate) quiet: bool,
 }
 
@@ -82,6 +90,9 @@ impl Cli {
         let mut out_ppm: Option<PathBuf> = None;
         let mut ppm_every: Option<u64> = None;
         let mut ppm_scale: usize = 16;
+        let mut live = false;
+        let mut live_every: u64 = 20;
+        let mut live_delay_ms: u64 = 80;
         let mut network: Option<PathBuf> = None;
         let mut quiet = false;
 
@@ -111,13 +122,19 @@ impl Cli {
                 }
                 "--ppm-every" => ppm_every = Some(take_val(&mut args, &a)?.parse().map_err(|e| format!("{a}: {e}"))?),
                 "--ppm-scale" => ppm_scale = take_val(&mut args, &a)?.parse().map_err(|e| format!("{a}: {e}"))?,
+                "--live"      => live = true,
+                "--live-every" => live_every = take_val(&mut args, &a)?.parse().map_err(|e| format!("{a}: {e}"))?,
+                "--live-delay" => live_delay_ms = take_val(&mut args, &a)?.parse().map_err(|e| format!("{a}: {e}"))?,
                 other => return Err(format!("unknown flag: {other}")),
             }
         }
         if ppm_scale == 0 { return Err("--ppm-scale must be > 0".into()); }
+        if live_every == 0 { return Err("--live-every must be > 0".into()); }
         Ok(CliAction::Run(Self {
             config: cfg, network, out_json, out_dot,
-            out_ppm, ppm_every, ppm_scale, quiet,
+            out_ppm, ppm_every, ppm_scale,
+            live, live_every, live_delay_ms,
+            quiet,
         }))
     }
 }
