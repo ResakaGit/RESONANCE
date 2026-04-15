@@ -34,6 +34,12 @@ pub(crate) fn execute(cli: &Cli) -> Result<(), String> {
         );
     }
 
+    // Crea directorios padre de cualquier output.  Evita fallas cuando el
+    // usuario pasa `--out-dir nuevo/` o `--out subdir/report.json`.
+    ensure_parent_dir(&cli.out_json)?;
+    if let Some(p) = &cli.out_dot { ensure_parent_dir(p)?; }
+    if let Some(p) = &cli.out_ppm { ensure_parent_dir(p)?; }
+
     let report = if cli.out_ppm.is_some() {
         execute_streaming(cli)?
     } else {
@@ -99,6 +105,16 @@ fn execute_streaming(cli: &Cli) -> Result<resonance::use_cases::experiments::aut
     // Snapshot final (siempre, aunque haya frames intermedios).
     write_ppm(ppm_path, sim.grid(), cli.ppm_scale, cli.config.initial_food_qe)?;
     Ok(sim.finish())
+}
+
+fn ensure_parent_dir(path: &Path) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        if !parent.as_os_str().is_empty() && !parent.exists() {
+            fs::create_dir_all(parent)
+                .map_err(|e| format!("mkdir -p {parent:?}: {e}"))?;
+        }
+    }
+    Ok(())
 }
 
 fn load_network(path: &Path) -> Result<ReactionNetwork, String> {

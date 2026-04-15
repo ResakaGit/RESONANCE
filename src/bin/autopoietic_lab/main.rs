@@ -40,6 +40,9 @@ OPTIONS:
     --food-qe <Q>      Initial food qe per seeded cell (default: 2.0)
     --network <path>   Load reaction network from RON file
                        (overrides --reactions; food set still uses --seed)
+    --out-dir <dir>    Preset: crea `dir/` y escribe todo adentro:
+                       `report.json`, `lineage.dot`, `grid.ppm` (+ frames
+                       si se pasa --ppm-every).  Sustituye a --out/--dot/--ppm.
     --out <path>       JSON report path (default: report.json)
     --dot <path>       Optional DOT lineage path (default: none)
     --ppm <path>       Optional PPM species-heatmap of final grid state.
@@ -100,6 +103,12 @@ impl Cli {
                 "--out"       => out_json = PathBuf::from(take_val(&mut args, &a)?),
                 "--dot"       => out_dot  = Some(PathBuf::from(take_val(&mut args, &a)?)),
                 "--ppm"       => out_ppm  = Some(PathBuf::from(take_val(&mut args, &a)?)),
+                "--out-dir"   => {
+                    let dir = PathBuf::from(take_val(&mut args, &a)?);
+                    out_json = dir.join("report.json");
+                    out_dot  = Some(dir.join("lineage.dot"));
+                    out_ppm  = Some(dir.join("grid.ppm"));
+                }
                 "--ppm-every" => ppm_every = Some(take_val(&mut args, &a)?.parse().map_err(|e| format!("{a}: {e}"))?),
                 "--ppm-scale" => ppm_scale = take_val(&mut args, &a)?.parse().map_err(|e| format!("{a}: {e}"))?,
                 other => return Err(format!("unknown flag: {other}")),
@@ -201,6 +210,14 @@ mod tests {
     fn spot_defaults_to_none_uniform_seeding() {
         let cli = parse_run(&[]).unwrap();
         assert!(cli.config.food_spot_radius.is_none());
+    }
+
+    #[test]
+    fn out_dir_sets_all_three_outputs_with_default_names() {
+        let cli = parse_run(&["--out-dir", "runs/exp1"]).unwrap();
+        assert_eq!(cli.out_json, PathBuf::from("runs/exp1/report.json"));
+        assert_eq!(cli.out_dot,  Some(PathBuf::from("runs/exp1/lineage.dot")));
+        assert_eq!(cli.out_ppm,  Some(PathBuf::from("runs/exp1/grid.ppm")));
     }
 
     #[test]
