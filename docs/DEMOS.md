@@ -57,6 +57,10 @@ When integrated production exceeds the gas/liquid pressure ratio
 (`DISSIPATION_GAS / DISSIPATION_LIQUID = 4`, derived — not calibrated),
 the blob fissions and two child lineages are recorded.
 
+**Pre-recorded asciicast** (no install, ~6 seconds): [`docs/DEMOS_autopoiesis.cast`](./DEMOS_autopoiesis.cast)
+— upload to <https://asciinema.org/upload> for an embeddable web player,
+or convert to GIF/SVG via [`tools/record_demo.sh`](../tools/README.md).
+
 For the live ANSI render in your terminal:
 
 ```bash
