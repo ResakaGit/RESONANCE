@@ -1,0 +1,16 @@
+# Configuración de cargo project-wide.
+# Cargo project-wide configuration.
+#
+# Windows MSVC: usar rust-lld (bundled con rustup) en vez del linker default
+# de MSVC. Link time de Bevy baja ~40-60%.  No requiere instalar nada.
+# Windows MSVC: use rust-lld (bundled with rustup) instead of MSVC default.
+# Cuts Bevy link time by ~40-60%.  No extra install required.
+[target.x86_64-pc-windows-msvc]
+linker = "rust-lld.exe"
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]
+
+# Linux: lld también acelera linkeo Bevy.  Se deja comentado por defecto
+# para no fallar si el usuario no tiene `lld` instalado.
+# [target.x86_64-unknown-linux-gnu]
+# linker = "clang"
+# rustflags = ["-C", "link-arg=-fuse-ld=lld"]

@@ -82,6 +82,11 @@ pub const MEMBRANE_MIN_FLUX_RATIO: f32 = 0.01;
 /// Expuesto aquí para coherencia de la cadena completa.
 pub const FISSION_PRESSURE_RATIO: f32 = DISSIPATION_PLASMA / DISSIPATION_SOLID;
 
+/// Fracción del máximo de `strength_field` que define la cota inferior de un
+/// blob detectable en el harness AP-5.  Topológica, no calibrada: filtra ruido
+/// numérico de la inferencia de membrana sin cortar estructuras reales.
+pub const BLOB_STRENGTH_FRACTION: f32 = 0.05;
+
 // ── Compile-time sanity ─────────────────────────────────────────────────────
 
 const _: () = assert!(MAX_SPECIES <= 255, "SpeciesId fits in u8");

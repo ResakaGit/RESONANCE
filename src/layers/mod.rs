@@ -148,6 +148,10 @@ pub use closure_membrane_mask::ClosureMembraneMask;
 pub mod lineage_registry;
 pub use lineage_registry::{LineageRecord, LineageRegistry};
 
+// AUTOPOIESIS track (AP-6c, ADR-041) — per-cell lineage tag (Bevy-free data).
+pub mod lineage_grid;
+pub use lineage_grid::LineageGrid;
+
 // Ops — SystemParam adapters
 pub use derived::PhysicsOps;
 pub use energy::EnergyOps;

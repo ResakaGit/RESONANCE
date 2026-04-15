@@ -70,6 +70,19 @@ impl ReactionNetwork {
     pub fn iter_indexed(&self) -> impl Iterator<Item = (ReactionId, &Reaction)> + '_ {
         self.reactions.iter().enumerate().map(|(i, r)| (ReactionId(i as u32), r))
     }
+
+    /// Cota superior exclusiva de los `SpeciesId` usados por la red
+    /// (`max(raw) + 1`).  `0` si la red está vacía.  Usada por el harness para
+    /// derivar `n_species` efectivo cuando la red se carga externamente.
+    pub fn species_upper_bound(&self) -> u8 {
+        let mut max_id: i16 = -1;
+        for r in &self.reactions {
+            for e in r.reactants_active().chain(r.products_active()) {
+                max_id = max_id.max(e.species.raw() as i16);
+            }
+        }
+        (max_id + 1).max(0) as u8
+    }
 }
 
 // ── RON spec (human-friendly) ───────────────────────────────────────────────

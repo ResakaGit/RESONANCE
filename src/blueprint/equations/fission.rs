@@ -146,6 +146,26 @@ pub fn pinch_axis(blob: &BlobIndex) -> Vec2 {
 /// Hash determinístico `(parent, tick, side)` → u64, estilo FNV-1a (mismo
 /// esquema que `closure_hash`).  `side ∈ {0, 1}` separa los dos hijos.
 pub fn child_lineage(parent: u64, tick: u64, side: u8) -> u64 {
+    fnv1a_mix3(parent, tick, side as u64)
+}
+
+/// Mapea un `closure.hash` a un `lineage_id` no-cero determinístico
+/// (ADR-041).  Sirve como identidad inicial del linaje antes de cualquier
+/// fisión: todas las celdas mask-marcadas por la closure reciben este tag.
+///
+/// Garantía: `hash_to_lineage(h) != 0` — el cero queda reservado como "sopa
+/// primordial sin linaje asignado".  Si la mezcla FNV-1a produjera 0 (colisión
+/// teórica), retornamos el valor degenerado `1`; el sesgo es numéricamente
+/// indetectable (2^-64) y preserva la regla `0 ⇔ pre-linaje`.
+pub fn hash_to_lineage(closure_hash: u64) -> u64 {
+    // `tick`/`side` artificiales para re-usar el mismo avalanche FNV que
+    // `child_lineage`, pero con un dominio disjunto (side=2).
+    let h = fnv1a_mix3(closure_hash, 0, 2);
+    if h == 0 { 1 } else { h }
+}
+
+#[inline]
+fn fnv1a_mix3(a: u64, b: u64, c: u64) -> u64 {
     const FNV_OFFSET: u64 = 0xcbf29ce484222325;
     const FNV_PRIME: u64 = 0x100000001b3;
     #[inline]
@@ -156,7 +176,7 @@ pub fn child_lineage(parent: u64, tick: u64, side: u8) -> u64 {
         }
         h
     }
-    mix(mix(mix(FNV_OFFSET, parent), tick), side as u64)
+    mix(mix(mix(FNV_OFFSET, a), b), c)
 }
 
 // ── apply_fission (partición + tax) ─────────────────────────────────────────
@@ -403,6 +423,27 @@ mod tests {
         assert_eq!(a, child_lineage(42, 100, 0), "deterministic");
         assert_ne!(a, child_lineage(42, 101, 0), "different tick ⇒ different hash");
         assert_ne!(a, child_lineage(43, 100, 0), "different parent ⇒ different hash");
+    }
+
+    #[test]
+    fn hash_to_lineage_is_deterministic_and_nonzero() {
+        let a = hash_to_lineage(0xABCD_1234);
+        let b = hash_to_lineage(0xABCD_1234);
+        let c = hash_to_lineage(0xABCE_1234);
+        assert_eq!(a, b, "deterministic");
+        assert_ne!(a, c, "distinct inputs ⇒ distinct outputs");
+        assert_ne!(a, 0, "0 reserved for pre-lineage sopa");
+    }
+
+    #[test]
+    fn hash_to_lineage_disjoint_from_child_lineage_domain() {
+        // child_lineage usa side ∈ {0,1}; hash_to_lineage usa side=2.
+        // Basta con muestrear 8 pares (parent=hash) para convencerse.
+        for h in [1u64, 2, 100, 0xDEAD, 0xBEEF, u64::MAX, 0xCAFEBABE, 0x1F2E3D4C] {
+            let lin = hash_to_lineage(h);
+            assert_ne!(lin, child_lineage(h, 0, 0));
+            assert_ne!(lin, child_lineage(h, 0, 1));
+        }
     }
 
     fn seed_blob_uniform(grid: &mut SpeciesGrid, blob: &BlobIndex, s: SpeciesId, qe: f32) {

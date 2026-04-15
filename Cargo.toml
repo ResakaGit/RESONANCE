@@ -18,6 +18,10 @@ md_3d = []
 # Bins en migración a la API actual de Bevy 0.15 — gated para no romper
 # `cargo test`/`cargo check` por defecto. Habilitar con `--features experimental_bins`.
 experimental_bins = []
+# Dev-only: linkea Bevy como shared lib → 60-80% faster incremental builds.
+# Nunca usar en release (produce un .so/.dll dependency).
+# Uso: `cargo run --bin <viz_bin> --features fast_compile`
+fast_compile = ["bevy/dynamic_linking"]
 
 [dependencies]
 bevy = { version = "0.15", features = ["serialize"] }
@@ -134,7 +138,7 @@ path = "src/bin/paper_validation.rs"
 
 [[bin]]
 name = "autopoietic_lab"
-path = "src/bin/autopoietic_lab.rs"
+path = "src/bin/autopoietic_lab/main.rs"
 
 [[bench]]
 name = "worldgen_field_perf"
