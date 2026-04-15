@@ -16,7 +16,7 @@
 use crate::blueprint::constants::chemistry::{
     KINETIC_STABILITY_EPSILON, MAX_SPECIES, SPECIES_DIFFUSION_RATE,
 };
-use crate::blueprint::equations::blob_topology::{BlobIndex, centroid, perimeter};
+use crate::blueprint::equations::blob_topology::{BlobIndex, centroid};
 use crate::blueprint::equations::derived_thresholds::DISSIPATION_PLASMA;
 use crate::blueprint::equations::reaction_kinetics::mass_action_rate;
 use crate::layers::reaction_network::ReactionNetwork;
