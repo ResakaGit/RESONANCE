@@ -31,6 +31,7 @@ pub mod batch;
 pub mod blueprint;
 pub mod bridge;
 pub mod cosmic;
+pub mod demos;
 pub mod eco;
 pub mod events;
 pub mod geometry_flow;
