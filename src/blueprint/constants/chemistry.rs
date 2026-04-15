@@ -7,7 +7,7 @@
 //! All physical constants derived from the 4 fundamentals.
 
 use crate::blueprint::equations::derived_thresholds::{
-    COHERENCE_BANDWIDTH, DENSITY_SCALE, DISSIPATION_LIQUID, DISSIPATION_PLASMA, DISSIPATION_SOLID,
+    COHERENCE_BANDWIDTH, DENSITY_SCALE, DISSIPATION_GAS, DISSIPATION_LIQUID,
 };
 
 // ── Topología (límites de layout, no físicos) ───────────────────────────────
@@ -76,11 +76,22 @@ pub const MEMBRANE_DAMPING: f32 = 1.0 / DISSIPATION_LIQUID;
 /// Ninguna celda queda perfectamente sellada — siempre escapa ≥ 1 % del flux.
 pub const MEMBRANE_MIN_FLUX_RATIO: f32 = 0.01;
 
-// ── Fission (reservado AP-4) ────────────────────────────────────────────────
+// ── Fission (AP-4 / AP-6d calibración) ─────────────────────────────────────
 
-/// Ratio de presión para disparar fisión.  `= DISSIPATION_PLASMA / DISSIPATION_SOLID`.
-/// Expuesto aquí para coherencia de la cadena completa.
-pub const FISSION_PRESSURE_RATIO: f32 = DISSIPATION_PLASMA / DISSIPATION_SOLID;
+/// Ratio de presión para disparar fisión.  `= DISSIPATION_GAS / DISSIPATION_LIQUID = 4`.
+///
+/// La fisión es un evento **fluido-mecánico** — mass transport por un pinch
+/// de membrana.  Su umbral natural es la transición gas↔líquido: el punto
+/// donde la difusión empieza a dominar sobre la cohesión del solvente.
+/// Plasma↔sólido (= 50) abarca regímenes electrónicos/cristalográficos
+/// irrelevantes a la física de vesícula.
+///
+/// Revisión 2026-04-14 (AP-6d): anterior `DISSIPATION_PLASMA/DISSIPATION_SOLID = 50`
+/// era derivable pero no físicamente anclada.  Con la fórmula adimensional
+/// corregida de `pressure_ratio`, el steady-state empírico de formose da
+/// K ≈ 13 — cruza holgadamente el umbral 4 y queda bajo el 50 arbitrario.
+/// Ver ADR-039 §Revisión 2026-04-14-b.
+pub const FISSION_PRESSURE_RATIO: f32 = DISSIPATION_GAS / DISSIPATION_LIQUID;
 
 /// Fracción del máximo de `strength_field` que define la cota inferior de un
 /// blob detectable en el harness AP-5.  Topológica, no calibrada: filtra ruido
@@ -117,8 +128,10 @@ mod tests {
     }
 
     #[test]
-    fn fission_ratio_is_plasma_over_solid() {
-        assert!((FISSION_PRESSURE_RATIO - 50.0).abs() < 1e-3);
+    fn fission_ratio_is_gas_over_liquid() {
+        // AP-6d: transición gas→líquido (régimen fluido, donde vesículas viven).
+        // 0.08 / 0.02 = 4.0 exacto.
+        assert!((FISSION_PRESSURE_RATIO - 4.0).abs() < 1e-5);
     }
 
     #[test]

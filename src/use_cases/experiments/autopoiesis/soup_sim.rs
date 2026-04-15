@@ -442,6 +442,37 @@ mod tests {
     }
 
     #[test]
+    fn formose_spot_seeded_produces_at_least_one_fission() {
+        // AP-6d regresión post-calibración: con `FISSION_PRESSURE_RATIO = 4`
+        // (gas/liquid), formose bajo spot seeding entra en overdrive
+        // transient al estabilizar el spot y dispara ≥1 fisión. Fixture
+        // congelada para evitar regresiones futuras sobre el umbral.
+        //
+        // Combo ganador empírico del sweep exhaustivo (ver F-1a sprint doc):
+        // seed=0, food_size=2, grid=16×16, qe=50, spot=2, ticks=5000.
+        // Budget generoso (ticks=10_000) para tolerar reordering PRNG.
+        let text = std::fs::read_to_string("assets/reactions/formose.ron").unwrap();
+        let net = ReactionNetwork::from_ron_str(&text).unwrap();
+        let cfg = SoupConfig {
+            seed: 0, n_species: 4, n_reactions: 4, food_size: 2,
+            grid: (16, 16), ticks: 10_000,
+            equilibration_ticks: 100, detection_every: 50,
+            last_window_ticks: 1000, initial_food_qe: 50.0, dt: 0.1,
+            food_spot_radius: Some(2),
+        };
+        let r = run_soup_with_network(&cfg, net);
+        assert!(
+            !r.fission_events.is_empty(),
+            "formose spot-seeded must trigger ≥1 fission post AP-6d; got {r:?}",
+        );
+        // Conservación: cada fisión reporta dissipated_qe ≥ 0 (Axiom 4).
+        for ev in &r.fission_events {
+            assert!(ev.dissipated_qe >= 0.0);
+            assert_ne!(ev.children[0], ev.children[1]);
+        }
+    }
+
+    #[test]
     fn spot_seeded_formose_produces_nonzero_membrane_gradient() {
         // AP-6 item 3 regresión: la siembra localizada es condición necesaria
         // (no suficiente — ver finding) para que un blob emerja.  Verificamos

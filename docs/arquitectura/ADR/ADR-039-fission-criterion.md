@@ -63,7 +63,9 @@ if pressure_ratio(blob, …) > FISSION_PRESSURE_RATIO {
 }
 ```
 
-Donde `FISSION_PRESSURE_RATIO = DISSIPATION_PLASMA / DISSIPATION_SOLID = 50.0` — derivado de las 4 fundamentales, no calibrado.  La membrana sigue
+Donde `FISSION_PRESSURE_RATIO = DISSIPATION_GAS / DISSIPATION_LIQUID = 4.0`
+(revisado 2026-04-14-b, ver §Revisión abajo) — derivado de las 4 fundamentales,
+no calibrado.  La membrana sigue
 regulando la **detección** del blob (`find_blobs` via `strength_field`) y la
 **retención** de flux (`damped_flux_factor` en `diffuse_species`), pero el
 criterio de fisión ya no compara producción contra energía de pared sino
@@ -124,6 +126,33 @@ Decoherencia es elegante pero introduce un mecanismo nuevo (campo de fase per-ce
 
 - 20 unit tests (flood-fill, PCA, conservation post-fission, threshold behavior)
 - 3 integration tests (closure sub-threshold no se divide, supra-threshold se divide ≤50t, ambos hijos vivos post-fission)
+
+## Revisión 2026-04-14-b — threshold gas/líquido
+
+Tras corregir la inconsistencia dimensional (Revisión 2026-04-14), el ratio
+empírico sobre formose cerrada converge a K ≈ 13 en steady-state.  El
+umbral original `DISSIPATION_PLASMA / DISSIPATION_SOLID = 50` quedaba
+**arbitrariamente alto**: cualquier ratio entre las 4 dissipation states
+es "derivable", pero la elección de los extremos (plasma = estado
+electrónico de alta energía; solid = cristalización) no tiene conexión
+física con la fisión de una vesícula.
+
+**Fix.**  `FISSION_PRESSURE_RATIO = DISSIPATION_GAS / DISSIPATION_LIQUID = 4`.
+La fisión es transporte de masa a través de un pinch de membrana — un
+evento **fluido-mecánico**.  Su umbral natural es la transición dentro
+del régimen fluido: el punto donde la difusión gaseosa supera la
+cohesión líquida.  Plasma y sólido son estados de frontera externos al
+régimen donde vesículas existen.
+
+**Efecto.**  Steady-state formose K ≈ 13 > 4: la criterio dispara
+fisiones de forma natural cuando la sopa está en régimen autocatalítico
+sostenido.  Blobs que apenas se sostienen (K ∈ [1, 4]) persisten sin
+fisionar — cumple Pross: "replicate only when overdriven".
+
+**No viola axiomas.**  Ax 6 se refuerza: el nuevo umbral tiene
+**justificación física explícita** además de ser algebraicamente
+derivable (la derivación sola no alcanza; cuatro constantes rinden 12
+pares posibles y elegir cuál requiere argumento).
 
 ## Decisión revisable cuando
 
