@@ -42,6 +42,12 @@ OPTIONS:
                        (overrides --reactions; food set still uses --seed)
     --out <path>       JSON report path (default: report.json)
     --dot <path>       Optional DOT lineage path (default: none)
+    --ppm <path>       Optional PPM species-heatmap of final grid state.
+                       Species 1→R, 2→G, 3→B (top-3 products).  Food
+                       (species 0) superpuesto como brillo blanco.
+    --ppm-every <N>    Animar: también escribe `{path}_t{tick:06}.ppm`
+                       cada N ticks.  Combinable con --ppm.
+    --ppm-scale <N>    Upscale nearest-neighbor (default: 16).
     --quiet            Suppress progress output
     --help             Show this help
 ";
@@ -52,6 +58,9 @@ pub(crate) struct Cli {
     pub(crate) network: Option<PathBuf>,
     pub(crate) out_json: PathBuf,
     pub(crate) out_dot: Option<PathBuf>,
+    pub(crate) out_ppm: Option<PathBuf>,
+    pub(crate) ppm_every: Option<u64>,
+    pub(crate) ppm_scale: usize,
     pub(crate) quiet: bool,
 }
 
@@ -67,6 +76,9 @@ impl Cli {
         let mut cfg = SoupConfig { seed: 42, ..SoupConfig::default() };
         let mut out_json = PathBuf::from("report.json");
         let mut out_dot: Option<PathBuf> = None;
+        let mut out_ppm: Option<PathBuf> = None;
+        let mut ppm_every: Option<u64> = None;
+        let mut ppm_scale: usize = 16;
         let mut network: Option<PathBuf> = None;
         let mut quiet = false;
 
@@ -87,10 +99,17 @@ impl Cli {
                 "--network"   => network  = Some(PathBuf::from(take_val(&mut args, &a)?)),
                 "--out"       => out_json = PathBuf::from(take_val(&mut args, &a)?),
                 "--dot"       => out_dot  = Some(PathBuf::from(take_val(&mut args, &a)?)),
+                "--ppm"       => out_ppm  = Some(PathBuf::from(take_val(&mut args, &a)?)),
+                "--ppm-every" => ppm_every = Some(take_val(&mut args, &a)?.parse().map_err(|e| format!("{a}: {e}"))?),
+                "--ppm-scale" => ppm_scale = take_val(&mut args, &a)?.parse().map_err(|e| format!("{a}: {e}"))?,
                 other => return Err(format!("unknown flag: {other}")),
             }
         }
-        Ok(CliAction::Run(Self { config: cfg, network, out_json, out_dot, quiet }))
+        if ppm_scale == 0 { return Err("--ppm-scale must be > 0".into()); }
+        Ok(CliAction::Run(Self {
+            config: cfg, network, out_json, out_dot,
+            out_ppm, ppm_every, ppm_scale, quiet,
+        }))
     }
 }
 
