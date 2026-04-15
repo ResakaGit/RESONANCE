@@ -140,8 +140,8 @@ cargo run --release --bin paper_validation           # 6 papers + PV-6
 
 ## Binaries (30) — `cargo run --release --bin <name>`
 
-**Viz:** `lab` (15 exp, 25 maps) · `headless_sim --ticks N --out x.ppm` · `sim_viewer` · `planet_viewer` · `earth_telescope` · `museum` · `petri_dish` · `fossil_record` · `mesh_export` (→OBJ) · `ecosystem_music` (→WAV) · `survival` (WASD)
-**Evo:** `evolve` · `evolve_and_view` · `fermi`(B1) · `speciation`(B2) · `cambrian`(B3) · `debate`(B4) · `convergence`(D2) · `personal_universe`(D1) · `universe_lab`(A2) · `versus`(A1)
+**Viz:** `lab` (15 exp, 25 maps) · `headless_sim --ticks N --out x.ppm` · `planet_viewer` · `earth_telescope` · `survival` (WASD)
+**Evo:** `evolve` · `fermi`(B1) · `speciation`(B2) · `cambrian`(B3) · `debate`(B4) · `convergence`(D2) · `versus`(A1)
 **Drug:** `cancer_therapy` · `pathway_inhibitor` · `adaptive_therapy` · `bozic_validation` · `paper_validation`(PV-1→6)
 **MD:** `lj_fluid`(MD-4) · `peptide_vacuum`(MD-9) · `peptide_solvated`(MD-14) · `fold_go`(MD-17 REMD) · `particle_lab`
 **Cosmic:** `cosmic_telescope` (CT-8 3D viewer S0→S4, click zoom, multiverse bar) · `cosmic_telescope_headless` (CT-8 CI validation) · `cosmic_bigbang` (CT-2 cluster formation)
@@ -163,8 +163,7 @@ cargo run --release --bin paper_validation           # 6 papers + PV-6
 | `peptide_solvated` | MD-14 | Solvated RDF+stability | TIP3P+SHAKE+Ewald |
 | `particle_lab` | — | Coulomb+LJ→molecules | Ax 1,7,8 |
 | `fermi`/`speciation`/`cambrian`/`debate`/`convergence` | B1-4,D2 | Evo dynamics | — |
-| `fossil`/`mesh_export`/`sonification` | C1,C4,D3 | Viz export (timeline,OBJ,WAV) | — |
-| `lab`/`versus`/`personal` | A1-2,D1 | Sandbox wrappers | — |
+| `lab`/`versus` | A1 | Sandbox wrappers | — |
 
 ## 14 ECS Layers (`src/layers/`)
 

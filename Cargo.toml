@@ -58,20 +58,12 @@ name = "headless_sim"
 path = "src/bin/headless_sim.rs"
 
 [[bin]]
-name = "sim_viewer"
-path = "src/bin/sim_viewer.rs"
-
-[[bin]]
 name = "fermi"
 path = "src/bin/fermi.rs"
 
 [[bin]]
 name = "convergence"
 path = "src/bin/convergence.rs"
-
-[[bin]]
-name = "personal_universe"
-path = "src/bin/personal_universe.rs"
 
 [[bin]]
 name = "versus"
@@ -88,30 +80,6 @@ path = "src/bin/cambrian.rs"
 [[bin]]
 name = "debate"
 path = "src/bin/debate.rs"
-
-[[bin]]
-name = "universe_lab"
-path = "src/bin/universe_lab.rs"
-
-[[bin]]
-name = "mesh_export"
-path = "src/bin/mesh_export.rs"
-
-[[bin]]
-name = "museum"
-path = "src/bin/museum.rs"
-
-[[bin]]
-name = "fossil_record"
-path = "src/bin/fossil_record.rs"
-
-[[bin]]
-name = "petri_dish"
-path = "src/bin/petri_dish.rs"
-
-[[bin]]
-name = "ecosystem_music"
-path = "src/bin/ecosystem_music.rs"
 
 [[bin]]
 name = "cancer_therapy"
