@@ -136,7 +136,27 @@ cargo run --release --bin paper_validation           # 6 papers + PV-6
 
 - **Unit:** `#[cfg(test)]` in `blueprint/equations/`. Name: `fn_condition_expected`.
 - **Integration:** `MinimalPlugins`, spawn minimal components, ONE update, assert delta.
-- **Property:** `tests/property_conservation.rs` (proptest).
+- **Property:** `tests/axioms/property_conservation.rs` (proptest). Regressions live in `tests/proptest-regressions/<mod>.txt`.
+
+### Test suites (ADR-048) — 6 targets, not 37
+
+`tests/` is 4 consolidated suites (`<suite>/main.rs` + one `mod` per file) plus 2 feature-gated binaries. New tests go INSIDE a suite — add the file and its `mod` line, never a new `tests/*.rs` at root.
+
+| Suite | Files | Scope |
+|-------|-------|-------|
+| `axioms` | 14 | Axiom gates, property tests, equivalences (`r*`, `property_*`, `emergence_*`, `chemistry_equivalence`) |
+| `probes` | 7 | Archetype probes + materialization (`probe_*`, senescence) |
+| `pipeline` | 7 | Simulation pipeline integration (`*_integration`, `field_convergence`, `input_event_flow`, `pathfinding_*`) |
+| `platform` | 7 | Platform/asset contracts (`require_marker_hierarchy`, `g11_*`, `q3_*`, `t9_*`, `wgsl_*`, `demo_flow_maps`) |
+| gated | 2 | `bridge_optimizer_equivalence`, `gpu_cell_field_snapshot_palette_dispatch` (`required-features`, own `[[test]]`) |
+
+```
+cargo test --test axioms                      # whole suite
+cargo test --test axioms property_conservation::   # one module (= old --test <file>)
+cargo test --test pipeline -- --test-threads=4     # cap RAM if a suite spikes
+```
+
+`Cargo.toml` needs no entry — cargo autodiscovers `tests/<suite>/main.rs`. Declare `[[test]]` ONLY for `required-features`.
 
 ## Binaries (26 post-cleanup 2026-04-15) — `cargo run --release --bin <name>`
 

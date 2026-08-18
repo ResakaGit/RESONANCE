@@ -20,7 +20,7 @@ on:
       - 'src/layers/reaction_network.rs'
       - 'src/layers/species_grid.rs'
       - 'src/layers/closure.rs'
-      - 'tests/property_autopoiesis.rs'
+      - 'tests/axioms/property_autopoiesis.rs'
       - '.github/workflows/autopoiesis-nightly.yml'
   pull_request:
     branches: [main]
@@ -34,7 +34,7 @@ on:
       - 'src/layers/reaction_network.rs'
       - 'src/layers/species_grid.rs'
       - 'src/layers/closure.rs'
-      - 'tests/property_autopoiesis.rs'
+      - 'tests/axioms/property_autopoiesis.rs'
   schedule:
     # 03:17 UTC daily — off-peak, off-minute para no saturar runners.
     - cron: '17 3 * * *'
@@ -75,7 +75,7 @@ jobs:
           fi
 
       - name: Build proptest target (lib + test only)
-        run: cargo test --no-run --lib --test property_autopoiesis
+        run: cargo test --no-run --lib --test axioms
 
       - name: Run AP-5 lib unit tests
         run: cargo test --lib autopoiesis::
@@ -83,7 +83,7 @@ jobs:
       - name: Run AP-5 persistence proptest
         env:
           PROPTEST_CASES: ${{ steps.cases.outputs.value }}
-        run: cargo test --test property_autopoiesis -- --nocapture
+        run: cargo test --test axioms property_autopoiesis:: -- --nocapture
 
       - name: Upload proptest regressions (on failure)
         if: failure()
