@@ -1,6 +1,21 @@
 # Configuración de cargo project-wide.
 # Cargo project-wide configuration.
 #
+# ── Techo de RAM ──────────────────────────────────────────────────────────────
+# Cada link de un binario Bevy pica ~1-1.5 GB (con `debug` recortado en
+# Cargo.toml).  Cargo paraleliza por nº de cores; en una máquina de 16 cores /
+# 16 GB eso son 16 links concurrentes = OOM garantizado en `cargo test`.
+# 4 jobs deja el pico en ~5 GB y el resto para el SO.
+# Override puntual cuando no se linkea nada pesado: `cargo check -j 16`.
+#
+# Each Bevy binary link peaks at ~1-1.5 GB (with `debug` trimmed in Cargo.toml).
+# Cargo parallelizes by core count; on a 16-core / 16 GB machine that means 16
+# concurrent links = guaranteed OOM under `cargo test`.  4 jobs keeps the peak
+# around 5 GB.  Override when nothing heavy is linked: `cargo check -j 16`.
+[build]
+jobs = 4
+
+# ── Linker ────────────────────────────────────────────────────────────────────
 # Windows MSVC: usar rust-lld (bundled con rustup) en vez del linker default
 # de MSVC. Link time de Bevy baja ~40-60%.  No requiere instalar nada.
 # Windows MSVC: use rust-lld (bundled with rustup) instead of MSVC default.

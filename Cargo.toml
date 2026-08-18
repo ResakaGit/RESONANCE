@@ -42,9 +42,25 @@ minifb = { version = "0.27", optional = true }
 
 [profile.dev]
 opt-level = 1
+# El debuginfo completo de un binario Bevy es el driver dominante del pico de RAM
+# del linker (~2-3 GB por link).  `line-tables-only` conserva file:line en panics
+# y backtraces —lo único que se usa en la práctica— y descarta el resto.
+# Full debuginfo for a Bevy binary is the dominant driver of linker peak RAM
+# (~2-3 GB per link).  `line-tables-only` keeps file:line in panics/backtraces
+# and drops everything else.
+debug = "line-tables-only"
 
 [profile.dev.package."*"]
 opt-level = 3
+
+# `cargo test` linkea decenas de test-binaries, cada uno estatizando Bevy entero.
+# Sin debuginfo el pico por link baja a la mitad.  Los mensajes de `assert!` siguen
+# reportando file:line (vienen de `#[track_caller]`, no del debuginfo).
+# `cargo test` links dozens of test binaries, each statically embedding all of Bevy.
+# Without debuginfo the per-link peak roughly halves.  `assert!` still reports
+# file:line (that comes from `#[track_caller]`, not from debuginfo).
+[profile.test]
+debug = 0
 
 [dev-dependencies]
 criterion = { version = "0.5", features = ["html_reports"] }
@@ -53,60 +69,200 @@ pollster = "0.4"
 proptest = "1.4"
 wgpu = { version = "23", default-features = true, features = ["wgsl"] }
 
+# ── Binarios ──────────────────────────────────────────────────────────────────
+#
+# Los 28 bins se declaran explícitos (antes 15 quedaban auto-descubiertos desde
+# `src/bin/*.rs` y eran invisibles acá).  Todos llevan `test = false` /
+# `bench = false`: ninguno contiene `#[cfg(test)]`, así que sin esto `cargo test`
+# y `cargo bench` linkeaban 28 harnesses vacíos —28 links de Bevy por nada—.
+#
+# All 28 bins are declared explicitly (15 used to be auto-discovered from
+# `src/bin/*.rs` and were invisible here).  All carry `test = false` /
+# `bench = false`: none contains `#[cfg(test)]`, so without this `cargo test` and
+# `cargo bench` linked 28 empty harnesses — 28 Bevy links for nothing.
+
+# Viz
+[[bin]]
+name = "resonance"
+path = "src/main.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "lab"
+path = "src/bin/lab.rs"
+test = false
+bench = false
+
 [[bin]]
 name = "headless_sim"
 path = "src/bin/headless_sim.rs"
+test = false
+bench = false
 
 [[bin]]
-name = "fermi"
-path = "src/bin/fermi.rs"
-
-[[bin]]
-name = "convergence"
-path = "src/bin/convergence.rs"
-
-[[bin]]
-name = "versus"
-path = "src/bin/versus.rs"
-
-[[bin]]
-name = "speciation"
-path = "src/bin/speciation.rs"
-
-[[bin]]
-name = "cambrian"
-path = "src/bin/cambrian.rs"
-
-[[bin]]
-name = "debate"
-path = "src/bin/debate.rs"
-
-[[bin]]
-name = "cancer_therapy"
-path = "src/bin/cancer_therapy.rs"
+name = "demos"
+path = "src/bin/demos.rs"
+test = false
+bench = false
 
 [[bin]]
 name = "planet_viewer"
 path = "src/bin/planet_viewer.rs"
 required-features = ["experimental_bins"]
+test = false
+bench = false
 
 [[bin]]
 name = "earth_telescope"
 path = "src/bin/earth_telescope.rs"
 required-features = ["experimental_bins"]
+test = false
+bench = false
 
 [[bin]]
 name = "survival"
 path = "src/bin/survival.rs"
 required-features = ["experimental_bins"]
+test = false
+bench = false
+
+# Evo
+[[bin]]
+name = "evolve"
+path = "src/bin/evolve.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "fermi"
+path = "src/bin/fermi.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "speciation"
+path = "src/bin/speciation.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "cambrian"
+path = "src/bin/cambrian.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "debate"
+path = "src/bin/debate.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "convergence"
+path = "src/bin/convergence.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "versus"
+path = "src/bin/versus.rs"
+test = false
+bench = false
+
+# Drug
+[[bin]]
+name = "cancer_therapy"
+path = "src/bin/cancer_therapy.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "pathway_inhibitor"
+path = "src/bin/pathway_inhibitor.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "adaptive_therapy"
+path = "src/bin/adaptive_therapy.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "bozic_validation"
+path = "src/bin/bozic_validation.rs"
+test = false
+bench = false
 
 [[bin]]
 name = "paper_validation"
 path = "src/bin/paper_validation.rs"
+test = false
+bench = false
 
+# MD
+[[bin]]
+name = "lj_fluid"
+path = "src/bin/lj_fluid.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "peptide_vacuum"
+path = "src/bin/peptide_vacuum.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "peptide_solvated"
+path = "src/bin/peptide_solvated.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "fold_go"
+path = "src/bin/fold_go.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "particle_lab"
+path = "src/bin/particle_lab.rs"
+test = false
+bench = false
+
+# Cosmic
+[[bin]]
+name = "cosmic_telescope"
+path = "src/bin/cosmic_telescope.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "cosmic_telescope_headless"
+path = "src/bin/cosmic_telescope_headless.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "cosmic_bigbang"
+path = "src/bin/cosmic_bigbang.rs"
+test = false
+bench = false
+
+# Autopoiesis / Emergence
 [[bin]]
 name = "autopoietic_lab"
 path = "src/bin/autopoietic_lab/main.rs"
+test = false
+bench = false
+
+[[bin]]
+name = "measure_emergence"
+path = "src/bin/measure_emergence.rs"
+test = false
+bench = false
 
 [[bench]]
 name = "worldgen_field_perf"
