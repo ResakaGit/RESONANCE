@@ -154,11 +154,11 @@ mod tests {
             .world_mut()
             .spawn((
                 Name::new("effect_entity"),
-                ResonanceLink {
+                ResonanceLink::new(
                     target,
-                    modified_field: crate::layers::ModifiedField::VelocityMultiplier,
-                    magnitude: 0.5,
-                },
+                    crate::layers::ModifiedField::VelocityMultiplier,
+                    0.5,
+                ),
             ))
             .id();
         app.world_mut().flush();

@@ -73,9 +73,14 @@ proptest! {
     ///   - `k_stability_mean_last ≥ 1.0` — reconstrucción ≥ decay (Pross).
     ///   - `pressure_events ≥ 1` — cruzó el umbral de fisión (proxy de réplica).
     ///
-    /// Si esto falla para alguna seed, el simulador no operacionaliza el
-    /// invariante: una closure sobrevive sin evidencia termodinámica de
-    /// cómo lo logra — bug en AP-2 (k_stab) o AP-4 (pressure).
+    /// Desde el fix AP-5 (Opción A), `SoupSim::finish` **define** `survived`
+    /// con esta evidencia (ya no por mera existencia topológica de la RAF), así
+    /// que el contrato se sostiene por construcción.  Este test es el guard que
+    /// impide una futura regresión que vuelva a desacoplar `survived` de la
+    /// dinámica: si alguien reintroduce `survived = raf_closures.contains(hash)`,
+    /// vuelve a fallar.  Nota: bajo siembra uniforme (`food_spot_radius: None`)
+    /// `pressure_events ≡ 0` por simetría traslacional, así que aquí el contrato
+    /// se reduce a `k_stability_mean_last ≥ 1.0`.
     #[test]
     fn surviving_closures_satisfy_persistence_contract(seed in 0u64..64) {
         let r = run_soup(&fast_soup(seed));

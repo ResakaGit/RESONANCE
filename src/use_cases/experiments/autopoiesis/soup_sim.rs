@@ -300,12 +300,22 @@ impl SoupSim {
             / self.cfg.detection_every.max(1)).max(1) as usize;
         let last_final_hashes = self.last_final_hashes;
         let fates: Vec<ClosureFate> = self.tracks.into_iter().map(|mut t| {
-            t.fate.survived = last_final_hashes.contains(&t.fate.hash);
             if !t.k_history.is_empty() {
                 let n = window_samples.min(t.k_history.len());
                 let slice = &t.k_history[t.k_history.len() - n..];
                 t.fate.k_stability_mean_last = slice.iter().sum::<f32>() / slice.len() as f32;
             }
+            // AP-5 (Opción A): `survived` = evidencia termodinámica de persistencia,
+            // no mera existencia topológica de la RAF.  Una closure `raf_closures`
+            // puede "existir" (net+food invariantes) mientras sus concentraciones se
+            // disipan a cero — eso NO es supervivencia.  Paper §10: "lo que persiste
+            // es aquello que encontró una forma de copiarse antes de disiparse":
+            //   - `k̄ ≥ 1` — reconstrucción ≥ decay, auto-mantenimiento (Pross), o
+            //   - `pressure_events ≥ 1` — cruzó fisión, se replicó antes de disiparse.
+            // Debe además seguir presente en la ventana final (`alive`).
+            let alive = last_final_hashes.contains(&t.fate.hash);
+            t.fate.survived =
+                alive && (t.fate.k_stability_mean_last >= 1.0 || t.fate.pressure_events >= 1);
             t.fate
         }).collect();
 

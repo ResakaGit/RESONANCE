@@ -34,7 +34,34 @@ pub struct ResonanceLink {
     pub modified_field: ModifiedField,
 
     /// Magnitud del modificador (ej. 0.5 = slow, 2.0 = haste).
-    pub magnitude: f32,
+    /// Invariante: `>= 0` (Ax4/Ax5 — un multiplicador negativo sobre
+    /// disipación/energía crearía qe). Construir vía `new`/`set_magnitude`.
+    pub(crate) magnitude: f32,
+}
+
+impl ResonanceLink {
+    /// Crea un enlace con `magnitude` clampeada a `>= 0`.
+    pub fn new(target: Entity, modified_field: ModifiedField, magnitude: f32) -> Self {
+        Self {
+            target,
+            modified_field,
+            magnitude: magnitude.max(0.0),
+        }
+    }
+
+    #[inline]
+    pub fn magnitude(&self) -> f32 {
+        self.magnitude
+    }
+
+    /// Asigna `magnitude` clampeada a `>= 0`; no muta si el valor no cambia
+    /// (evita falsos positivos de `Changed<ResonanceLink>`).
+    pub fn set_magnitude(&mut self, magnitude: f32) {
+        let next = magnitude.max(0.0);
+        if self.magnitude != next {
+            self.magnitude = next;
+        }
+    }
 }
 
 // --- Overlays efímeros (DoD: máx. 4 campos por componente) ---
@@ -98,14 +125,25 @@ mod tests {
     #[test]
     fn resonance_link_stores_target_and_field() {
         let target = Entity::from_raw(42);
-        let link = ResonanceLink {
-            target,
-            modified_field: ModifiedField::MotorIntakeMultiplier,
-            magnitude: 1.25,
-        };
+        let link = ResonanceLink::new(target, ModifiedField::MotorIntakeMultiplier, 1.25);
         assert_eq!(link.target, target);
         assert_eq!(link.modified_field, ModifiedField::MotorIntakeMultiplier);
-        assert!((link.magnitude - 1.25).abs() < 1e-5);
+        assert!((link.magnitude() - 1.25).abs() < 1e-5);
+    }
+
+    #[test]
+    fn new_clamps_negative_magnitude_to_zero() {
+        let link = ResonanceLink::new(Entity::PLACEHOLDER, ModifiedField::DissipationMultiplier, -2.0);
+        assert_eq!(link.magnitude(), 0.0, "Ax4/Ax5: multiplicador no puede ser negativo");
+    }
+
+    #[test]
+    fn set_magnitude_clamps_and_is_idempotent() {
+        let mut link = ResonanceLink::new(Entity::PLACEHOLDER, ModifiedField::VelocityMultiplier, 1.0);
+        link.set_magnitude(-5.0);
+        assert_eq!(link.magnitude(), 0.0);
+        link.set_magnitude(2.0);
+        assert!((link.magnitude() - 2.0).abs() < 1e-6);
     }
 
     #[test]

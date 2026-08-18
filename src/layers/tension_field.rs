@@ -10,6 +10,10 @@ pub enum FieldFalloffMode {
 
 /// Capa 11: Campo de tensión a distancia.
 /// Layer 11: Tension Field — Long-range force (gravity/magnetic).
+///
+/// Axioma 7: la fuerza se atenúa monótonamente con la distancia vía
+/// `equations::safe_falloff` (`falloff_mode`). Los `*_gain` pueden ser negativos
+/// a propósito (repulsión), por eso no se clampan; el radio sí (`>= 0`).
 #[derive(Component, Reflect, Debug, Clone, Serialize, Deserialize)]
 #[reflect(Component)]
 pub struct TensionField {

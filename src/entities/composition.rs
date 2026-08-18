@@ -119,11 +119,7 @@ impl EffectConfig {
         (
             BaseEnergy::new(self.fuel_qe),
             FlowVector::new(Vec2::ZERO, self.dissipation_rate),
-            ResonanceLink {
-                target: self.target,
-                modified_field: self.modified_field,
-                magnitude: self.magnitude,
-            },
+            ResonanceLink::new(self.target, self.modified_field, self.magnitude),
         )
     }
 }

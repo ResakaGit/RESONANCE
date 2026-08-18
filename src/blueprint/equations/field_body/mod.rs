@@ -6,6 +6,12 @@ use crate::math_types::Vec2;
 // Capa 11: Campo de Tensión
 // ═══════════════════════════════════════════════
 
+/// Atenuación de fuerza a distancia (Axioma 7: monótonamente decreciente).
+/// Field force attenuation with distance (Axiom 7: monotonically decreasing).
+///
+/// Ambos modos (`1/d²`, `1/d`) son estrictamente decrecientes en `d > 0`; el
+/// `max` con `min_distance`/`DIVISION_GUARD_EPSILON` evita la singularidad en 0
+/// sin romper la monotonicidad (test `falloff_is_monotonically_decreasing`).
 pub fn safe_falloff(distance: f32, mode: FieldFalloffMode, min_distance: f32) -> f32 {
     let d = distance.max(min_distance.max(DIVISION_GUARD_EPSILON));
     match mode {
@@ -96,6 +102,34 @@ pub fn structural_link_qe_transfer(qe_imbalance_abs: f32, stiffness: f32, dt: f3
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // ── safe_falloff (Axioma 7) ──
+
+    /// Ax7: la atenuación decrece monótonamente con la distancia, en ambos modos.
+    #[test]
+    fn falloff_is_monotonically_decreasing() {
+        let eps = 0.01;
+        for mode in [FieldFalloffMode::InverseSquare, FieldFalloffMode::InverseLinear] {
+            let mut prev = f32::INFINITY;
+            let mut d = 0.5;
+            while d <= 50.0 {
+                let f = safe_falloff(d, mode, eps);
+                assert!(
+                    f <= prev,
+                    "Ax7 violado: falloff({d}) = {f} > previo {prev} en {mode:?}"
+                );
+                prev = f;
+                d += 0.5;
+            }
+        }
+    }
+
+    #[test]
+    fn falloff_softens_singularity_at_zero() {
+        // Distancia 0 no produce NaN/Inf: se clampa a min_distance.
+        let f = safe_falloff(0.0, FieldFalloffMode::InverseSquare, 0.1);
+        assert!(f.is_finite() && f > 0.0);
+    }
 
     // ── homeostasis_delta_hz ──
 
