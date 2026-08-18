@@ -50,3 +50,10 @@ Key design decisions for the RESONANCE project. ADR-001 through ADR-008 cover re
 | [043](ADR-043-species-grid-as-resource.md) | `SpeciesGrid` como Resource ECS + puente a `AlchemicalInjector` | Propuesto | 2026-04-15 |
 | [044](ADR-044-protocell-to-entity-spawn.md) | Protocell → Entity ECS · `FissionEvent` Observer | Propuesto | 2026-04-15 |
 | [045](ADR-045-chemistry-canonical-choice.md) | Elección canónica · alchemical vs mass-action | Aceptado (Camino 1) | 2026-04-15 |
+
+## Emergencia medible · Axioma 6 (ADR-046+)
+
+| ADR | Title | Status | Date |
+|-----|-------|--------|------|
+| [046](ADR-046-emergence-sync-axiom6.md) | Prueba de emergencia (Ax6) · order parameter de Kuramoto + ablación causal | Aceptado | 2026-07-09 |
+| [047](ADR-047-ax6-ecs-emergence-probe.md) | Prueba comportamental de Ax6 sobre el motor real (`entrainment_system` ECS) | Aceptado | 2026-08-17 |

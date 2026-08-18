@@ -8,6 +8,7 @@ pub mod cambrian;
 pub mod cancer_therapy;
 pub mod convergence;
 pub mod debate;
+pub mod emergence_sync;
 pub mod fermi;
 pub mod fossil;
 pub mod lab;

@@ -16,5 +16,6 @@ pub mod other_model;
 pub mod self_model;
 pub mod senescence;
 pub mod symbiosis;
+pub mod synchronization;
 pub mod tectonics;
 pub mod timescale;

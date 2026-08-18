@@ -139,6 +139,81 @@ Si las 3 salen: primer resultado cross-scale publicable. Si alguna **no** sale, 
 - Si EM-1.2 falla el criterio de emergencia → **no** forzar parámetros para que oscile. Escribir `DIAGNOSIS.md` y cerrar el item con status "null result documented".
 - Si EM-1.3 da JSD ≈ 0 → la fisión está clonando; revisar `fission.rs` y el mixing de sustrato pre-división.
 
+## EM-1.4 — Emergencia de sincronización (Axioma 6) + ablación causal
+
+**Type:** experiment · **Estimate:** 4–6h (S) · **Status:** DONE — veredicto cargado 2026-08-17 · **ADR:** ADR-046 §10
+
+### 0. Spec
+- **What:** Experimento headless que corre N osciladores de fase acoplados (mean-field de Kuramoto) desde arranque desordenado, mide el order parameter global `R = |(1/N)Σe^{iθ}|`, y compara la condición acoplada vs **ablada** (`coupling = 0`) sobre el mismo estado inicial.
+- **Why:** Dar a Ax6 una operacionalización medible con contrafáctico causal. `R` es una propiedad de escala (no existe a nivel individual); la ablación es el contrafáctico N−1→N. Es el gemelo temático de EM-1.2 (Ax8 haciendo trabajo real).
+- **Alcance real del claim (corregido 2026-08-17):** este ítem prueba que **el modelo de Kuramoto sincroniza** — mean-field analítico, all-to-all, sin ECS. **No** prueba que L2 `OscillatorySignature` ni el motor lo hagan: el experimento no instancia ninguna entidad. La versión anterior de este ítem decía "cerrar la única prueba faltante del core" y su §4 se atribuía "el primer par (Capa, Ax6) medible (fila SYNC)" — ambas cosas eran **sobreclaims**, corregidos por EM-1.5 / ADR-047.
+- **Acceptance (verificado):**
+  - `cargo run --bin measure_emergence -- <seed> 256 2000` imprime VERDICT PASS. ✅
+  - `R_final > 0.5`, `R_ablated < 0.1`, gap `> 0.4` en 6/6 seeds (11, 1, 2, 3, 100, 777). ✅ Medido: `R_final = 0.9619`, `R_ablated = 0.0560`, gap `0.9059` (medias); el ablado se sienta sobre el piso de N finito `1/√256 = 0.0625`.
+  - Reproducible sobre 5 seeds (`tests/emergence_sync.rs`, 4/4). ✅
+  - Gate de umbrales consistente (`tests/r10_emergence_gates.rs`, 16/16). ✅
+- **Out of scope:** transición crítica `R(K)` (barrido de acoplamiento); ruido térmico; corroboración con el `entrainment_system` ECS (Fase 4 opcional del plan → **ejecutada como ítem EM-1.5**, no retro-expandida aquí).
+
+### 1. Contexto
+- Kuramoto ya existía como fn pura (`blueprint/equations/emergence/entrainment.rs`) y system (`simulation/emergence/entrainment.rs:28`, acopla frecuencia).
+- Faltaba el order parameter de fase — implementado en `blueprint/equations/emergence/synchronization.rs`.
+
+### 2. Diseño
+- Mean-field de fase headless puro (no reusa el system ECS, que acopla ω no θ). Ver ADR-046 §3.
+- Contrato: `run_sync_experiment(&SyncConfig) -> SyncReport` corre ambas condiciones; `kuramoto_order_parameter(&[f32]) -> f32`; `emergence_sync_verdict(r_final, r_ablated) -> bool`.
+- Constantes en `blueprint/constants/synchronization_a6.rs` (SYNC_DT derivada de DISSIPATION_GAS).
+
+### 3. How tested
+- Unit: `cargo test --lib blueprint::equations::emergence::synchronization` (10 tests de este ítem: R, paso mean-field, verdict; el módulo hoy corre 25 — los 15 restantes son de EM-1.5).
+- Integration: `cargo test --test emergence_sync` (acoplado sincroniza, ablado no, gap, multi-seed).
+- Gate: `cargo test --test r10_emergence_gates`.
+
+### 4. Entrega adicional (fuera de la DoD original del sprint)
+- Fila `SYNC-analytic` en `docs/design/AXIOM_LAYER_VALIDATION_MATRIX.md` — declarada explícitamente como **referencia, no motor**. (La redacción original, "cierra el primer par (Capa, Ax6) medible", era un sobreclaim: ese par lo cierra EM-1.5.)
+- ADR-046 con hipótesis nula + veredicto del spike (§10).
+
+## EM-1.5 — Ax6 sobre el motor real: probe del `entrainment_system` ECS
+
+**Type:** experiment · **Estimate:** 4–6h (S) · **Status:** DONE (2026-08-17) — PASS · **ADR:** ADR-047 (ex RFC-001, 3 rondas de crítica adversarial)
+
+### 0. Spec
+- **What:** Test de integración headless que corre **el system real** — `entrainment_system`, la misma fn que registra `AtomicPlugin` — sobre N=64 entidades con `OscillatorySignature` y `SpatialIndex` reales, y mide el colapso de la dispersión de frecuencias `S = 1 − σ_ω(T)/σ_ω(0)` contra **dos** ablaciones causales.
+- **Why:** EM-1.4 probó un resultado de 1975 (que Kuramoto sincroniza), no una propiedad de RESONANCE — su experimento no instancia entidades y **L2 no participa**. Hasta medir esto, el par (L2, Ax6) era `GAP` disfrazado de `PASS` en la matriz. Este ítem cierra el sobreclaim y da la primera medición de Ax6 sobre el motor.
+- **Las dos ablaciones (por qué dos):**
+  - **A1 (regla):** el system no se agrega al schedule → contrafáctico N−1→N puro.
+  - **A2 (alcance):** system **ACTIVO**, población a `3 × ENTRAINMENT_SCAN_RADIUS` → el broadphase devuelve vecindad vacía y la regla corre en el vacío. Prueba que el orden exige *interacción efectiva*, no la mera presencia del código en el schedule. El supresor es el **cutoff duro** del radio de scan, no la atenuación continua (con el decay solo, `K_eff(36) ≈ 0.0075` y el sistema aún convergería → el control fallaría).
+- **Acceptance (verificado):**
+  - `cargo test --test emergence_ecs` PASS en **1.20 s**, sin GPU, un solo test target. ✅
+  - Acoplado `S ≥ SYNC_ECS_S_PASS_MIN (0.5)` en **5/5 seeds**. ✅ Medido: 0.8595 / 0.8739 / 0.8475 / 0.7881 / 0.8667 (media 0.847, mín 0.788).
+  - A1 y A2: identidad **bit a bit** de ω(0) vs ω(T) vía `hash_f32_slice` → `S == 0.0` exacto en 5/5 seeds. ✅
+  - Determinismo bit a bit entre corridas repetidas. ✅
+  - `cargo test --test r10_emergence_gates` verde con los 9 gates `SYNC_ECS_*` nuevos (16/16). ✅
+- **Out of scope:** pipeline completo (`AtomicPlugin` + fases + run-conditions); transición crítica `R(K)`; atenuación **continua** de Ax7 (barrido S(spacing) intra-rango); régimen de truncación de vecinos (>8 candidatos y su sesgo por spawn index — el spacing 8 se elige justamente para excluirlo).
+
+### 1. Contexto
+- El motor difiere del experimento analítico en los tres ejes que importan: acopla **ω** (no θ), régimen **lineal** (`sin x ≈ x`), topología de **vecinos ≤ 8** con decay por distancia (AC-4, Ax7).
+- Por eso el order parameter de fase `R` **no aplica** (las fases quedan con offsets constantes) — es el mismo contra que ADR-046 §3 le puso a su opción B. La métrica honesta para *frequency entrainment* es el colapso de σ_ω.
+- Sustrato ya existente: `simulation/emergence/entrainment.rs:28` (system), `equations/emergence/entrainment.rs` (fns puras), `world/space.rs` (`SpatialIndex`).
+- **Bug pre-existente encontrado y corregido:** `emergence_sync.rs::init_state` avanzaba un solo estado PCG por draw gaussiano cuando `gaussian_f32` consume dos (Box-Muller) → el `u2` del draw `k` reaparecía como el `u1` de la fase `k+1` (correlación intra-stream ω↔θ). Corregido; los umbrales de EM-1.4 no se tocaron y siguen pasando.
+
+### 2. Diseño
+- **Estrategia:** system aislado en schedule `Update` mínimo (opción A de ADR-047 §3). Rechazado B (probe sobre `AtomicPlugin` completo): cualquier system de la cadena física puede tocar ω o mover entidades → la ablación deja de ser un contrafáctico limpio.
+- **Métrica como fn pura, no inline en el test** (regla 12): `frequency_std` (σ muestral n−1), `frequency_collapse_s` (bordes σ₀≤0→0, no-finitos→0, clamp [0,1]) y `sync_ecs_verdict` en `blueprint/equations/emergence/synchronization.rs`, con unit tests por borde. El test de integración **llama** la métrica.
+- **Escenario:** grilla 8×8, `spacing = 8.0` (⅔ del scan radius → king-graph con exactamente 8 vecinos por nodo interior, **sin truncación**), `ω ~ N(75, 8)` Hz, φ=0 (don't-care: el system no lee fase), `SpatialEntry` radio 0.5, `SpatialIndex` estático (las entidades no se mueven), 400 ticks, 5 seeds, 3 Apps por seed desde un builder compartido.
+- **Trampas evitadas por diseño:** el offset de 75 Hz es obligatorio (`gaussian_f32` centra en 0 y L2 clampea a `max(0.0)` → sin él la gaussiana queda rectificada y el experimento se corrompe en silencio); el schedule es `Update` y **nunca** `FixedUpdate` (con `MinimalPlugins` corre 0..k veces por `update()` según wall-clock); `query_radius` devuelve al propio nodo, así que el guard estructural cuenta con `filter(entity != self)`.
+- **Constantes:** 6 `SYNC_ECS_*` en `blueprint/constants/synchronization_a6.rs`, con `SYNC_ECS_SPREAD_HZ = SYNC_ECS_SPREAD_RATIO × KURAMOTO_LOCK_THRESHOLD_HZ` (derivada de la dinámica bajo prueba) y ambas cotas del ratio gateadas en r10.
+
+### 3. How tested
+- Unit: `cargo test --lib blueprint::equations::emergence::synchronization` — 25/25 (15 nuevos: σ n−1 vs n, no-finitos, invarianza a traslación, valor conocido; bordes de `frequency_collapse_s`; boundary del verdict).
+- Integration: `cargo test --test emergence_ecs` — 8/8 en 1.20 s (3 guards estructurales + acoplado 5 seeds + A1 + A2 + determinismo).
+- Gate: `cargo test --test r10_emergence_gates` — 16/16.
+- Referencia analítica: `cargo test --test emergence_sync` — 4/4 (post-fix del stream PCG).
+
+### 4. Resultado y lectura
+- **PASS.** `S` acoplado 0.788–0.874; ablados `S == 0` exacto en ambas condiciones y las 5 seeds. Detalle por seed en ADR-047 §10.
+- **La predicción del diseño se cumplió con su mecanismo:** el estado final llega a `lock fraction = 1.0000`, es decir la **escalera congelada** que el ADR anticipó como piso teórico `S ≈ 0.75`. σ(T) ≈ 1.1–1.8 Hz ≈ 1–2 × `KURAMOTO_LOCK_THRESHOLD_HZ`. Por eso el umbral se fijó en 0.5 y **no hubo que ajustar nada** post-hoc.
+- **Línea de base del lock:** en A1 (población intacta) 4.3–8.1 % de los pares vecinos ya nacen dentro de 1 Hz por azar — contra ese piso se lee el 100 % del acoplado. En A2 la fracción es 0.0000 por ausencia de pares (denominador 0), no por ausencia de lock.
+
 ## Cierre del arco
 
 Cuando este sprint cierra (incluso parcialmente con algún null result):
