@@ -101,7 +101,7 @@ tolerante a futuras fuentes de jitter.
   `emergence_sync_verdict`; con dos ablaciones se llama **una vez por cada una**:
   `verdict(s, s_a1) && verdict(s, s_a2)`.
 
-`tests/r10_emergence_gates.rs` se extiende con los gates de rango y
+`tests/axioms/r10_emergence_gates.rs` se extiende con los gates de rango y
 consistencia de las constantes `SYNC_ECS_*` — así las constantes tienen
 consumidores en `src/` y validación de boundary, como sus hermanas `SYNC_*`.
 
@@ -154,19 +154,19 @@ margen para convergencia parcial; el spike mide el S real.
   API pública `SpatialIndex::new(ENTRAINMENT_SCAN_RADIUS)` + `insert`.
   `SimWorldTransformParams::default()` (plano XY).
 - **Schedule: `add_systems(Update, entrainment_system)` + `SYNC_ECS_TICKS` ×
-  `app.update()`** — el patrón real de `tests/r2_determinism.rs:29-40` y del
+  `app.update()`** — el patrón real de `tests/axioms/r2_determinism.rs:29-40` y del
   `#[cfg(test)]` del propio módulo (`entrainment.rs:144`). **No usar
   `FixedUpdate` con `MinimalPlugins`**: corre 0..k veces por `update()` según
   wall-clock → ni conteo de ticks garantizado ni determinismo entre máquinas.
 - Multi-seed: 5 seeds `[1, 2, 3, 100, 777]` (paridad con
-  `tests/emergence_sync.rs::emergence_holds_across_seeds`); seed 11 para los
+  `tests/axioms/emergence_sync.rs::emergence_holds_across_seeds`); seed 11 para los
   tests de una sola corrida.
 
 ### 2.3 Determinismo
 
 Un solo system en el schedule → sin ambigüedad de orden de ejecución. Las
 fuentes de orden determinista son: (a) orden de spawn estable → orden de
-iteración de query estable (precedente `tests/r2_determinism.rs`), y (b)
+iteración de query estable (precedente `tests/axioms/r2_determinism.rs`), y (b)
 `query_radius` ordena vecinos por `Entity::to_bits`
 (`spatial_index_backend/mod.rs:97`). Nota: el `sorted_snapshot` interno del
 system (`entrainment.rs:49-51`) es un índice de lookup para `binary_search`,
@@ -225,9 +225,10 @@ cotas derivadas (1, 50); los umbrales S fueron propuestos analíticamente y
 
 ## 6. Costos
 
-- **Compilación:** +1 test target (`tests/emergence_ecs.rs`, autodiscovery — la
-  convención del repo es `[[test]]` explícito sólo para `required-features`).
-  RFC-002 lo consolidará en `tests/axioms/` (0 netos entonces).
+- **Compilación:** **0 test targets netos** — el archivo nació como target propio
+  (`tests/emergence_ecs.rs`, autodiscovery) y ADR-048 lo consolidó como módulo
+  de la suite `axioms` (`tests/axioms/emergence_ecs.rs`). La convención del repo
+  sigue siendo `[[test]]` explícito sólo para `required-features`.
 - **Runtime:** 64 entidades × 400 ticks × 3 condiciones × 5 seeds, sin GPU.
 - **Código:** +3 fns puras y +6 constantes. Complejidad baja.
 
@@ -235,10 +236,10 @@ cotas derivadas (1, 50); los umbrales S fueron propuestos analíticamente y
 
 | Archivo | Cambio |
 |---|---|
-| `tests/emergence_ecs.rs` | NUEVO — probe + A1 + A2 + determinismo + multi-seed + guards estructurales |
+| `tests/axioms/emergence_ecs.rs` | NUEVO — probe + A1 + A2 + determinismo + multi-seed + guards estructurales |
 | `src/blueprint/equations/emergence/synchronization.rs` | + `frequency_std` + `frequency_collapse_s` + `sync_ecs_verdict` puras con unit tests de bordes |
 | `src/blueprint/constants/synchronization_a6.rs` | + 6 constantes `SYNC_ECS_*` |
-| `tests/r10_emergence_gates.rs` | + gates de rango/consistencia de `SYNC_ECS_*` (consumidores + boundary) |
+| `tests/axioms/r10_emergence_gates.rs` | + gates de rango/consistencia de `SYNC_ECS_*` (consumidores + boundary) |
 | `src/use_cases/experiments/emergence_sync.rs` | **fix pre-existente:** `init_state` avanzaba un solo estado PCG por draw gaussiano; `gaussian_f32` consume dos (Box-Muller) → el `u2` del draw k era el `u1` de la fase k+1 (correlación intra-stream ω↔θ). Ahora avanza tres estados por oscilador |
 | `docs/design/AXIOM_LAYER_VALIDATION_MATRIX.md` | fila SYNC dividida: `SYNC-analytic` (referencia, no motor) + `SYNC-ECS (L2×N)` |
 | `docs/arquitectura/ADR/ADR-046-...md` | §10 llenado **sólo** con los números analíticos; §9 anotada "Fase 4 ejecutada vía ADR-047" |
@@ -254,11 +255,11 @@ cotas derivadas (1, 50); los umbrales S fueron propuestos analíticamente y
   `frequency_std` (n−1 vs n, n<2, no-finitos, invarianza a traslación, valor
   conocido), `frequency_collapse_s` (colapso total, sin cambio, σ₀≤0,
   no-finitos, clamp al crecer), `sync_ecs_verdict` (boundary).
-- **Integration** (`cargo test --test emergence_ecs`): guards estructurales
+- **Integration** (`cargo test --test axioms emergence_ecs::`): guards estructurales
   (king-graph sin truncación, A2 sin vecinos, población no rectificada),
   acoplado colapsa en 5 seeds, A1 y A2 bit-idénticos, veredicto por ablación,
   reproducibilidad bit a bit.
-- **Gate** (`cargo test --test r10_emergence_gates`): rangos + consistencia de
+- **Gate** (`cargo test --test axioms r10_emergence_gates::`): rangos + consistencia de
   derivación + `center − 3·spread > 0` + boundary de `sync_ecs_verdict`.
 
 ## 9. Qué NO es este ADR / decisión revisable cuando
@@ -284,7 +285,7 @@ cotas derivadas (1, 50); los umbrales S fueron propuestos analíticamente y
 
 **PASS — H0 refutada para el motor real. Ax6 medido sobre L2×N.**
 
-Medido con `cargo test --test emergence_ecs -- --nocapture --test-threads=1`
+Medido con `cargo test --test axioms emergence_ecs:: -- --nocapture --test-threads=1`
 (N=64 en grilla 8×8, ω ~ N(75, 8) Hz, 400 ticks de `Update`, tres Apps por seed).
 Runtime de las 8 pruebas: **1.20 s** (criterio §8: < 60 s, sin GPU, un solo binario).
 
@@ -307,7 +308,7 @@ Runtime de las 8 pruebas: **1.20 s** (criterio §8: < 60 s, sin GPU, un solo bin
    + guard corren cada tick) y aun así el resultado es idéntico al de A1.
 4. ✅ Determinismo bit a bit entre dos corridas de la seed 11 (hash ω(0), hash ω(T)
    y `S.to_bits()` idénticos).
-5. ✅ `cargo test --test r10_emergence_gates` 16/16 con los 9 gates `SYNC_ECS_*`
+5. ✅ `cargo test --test axioms r10_emergence_gates::` 16/16 con los 9 gates `SYNC_ECS_*`
    nuevos (rangos, derivación `spread = ratio × lock`, cotas (1, 50) del ratio,
    `center − 3·spread > 0`, gap, boundary del verdict).
 6. ✅ Guards estructurales verdes: king-graph **sin truncación** (interiores con

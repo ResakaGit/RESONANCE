@@ -92,7 +92,7 @@ Si alchemical reproduce PV-1..6 y mass-action es un modelo específico limitado:
 
 ## 5. Criterios de aceptación para cerrar el ADR
 
-- [x] Spike AI-3 corrido (4 tests `#[ignore]` en `tests/chemistry_equivalence.rs`)
+- [x] Spike AI-3 corrido (4 tests `#[ignore]` en `tests/axioms/chemistry_equivalence.rs`)
 - [x] CSV `target/ai3_dissipation_curve.csv` generado (21 samples × 1000 ticks formose+spot)
 - [x] Validación cuantitativa de invariantes axiomáticas (Ax 4 monotonicidad, Ax 5 conservación bridge)
 - [x] Veredicto: **Camino 1 (coexistencia)** — escrito abajo en §10
@@ -102,7 +102,7 @@ Si alchemical reproduce PV-1..6 y mass-action es un modelo específico limitado:
 
 ### Resultados
 
-`cargo test --release --test chemistry_equivalence -- --ignored --nocapture`
+`cargo test --release --test axioms chemistry_equivalence:: -- --ignored --nocapture`
 sobre formose seed=0 spot=2 qe=50 ticks=1000 grid=16×16:
 
 | Test | Resultado | Evidencia |

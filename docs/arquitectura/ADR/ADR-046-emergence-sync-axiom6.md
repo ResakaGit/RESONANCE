@@ -12,7 +12,7 @@ la Fase 4 de §3/§9: el mismo axioma sobre el `entrainment_system` ECS real)
   - `src/blueprint/equations/emergence/synchronization.rs` — order parameter + paso mean-field
   - `src/blueprint/constants/synchronization_a6.rs` — umbrales
   - `src/use_cases/experiments/emergence_sync.rs` — experimento Config→Report
-  - `tests/emergence_sync.rs`, `tests/r10_emergence_gates.rs`
+  - `tests/axioms/emergence_sync.rs`, `tests/axioms/r10_emergence_gates.rs`
 
 El Axioma 6 ("Emergence at Scale — el comportamiento a escala N es consecuencia de
 N−1, sin programación top-down") era el **único axioma sin prueba**. La matriz
@@ -47,7 +47,7 @@ rotante. Determinista (PCG interno, sin `rand`).
 2. Run A (acoplado): integrar `dθ_i = ω_i + K·R·sin(ψ−θ_i)`; medir `R(t)`.
 3. Run B (ablado): **mismo estado inicial**, `K = 0`; medir `R(t)`.
 4. Veredicto: `emergence_sync_verdict(r_final, r_final_ablated)`.
-5. Gate: `tests/r10_emergence_gates.rs` valida consistencia de umbrales + boundary.
+5. Gate: `tests/axioms/r10_emergence_gates.rs` valida consistencia de umbrales + boundary.
 
 ## 3. Decisión y alternativas
 
@@ -102,16 +102,16 @@ como Fase 4 opcional.
 | `src/blueprint/equations/emergence/synchronization.rs` | NUEVO — R + step mean-field + verdict |
 | `src/blueprint/constants/synchronization_a6.rs` | NUEVO — 6 constantes |
 | `src/use_cases/experiments/emergence_sync.rs` | NUEVO — SyncConfig/SyncReport/run |
-| `tests/emergence_sync.rs` | NUEVO — prueba de emergencia + control negativo |
-| `tests/r10_emergence_gates.rs` | NUEVO — gates de umbral + boundary |
+| `tests/axioms/emergence_sync.rs` | NUEVO — prueba de emergencia + control negativo |
+| `tests/axioms/r10_emergence_gates.rs` | NUEVO — gates de umbral + boundary |
 | `emergence/mod.rs`, `constants/mod.rs`, `experiments/mod.rs` | + registro de módulos |
 | `docs/design/AXIOM_LAYER_VALIDATION_MATRIX.md` | + fila/ficha SYNC, Ax6 medible |
 
 ## 8. Tests
 
 - **Unit** (`emergence::synchronization`): R de fases idénticas/antifase/uniformes, invarianza rotacional, ψ, paso mean-field, verdict.
-- **Integration** (`--test emergence_sync`): acoplado sincroniza, ablado no (control negativo causal), gap decisivo, reproducible sobre 5 seeds.
-- **Gate** (`--test r10_emergence_gates`): umbrales en rango + consistencia gap + boundary del verdict.
+- **Integration** (`--test axioms emergence_sync::`): acoplado sincroniza, ablado no (control negativo causal), gap decisivo, reproducible sobre 5 seeds.
+- **Gate** (`--test axioms r10_emergence_gates::`): umbrales en rango + consistencia gap + boundary del verdict.
 
 ## 9. Decisión revisable cuando
 
@@ -147,9 +147,9 @@ esperado (`1/√256 = 0.0625`; media observada 0.0560) — es decir, **no queda
 orden residual** al apagar la regla: lo que sobra es ruido estadístico de
 muestra finita, no estructura.
 
-Verificado además por `cargo test --test emergence_sync` (4/4: acoplado
-sincroniza, ablado no, gap decisivo, 5 seeds) y `cargo test --test
-r10_emergence_gates` (16/16, incluye los gates `SYNC_ECS_*` de ADR-047).
+Verificado además por `cargo test --test axioms emergence_sync::` (4/4: acoplado
+sincroniza, ablado no, gap decisivo, 5 seeds) y `cargo test --test axioms
+r10_emergence_gates::` (16/16, incluye los gates `SYNC_ECS_*` de ADR-047).
 
 **Nota de reproducibilidad:** estos números son **posteriores** al fix del stream
 PCG de `init_state` (`use_cases/experiments/emergence_sync.rs`, ver ADR-047 §7):

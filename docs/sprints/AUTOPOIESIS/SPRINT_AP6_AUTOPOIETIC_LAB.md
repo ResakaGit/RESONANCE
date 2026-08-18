@@ -149,7 +149,7 @@ empírica que pertenece a un sprint de continuación.
 
 ### F-2 · AP-5 proptest falla en seed=9 (pre-existing)
 
-Ejecutar `cargo test --release --test property_autopoiesis` actualmente
+Ejecutar `cargo test --release --test axioms property_autopoiesis::` actualmente
 reporta `surviving_closures_satisfy_persistence_contract` FAILED
 (`seed=9`: `k_mean=0.0002`, `pressure_events=0`).  Reproduce en main
 sin modificaciones de este sprint — deuda heredada, no regresión.

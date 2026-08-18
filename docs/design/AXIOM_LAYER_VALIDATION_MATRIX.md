@@ -62,7 +62,7 @@ barato que lo cierra**:
 | **Estructural** (E) | Invariante codificada en el tipo/constructor (clamp, `pub(crate)`, enum exhaustivo) | leer componente + confirmar clamp/getter | 0 (estático) |
 | **Derivacional** (D) | Consume constantes que deben derivar de las 4 fundamentales, sin números mágicos | grep de literales + trazar símbolo a `derived_thresholds.rs`/`constants/*` | 0 (estático) |
 | **Comportamental** (C) | Invariante sólo se sostiene en la transformación (system o fn pura) | `cargo test --lib <módulo de equations>` | Bajo (lib, sin runtime) |
-| **Compositional** (K) | Requiere componer 2+ axiomas (cross-layer, AXIOMATIC_CLOSURE) | `cargo test --test <archivo>` puntual (último recurso) | Medio |
+| **Compositional** (K) | Requiere componer 2+ axiomas (cross-layer, AXIOMATIC_CLOSURE) | `cargo test --test <suite> <mod>::` puntual (último recurso) | Medio |
 
 **Regla de oro:** subir un escalón sólo cuando el anterior no puede cerrar el
 par. La mayoría se cierran en E/D = costo cero.
@@ -77,7 +77,7 @@ par. La mayoría se cierran en E/D = costo cero.
 | 1 | **Auditoría por grep** — invariantes negativas (ver abajo) | pares D + Hard Blocks | 0 |
 | 2 | **`cargo check --lib`** — type-check, un build compartido, sin test-binaries ni wgpu | "compila con la forma esperada" | Bajo |
 | 3 | **`cargo test --lib <ruta::módulo>`** — unit tests de math pura de un módulo | pares C | Bajo |
-| 4 | **`cargo test --test <archivo>`** (excepcional, uno a la vez, `PROPTEST_CASES=8`) | pares K | Medio |
+| 4 | **`cargo test --test <suite> <mod>::`** (excepcional, un módulo a la vez, `PROPTEST_CASES=8`) | pares K | Medio |
 
 **Paso 1 — grep de invariantes negativas** (sin compilar):
 - `NO números mágicos`: literal float en `layers/` que no cite su derivación.
@@ -232,7 +232,7 @@ valida · hallazgo**. El estado `PENDING` se resuelve con Fase B (pasos 2-3).
 - **Ax4 (D PASS):** `REACTION_EFFICIENCY = 1 - DISSIPATION_LIQUID` (`chemistry.rs:34`); `SPECIES_DIFFUSION_RATE = DISSIPATION_LIQUID` (`:37`, Ax7).
 - **Ax5 (C PASS):** conservación global de qe validada por `tests/chemistry_equivalence.rs`; `seed` clampa `max(0.0)` (`species_grid.rs:118`).
 - **Ax2 (C PASS):** `from_spec`/`from_reactions` validan `MAX_*` y `is_well_formed`.
-- **Comando:** `cargo test --test chemistry_equivalence` (paso 4, sólo si es necesario).
+- **Comando:** `cargo test --test axioms chemistry_equivalence::` (paso 4, sólo si es necesario).
 
 ### AI · species_to_qe + autopoiesis_bridge — `src/simulation/{species_to_qe,autopoiesis_bridge}.rs`
 - **Invariante:** puente AP↔ECS; conserva energía al inyectar qe y al spawnear hijos.
@@ -256,7 +256,7 @@ valida · hallazgo**. El estado `PENDING` se resuelve con Fase B (pasos 2-3).
   `R` es **observación pasiva**: no altera estado, sólo mide.
 - **Ax8 (C PASS):** `R = |Σ e^{iθ}|` usa la misma álgebra `cos/sin` del sustrato
   oscilatorio; el acoplamiento es consecuencia de Ax8 (entrainment AC-2).
-- **Comando:** `cargo test --lib blueprint::equations::emergence::synchronization` · `cargo test --test emergence_sync` · `cargo test --test r10_emergence_gates`.
+- **Comando:** `cargo test --lib blueprint::equations::emergence::synchronization` · `cargo test --test axioms emergence_sync::` · `cargo test --test axioms r10_emergence_gates::`.
 
 ### SYNC-ECS · `entrainment_system` sobre L2×N — `simulation/emergence/entrainment.rs` + `tests/emergence_ecs.rs`
 - **Alcance:** corre **el system real** (la misma fn que registra `AtomicPlugin`)
@@ -278,7 +278,7 @@ valida · hallazgo**. El estado `PENDING` se resuelve con Fase B (pasos 2-3).
   NO se mide aquí — con el decay solo el sistema aún convergería (`K_eff(36) ≈ 0.0075`).
   Un barrido S(spacing) intra-rango queda como extensión (ADR-047 §9). Ax7 ya está
   cerrado en L8/L11/L13.
-- **Comando:** `cargo test --test emergence_ecs` (1.2 s, sin GPU) · `cargo test --test r10_emergence_gates`.
+- **Comando:** `cargo test --test axioms emergence_ecs::` (1.2 s, sin GPU) · `cargo test --test axioms r10_emergence_gates::`.
 
 ---
 
@@ -340,13 +340,14 @@ cargo test --lib simulation::species_to_qe                 # AI Ax7/8
 cargo test --lib simulation::autopoiesis_bridge            # AI Ax5
 cargo test --lib blueprint::equations::emergence::synchronization  # SYNC Ax6 (métrica)
 
-# Paso 4 — SÓLO si un par Compositional lo exige (uno a la vez)
-PROPTEST_CASES=8 cargo test --test property_conservation
-PROPTEST_CASES=8 cargo test --test chemistry_equivalence
-cargo test --test r1_conservation
-cargo test --test emergence_ecs        # SYNC-ECS: L2×Ax6 sobre el motor (1.2 s)
-cargo test --test emergence_sync       # SYNC-analytic: referencia Kuramoto
-cargo test --test r10_emergence_gates  # gates SYNC_* + SYNC_ECS_*
+# Paso 4 — SÓLO si un par Compositional lo exige (un módulo a la vez)
+# Las 4 suites (ADR-048): axioms · probes · pipeline · platform
+PROPTEST_CASES=8 cargo test --test axioms property_conservation::
+PROPTEST_CASES=8 cargo test --test axioms chemistry_equivalence::
+cargo test --test axioms r1_conservation::
+cargo test --test axioms emergence_ecs::        # SYNC-ECS: L2×Ax6 sobre el motor (1.2 s)
+cargo test --test axioms emergence_sync::       # SYNC-analytic: referencia Kuramoto
+cargo test --test axioms r10_emergence_gates::  # gates SYNC_* + SYNC_ECS_*
 
 # Bajar pico de RAM si hace falta
 cargo test --lib <módulo> --jobs 1 -- --test-threads=1
@@ -356,5 +357,6 @@ cargo test --lib <módulo> --jobs 1 -- --test-threads=1
 ```
 
 **Contrato de costo:** la validación completa de cualquier capa por esta escalera
-**nunca pasa del paso 3** (lib), evitando el linkeo de ~30 test-binaries de
-integración contra Bevy. El paso 4 es excepcional y de un solo archivo.
+**nunca pasa del paso 3** (lib), evitando el linkeo de test-binaries de
+integración contra Bevy. El paso 4 es excepcional y de un solo módulo; desde
+ADR-048 cuesta 1-de-4 binarios posibles (antes 1-de-37).

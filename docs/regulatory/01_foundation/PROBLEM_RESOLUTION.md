@@ -206,7 +206,7 @@ Problem resolution follows the CAPA procedure (RD-5.7):
 | Regression test | `cargo test` --- full suite, 3,113 tests, 0 failures | All resolutions |
 | Specific test | New test written to reproduce the original problem and confirm the fix prevents recurrence | All code fixes |
 | Grep verification | `grep -rn "{pattern}" src/ --include="*.rs"` to confirm absence of problematic pattern | Hard block violations, axiom violations |
-| Property test | `cargo test --test property_conservation` for conservation-related fixes | Conservation, pool invariant fixes |
+| Property test | `cargo test --test axioms property_conservation::` for conservation-related fixes | Conservation, pool invariant fixes |
 | Bozic validation | `cargo run --release --bin bozic_validation` for drug model fixes | Drug model fixes |
 | Determinism check | Two runs with identical config produce identical output | Any fix touching simulation logic |
 | Document review | Affected regulatory documents reviewed for consistency | Documentation fixes, design changes |

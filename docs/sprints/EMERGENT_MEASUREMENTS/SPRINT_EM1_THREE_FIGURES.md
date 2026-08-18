@@ -150,8 +150,8 @@ Si las 3 salen: primer resultado cross-scale publicable. Si alguna **no** sale, 
 - **Acceptance (verificado):**
   - `cargo run --bin measure_emergence -- <seed> 256 2000` imprime VERDICT PASS. ✅
   - `R_final > 0.5`, `R_ablated < 0.1`, gap `> 0.4` en 6/6 seeds (11, 1, 2, 3, 100, 777). ✅ Medido: `R_final = 0.9619`, `R_ablated = 0.0560`, gap `0.9059` (medias); el ablado se sienta sobre el piso de N finito `1/√256 = 0.0625`.
-  - Reproducible sobre 5 seeds (`tests/emergence_sync.rs`, 4/4). ✅
-  - Gate de umbrales consistente (`tests/r10_emergence_gates.rs`, 16/16). ✅
+  - Reproducible sobre 5 seeds (`tests/axioms/emergence_sync.rs`, 4/4). ✅
+  - Gate de umbrales consistente (`tests/axioms/r10_emergence_gates.rs`, 16/16). ✅
 - **Out of scope:** transición crítica `R(K)` (barrido de acoplamiento); ruido térmico; corroboración con el `entrainment_system` ECS (Fase 4 opcional del plan → **ejecutada como ítem EM-1.5**, no retro-expandida aquí).
 
 ### 1. Contexto
@@ -165,8 +165,8 @@ Si las 3 salen: primer resultado cross-scale publicable. Si alguna **no** sale, 
 
 ### 3. How tested
 - Unit: `cargo test --lib blueprint::equations::emergence::synchronization` (10 tests de este ítem: R, paso mean-field, verdict; el módulo hoy corre 25 — los 15 restantes son de EM-1.5).
-- Integration: `cargo test --test emergence_sync` (acoplado sincroniza, ablado no, gap, multi-seed).
-- Gate: `cargo test --test r10_emergence_gates`.
+- Integration: `cargo test --test axioms emergence_sync::` (acoplado sincroniza, ablado no, gap, multi-seed).
+- Gate: `cargo test --test axioms r10_emergence_gates::`.
 
 ### 4. Entrega adicional (fuera de la DoD original del sprint)
 - Fila `SYNC-analytic` en `docs/design/AXIOM_LAYER_VALIDATION_MATRIX.md` — declarada explícitamente como **referencia, no motor**. (La redacción original, "cierra el primer par (Capa, Ax6) medible", era un sobreclaim: ese par lo cierra EM-1.5.)
@@ -183,11 +183,11 @@ Si las 3 salen: primer resultado cross-scale publicable. Si alguna **no** sale, 
   - **A1 (regla):** el system no se agrega al schedule → contrafáctico N−1→N puro.
   - **A2 (alcance):** system **ACTIVO**, población a `3 × ENTRAINMENT_SCAN_RADIUS` → el broadphase devuelve vecindad vacía y la regla corre en el vacío. Prueba que el orden exige *interacción efectiva*, no la mera presencia del código en el schedule. El supresor es el **cutoff duro** del radio de scan, no la atenuación continua (con el decay solo, `K_eff(36) ≈ 0.0075` y el sistema aún convergería → el control fallaría).
 - **Acceptance (verificado):**
-  - `cargo test --test emergence_ecs` PASS en **1.20 s**, sin GPU, un solo test target. ✅
+  - `cargo test --test axioms emergence_ecs::` PASS en **1.20 s**, sin GPU, un solo test target. ✅
   - Acoplado `S ≥ SYNC_ECS_S_PASS_MIN (0.5)` en **5/5 seeds**. ✅ Medido: 0.8595 / 0.8739 / 0.8475 / 0.7881 / 0.8667 (media 0.847, mín 0.788).
   - A1 y A2: identidad **bit a bit** de ω(0) vs ω(T) vía `hash_f32_slice` → `S == 0.0` exacto en 5/5 seeds. ✅
   - Determinismo bit a bit entre corridas repetidas. ✅
-  - `cargo test --test r10_emergence_gates` verde con los 9 gates `SYNC_ECS_*` nuevos (16/16). ✅
+  - `cargo test --test axioms r10_emergence_gates::` verde con los 9 gates `SYNC_ECS_*` nuevos (16/16). ✅
 - **Out of scope:** pipeline completo (`AtomicPlugin` + fases + run-conditions); transición crítica `R(K)`; atenuación **continua** de Ax7 (barrido S(spacing) intra-rango); régimen de truncación de vecinos (>8 candidatos y su sesgo por spawn index — el spacing 8 se elige justamente para excluirlo).
 
 ### 1. Contexto
@@ -205,9 +205,9 @@ Si las 3 salen: primer resultado cross-scale publicable. Si alguna **no** sale, 
 
 ### 3. How tested
 - Unit: `cargo test --lib blueprint::equations::emergence::synchronization` — 25/25 (15 nuevos: σ n−1 vs n, no-finitos, invarianza a traslación, valor conocido; bordes de `frequency_collapse_s`; boundary del verdict).
-- Integration: `cargo test --test emergence_ecs` — 8/8 en 1.20 s (3 guards estructurales + acoplado 5 seeds + A1 + A2 + determinismo).
-- Gate: `cargo test --test r10_emergence_gates` — 16/16.
-- Referencia analítica: `cargo test --test emergence_sync` — 4/4 (post-fix del stream PCG).
+- Integration: `cargo test --test axioms emergence_ecs::` — 8/8 en 1.20 s (3 guards estructurales + acoplado 5 seeds + A1 + A2 + determinismo).
+- Gate: `cargo test --test axioms r10_emergence_gates::` — 16/16.
+- Referencia analítica: `cargo test --test axioms emergence_sync::` — 4/4 (post-fix del stream PCG).
 
 ### 4. Resultado y lectura
 - **PASS.** `S` acoplado 0.788–0.874; ablados `S == 0` exacto en ambas condiciones y las 5 seeds. Detalle por seed en ADR-047 §10.

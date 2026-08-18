@@ -26,6 +26,9 @@ vivas a otras para cosechar periódicamente (agricultura).
 | [TU-3](SPRINT_TU3_FARMING.md) | Farming | 1 sem | TU-1 | SymbiosisLink mode: "harvest without killing" |
 | [TU-4](SPRINT_TU4_BATCH_WIRING.md) | Batch Integration | 1 sem | TU-2, TU-3 | Tool use + farming en batch + tool_use_rate observable |
 
+**Fuera del backlog de simulación:** [SPRINT_TU_TEST_CONSOLIDATION](SPRINT_TU_TEST_CONSOLIDATION.md)
+— tooling de desarrollo (ejecución de ADR-048, `tests/` 37 → 6 targets). DONE 2026-08-18.
+
 ## Arquitectura
 
 ```

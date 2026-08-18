@@ -198,7 +198,7 @@ This executes 3,113 tests covering:
 
 | Change Domain | Additional Regression |
 |---------------|----------------------|
-| `blueprint/equations/` | Run property tests: `cargo test --test property_conservation` |
+| `blueprint/equations/` | Run property tests: `cargo test --test axioms property_conservation::` |
 | `blueprint/constants/` | Verify derived thresholds: `cargo test derived_thresholds` |
 | `batch/` | Run batch benchmark: `cargo bench --bench batch_benchmark` |
 | Drug models | Run Bozic validation: `cargo run --release --bin bozic_validation` |

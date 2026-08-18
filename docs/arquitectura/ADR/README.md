@@ -57,3 +57,9 @@ Key design decisions for the RESONANCE project. ADR-001 through ADR-008 cover re
 |-----|-------|--------|------|
 | [046](ADR-046-emergence-sync-axiom6.md) | Prueba de emergencia (Ax6) · order parameter de Kuramoto + ablación causal | Aceptado | 2026-07-09 |
 | [047](ADR-047-ax6-ecs-emergence-probe.md) | Prueba comportamental de Ax6 sobre el motor real (`entrainment_system` ECS) | Aceptado | 2026-08-17 |
+
+## Infraestructura de test (ADR-048+)
+
+| ADR | Title | Status | Date |
+|-----|-------|--------|------|
+| [048](ADR-048-test-suite-consolidation.md) | Consolidación de test binaries · 37 → 6 targets (4 suites + 2 gated) | Aceptado | 2026-08-18 |
